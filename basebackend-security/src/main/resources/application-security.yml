@@ -1,0 +1,6 @@
+# JWT 配置
+jwt:
+  # 密钥（生产环境请使用更安全的密钥，并从环境变量或配置中心获取）
+  secret: basebackend-secret-key-for-jwt-token-generation-minimum-256-bits
+  # 过期时间（毫秒）24小时
+  expiration: 86400000

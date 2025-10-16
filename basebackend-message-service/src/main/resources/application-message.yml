@@ -1,0 +1,27 @@
+# RocketMQ 配置
+rocketmq:
+  # NameServer 地址
+  name-server: localhost:9876
+  # 生产者配置
+  producer:
+    # 生产者组
+    group: basebackend-producer-group
+    # 发送消息超时时间（毫秒）
+    send-message-timeout: 3000
+    # 消息最大长度（字节）
+    max-message-size: 4194304
+    # 发送失败重试次数
+    retry-times-when-send-failed: 2
+    # 异步发送失败重试次数
+    retry-times-when-send-async-failed: 2
+
+# 消费者配置示例（在具体的消费者中通过注解配置）
+# rocketmq:
+#   consumer:
+#     # 消费者组
+#     group: basebackend-consumer-group
+#     # 消费线程数
+#     consume-thread-min: 20
+#     consume-thread-max: 64
+#     # 消费超时时间（分钟）
+#     consume-timeout: 15
