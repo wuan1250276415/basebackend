@@ -3,7 +3,7 @@ package com.basebackend.security.filter;
 import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
-import com.basebackend.security.util.JwtUtil;
+import com.basebackend.jwt.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

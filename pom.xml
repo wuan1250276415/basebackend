@@ -15,6 +15,7 @@
 
     <modules>
         <module>basebackend-common</module>
+        <module>basebackend-jwt</module>
         <module>basebackend-database</module>
         <module>basebackend-cache</module>
         <module>basebackend-logging</module>
@@ -22,7 +23,9 @@
         <module>basebackend-observability</module>
         <module>basebackend-message-service</module>
         <module>basebackend-file-service</module>
+        <module>basebackend-nacos</module>
         <module>basebackend-gateway</module>
+        <module>basebackend-demo-api</module>
     </modules>
 
     <properties>
@@ -32,8 +35,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Spring Boot -->
-        <spring-boot.version>3.2.0</spring-boot.version>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <spring-boot.version>3.1.5</spring-boot.version>
+        <spring-cloud.version>2022.0.4</spring-cloud.version>
+        
+        <!-- Nacos -->
+        <nacos.version>3.1.0</nacos.version>
 
         <!-- Database -->
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
@@ -41,7 +47,7 @@
         <druid.version>1.2.20</druid.version>
 
         <!-- Cache -->
-        <redisson.version>3.25.2</redisson.version>
+        <redisson.version>3.24.3</redisson.version>
 
         <!-- Message -->
         <rocketmq.version>2.2.3</rocketmq.version>
@@ -78,6 +84,15 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Nacos -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2022.0.0.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

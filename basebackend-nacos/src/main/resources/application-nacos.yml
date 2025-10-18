@@ -1,0 +1,51 @@
+# Nacos 统一配置
+nacos:
+  enabled: true
+  discovery:
+    enabled: true
+    server-addr: ${NACOS_SERVER_ADDR:localhost:28080}
+    namespace: ${NACOS_NAMESPACE:public}
+    group: ${NACOS_GROUP:DEFAULT_GROUP}
+    service-name: ${spring.application.name}
+    weight: 1.0
+  config:
+    enabled: true
+    server-addr: ${NACOS_SERVER_ADDR:localhost:28080}
+    namespace: ${NACOS_NAMESPACE:public}
+    group: ${NACOS_GROUP:DEFAULT_GROUP}
+    file-extension: yml
+    import-check:
+      enabled: true
+
+# Spring Cloud 配置
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${nacos.discovery.server-addr}
+        namespace: ${nacos.discovery.namespace}
+        group: ${nacos.discovery.group}
+        metadata:
+          version: 1.0.0
+          region: beijing
+          weight: ${nacos.discovery.weight}
+      config:
+        server-addr: ${nacos.config.server-addr}
+        namespace: ${nacos.config.namespace}
+        group: ${nacos.config.group}
+        file-extension: ${nacos.config.file-extension}
+        import-check:
+          enabled: ${nacos.config.import-check.enabled}
+        shared-configs:
+          - data-id: common-config.yml
+            group: ${nacos.discovery.group}
+            refresh: true
+          - data-id: ${spring.application.name}-config.yml
+            group: ${nacos.discovery.group}
+            refresh: true
+
+# 日志配置
+logging:
+  level:
+    com.alibaba.cloud.nacos: DEBUG
+    com.basebackend.nacos: DEBUG

@@ -1,8 +1,7 @@
-package com.basebackend.security.util;
+package com.basebackend.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +13,10 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * JWT 工具类
+ * JWT 工具类 - 统一的JWT生成和验证
+ *
+ * 此工具类被Gateway和各个微服务共享使用，确保Token的生成和验证逻辑完全一致
+ * 不依赖Spring Security，可以在WebFlux和Spring MVC环境中使用
  */
 @Slf4j
 @Component
@@ -51,10 +53,11 @@ public class JwtUtil {
                 .subject(subject)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSecretKey(), SignatureAlgorithm.HS256);
+                .signWith(getSecretKey());
 
         if (claims != null && !claims.isEmpty()) {
-            builder.claims(claims);
+            // 先添加自定义claims，再设置subject和时间，避免被覆盖
+            builder.claims().add(claims);
         }
 
         return builder.compact();
@@ -109,6 +112,32 @@ public class JwtUtil {
         if (claims == null) {
             return null;
         }
-        return generateToken(claims.getSubject());
+        // 保留原有的自定义claims
+        Map<String, Object> customClaims = new java.util.HashMap<>(claims);
+        customClaims.remove("sub");
+        customClaims.remove("iat");
+        customClaims.remove("exp");
+
+        return generateToken(claims.getSubject(), customClaims);
+    }
+
+    /**
+     * 获取Token过期时间
+     */
+    public Date getExpirationDateFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims != null ? claims.getExpiration() : null;
+    }
+
+    /**
+     * 检查Token是否即将过期（1小时内）
+     */
+    public boolean isTokenExpiringSoon(String token) {
+        Date expirationDate = getExpirationDateFromToken(token);
+        if (expirationDate == null) {
+            return true;
+        }
+        long diff = expirationDate.getTime() - System.currentTimeMillis();
+        return diff < 3600000; // 1小时
     }
 }

@@ -28,6 +28,7 @@ redisson:
   # 单机模式
   single-server-config:
     address: "redis://localhost:6379"
+    password: redis_ZJGE42
     database: 0
     connection-pool-size: 64
     connection-minimum-idle-size: 10

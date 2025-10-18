@@ -1,32 +1,9 @@
+# Gateway 专用配置
 server:
   port: 8180
 
 spring:
-  application:
-    name: basebackend-gateway
   cloud:
-    nacos:
-      discovery:
-        server-addr: localhost:8848
-        namespace: public
-        group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
-        metadata:
-          version: 1.0.0
-          region: beijing
-      config:
-        server-addr: localhost:8848
-        namespace: public
-        group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
-        file-extension: yml
-        import-check:
-          enabled: false
-    loadbalancer:
-      ribbon:
-        enabled: false
     gateway:
       # 路由配置
       routes:
@@ -34,7 +11,7 @@ spring:
         - id: basebackend-demo-api
           uri: lb://basebackend-demo-api
           predicates:
-            - Path=/basebackend-demo-api/api/**
+            - Path=/api/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
         # 文件服务路由
@@ -73,15 +50,9 @@ spring:
       password: redis_ZJGE42
       database: 0
 
-# JWT配置 - 必须与demo-api保持一致
-jwt:
-  secret: basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required
-  expiration: 86400000  # 24小时
-
 # 日志配置
 logging:
   level:
     org.springframework.cloud.gateway: INFO
     com.basebackend.gateway: DEBUG
-    com.basebackend.jwt: DEBUG
     com.alibaba.cloud.nacos: DEBUG

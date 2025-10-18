@@ -3,7 +3,7 @@ package com.basebackend.gateway.filter;
 import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
-import com.basebackend.security.util.JwtUtil;
+import com.basebackend.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -39,7 +39,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 白名单路径
      */
     private static final List<String> WHITELIST = Arrays.asList(
-            "/api/auth/**",
+            "/basebackend-demo-api/api/auth/**",
             "/api/public/**",
             "/actuator/**"
     );
@@ -49,8 +49,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().toString();
 
+        log.debug("认证过滤器 - 请求路径: {}, 方法: {}", path, request.getMethod());
+
         // 检查是否在白名单中
         if (isWhitelist(path)) {
+            log.debug("路径 {} 在白名单中，跳过认证", path);
             return chain.filter(exchange);
         }
 
@@ -58,12 +61,20 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         String token = getTokenFromRequest(request);
 
         // 验证Token
-        if (!StringUtils.hasText(token) || !jwtUtil.validateToken(token)) {
+        if (!StringUtils.hasText(token)) {
+            log.warn("请求路径 {} 缺少Token", path);
+            return unauthorized(exchange.getResponse(), "认证失败，缺少Token");
+        }
+
+        if (!jwtUtil.validateToken(token)) {
+            log.warn("请求路径 {} 的Token无效", path);
             return unauthorized(exchange.getResponse(), "认证失败，Token无效");
         }
 
         // 从Token中获取用户信息并添加到请求头
         String subject = jwtUtil.getSubjectFromToken(token);
+        log.debug("Token验证成功，用户: {}", subject);
+
         ServerHttpRequest mutatedRequest = request.mutate()
                 .header("X-User-Id", subject)
                 .build();
@@ -75,7 +86,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 检查路径是否在白名单中
      */
     private boolean isWhitelist(String path) {
-        return WHITELIST.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+        boolean result = WHITELIST.stream().anyMatch(pattern -> {
+            boolean matches = pathMatcher.match(pattern, path);
+            log.debug("路径匹配检查: 模式={}, 路径={}, 匹配={}", pattern, path, matches);
+            return matches;
+        });
+        return result;
     }
 
     /**

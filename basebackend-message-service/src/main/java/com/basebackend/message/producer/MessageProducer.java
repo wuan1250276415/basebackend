@@ -3,7 +3,10 @@ package com.basebackend.message.producer;
 import com.alibaba.fastjson2.JSON;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(RocketMQTemplate.class)
 public class MessageProducer {
 
     private final RocketMQTemplate rocketMQTemplate;
@@ -44,16 +48,16 @@ public class MessageProducer {
     public void sendAsyncMessage(String topic, Object message) {
         try {
             String jsonMessage = JSON.toJSONString(message);
-            rocketMQTemplate.asyncSend(topic, jsonMessage, new org.apache.rocketmq.spring.core.RocketMQLocalTransactionListener() {
+            rocketMQTemplate.asyncSend(topic, jsonMessage, new SendCallback() {
                 @Override
-                public org.apache.rocketmq.spring.support.RocketMQLocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-                    log.info("发送异步消息成功，Topic: {}, Message: {}", topic, jsonMessage);
-                    return org.apache.rocketmq.spring.support.RocketMQLocalTransactionState.COMMIT;
+                public void onSuccess(SendResult sendResult) {
+                    log.info("发送异步消息成功，Topic: {}, Message: {}, MessageId: {}",
+                        topic, jsonMessage, sendResult.getMsgId());
                 }
 
                 @Override
-                public org.apache.rocketmq.spring.support.RocketMQLocalTransactionState checkLocalTransaction(Message msg) {
-                    return org.apache.rocketmq.spring.support.RocketMQLocalTransactionState.COMMIT;
+                public void onException(Throwable throwable) {
+                    log.error("发送异步消息失败，Topic: {}, Message: {}", topic, jsonMessage, throwable);
                 }
             });
         } catch (Exception e) {
