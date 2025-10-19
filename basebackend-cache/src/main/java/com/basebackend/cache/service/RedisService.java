@@ -38,6 +38,31 @@ public class RedisService {
     }
 
     /**
+     * 设置缓存并指定过期时间（秒）
+     */
+    public void set(String key, Object value, long seconds) {
+        redisTemplate.opsForValue().set(key, value, seconds, TimeUnit.SECONDS);
+    }
+ 
+    /**
+     * 获取所有符合pattern的key集合
+     */
+    public Set<String> keys(String pattern) {
+        return redisTemplate.keys(pattern);
+    }
+
+    /**
+     * 获取缓存，返回List<Object>
+     */
+    @SuppressWarnings("unchecked")
+    public List<Object> getList(String key) {
+        Object value = redisTemplate.opsForValue().get(key);
+        if (value instanceof List) {
+            return (List<Object>) value;
+        }
+        return null;
+    }
+    /**
      * 获取缓存
      */
     public Object get(String key) {

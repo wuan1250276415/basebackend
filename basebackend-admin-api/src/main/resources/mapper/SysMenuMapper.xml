@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.admin.mapper.SysMenuMapper">
+
+    <!-- 根据用户ID查询菜单列表 -->
+    <select id="selectMenusByUserId" resultType="com.basebackend.admin.entity.SysMenu">
+        SELECT DISTINCT m.*
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND m.status = 1
+        AND m.deleted = 0
+        ORDER BY m.order_num
+    </select>
+
+    <!-- 根据角色ID查询菜单列表 -->
+    <select id="selectMenusByRoleId" resultType="com.basebackend.admin.entity.SysMenu">
+        SELECT m.*
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id = #{roleId}
+        AND m.status = 1
+        AND m.deleted = 0
+        ORDER BY m.order_num
+    </select>
+
+    <!-- 根据父菜单ID查询子菜单数量 -->
+    <select id="selectCountByParentId" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_menu
+        WHERE parent_id = #{parentId}
+        AND deleted = 0
+    </select>
+
+    <!-- 查询菜单树列表 -->
+    <select id="selectMenuTreeList" resultType="com.basebackend.admin.entity.SysMenu">
+        SELECT *
+        FROM sys_menu
+        WHERE deleted = 0
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据用户ID查询权限列表 -->
+    <select id="selectPermsByUserId" resultType="java.lang.String">
+        SELECT DISTINCT m.perms
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND m.status = 1
+        AND m.deleted = 0
+        AND m.perms IS NOT NULL
+        AND m.perms != ''
+    </select>
+
+    <!-- 根据角色ID查询权限列表 -->
+    <select id="selectPermsByRoleId" resultType="java.lang.String">
+        SELECT DISTINCT m.perms
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id = #{roleId}
+        AND m.status = 1
+        AND m.deleted = 0
+        AND m.perms IS NOT NULL
+        AND m.perms != ''
+    </select>
+
+    <!-- 检查菜单名称是否唯一 -->
+    <select id="checkMenuNameUnique" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_menu
+        WHERE menu_name = #{menuName}
+        AND parent_id = #{parentId}
+        AND deleted = 0
+        <if test="menuId != null">
+            AND id != #{menuId}
+        </if>
+    </select>
+
+    <!-- 根据菜单ID查询子菜单 -->
+    <select id="selectChildrenByMenuId" resultType="com.basebackend.admin.entity.SysMenu">
+        SELECT *
+        FROM sys_menu
+        WHERE parent_id = #{menuId}
+        AND deleted = 0
+        ORDER BY order_num
+    </select>
+
+</mapper>

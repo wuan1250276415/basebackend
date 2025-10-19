@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.admin.mapper.SysUserMapper">
+
+    <!-- 根据用户名查询用户 -->
+    <select id="selectByUsername" resultType="com.basebackend.admin.entity.SysUser">
+        SELECT 
+            id, username, password, nickname, email, phone, avatar, gender,
+            dept_id, user_type, status, login_time, create_time, update_time,
+            create_by, update_by, deleted
+        FROM sys_user 
+        WHERE username = #{username} 
+        AND deleted = 0
+    </select>
+
+    <!-- 根据用户ID查询用户角色列表 -->
+    <select id="selectUserRoles" resultType="java.lang.String">
+        SELECT r.role_key
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND r.status = 1
+        AND r.deleted = 0
+    </select>
+
+    <!-- 根据用户ID查询用户权限列表 -->
+    <select id="selectUserPermissions" resultType="java.lang.String">
+        SELECT DISTINCT p.permission_key
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp ON p.id = rp.permission_id
+        INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND p.status = 1
+        AND p.deleted = 0
+    </select>
+
+    <!-- 根据用户ID查询用户菜单列表 -->
+    <select id="selectUserMenus" resultType="java.lang.String">
+        SELECT DISTINCT m.menu_key
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND m.status = 1
+        AND m.deleted = 0
+        ORDER BY m.order_num
+    </select>
+
+    <!-- 根据部门ID查询用户列表 -->
+    <select id="selectUsersByDeptId" resultType="com.basebackend.admin.entity.SysUser">
+        SELECT 
+            id, username, password, nickname, email, phone, avatar, gender,
+            dept_id, user_type, status, login_time, create_time, update_time,
+            create_by, update_by, deleted
+        FROM sys_user 
+        WHERE dept_id = #{deptId}
+        AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据角色ID查询用户列表 -->
+    <select id="selectUsersByRoleId" resultType="com.basebackend.admin.entity.SysUser">
+        SELECT 
+            u.id, u.username, u.password, u.nickname, u.email, u.phone, u.avatar, u.gender,
+            u.dept_id, u.user_type, u.status, u.login_time, u.create_time, u.update_time,
+            u.create_by, u.update_by, u.deleted
+        FROM sys_user u
+        INNER JOIN sys_user_role ur ON u.id = ur.user_id
+        WHERE ur.role_id = #{roleId}
+        AND u.deleted = 0
+        ORDER BY u.create_time DESC
+    </select>
+
+</mapper>

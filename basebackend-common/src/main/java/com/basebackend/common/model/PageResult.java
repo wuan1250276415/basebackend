@@ -49,4 +49,18 @@ public class PageResult<T> implements Serializable {
         this.records = records;
         this.pages = (total + size - 1) / size;
     }
+
+    /**
+     * 静态工厂方法，用于创建PageResult实例
+     * 
+     * @param records 数据列表
+     * @param total 总记录数
+     * @param current 当前页码
+     * @param size 每页大小
+     * @param <T> 数据类型
+     * @return PageResult实例
+     */
+    public static <T> PageResult<T> of(List<T> records, Long total, Long current, Long size) {
+        return new PageResult<>(current, size, total, records);
+    }
 }

@@ -1,5 +1,5 @@
 server:
-  port: 8180
+  port: 8080
 
 spring:
   application:
@@ -37,6 +37,13 @@ spring:
             - Path=/basebackend-demo-api/api/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+        # admin-api服务路由（后台管理系统）
+        - id: admin-api
+          uri: lb://admin-api
+          predicates:
+            - Path=/admin-api/**
+          filters:
+            - StripPrefix=1
         # 文件服务路由
         - id: file-service
           uri: lb://file-service
@@ -71,7 +78,7 @@ spring:
       host: localhost
       port: 6379
       password: redis_ZJGE42
-      database: 0
+      database: 1
 
 # JWT配置 - 必须与demo-api保持一致
 jwt:

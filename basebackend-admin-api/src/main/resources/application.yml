@@ -1,0 +1,46 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: admin-api
+  profiles:
+    active: dev
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*.xml
+
+# 日志配置
+logging:
+  level:
+    com.basebackend.admin: debug
+    org.springframework.security: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# Knife4j配置
+knife4j:
+  enable: true
+  openapi:
+    title: 后台管理系统API
+    description: 基于RBAC权限模型的后台管理系统
+    version: 1.0.0
+    concat: admin@basebackend.com
+  setting:
+    language: zh_cn
+    enable-version: true
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-model-name: 实体类列表

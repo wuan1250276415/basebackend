@@ -10,6 +10,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -32,14 +33,22 @@ import java.util.List;
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
+    private final ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    private static final String LOGIN_TOKEN_KEY = "login_tokens:";
 
     /**
      * 白名单路径
      */
     private static final List<String> WHITELIST = Arrays.asList(
-            "/basebackend-demo-api/api/auth/**",
+            "/admin-api/api/admin/auth/**",
+            "/admin-api/swagger-ui/**",
+            "/admin-api/v3/api-docs/**",
+            "/admin-api/doc.html",
+            "/admin-api/webjars/**",
+            "/admin-api/favicon.ico",
             "/api/public/**",
             "/actuator/**"
     );
@@ -71,15 +80,43 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange.getResponse(), "认证失败，Token无效");
         }
 
-        // 从Token中获取用户信息并添加到请求头
-        String subject = jwtUtil.getSubjectFromToken(token);
-        log.debug("Token验证成功，用户: {}", subject);
+        // 从Token中获取用户名
+        String username = jwtUtil.getSubjectFromToken(token);
+        log.debug("Token验证成功，用户名: {}", username);
 
-        ServerHttpRequest mutatedRequest = request.mutate()
-                .header("X-User-Id", subject)
-                .build();
+        // 检查Redis中的Token是否存在（防止强制下线后仍能访问）
+        String redisTokenKey = LOGIN_TOKEN_KEY + username;
+        return reactiveRedisTemplate.hasKey(redisTokenKey)
+                .flatMap(exists -> {
+                    if (!exists) {
+                        log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", username);
+                        return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
+                    }
 
-        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                    // 验证Redis中的Token是否与当前Token一致
+                    return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
+                            .flatMap(redisToken -> {
+                                if (!token.equals(redisToken.toString())) {
+                                    log.warn("用户 {} 的Token与Redis中的Token不一致", username);
+                                    return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
+                                }
+
+                                // Token验证通过，添加用户信息到请求头
+                                ServerHttpRequest mutatedRequest = request.mutate()
+                                        .header("X-User-Id", username)
+                                        .build();
+
+                                return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                            })
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.warn("用户 {} 的Token在Redis中为空", username);
+                                return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
+                            }));
+                })
+                .onErrorResume(e -> {
+                    log.error("Redis验证Token失败: {}", e.getMessage());
+                    return unauthorized(exchange.getResponse(), "认证失败，服务异常");
+                });
     }
 
     /**
@@ -109,8 +146,14 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 返回未授权响应
      */
     private Mono<Void> unauthorized(ServerHttpResponse response, String message) {
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        // 检查响应是否已经提交
+        if (response.isCommitted()) {
+            log.warn("Response already committed, cannot send unauthorized response");
+            return Mono.empty();
+        }
+        
         response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
 
         Result<?> result = Result.error(HttpStatus.UNAUTHORIZED.value(), message);
         String body = JSON.toJSONString(result);

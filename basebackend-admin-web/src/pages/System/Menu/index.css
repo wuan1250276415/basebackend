@@ -1,0 +1,16 @@
+.menu-tree-node {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.menu-tree-actions {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.menu-tree-node:hover .menu-tree-actions {
+  opacity: 1;
+}

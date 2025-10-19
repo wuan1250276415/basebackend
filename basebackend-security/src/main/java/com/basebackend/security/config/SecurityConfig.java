@@ -54,10 +54,14 @@ public class SecurityConfig {
                         // 公开接口
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/admin/auth/**",
                                 "/api/public/**",
                                 "/actuator/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/doc.html",
+                                "/webjars/**",
+                                "/favicon.ico"
                         ).permitAll()
                         // 其他所有请求需要认证
                         .anyRequest().authenticated()

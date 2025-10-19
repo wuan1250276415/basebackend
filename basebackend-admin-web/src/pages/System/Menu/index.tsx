@@ -1,0 +1,337 @@
+import { useState, useEffect } from 'react'
+import { Card, Tree, Button, Space, Form, Modal, message, Tag, Popconfirm, Input, Select, InputNumber, Row, Col } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, FolderOutlined, FileOutlined, ApiOutlined, ReloadOutlined } from '@ant-design/icons'
+import type { DataNode } from 'antd/es/tree'
+import { getMenuTree, createMenu, updateMenu, deleteMenu } from '@/api/menu'
+import { Menu } from '@/types'
+import './index.css'
+
+const MenuList = () => {
+  const [form] = Form.useForm()
+  const [loading, setLoading] = useState(false)
+  const [menuTree, setMenuTree] = useState<Menu[]>([])
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+  const [modalVisible, setModalVisible] = useState(false)
+  const [modalTitle, setModalTitle] = useState('新增菜单')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null)
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const response = await getMenuTree()
+      setMenuTree(response.data)
+      // 默认展开所有节点
+      const keys = getAllKeys(response.data)
+      setExpandedKeys(keys)
+    } catch (error) {
+      message.error('加载菜单列表失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  // 获取所有节点的key
+  const getAllKeys = (menus: Menu[]): string[] => {
+    let keys: string[] = []
+    menus.forEach((menu) => {
+      if (menu.id) {
+        keys.push(menu.id)
+      }
+      if (menu.children && menu.children.length > 0) {
+        keys = keys.concat(getAllKeys(menu.children))
+      }
+    })
+    return keys
+  }
+
+  const handleOpenModal = (record?: Menu, parentMenu?: Menu) => {
+    if (record) {
+      setModalTitle('编辑菜单')
+      setEditingId(record.id!)
+      form.setFieldsValue(record)
+    } else {
+      setModalTitle('新增菜单')
+      setEditingId(null)
+      form.resetFields()
+      form.setFieldsValue({
+        parentId: parentMenu?.id || '0',
+        status: 1,
+        visible: 1,
+        isFrame: 1,
+        isCache: 0,
+        menuType: 'C'
+      })
+    }
+    setModalVisible(true)
+  }
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      if (editingId) {
+        await updateMenu(editingId, values)
+        message.success('更新成功')
+      } else {
+        await createMenu(values)
+        message.success('创建成功')
+      }
+      setModalVisible(false)
+      loadData()
+    } catch (error: any) {
+      if (error.errorFields) {
+        message.error('请填写必填项')
+      }
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMenu(id)
+      message.success('删除成功')
+      loadData()
+    } catch (error) {
+      message.error('删除失败')
+    }
+  }
+
+  // 获取菜单图标
+  const getMenuIcon = (menuType: string) => {
+    switch (menuType) {
+      case 'M':
+        return <FolderOutlined style={{ color: '#1890ff' }} />
+      case 'C':
+        return <FileOutlined style={{ color: '#52c41a' }} />
+      case 'F':
+        return <ApiOutlined style={{ color: '#faad14' }} />
+      default:
+        return <FileOutlined />
+    }
+  }
+
+  // 构建树节点
+  const buildTreeNodes = (menus: Menu[]): DataNode[] => {
+    return menus.map((menu) => ({
+      key: menu.id!,
+      title: (
+        <div className="menu-tree-node">
+          <Space>
+            {getMenuIcon(menu.menuType)}
+            <span>{menu.menuName}</span>
+            {menu.menuType === 'M' && <Tag>目录</Tag>}
+            {menu.menuType === 'C' && <Tag color="blue">菜单</Tag>}
+            {menu.menuType === 'F' && <Tag color="green">按钮</Tag>}
+            {menu.status === 0 && <Tag color="error">禁用</Tag>}
+          </Space>
+          <Space className="menu-tree-actions">
+            <Button
+              type="link"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOpenModal(undefined, menu)
+              }}
+            >
+              新增
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOpenModal(menu)
+              }}
+            >
+              编辑
+            </Button>
+            <Popconfirm
+              title="确定要删除吗?"
+              onConfirm={() => handleDelete(menu.id!)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          </Space>
+        </div>
+      ),
+      children: menu.children ? buildTreeNodes(menu.children) : undefined,
+    }))
+  }
+
+  // 构建父菜单选项（只包含目录和菜单）
+  const buildParentMenuOptions = (menus: Menu[], level = 0): any[] => {
+    let options: any[] = []
+    menus.forEach((menu) => {
+      if (menu.menuType !== 'F') {
+        options.push({
+          label: `${'　'.repeat(level)}${menu.menuName}`,
+          value: menu.id,
+        })
+        if (menu.children && menu.children.length > 0) {
+          options = options.concat(buildParentMenuOptions(menu.children, level + 1))
+        }
+      }
+    })
+    return options
+  }
+
+  return (
+    <div>
+      <Card
+        title="菜单管理"
+        extra={
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={loadData}>
+              刷新
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
+              新增根菜单
+            </Button>
+          </Space>
+        }
+      >
+        <Tree
+          showLine
+          defaultExpandAll
+          expandedKeys={expandedKeys}
+          onExpand={(keys: any) => setExpandedKeys(keys)}
+          treeData={buildTreeNodes(menuTree)}
+          loading={loading}
+        />
+      </Card>
+
+      <Modal
+        title={modalTitle}
+        open={modalVisible}
+        onOk={handleSubmit}
+        onCancel={() => setModalVisible(false)}
+        width={700}
+        destroyOnClose
+      >
+        <Form form={form} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="menuName" label="菜单名称" rules={[{ required: true }]}>
+                <Input placeholder="请输入菜单名称" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="parentId" label="父菜单" initialValue="0">
+                <Select placeholder="请选择父菜单">
+                  <Select.Option value="0">根菜单</Select.Option>
+                  {buildParentMenuOptions(menuTree).map((option) => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="menuType" label="菜单类型" rules={[{ required: true }]} initialValue="C">
+                <Select>
+                  <Select.Option value="M">目录</Select.Option>
+                  <Select.Option value="C">菜单</Select.Option>
+                  <Select.Option value="F">按钮</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="orderNum" label="排序">
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入排序" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="path" label="路由地址">
+                <Input placeholder="请输入路由地址" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="component" label="组件路径">
+                <Input placeholder="请输入组件路径" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="icon" label="菜单图标">
+                <Input placeholder="请输入图标名称" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="perms" label="权限标识">
+                <Input placeholder="请输入权限标识" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="visible" label="显示状态" initialValue={1}>
+                <Select>
+                  <Select.Option value={1}>显示</Select.Option>
+                  <Select.Option value={0}>隐藏</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="status" label="菜单状态" initialValue={1}>
+                <Select>
+                  <Select.Option value={1}>启用</Select.Option>
+                  <Select.Option value={0}>禁用</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="isFrame" label="是否外链" initialValue={1}>
+                <Select>
+                  <Select.Option value={1}>否</Select.Option>
+                  <Select.Option value={0}>是</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="isCache" label="是否缓存" initialValue={0}>
+                <Select>
+                  <Select.Option value={1}>缓存</Select.Option>
+                  <Select.Option value={0}>不缓存</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="remark" label="备注" labelCol={{ span: 3 }} wrapperCol={{ span: 20 }}>
+            <Input.TextArea rows={3} placeholder="请输入备注" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  )
+}
+
+export default MenuList

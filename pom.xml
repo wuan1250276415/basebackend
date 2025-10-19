@@ -26,6 +26,7 @@
         <module>basebackend-nacos</module>
         <module>basebackend-gateway</module>
         <module>basebackend-demo-api</module>
+        <module>basebackend-admin-api</module>
     </modules>
 
     <properties>
