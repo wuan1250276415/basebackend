@@ -90,6 +90,7 @@ export interface Role {
 // 菜单类型
 export interface Menu {
   id?: string
+  appId?: string
   menuName: string
   parentId?: string
   orderNum?: number

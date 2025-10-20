@@ -18,6 +18,11 @@ public class MenuDTO {
     private Long id;
 
     /**
+     * 应用ID（为空表示系统菜单）
+     */
+    private Long appId;
+
+    /**
      * 菜单名称
      */
     @NotBlank(message = "菜单名称不能为空")

@@ -4,7 +4,9 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.basebackend.admin.dto.MenuDTO;
 import com.basebackend.admin.entity.SysMenu;
+import com.basebackend.admin.entity.SysRoleMenu;
 import com.basebackend.admin.mapper.SysMenuMapper;
+import com.basebackend.admin.mapper.SysRoleMenuMapper;
 import com.basebackend.admin.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class MenuServiceImpl implements MenuService {
 
     private final SysMenuMapper menuMapper;
+    private final SysRoleMenuMapper roleMenuMapper;
 
     @Override
     public List<MenuDTO> getMenuTree() {
@@ -71,6 +74,20 @@ public class MenuServiceImpl implements MenuService {
         menu.setUpdateBy(1L); // 临时硬编码
 
         menuMapper.insert(menu);
+
+        // 自动为管理员角色（ID=1）分配新创建的菜单权限
+        try {
+            SysRoleMenu roleMenu = new SysRoleMenu();
+            roleMenu.setRoleId(1L); // 管理员角色ID
+            roleMenu.setMenuId(menu.getId());
+            roleMenu.setCreateTime(LocalDateTime.now());
+            roleMenu.setCreateBy(1L);
+            roleMenuMapper.insert(roleMenu);
+            log.info("已自动为管理员角色分配菜单权限: menuId={}", menu.getId());
+        } catch (Exception e) {
+            log.warn("为管理员角色分配菜单权限失败（可能已存在）: {}", e.getMessage());
+            // 不影响菜单创建，只记录警告
+        }
 
         log.info("菜单创建成功: {}", menu.getMenuName());
     }

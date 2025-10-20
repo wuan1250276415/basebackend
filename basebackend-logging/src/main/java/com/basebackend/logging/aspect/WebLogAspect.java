@@ -9,7 +9,13 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -33,20 +39,25 @@ public class WebLogAspect {
     @Around("webLog()")
     public Object doAround(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
-
-        // 获取请求信息
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
-
-            // 记录请求信息
-            log.info("========================================== Request Start ==========================================");
-            log.info("URL            : {}", request.getRequestURL().toString());
-            log.info("HTTP Method    : {}", request.getMethod());
-            log.info("Class Method   : {}.{}", joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName());
-            log.info("IP             : {}", getIpAddress(request));
-            log.info("Request Args   : {}", JSON.toJSONString(joinPoint.getArgs()));
+        Object[] safeArgs = Arrays.stream(joinPoint.getArgs()).map(this::simplifyArg).toArray();
+        try {
+            log.info("Request Args   : {}", JSON.toJSONString(safeArgs));
+        } catch (Throwable ignore) {
+            log.info("Request Args   : {}", Arrays.toString(safeArgs));
         }
+        // 获取请求信息
+//        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+//        if (attributes != null) {
+//            HttpServletRequest request = attributes.getRequest();
+//
+//            // 记录请求信息
+//            log.info("========================================== Request Start ==========================================");
+//            log.info("URL            : {}", request.getRequestURL().toString());
+//            log.info("HTTP Method    : {}", request.getMethod());
+//            log.info("Class Method   : {}.{}", joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName());
+//            log.info("IP             : {}", getIpAddress(request));
+//            log.info("Request Args   : {}", JSON.toJSONString(joinPoint.getArgs()));
+//        }
 
         // 执行方法
         Object result = joinPoint.proceed();
@@ -57,9 +68,34 @@ public class WebLogAspect {
         log.info("Time-Consuming : {} ms", endTime - startTime);
         log.info("========================================== Request End ==========================================");
 
+
+        // 3) 记录响应：兜底
+        try {
+            log.info("Response Args  : {}", JSON.toJSONString(result));
+        } catch (Throwable ignore) {
+            log.info("Response Args  : {}", String.valueOf(result));
+        }
         return result;
     }
 
+
+    // 4) 新增方法：参数简化
+    private Object simplifyArg(Object arg) {
+        if (arg == null) return null;
+        if (arg instanceof HttpServletRequest) return "HttpServletRequest";
+        if (arg instanceof HttpServletResponse) return "HttpServletResponse";
+        if (arg instanceof MultipartFile f) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("type", "MultipartFile");
+            info.put("name", f.getOriginalFilename());
+            info.put("size", f.getSize());
+            return info;
+        }
+        if (arg instanceof InputStream || arg instanceof Reader || arg instanceof byte[]) {
+            return arg.getClass().getSimpleName();
+        }
+        return arg;
+    }
     /**
      * 获取客户端真实IP地址
      */

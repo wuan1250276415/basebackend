@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "generate:sdk": "node scripts/generate-sdk.mjs",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
@@ -21,14 +22,18 @@
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.20.0",
+    "swagger-ui": "^5.29.5",
+    "swagger-ui-react": "^5.29.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/node": "^24.8.1",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
+    "@types/swagger-ui-react": "^5.18.0",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint": "^8.55.0",
+    "openapi-typescript-codegen": "^0.26.0",
     "prettier": "^3.1.1",
     "sass": "^1.69.5",
     "typescript": "^5.3.3",

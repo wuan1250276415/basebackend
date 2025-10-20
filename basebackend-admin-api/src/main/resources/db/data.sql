@@ -37,6 +37,7 @@ INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `co
 (104, '字典管理', 2, 5, '/system/dict', 'system/dict/index', 1, 0, 'C', 1, 1, 'system:dict:list', 'dict', '字典管理菜单', 1),
 (105, '操作日志', 2, 6, '/system/operlog', 'system/operlog/index', 1, 0, 'C', 1, 1, 'system:operlog:list', 'form', '操作日志菜单', 1),
 (106, '登录日志', 2, 7, '/system/logininfor', 'system/logininfor/index', 1, 0, 'C', 1, 1, 'system:logininfor:list', 'logininfor', '登录日志菜单', 1),
+(107, 'API文档', 2, 8, '/developer/api-docs', 'developer/api-docs/index', 1, 0, 'C', 1, 1, 'system:doc:view', 'docs', 'OpenAPI文档与SDK', 1),
 
 -- 个人中心子菜单
 (200, '个人信息', 4, 1, '/user/profile', 'user/profile/index', 1, 0, 'C', 1, 1, NULL, 'user', '个人信息菜单', 1),
@@ -88,7 +89,9 @@ INSERT INTO `sys_permission` (`id`, `permission_name`, `permission_key`, `api_pa
 (13, '菜单查询', 'system:menu:query', '/api/admin/menus', 'GET', 3, 1, '查询菜单列表', 1),
 (14, '菜单新增', 'system:menu:add', '/api/admin/menus', 'POST', 3, 1, '新增菜单', 1),
 (15, '菜单修改', 'system:menu:edit', '/api/admin/menus/{id}', 'PUT', 3, 1, '修改菜单', 1),
-(16, '菜单删除', 'system:menu:remove', '/api/admin/menus/{id}', 'DELETE', 3, 1, '删除菜单', 1);
+(16, '菜单删除', 'system:menu:remove', '/api/admin/menus/{id}', 'DELETE', 3, 1, '删除菜单', 1),
+(17, '查看OpenAPI文档', 'system:doc:view', '/api/admin/openapi/spec.json', 'GET', 3, 1, '查看 OpenAPI 文档', 1),
+(18, '下载OpenAPI TypeScript SDK', 'system:sdk:download', '/api/admin/openapi/sdk/typescript', 'GET', 3, 1, '下载 TypeScript SDK', 1);
 
 -- ============================
 -- 插入用户角色关联
@@ -107,14 +110,14 @@ INSERT INTO `sys_role_menu` (`id`, `role_id`, `menu_id`, `create_by`) VALUES
 (11, 1, 200, 1), (12, 1, 300, 1), (13, 1, 301, 1),
 (14, 1, 1000, 1), (15, 1, 1001, 1), (16, 1, 1002, 1), (17, 1, 1003, 1), (18, 1, 1004, 1), (19, 1, 1005, 1), (20, 1, 1006, 1),
 (21, 1, 1010, 1), (22, 1, 1011, 1), (23, 1, 1012, 1), (24, 1, 1013, 1), (25, 1, 1014, 1),
-(26, 1, 1020, 1), (27, 1, 1021, 1), (28, 1, 1022, 1), (29, 1, 1023, 1),
+(26, 1, 1020, 1), (27, 1, 1021, 1), (28, 1, 1022, 1), (29, 1, 1023, 1), (30, 1, 107, 1),
 
 -- 普通管理员拥有部分菜单
-(30, 2, 1, 1), (31, 2, 100, 1), (32, 2, 200, 1),
-(33, 2, 1000, 1), (34, 2, 1001, 1), (35, 2, 1002, 1),
+(31, 2, 1, 1), (32, 2, 100, 1), (33, 2, 200, 1),
+(34, 2, 1000, 1), (35, 2, 1001, 1), (36, 2, 1002, 1),
 
 -- 普通用户只有用户信息
-(36, 3, 2, 1), (37, 3, 200, 1);
+(37, 3, 2, 1), (38, 3, 200, 1);
 
 -- ============================
 -- 插入角色权限关联
@@ -123,13 +126,13 @@ INSERT INTO `sys_role_permission` (`id`, `role_id`, `permission_id`, `create_by`
 -- 超级管理员拥有所有权限
 (1, 1, 1, 1), (2, 1, 2, 1), (3, 1, 3, 1), (4, 1, 4, 1), (5, 1, 5, 1), (6, 1, 6, 1), (7, 1, 7, 1),
 (8, 1, 8, 1), (9, 1, 9, 1), (10, 1, 10, 1), (11, 1, 11, 1), (12, 1, 12, 1),
-(13, 1, 13, 1), (14, 1, 14, 1), (15, 1, 15, 1), (16, 1, 16, 1),
+(13, 1, 13, 1), (14, 1, 14, 1), (15, 1, 15, 1), (16, 1, 16, 1), (17, 1, 17, 1), (18, 1, 18, 1),
 
 -- 普通管理员拥有部分权限
-(17, 2, 1, 1), (18, 2, 2, 1), (19, 2, 3, 1),
+(19, 2, 1, 1), (20, 2, 2, 1), (21, 2, 3, 1),
 
 -- 普通用户无特殊权限
-(20, 3, 1, 1);
+(22, 3, 1, 1);
 
 -- ============================
 -- 插入系统部门

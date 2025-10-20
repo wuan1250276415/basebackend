@@ -16,6 +16,12 @@ import java.util.List;
 public class SysMenu extends BaseEntity {
 
     /**
+     * 应用ID（为空表示系统菜单）
+     */
+    @TableField("app_id")
+    private Long appId;
+
+    /**
      * 菜单名称
      */
     @TableField("menu_name")

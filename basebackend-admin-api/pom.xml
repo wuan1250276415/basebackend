@@ -185,6 +185,13 @@
             <version>4.3.0</version>
         </dependency>
 
+        <!-- OpenAPI Generator for SDK exports -->
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>openapi-generator</artifactId>
+            <version>7.5.0</version>
+        </dependency>
+
         <!-- Spring Boot Starter Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -3,24 +3,40 @@ import { Card, Tree, Button, Space, Form, Modal, message, Tag, Popconfirm, Input
 import { PlusOutlined, EditOutlined, DeleteOutlined, FolderOutlined, FileOutlined, ApiOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { DataNode } from 'antd/es/tree'
 import { getMenuTree, createMenu, updateMenu, deleteMenu } from '@/api/menu'
-import { Menu } from '@/types'
+import { getEnabledApplications } from '@/api/application'
+import { Menu, Application } from '@/types'
 import './index.css'
 
 const MenuList = () => {
   const [form] = Form.useForm()
+  const [searchForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [menuTree, setMenuTree] = useState<Menu[]>([])
+  const [allMenus, setAllMenus] = useState<Menu[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [modalTitle, setModalTitle] = useState('新增菜单')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null)
+  const [selectedAppId, setSelectedAppId] = useState<string | undefined>(undefined)
+
+  // 加载应用列表
+  const loadApplications = async () => {
+    try {
+      const response = await getEnabledApplications()
+      setApplications(response.data)
+    } catch (error) {
+      console.error('加载应用列表失败', error)
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
     try {
       const response = await getMenuTree()
-      setMenuTree(response.data)
+      setAllMenus(response.data)
+      filterMenusByApp(response.data, selectedAppId)
       // 默认展开所有节点
       const keys = getAllKeys(response.data)
       setExpandedKeys(keys)
@@ -31,8 +47,43 @@ const MenuList = () => {
     }
   }
 
+  // 根据应用过滤菜单
+  const filterMenusByApp = (menus: Menu[], appId?: string) => {
+    if (appId === undefined) {
+      // 显示所有菜单
+      setMenuTree(menus)
+      return
+    }
+
+    if (appId === '') {
+      // 只显示系统菜单（appId为空）
+      const filtered = menus.filter(menu => !menu.appId)
+      setMenuTree(filterChildrenRecursive(filtered))
+      return
+    }
+
+    // 显示指定应用的菜单
+    const filtered = menus.filter(menu => menu.appId === appId)
+    setMenuTree(filterChildrenRecursive(filtered))
+  }
+
+  // 递归过滤子菜单
+  const filterChildrenRecursive = (menus: Menu[]): Menu[] => {
+    return menus.map(menu => ({
+      ...menu,
+      children: menu.children ? filterChildrenRecursive(menu.children) : undefined
+    }))
+  }
+
+  // 处理应用筛选变化
+  const handleAppFilterChange = (appId: string | undefined) => {
+    setSelectedAppId(appId)
+    filterMenusByApp(allMenus, appId)
+  }
+
   useEffect(() => {
     loadData()
+    loadApplications()
   }, [])
 
   // 获取所有节点的key
@@ -49,6 +100,13 @@ const MenuList = () => {
     return keys
   }
 
+  // 获取应用名称
+  const getAppName = (appId?: string) => {
+    if (!appId) return <Tag>系统菜单</Tag>
+    const app = applications.find((a) => a.id === appId)
+    return app ? <Tag color="blue">{app.appName}</Tag> : <Tag color="blue">应用菜单</Tag>
+  }
+
   const handleOpenModal = (record?: Menu, parentMenu?: Menu) => {
     if (record) {
       setModalTitle('编辑菜单')
@@ -60,6 +118,7 @@ const MenuList = () => {
       form.resetFields()
       form.setFieldsValue({
         parentId: parentMenu?.id || '0',
+        appId: parentMenu?.appId || selectedAppId,
         status: 1,
         visible: 1,
         isFrame: 1,
@@ -122,6 +181,7 @@ const MenuList = () => {
           <Space>
             {getMenuIcon(menu.menuType)}
             <span>{menu.menuName}</span>
+            {getAppName(menu.appId)}
             {menu.menuType === 'M' && <Tag>目录</Tag>}
             {menu.menuType === 'C' && <Tag color="blue">菜单</Tag>}
             {menu.menuType === 'F' && <Tag color="green">按钮</Tag>}
@@ -192,6 +252,28 @@ const MenuList = () => {
 
   return (
     <div>
+      <Card style={{ marginBottom: 16 }}>
+        <Form form={searchForm} layout="inline">
+          <Form.Item label="所属应用">
+            <Select
+              placeholder="请选择应用"
+              allowClear
+              style={{ width: 200 }}
+              value={selectedAppId}
+              onChange={handleAppFilterChange}
+              options={[
+                { label: '全部', value: undefined },
+                { label: '系统菜单', value: '' },
+                ...applications.map((app) => ({
+                  label: app.appName,
+                  value: app.id,
+                })),
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Card>
+
       <Card
         title="菜单管理"
         extra={
@@ -226,6 +308,29 @@ const MenuList = () => {
         <Form form={form} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
           <Row gutter={16}>
             <Col span={12}>
+              <Form.Item name="appId" label="所属应用">
+                <Select placeholder="请选择所属应用（系统菜单请不选）" allowClear>
+                  {applications.map((app) => (
+                    <Select.Option key={app.id} value={app.id}>
+                      {app.appName}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="menuType" label="菜单类型" rules={[{ required: true }]} initialValue="C">
+                <Select>
+                  <Select.Option value="M">目录</Select.Option>
+                  <Select.Option value="C">菜单</Select.Option>
+                  <Select.Option value="F">按钮</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
               <Form.Item name="menuName" label="菜单名称" rules={[{ required: true }]}>
                 <Input placeholder="请输入菜单名称" />
               </Form.Item>
@@ -234,7 +339,7 @@ const MenuList = () => {
               <Form.Item name="parentId" label="父菜单" initialValue="0">
                 <Select placeholder="请选择父菜单">
                   <Select.Option value="0">根菜单</Select.Option>
-                  {buildParentMenuOptions(menuTree).map((option) => (
+                  {buildParentMenuOptions(allMenus).map((option) => (
                     <Select.Option key={option.value} value={option.value}>
                       {option.label}
                     </Select.Option>
@@ -246,17 +351,13 @@ const MenuList = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="menuType" label="菜单类型" rules={[{ required: true }]} initialValue="C">
-                <Select>
-                  <Select.Option value="M">目录</Select.Option>
-                  <Select.Option value="C">菜单</Select.Option>
-                  <Select.Option value="F">按钮</Select.Option>
-                </Select>
+              <Form.Item name="orderNum" label="排序">
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入排序" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="orderNum" label="排序">
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入排序" />
+              <Form.Item name="icon" label="菜单图标">
+                <Input placeholder="请输入图标名称" />
               </Form.Item>
             </Col>
           </Row>
@@ -276,18 +377,10 @@ const MenuList = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="icon" label="菜单图标">
-                <Input placeholder="请输入图标名称" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
               <Form.Item name="perms" label="权限标识">
                 <Input placeholder="请输入权限标识" />
               </Form.Item>
             </Col>
-          </Row>
-
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="visible" label="显示状态" initialValue={1}>
                 <Select>
@@ -296,6 +389,9 @@ const MenuList = () => {
                 </Select>
               </Form.Item>
             </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="status" label="菜单状态" initialValue={1}>
                 <Select>
@@ -304,9 +400,6 @@ const MenuList = () => {
                 </Select>
               </Form.Item>
             </Col>
-          </Row>
-
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="isFrame" label="是否外链" initialValue={1}>
                 <Select>
@@ -315,6 +408,9 @@ const MenuList = () => {
                 </Select>
               </Form.Item>
             </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="isCache" label="是否缓存" initialValue={0}>
                 <Select>

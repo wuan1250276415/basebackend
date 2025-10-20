@@ -33,6 +33,7 @@ const iconMap: Record<string, any> = {
   'tree-table': BookOutlined,
   tree: ApartmentOutlined,
   dict: BookOutlined,
+  docs: BookOutlined,
   form: BookOutlined,
   logininfor: MonitorOutlined,
   online: MonitorOutlined,

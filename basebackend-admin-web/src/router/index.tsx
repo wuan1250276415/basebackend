@@ -14,6 +14,7 @@ import OperationLog from '@/pages/Monitor/OperationLog'
 import OnlineUser from '@/pages/Monitor/OnlineUser'
 import ServerMonitor from '@/pages/Monitor/ServerMonitor'
 import Profile from '@/pages/User/Profile'
+import ApiDocs from '@/pages/Developer/ApiDocs'
 import { useAuthStore } from '@/stores/auth'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -53,6 +54,9 @@ const AppRouter = () => {
         
         {/* 个人中心 */}
         <Route path="user/profile" element={<Profile />} />
+
+        {/* 开发者工具 */}
+        <Route path="developer/api-docs" element={<ApiDocs />} />
       </Route>
     </Routes>
   )
