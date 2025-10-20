@@ -7,6 +7,8 @@ import RoleList from '@/pages/System/Role'
 import MenuList from '@/pages/System/Menu'
 import DeptList from '@/pages/System/Dept'
 import DictList from '@/pages/System/Dict'
+import ApplicationManagement from '@/pages/System/Application'
+import ApplicationResourceManagement from '@/pages/System/ApplicationResource'
 import LoginLog from '@/pages/Monitor/LoginLog'
 import OperationLog from '@/pages/Monitor/OperationLog'
 import OnlineUser from '@/pages/Monitor/OnlineUser'
@@ -40,6 +42,8 @@ const AppRouter = () => {
         <Route path="system/menu" element={<MenuList />} />
         <Route path="system/dept" element={<DeptList />} />
         <Route path="system/dict" element={<DictList />} />
+        <Route path="system/application" element={<ApplicationManagement />} />
+        <Route path="system/application-resource" element={<ApplicationResourceManagement />} />
         
         {/* 系统监控 */}
         <Route path="monitor/online" element={<OnlineUser />} />

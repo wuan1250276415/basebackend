@@ -18,6 +18,11 @@ public class RoleDTO {
     private Long id;
 
     /**
+     * 所属应用ID
+     */
+    private Long appId;
+
+    /**
      * 角色名称
      */
     @NotBlank(message = "角色名称不能为空")

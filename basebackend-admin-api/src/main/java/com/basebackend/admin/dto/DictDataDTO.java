@@ -17,6 +17,11 @@ public class DictDataDTO {
     private Long id;
 
     /**
+     * 所属应用ID
+     */
+    private Long appId;
+
+    /**
      * 字典排序
      */
     private Integer dictSort;

@@ -17,6 +17,11 @@ public class DictDTO {
     private Long id;
 
     /**
+     * 所属应用ID
+     */
+    private Long appId;
+
+    /**
      * 字典名称
      */
     @NotBlank(message = "字典名称不能为空")

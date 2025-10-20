@@ -35,7 +35,8 @@ import {
   deleteDictData,
   refreshDictCache,
 } from '@/api/dict'
-import { Dict, DictData } from '@/types'
+import { getEnabledApplications } from '@/api/application'
+import { Dict, DictData, Application } from '@/types'
 
 const DictList = () => {
   // 字典表单
@@ -43,6 +44,9 @@ const DictList = () => {
   const [dictSearchForm] = Form.useForm()
   const [dictDataForm] = Form.useForm()
   const [dictDataSearchForm] = Form.useForm()
+
+  // 应用列表
+  const [applications, setApplications] = useState<Application[]>([])
 
   // 字典状态
   const [dictLoading, setDictLoading] = useState(false)
@@ -64,6 +68,17 @@ const DictList = () => {
   const [dictDataModalTitle, setDictDataModalTitle] = useState('新增字典数据')
   const [editingDictDataId, setEditingDictDataId] = useState<string | null>(null)
   const [selectedDictType, setSelectedDictType] = useState<string>('')
+  const [selectedDictAppId, setSelectedDictAppId] = useState<string | undefined>(undefined)
+
+  // 加载应用列表
+  const loadApplications = async () => {
+    try {
+      const response = await getEnabledApplications()
+      setApplications(response.data)
+    } catch (error) {
+      console.error('加载应用列表失败', error)
+    }
+  }
 
   // 加载字典列表
   const loadDictData = async (page = dictCurrent, size = dictPageSize) => {
@@ -113,6 +128,7 @@ const DictList = () => {
 
   useEffect(() => {
     loadDictData()
+    loadApplications()
   }, [])
 
   useEffect(() => {
@@ -122,6 +138,13 @@ const DictList = () => {
       setDictDataDataSource([])
     }
   }, [selectedDictType])
+
+  // 获取应用名称
+  const getAppName = (appId?: string) => {
+    if (!appId) return <Tag>系统字典</Tag>
+    const app = applications.find((a) => a.id === appId)
+    return app ? <Tag color="blue">{app.appName}</Tag> : '-'
+  }
 
   // 打开字典弹窗
   const handleOpenDictModal = (record?: Dict) => {
@@ -184,6 +207,7 @@ const DictList = () => {
       dictDataForm.resetFields()
       dictDataForm.setFieldsValue({
         dictType: selectedDictType,
+        appId: selectedDictAppId,
         status: 1,
         isDefault: 0,
       })
@@ -232,14 +256,28 @@ const DictList = () => {
     }
   }
 
+  // 查看字典数据列表
+  const handleViewDictData = (record: Dict) => {
+    setSelectedDictType(record.dictType)
+    setSelectedDictAppId(record.appId)
+  }
+
   const dictColumns: ColumnsType<Dict> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-    { title: '字典名称', dataIndex: 'dictName', key: 'dictName' },
-    { title: '字典类型', dataIndex: 'dictType', key: 'dictType' },
+    { title: '字典名称', dataIndex: 'dictName', key: 'dictName', width: 150 },
+    { title: '字典类型', dataIndex: 'dictType', key: 'dictType', width: 150 },
+    {
+      title: '所属应用',
+      dataIndex: 'appId',
+      key: 'appId',
+      width: 150,
+      render: (appId: string) => getAppName(appId),
+    },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: number) =>
         status === 1 ? <Tag color="success">启用</Tag> : <Tag color="error">禁用</Tag>,
     },
@@ -255,7 +293,7 @@ const DictList = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => setSelectedDictType(record.dictType)}
+            onClick={() => handleViewDictData(record)}
           >
             数据列表
           </Button>
@@ -339,6 +377,21 @@ const DictList = () => {
         <Col span={selectedDictType ? 10 : 24}>
           <Card style={{ marginBottom: 16 }}>
             <Form form={dictSearchForm} layout="inline">
+              <Form.Item name="appId" label="所属应用">
+                <Select
+                  placeholder="请选择应用"
+                  allowClear
+                  style={{ width: 200 }}
+                  options={[
+                    { label: '全部', value: undefined },
+                    { label: '系统字典', value: '' },
+                    ...applications.map((app) => ({
+                      label: app.appName,
+                      value: app.id,
+                    })),
+                  ]}
+                />
+              </Form.Item>
               <Form.Item name="dictName" label="字典名称">
                 <Input placeholder="请输入字典名称" allowClear />
               </Form.Item>
@@ -388,6 +441,7 @@ const DictList = () => {
               dataSource={dictDataSource}
               columns={dictColumns}
               rowKey="id"
+              scroll={{ x: 1200 }}
               pagination={{
                 current: dictCurrent,
                 pageSize: dictPageSize,
@@ -439,7 +493,7 @@ const DictList = () => {
             </Card>
 
             <Card
-              title={`字典数据列表 (${selectedDictType})`}
+              title={`字典数据列表 (${selectedDictType}) - ${getAppName(selectedDictAppId)}`}
               extra={
                 <Space>
                   <Button onClick={() => setSelectedDictType('')}>关闭</Button>
@@ -487,6 +541,16 @@ const DictList = () => {
         destroyOnClose
       >
         <Form form={dictForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
+          <Form.Item name="appId" label="所属应用">
+            <Select placeholder="请选择所属应用（系统字典请不选）" allowClear>
+              {applications.map((app) => (
+                <Select.Option key={app.id} value={app.id}>
+                  {app.appName}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <Form.Item
             name="dictName"
             label="字典名称"
@@ -528,6 +592,16 @@ const DictList = () => {
         <Form form={dictDataForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
           <Form.Item name="dictType" label="字典类型">
             <Input disabled />
+          </Form.Item>
+
+          <Form.Item name="appId" label="所属应用">
+            <Select placeholder="请选择所属应用（系统字典请不选）" allowClear disabled>
+              {applications.map((app) => (
+                <Select.Option key={app.id} value={app.id}>
+                  {app.appName}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item

@@ -14,6 +14,12 @@ import lombok.EqualsAndHashCode;
 public class SysDictData extends BaseEntity {
 
     /**
+     * 所属应用ID（NULL表示系统字典）
+     */
+    @TableField("app_id")
+    private Long appId;
+
+    /**
      * 字典排序
      */
     @TableField("dict_sort")

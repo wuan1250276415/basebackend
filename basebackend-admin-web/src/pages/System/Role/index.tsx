@@ -28,11 +28,14 @@ import {
   createRole,
   updateRole,
   deleteRole,
-  assignRoleMenus,
-  getRoleMenus,
 } from '@/api/role'
-import { getMenuTree } from '@/api/menu'
-import { Role, Menu } from '@/types'
+import {
+  getEnabledApplications,
+  getResourceTree,
+  getResourceIdsByRoleId,
+  assignRoleResources,
+} from '@/api/application'
+import { Role, Application, ApplicationResource } from '@/types'
 
 const RoleList = () => {
   const [form] = Form.useForm()
@@ -43,12 +46,14 @@ const RoleList = () => {
   const [current, setCurrent] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [modalVisible, setModalVisible] = useState(false)
-  const [menuModalVisible, setMenuModalVisible] = useState(false)
+  const [resourceModalVisible, setResourceModalVisible] = useState(false)
   const [modalTitle, setModalTitle] = useState('新增角色')
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [menuTree, setMenuTree] = useState<Menu[]>([])
-  const [selectedMenuKeys, setSelectedMenuKeys] = useState<string[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
+  const [resourceTree, setResourceTree] = useState<ApplicationResource[]>([])
+  const [selectedResourceKeys, setSelectedResourceKeys] = useState<string[]>([])
   const [currentRoleId, setCurrentRoleId] = useState<string | null>(null)
+  const [currentRoleAppId, setCurrentRoleAppId] = useState<string | null>(null)
 
   // 加载数据
   const loadData = async (page = current, size = pageSize) => {
@@ -71,19 +76,19 @@ const RoleList = () => {
     }
   }
 
-  // 加载菜单树
-  const loadMenuTree = async () => {
+  // 加载应用列表
+  const loadApplications = async () => {
     try {
-      const response = await getMenuTree()
-      setMenuTree(response.data)
+      const response = await getEnabledApplications()
+      setApplications(response.data)
     } catch (error) {
-      console.error('加载菜单树失败', error)
+      console.error('加载应用列表失败', error)
     }
   }
 
   useEffect(() => {
     loadData()
-    loadMenuTree()
+    loadApplications()
   }, [])
 
   // 打开新增/编辑弹窗
@@ -101,15 +106,27 @@ const RoleList = () => {
     setModalVisible(true)
   }
 
-  // 打开菜单分配弹窗
-  const handleOpenMenuModal = async (record: Role) => {
+  // 打开资源分配弹窗
+  const handleOpenResourceModal = async (record: Role) => {
     setCurrentRoleId(record.id!)
+    setCurrentRoleAppId(record.appId || null)
+
+    if (!record.appId) {
+      message.warning('该角色未关联应用，无法分配资源')
+      return
+    }
+
     try {
-      const response = await getRoleMenus(record.id!)
-      setSelectedMenuKeys(response.data)
-      setMenuModalVisible(true)
+      // 加载应用资源树
+      const treeResponse = await getResourceTree(record.appId)
+      setResourceTree(treeResponse.data)
+
+      // 加载已分配的资源
+      const roleResourceResponse = await getResourceIdsByRoleId(record.id!)
+      setSelectedResourceKeys(roleResourceResponse.data)
+      setResourceModalVisible(true)
     } catch (error) {
-      message.error('加载角色菜单失败')
+      message.error('加载角色资源失败')
     }
   }
 
@@ -133,14 +150,14 @@ const RoleList = () => {
     }
   }
 
-  // 提交菜单分配
-  const handleSubmitMenus = async () => {
+  // 提交资源分配
+  const handleSubmitResources = async () => {
     try {
-      await assignRoleMenus(currentRoleId!, selectedMenuKeys)
-      message.success('菜单分配成功')
-      setMenuModalVisible(false)
+      await assignRoleResources(currentRoleId!, selectedResourceKeys)
+      message.success('资源分配成功')
+      setResourceModalVisible(false)
     } catch (error) {
-      message.error('菜单分配失败')
+      message.error('资源分配失败')
     }
   }
 
@@ -156,30 +173,40 @@ const RoleList = () => {
   }
 
   // 构建树节点
-  const buildTreeData = (menus: Menu[]): any[] => {
-    return menus.map((menu) => ({
-      key: menu.id,
-      title: menu.menuName,
-      children: menu.children ? buildTreeData(menu.children) : undefined,
+  const buildTreeData = (resources: ApplicationResource[]): any[] => {
+    return resources.map((resource) => ({
+      key: resource.id,
+      title: resource.resourceName,
+      children: resource.children ? buildTreeData(resource.children) : undefined,
     }))
+  }
+
+  // 获取应用名称
+  const getAppName = (appId?: string) => {
+    if (!appId) return <Tag>系统角色</Tag>
+    const app = applications.find((a) => a.id === appId)
+    return app ? <Tag color="blue">{app.appName}</Tag> : '-'
   }
 
   const columns: ColumnsType<Role> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80,
-    },
-    {
       title: '角色名称',
       dataIndex: 'roleName',
       key: 'roleName',
+      width: 150,
     },
     {
       title: '角色标识',
       dataIndex: 'roleKey',
       key: 'roleKey',
+      width: 150,
+    },
+    {
+      title: '所属应用',
+      dataIndex: 'appId',
+      key: 'appId',
+      width: 150,
+      render: (appId: string) => getAppName(appId),
     },
     {
       title: '排序',
@@ -191,6 +218,7 @@ const RoleList = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: number) =>
         status === 1 ? <Tag color="success">启用</Tag> : <Tag color="error">禁用</Tag>,
     },
@@ -219,9 +247,10 @@ const RoleList = () => {
             type="link"
             size="small"
             icon={<SafetyOutlined />}
-            onClick={() => handleOpenMenuModal(record)}
+            onClick={() => handleOpenResourceModal(record)}
+            disabled={!record.appId}
           >
-            分配菜单
+            分配资源
           </Button>
           <Popconfirm
             title="确定要删除吗?"
@@ -239,9 +268,24 @@ const RoleList = () => {
   ]
 
   return (
-    <div>
+    <div style={{ padding: '24px' }}>
       <Card style={{ marginBottom: 16 }}>
         <Form form={searchForm} layout="inline">
+          <Form.Item name="appId" label="所属应用">
+            <Select
+              placeholder="请选择应用"
+              allowClear
+              style={{ width: 200 }}
+              options={[
+                { label: '全部', value: undefined },
+                { label: '系统角色', value: '' },
+                ...applications.map((app) => ({
+                  label: app.appName,
+                  value: app.id,
+                })),
+              ]}
+            />
+          </Form.Item>
           <Form.Item name="roleName" label="角色名称">
             <Input placeholder="请输入角色名称" allowClear />
           </Form.Item>
@@ -259,10 +303,13 @@ const RoleList = () => {
               <Button type="primary" icon={<SearchOutlined />} onClick={() => loadData(1)}>
                 查询
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={() => {
-                searchForm.resetFields()
-                loadData(1)
-              }}>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  searchForm.resetFields()
+                  loadData(1)
+                }}
+              >
                 重置
               </Button>
             </Space>
@@ -283,6 +330,7 @@ const RoleList = () => {
           dataSource={dataSource}
           columns={columns}
           rowKey="id"
+          scroll={{ x: 1200 }}
           pagination={{
             current,
             pageSize,
@@ -299,6 +347,7 @@ const RoleList = () => {
         />
       </Card>
 
+      {/* 新增/编辑弹窗 */}
       <Modal
         title={modalTitle}
         open={modalVisible}
@@ -308,6 +357,20 @@ const RoleList = () => {
         destroyOnClose
       >
         <Form form={form} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
+          <Form.Item
+            name="appId"
+            label="所属应用"
+            rules={[{ required: true, message: '请选择所属应用' }]}
+          >
+            <Select placeholder="请选择所属应用（系统角色请不选）" allowClear>
+              {applications.map((app) => (
+                <Select.Option key={app.id} value={app.id}>
+                  {app.appName}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <Form.Item
             name="roleName"
             label="角色名称"
@@ -350,19 +413,24 @@ const RoleList = () => {
         </Form>
       </Modal>
 
+      {/* 分配资源弹窗 */}
       <Modal
-        title="分配菜单"
-        open={menuModalVisible}
-        onOk={handleSubmitMenus}
-        onCancel={() => setMenuModalVisible(false)}
-        width={400}
+        title={`分配资源 - ${
+          currentRoleAppId
+            ? applications.find((a) => a.id === currentRoleAppId)?.appName
+            : '未知应用'
+        }`}
+        open={resourceModalVisible}
+        onOk={handleSubmitResources}
+        onCancel={() => setResourceModalVisible(false)}
+        width={500}
       >
         <Tree
           checkable
           defaultExpandAll
-          checkedKeys={selectedMenuKeys}
-          onCheck={(checkedKeys: any) => setSelectedMenuKeys(checkedKeys)}
-          treeData={buildTreeData(menuTree)}
+          checkedKeys={selectedResourceKeys}
+          onCheck={(checkedKeys: any) => setSelectedResourceKeys(checkedKeys)}
+          treeData={buildTreeData(resourceTree)}
         />
       </Modal>
     </div>

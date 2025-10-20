@@ -14,6 +14,12 @@ import lombok.EqualsAndHashCode;
 public class SysRole extends BaseEntity {
 
     /**
+     * 所属应用ID（NULL表示系统角色）
+     */
+    @TableField("app_id")
+    private Long appId;
+
+    /**
      * 角色名称
      */
     @TableField("role_name")

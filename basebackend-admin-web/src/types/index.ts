@@ -73,6 +73,7 @@ export interface User {
 // 角色类型
 export interface Role {
   id?: string
+  appId?: string
   roleName: string
   roleKey: string
   roleSort?: number
@@ -81,6 +82,7 @@ export interface Role {
   remark?: string
   menuIds?: string[]
   permissionIds?: string[]
+  resourceIds?: string[]
   createTime?: string
   updateTime?: string
 }
@@ -138,6 +140,7 @@ export interface Dept {
 // 字典类型
 export interface Dict {
   id?: string
+  appId?: string
   dictName: string
   dictType: string
   status?: number
@@ -149,6 +152,7 @@ export interface Dict {
 // 字典数据类型
 export interface DictData {
   id?: string
+  appId?: string
   dictSort?: number
   dictLabel: string
   dictValue: string
@@ -224,4 +228,41 @@ export interface ServerInfo {
   processorCount?: number
   systemLoad?: string
   uptime?: string
+}
+
+// 应用信息类型
+export interface Application {
+  id?: string
+  appName: string
+  appCode: string
+  appType: string
+  appIcon?: string
+  appUrl?: string
+  status?: number
+  orderNum?: number
+  remark?: string
+  createTime?: string
+  updateTime?: string
+}
+
+// 应用资源类型
+export interface ApplicationResource {
+  id?: string
+  appId: string
+  resourceName: string
+  parentId?: string
+  resourceType: string
+  path?: string
+  component?: string
+  perms?: string
+  icon?: string
+  visible?: number
+  openType?: string
+  orderNum?: number
+  status?: number
+  remark?: string
+  children?: ApplicationResource[]
+  appName?: string
+  createTime?: string
+  updateTime?: string
 }
