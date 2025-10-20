@@ -1,6 +1,7 @@
 package com.basebackend.logging.aspect;
 
 import com.alibaba.fastjson2.JSON;
+import com.basebackend.logging.context.LogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -9,17 +10,19 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Web请求日志切面
+ * Web请求日志切面（结构化日志版本）
+ * 自动记录API调用的详细信息，包括请求参数、响应结果、耗时等
  */
 @Slf4j
 @Aspect
@@ -39,87 +42,137 @@ public class WebLogAspect {
     @Around("webLog()")
     public Object doAround(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
-        Object[] safeArgs = Arrays.stream(joinPoint.getArgs()).map(this::simplifyArg).toArray();
-        try {
-            log.info("Request Args   : {}", JSON.toJSONString(safeArgs));
-        } catch (Throwable ignore) {
-            log.info("Request Args   : {}", Arrays.toString(safeArgs));
-        }
+
         // 获取请求信息
-//        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-//        if (attributes != null) {
-//            HttpServletRequest request = attributes.getRequest();
-//
-//            // 记录请求信息
-//            log.info("========================================== Request Start ==========================================");
-//            log.info("URL            : {}", request.getRequestURL().toString());
-//            log.info("HTTP Method    : {}", request.getMethod());
-//            log.info("Class Method   : {}.{}", joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName());
-//            log.info("IP             : {}", getIpAddress(request));
-//            log.info("Request Args   : {}", JSON.toJSONString(joinPoint.getArgs()));
-//        }
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = attributes != null ? attributes.getRequest() : null;
+
+        // 构建结构化日志信息
+        Map<String, Object> logData = new HashMap<>();
+        logData.put("traceId", LogContext.getTraceId());
+        logData.put("requestId", LogContext.getRequestId());
+
+        if (request != null) {
+            logData.put("url", request.getRequestURL().toString());
+            logData.put("method", request.getMethod());
+            logData.put("ip", LogContext.getIpAddress());
+            logData.put("uri", request.getRequestURI());
+        }
+
+        logData.put("classMethod", joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
+
+        // 简化参数（避免敏感信息和大对象）
+        Object[] safeArgs = Arrays.stream(joinPoint.getArgs())
+                .map(this::simplifyArg)
+                .toArray();
+        logData.put("args", safeArgs);
+
+        // 记录请求开始
+        log.info("API Request - {}", JSON.toJSONString(logData));
 
         // 执行方法
-        Object result = joinPoint.proceed();
-
-        // 记录响应信息
-        long endTime = System.currentTimeMillis();
-        log.info("Response Args  : {}", JSON.toJSONString(result));
-        log.info("Time-Consuming : {} ms", endTime - startTime);
-        log.info("========================================== Request End ==========================================");
-
-
-        // 3) 记录响应：兜底
+        Object result = null;
+        Throwable exception = null;
         try {
-            log.info("Response Args  : {}", JSON.toJSONString(result));
-        } catch (Throwable ignore) {
-            log.info("Response Args  : {}", String.valueOf(result));
+            result = joinPoint.proceed();
+            return result;
+        } catch (Throwable e) {
+            exception = e;
+            throw e;
+        } finally {
+            // 计算耗时
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+
+            // 构建响应日志
+            Map<String, Object> responseLog = new HashMap<>();
+            responseLog.put("traceId", LogContext.getTraceId());
+            responseLog.put("requestId", LogContext.getRequestId());
+            responseLog.put("duration", duration);
+            responseLog.put("durationUnit", "ms");
+
+            if (exception == null) {
+                // 成功响应
+                responseLog.put("status", "success");
+                try {
+                    responseLog.put("result", simplifyResult(result));
+                } catch (Throwable ignore) {
+                    responseLog.put("result", "Response too large or cannot be serialized");
+                }
+                log.info("API Response - {}", JSON.toJSONString(responseLog));
+            } else {
+                // 异常响应
+                responseLog.put("status", "error");
+                responseLog.put("errorType", exception.getClass().getSimpleName());
+                responseLog.put("errorMessage", exception.getMessage());
+                log.error("API Error - {}", JSON.toJSONString(responseLog), exception);
+            }
+
+            // 性能警告：响应时间超过1秒
+            if (duration > 1000) {
+                log.warn("Slow API detected - traceId: {}, duration: {}ms, method: {}",
+                        LogContext.getTraceId(), duration, logData.get("classMethod"));
+            }
         }
-        return result;
     }
 
-
-    // 4) 新增方法：参数简化
+    /**
+     * 简化参数，避免敏感信息和大对象
+     */
     private Object simplifyArg(Object arg) {
-        if (arg == null) return null;
-        if (arg instanceof HttpServletRequest) return "HttpServletRequest";
-        if (arg instanceof HttpServletResponse) return "HttpServletResponse";
-        if (arg instanceof MultipartFile f) {
+        if (arg == null) {
+            return null;
+        }
+
+        if (arg instanceof HttpServletRequest) {
+            return "[HttpServletRequest]";
+        }
+
+        if (arg instanceof HttpServletResponse) {
+            return "[HttpServletResponse]";
+        }
+
+        if (arg instanceof MultipartFile file) {
             Map<String, Object> info = new HashMap<>();
             info.put("type", "MultipartFile");
-            info.put("name", f.getOriginalFilename());
-            info.put("size", f.getSize());
+            info.put("name", file.getOriginalFilename());
+            info.put("size", file.getSize());
+            info.put("contentType", file.getContentType());
             return info;
         }
+
         if (arg instanceof InputStream || arg instanceof Reader || arg instanceof byte[]) {
-            return arg.getClass().getSimpleName();
+            return "[" + arg.getClass().getSimpleName() + "]";
         }
+
+        // 检查是否包含敏感字段
+        String argStr = String.valueOf(arg);
+        if (argStr.toLowerCase().contains("password") ||
+            argStr.toLowerCase().contains("token") ||
+            argStr.toLowerCase().contains("secret")) {
+            return "[Sensitive Data Hidden]";
+        }
+
         return arg;
     }
+
     /**
-     * 获取客户端真实IP地址
+     * 简化结果，避免超大响应
      */
-    private String getIpAddress(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+    private Object simplifyResult(Object result) {
+        if (result == null) {
+            return null;
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
+
+        try {
+            String resultStr = JSON.toJSONString(result);
+            // 如果响应超过 10KB，截断
+            if (resultStr.length() > 10240) {
+                return "[Response too large: " + resultStr.length() + " characters]";
+            }
+            return result;
+        } catch (Exception e) {
+            return "[Cannot serialize response]";
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_CLIENT_IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 对于多级代理，取第一个非unknown的IP
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0];
-        }
-        return ip;
     }
 }

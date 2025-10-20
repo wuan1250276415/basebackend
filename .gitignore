@@ -48,3 +48,7 @@ log/
 
 # Application specific
 uploads/
+/docker/observability/grafana-data/
+/docker/observability/loki-data/
+/docker/observability/prometheus-data/
+/docker/observability/tempo-data/

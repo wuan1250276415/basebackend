@@ -21,6 +21,7 @@
         <module>basebackend-logging</module>
         <module>basebackend-security</module>
         <module>basebackend-observability</module>
+        <module>basebackend-messaging</module>
         <module>basebackend-message-service</module>
         <module>basebackend-file-service</module>
         <module>basebackend-nacos</module>
@@ -51,6 +52,7 @@
         <redisson.version>3.24.3</redisson.version>
 
         <!-- Message -->
+        <rabbitmq.version>3.1.5</rabbitmq.version>
         <rocketmq.version>2.2.3</rocketmq.version>
         <kafka.version>3.1.2</kafka.version>
 
@@ -124,6 +126,13 @@
                 <groupId>org.redisson</groupId>
                 <artifactId>redisson-spring-boot-starter</artifactId>
                 <version>${redisson.version}</version>
+            </dependency>
+
+            <!-- RabbitMQ -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${rabbitmq.version}</version>
             </dependency>
 
             <!-- RocketMQ -->

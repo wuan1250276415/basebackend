@@ -15,6 +15,7 @@ import com.basebackend.admin.mapper.SysRoleMapper;
 import com.basebackend.admin.mapper.SysUserMapper;
 import com.basebackend.admin.mapper.SysUserRoleMapper;
 import com.basebackend.admin.service.UserService;
+import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,11 +39,12 @@ public class UserServiceImpl implements UserService {
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
+    private final CustomMetrics customMetrics;
 
     @Override
     public Page<UserDTO> page(UserQueryDTO queryDTO, int current, int size) {
         log.info("分页查询用户列表: current={}, size={}", current, size);
-
+        customMetrics.recordBusinessOperation("user","page");
         Page<SysUser> page = new Page<>(current, size);
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
 
