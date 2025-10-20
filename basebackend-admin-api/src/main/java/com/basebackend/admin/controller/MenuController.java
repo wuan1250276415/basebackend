@@ -2,13 +2,20 @@ package com.basebackend.admin.controller;
 
 import com.basebackend.admin.dto.MenuDTO;
 import com.basebackend.admin.service.MenuService;
+import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
+import com.basebackend.jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +32,7 @@ import java.util.List;
 public class MenuController {
 
     private final MenuService menuService;
+    private final JwtUtil jwtUtil;
 
     /**
      * 获取菜单树
@@ -179,9 +187,35 @@ public class MenuController {
      * 获取当前登录用户ID
      */
     private Long getCurrentUserId() {
-        // TODO: 从Spring Security Context或JWT中获取当前用户ID
-        // 这里暂时返回一个默认值，实际应该从认证信息中获取
-        return 1L; // 临时返回admin用户ID
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            throw new IllegalStateException("无法获取请求上下文");
+        }
+
+        HttpServletRequest request = attributes.getRequest();
+        if (request == null) {
+            throw new IllegalStateException("无法获取请求信息");
+        }
+
+        String bearerToken = request.getHeader(CommonConstants.TOKEN_HEADER);
+        if (!StringUtils.hasText(bearerToken)) {
+            throw new IllegalStateException("缺少认证信息");
+        }
+
+        String token = bearerToken.startsWith(CommonConstants.TOKEN_PREFIX)
+                ? bearerToken.substring(CommonConstants.TOKEN_PREFIX.length())
+                : bearerToken;
+
+        Claims claims = jwtUtil.getClaimsFromToken(token);
+        if (claims == null || claims.get("userId") == null) {
+            throw new IllegalStateException("认证信息无效");
+        }
+
+        try {
+            return Long.parseLong(claims.get("userId").toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("用户ID格式错误");
+        }
     }
 
     /**

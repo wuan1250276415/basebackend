@@ -32,7 +32,7 @@ import dayjs from 'dayjs'
 import {
   listProcessDefinitions,
   deployProcessDefinition,
-  deleteProcessDefinition,
+  deleteDeployment,
   suspendProcessDefinition,
   activateProcessDefinition,
   getProcessDefinitionXml,
@@ -149,7 +149,7 @@ const ProcessDefinitionList: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          const response = await deleteProcessDefinition(definition.id)
+          const response = await deleteDeployment(definition.deploymentId, true)
           if (response.success) {
             message.success('删除成功')
             loadDefinitions()

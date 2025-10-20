@@ -15,7 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -148,8 +153,28 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public List<MenuDTO> getMenuTreeByUserId(Long userId) {
         log.info("根据用户ID获取菜单树: {}", userId);
-        List<SysMenu> menus = menuMapper.selectMenusByUserId(userId);
-        return buildMenuTree(menus, 0L);
+        List<SysMenu> userMenus = menuMapper.selectMenusByUserId(userId);
+        if (userMenus == null || userMenus.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SysMenu> allMenus = menuMapper.selectMenuTreeList();
+        Map<Long, SysMenu> menuMap = allMenus.stream()
+                .collect(Collectors.toMap(SysMenu::getId, menu -> menu, (a, b) -> a, HashMap::new));
+
+        Set<Long> requiredMenuIds = userMenus.stream()
+                .map(SysMenu::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        for (SysMenu menu : userMenus) {
+            collectParentIds(menu.getParentId(), requiredMenuIds, menuMap);
+        }
+
+        List<SysMenu> filteredMenus = allMenus.stream()
+                .filter(menu -> requiredMenuIds.contains(menu.getId()))
+                .collect(Collectors.toList());
+
+        return buildMenuTree(filteredMenus, 0L);
     }
 
     @Override
@@ -190,5 +215,20 @@ public class MenuServiceImpl implements MenuService {
         MenuDTO dto = new MenuDTO();
         BeanUtil.copyProperties(menu, dto);
         return dto;
+    }
+
+    /**
+     * 递归收集父节点ID，确保菜单树包含目录节点
+     */
+    private void collectParentIds(Long parentId, Set<Long> requiredMenuIds, Map<Long, SysMenu> menuMap) {
+        if (parentId == null || parentId == 0) {
+            return;
+        }
+        if (requiredMenuIds.add(parentId)) {
+            SysMenu parentMenu = menuMap.get(parentId);
+            if (parentMenu != null) {
+                collectParentIds(parentMenu.getParentId(), requiredMenuIds, menuMap);
+            }
+        }
     }
 }

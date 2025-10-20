@@ -2,17 +2,18 @@ package com.basebackend.admin.controller;
 
 import com.basebackend.admin.dto.ApplicationResourceDTO;
 import com.basebackend.admin.service.ApplicationResourceService;
+import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -42,9 +43,9 @@ public class ApplicationResourceController {
             @PathVariable Long appId,
             HttpServletRequest request) {
         // 从Token中获取用户ID
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        String token = request.getHeader(CommonConstants.TOKEN_HEADER);
+        if (token != null && token.startsWith(CommonConstants.TOKEN_PREFIX)) {
+            token = token.substring(CommonConstants.TOKEN_PREFIX.length());
         }
 
         Claims claims = jwtUtil.getClaimsFromToken(token);

@@ -1,66 +1,39 @@
-observability:
-  # 追踪配置
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露所有端点
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name:basebackend}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   tracing:
-    enabled: true
-    exporter: jaeger
-    jaeger:
-      endpoint: http://localhost:14250
-    sampling-rate: 0.1
-    
-  # 日志配置
-  logging:
-    enabled: true
-    loki:
-      url: http://localhost:3100
-    elasticsearch:
-      hosts: localhost:9200
-      username: elastic
-      password: elastic
-      
-  # 性能分析配置
-  profiling:
-    enabled: true
-    jvm-metrics:
-      collect-interval: 10000 # 毫秒
-    async-profiler:
-      enabled: false
-      profiler-path: /usr/local/lib/libasyncProfiler.so
-      
-  # 调试工具配置
-  debugging:
-    arthas:
-      enabled: false
-      http-port: 8563
-      telnet-port: 3658
-      
-  # 告警配置
-  alerting:
-    enabled: true
-    channels:
-      - email
-      - webhook
-    rules:
-      slow-trace:
+    sampling:
+      # 采样率，1.0表示100%采样
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  prometheus:
+    metrics:
+      export:
         enabled: true
-        threshold: 3000 # 毫秒
-      high-heap-usage:
-        enabled: true
-        threshold: 90 # 百分比
-      error-spike:
-        enabled: true
-        threshold: 100 # 每小时错误数
 
+# 健康检查配置
 spring:
-  datasource:
-    # 如果使用单独的数据库
-    url: jdbc:mysql://localhost:3306/observability?useUnicode=true&characterEncoding=utf8
-    username: root
-    password: root
-    
-  # Elasticsearch配置
-  elasticsearch:
-    uris: http://localhost:9200
-    username: elastic
-    password: elastic
-    connection-timeout: 10s
-    socket-timeout: 60s
+  application:
+    name: basebackend

@@ -5,6 +5,7 @@ import com.basebackend.admin.dto.ApplicationResourceDTO;
 import com.basebackend.admin.entity.SysApplicationResource;
 import com.basebackend.admin.mapper.SysApplicationResourceMapper;
 import com.basebackend.admin.mapper.SysRoleResourceMapper;
+import com.basebackend.admin.mapper.SysRoleMenuMapper;
 import com.basebackend.admin.service.ApplicationResourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
 
     private final SysApplicationResourceMapper resourceMapper;
     private final SysRoleResourceMapper roleResourceMapper;
+    private final SysRoleMenuMapper roleMenuMapper;
 
     @Override
     public List<ApplicationResourceDTO> getResourceTree(Long appId) {
@@ -121,10 +123,19 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     public boolean assignRoleResources(Long roleId, List<Long> resourceIds) {
         // 先删除原有关联
         roleResourceMapper.deleteByRoleId(roleId);
+        roleMenuMapper.deleteByRoleId(roleId);
 
         // 批量插入新关联
         if (resourceIds != null && !resourceIds.isEmpty()) {
+            // 插入角色资源关联
             roleResourceMapper.batchInsert(roleId, resourceIds);
+            
+            // 根据资源ID查询对应的菜单ID
+            List<Long> menuIds = resourceMapper.selectMenuIdsByResourceIds(resourceIds);
+            if (menuIds != null && !menuIds.isEmpty()) {
+                // 插入角色菜单关联
+                roleMenuMapper.batchInsert(roleId, menuIds);
+            }
         }
 
         return true;

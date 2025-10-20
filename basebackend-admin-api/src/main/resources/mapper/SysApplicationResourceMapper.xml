@@ -63,4 +63,17 @@
         ORDER BY r.order_num ASC, r.create_time ASC
     </select>
 
+    <!-- 根据资源ID列表查询对应的菜单ID列表 -->
+    <select id="selectMenuIdsByResourceIds" resultType="java.lang.Long">
+        SELECT DISTINCT m.id
+        FROM sys_menu m
+        INNER JOIN sys_application_resource r ON m.path = r.path AND m.app_id = r.app_id
+        WHERE r.id IN
+        <foreach collection="resourceIds" item="resourceId" open="(" separator="," close=")">
+            #{resourceId}
+        </foreach>
+        AND m.deleted = 0
+        AND r.deleted = 0
+    </select>
+
 </mapper>

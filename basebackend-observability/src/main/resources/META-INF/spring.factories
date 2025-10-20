@@ -1,2 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.basebackend.observability.config.ObservabilityAutoConfiguration

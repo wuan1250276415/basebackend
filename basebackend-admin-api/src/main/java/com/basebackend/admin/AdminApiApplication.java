@@ -21,7 +21,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
         "com.basebackend.nacos",
         "com.basebackend.file"
 })
-@MapperScan("com.basebackend.admin.mapper")
+@MapperScan({"com.basebackend.admin.mapper","com.basebackend.file.mapper"})
 @EnableDiscoveryClient
 @EnableFeignClients
 public class AdminApiApplication {

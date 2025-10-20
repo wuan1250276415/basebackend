@@ -23,11 +23,11 @@ import EventLog from '@/pages/Integration/EventLog'
 import DeadLetter from '@/pages/Integration/DeadLetter'
 import Profile from '@/pages/User/Profile'
 import ApiDocs from '@/pages/Developer/ApiDocs'
-import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
+// import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
 import TaskDetail from '@/pages/Workflow/TaskManagement/TaskDetail'
 import MyInitiated from '@/pages/Workflow/TaskManagement/MyInitiated'
 import ProcessTemplateIndex from '@/pages/Workflow/ProcessTemplate'
-import LeaveApproval from '@/pages/Workflow/ProcessTemplate/LeaveApproval'
+// import LeaveApproval from '@/pages/Workflow/ProcessTemplate/LeaveApproval'
 import ExpenseApproval from '@/pages/Workflow/ProcessTemplate/ExpenseApproval'
 import PurchaseApproval from '@/pages/Workflow/ProcessTemplate/PurchaseApproval'
 import ProcessInstanceList from '@/pages/Workflow/ProcessInstance'
@@ -92,11 +92,11 @@ const AppRouter = () => {
         <Route path="developer/api-docs" element={<ApiDocs />} />
 
         {/* 工作流管理 */}
-        <Route path="workflow/todo" element={<TodoList />} />
+        {/* <Route path="workflow/todo" element={<TodoList />} /> */}
         <Route path="workflow/todo/:taskId" element={<TaskDetail />} />
         <Route path="workflow/initiated" element={<MyInitiated />} />
         <Route path="workflow/template" element={<ProcessTemplateIndex />} />
-        <Route path="workflow/template/leave" element={<LeaveApproval />} />
+        {/* <Route path="workflow/template/leave" element={<LeaveApproval />} /> */}
         <Route path="workflow/template/expense" element={<ExpenseApproval />} />
         <Route path="workflow/template/purchase" element={<PurchaseApproval />} />
         <Route path="workflow/instance" element={<ProcessInstanceList />} />
