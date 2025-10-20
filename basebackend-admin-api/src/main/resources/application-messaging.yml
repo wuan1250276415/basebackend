@@ -1,0 +1,56 @@
+# 消息配置
+messaging:
+  # RabbitMQ配置
+  rabbitmq:
+    enabled: true
+    delay-plugin-enabled: true
+    delay-exchange: x-delayed-exchange
+    default-exchange: basebackend.direct
+    queue-prefix: basebackend.queue.
+
+  # 重试配置
+  retry:
+    enabled: true
+    max-attempts: 3
+    initial-interval: 1000
+    multiplier: 2.0
+    max-interval: 10000
+
+  # 死信队列配置
+  dead-letter:
+    enabled: true
+    exchange: basebackend.dlx
+    queue: basebackend.dlq
+    routing-key: basebackend.dlq.#
+
+  # 事务消息配置
+  transaction:
+    enabled: true
+    table-name: sys_message_log
+    check-interval: 60
+    timeout: 30
+
+  # 幂等性配置
+  idempotency:
+    enabled: true
+    expire-time: 3600
+    key-prefix: "msg:idempotent:"
+
+# Spring RabbitMQ配置
+spring:
+  rabbitmq:
+    host: 192.168.66.20
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: basebackend
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 3
+        max-concurrency: 10

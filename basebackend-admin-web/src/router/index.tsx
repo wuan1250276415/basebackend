@@ -13,6 +13,14 @@ import LoginLog from '@/pages/Monitor/LoginLog'
 import OperationLog from '@/pages/Monitor/OperationLog'
 import OnlineUser from '@/pages/Monitor/OnlineUser'
 import ServerMonitor from '@/pages/Monitor/ServerMonitor'
+import ObservabilityOverview from '@/pages/Monitor/Observability/Overview'
+import LogQuery from '@/pages/Monitor/Observability/LogQuery'
+import TraceQuery from '@/pages/Monitor/Observability/TraceQuery'
+import AlertManagement from '@/pages/Monitor/Observability/AlertManagement'
+import MessageMonitor from '@/pages/Integration/MessageMonitor'
+import WebhookConfig from '@/pages/Integration/WebhookConfig'
+import EventLog from '@/pages/Integration/EventLog'
+import DeadLetter from '@/pages/Integration/DeadLetter'
 import Profile from '@/pages/User/Profile'
 import ApiDocs from '@/pages/Developer/ApiDocs'
 import { useAuthStore } from '@/stores/auth'
@@ -51,7 +59,19 @@ const AppRouter = () => {
         <Route path="monitor/server" element={<ServerMonitor />} />
         <Route path="monitor/loginlog" element={<LoginLog />} />
         <Route path="monitor/operlog" element={<OperationLog />} />
-        
+
+        {/* 可观测性监控 */}
+        <Route path="monitor/observability/overview" element={<ObservabilityOverview />} />
+        <Route path="monitor/observability/logs" element={<LogQuery />} />
+        <Route path="monitor/observability/traces" element={<TraceQuery />} />
+        <Route path="monitor/observability/alerts" element={<AlertManagement />} />
+
+        {/* 消息与集成 */}
+        <Route path="integration/message-monitor" element={<MessageMonitor />} />
+        <Route path="integration/webhook-config" element={<WebhookConfig />} />
+        <Route path="integration/event-log" element={<EventLog />} />
+        <Route path="integration/dead-letter" element={<DeadLetter />} />
+
         {/* 个人中心 */}
         <Route path="user/profile" element={<Profile />} />
 
