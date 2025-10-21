@@ -1,0 +1,167 @@
+# API网关配置
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: basebackend-gateway
+
+  cloud:
+    # Sentinel配置
+    sentinel:
+      transport:
+        dashboard: localhost:8858  # Sentinel控制台地址
+        port: 8719
+      eager: true
+      # Nacos数据源配置
+      datasource:
+        # 流控规则
+        flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: flow
+        # 降级规则
+        degrade:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-degrade-rules
+            groupId: SENTINEL_GROUP
+            rule-type: degrade
+        # 网关限流规则
+        gw-flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-gw-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: gw-flow
+
+    gateway:
+      # 动态路由从Nacos加载
+      discovery:
+        locator:
+          enabled: true  # 启用服务发现
+          lower-case-service-id: true  # 服务名小写
+
+      # 路由配置
+      routes:
+        # admin-api服务路由
+        - id: admin-api
+          uri: lb://admin-api
+          predicates:
+            - Path=/admin-api/**
+          filters:
+            - StripPrefix=1
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+                backoff:
+                  firstBackoff: 10ms
+                  maxBackoff: 50ms
+                  factor: 2
+                  basedOnPreviousValue: false
+
+        # demo-api服务路由
+        - id: basebackend-demo-api
+          uri: lb://basebackend-demo-api
+          predicates:
+            - Path=/basebackend-demo-api/api/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY
+                methods: GET
+                backoff:
+                  firstBackoff: 10ms
+                  maxBackoff: 50ms
+                  factor: 2
+
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: false
+            max-age: 3600
+
+      # 默认过滤器
+      default-filters:
+        - AddResponseHeader=X-Response-Default,BaseBackend-Gateway
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              replenishRate: 100  # 每秒补充的令牌数
+              burstCapacity: 200  # 令牌桶容量
+              requestedTokens: 1  # 每个请求消耗的令牌数
+
+# 灰度路由配置
+gateway:
+  gray:
+    enabled: true
+    rules:
+      # admin-api灰度示例
+      - serviceName: admin-api
+        grayVersion: v2.0.0
+        stableVersion: v1.0.0
+        strategy: weight  # header/user/ip/weight
+        weight: 10  # 10%流量到灰度版本
+
+      # 基于Header的灰度
+      - serviceName: basebackend-demo-api
+        grayVersion: v2.0.0
+        stableVersion: v1.0.0
+        strategy: header
+        headerName: X-Gray-Flag
+        headerValue: "true"
+
+# Redis配置
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis_ZJGE42
+      database: 1
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+# JWT配置
+jwt:
+  secret: basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required
+  expiration: 86400000
+
+# 日志配置
+logging:
+  level:
+    com.basebackend.gateway: DEBUG
+    com.alibaba.csp.sentinel: INFO
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
