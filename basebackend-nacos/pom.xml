@@ -49,6 +49,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Jackson for JSON processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Common Module -->
         <dependency>
             <groupId>com.basebackend</groupId>

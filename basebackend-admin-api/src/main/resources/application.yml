@@ -5,7 +5,7 @@ spring:
   application:
     name: admin-api
   profiles:
-    active: dev,observability,messaging
+    active: dev,observability,messaging,nacos
 
 # MyBatis Plus配置
 mybatis-plus:
