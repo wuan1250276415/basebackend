@@ -1,0 +1,32 @@
+# MinIO对象存储配置
+minio:
+  # 是否启用MinIO
+  enabled: true
+
+  # MinIO服务地址
+  endpoint: http://localhost:9000
+
+  # Access Key
+  access-key: minioadmin
+
+  # Secret Key
+  secret-key: minioadmin
+
+  # 默认存储桶
+  bucket-name: basebackend
+
+  # 文件路径配置
+  path-prefix: files
+  image-path: images
+  large-path: large
+  thumbnail-path: thumbnails
+
+  # 文件大小限制
+  max-file-size: 100  # MB
+  large-file-threshold: 10  # MB，超过此大小使用分片上传
+  part-size: 5  # MB，分片大小
+
+  # 图片处理配置
+  thumbnail-width: 200
+  thumbnail-height: 200
+  image-quality: 0.8

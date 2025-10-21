@@ -17,6 +17,15 @@
 - ✅ 创建application-backup.yml配置示例
 - ✅ 编译测试通过
 
+### Phase 3: MinIO对象存储 (✅ 已完成)
+- ✅ 增强basebackend-file-service模块
+- ✅ 集成MinIO SDK 8.5.7
+- ✅ 实现MinioStorageService（上传、下载、删除）
+- ✅ 实现分片上传（大文件支持）
+- ✅ 实现图片处理（缩略图生成、压缩）
+- ✅ 创建application-minio.yml配置示例
+- ✅ 编译测试通过
+
 ## 核心功能说明
 
 ### 1. 读写分离配置 (ShardingSphere)
@@ -142,14 +151,81 @@ spring:
       - backup  # 激活备份配置
 ```
 
-## 待实现功能（框架已规划）
+### 3. MinIO对象存储 (Object Storage)
 
-### Phase 3: MinIO对象存储
-增强 `basebackend-file-service` 模块：
-- MinIO SDK集成
+已增强 `basebackend-file-service` 模块，集成MinIO实现：
+
+**核心功能**:
 - 文件上传/下载
-- 分片上传（大文件支持）
-- 图片处理（缩略图、压缩）
+- 分片上传（大文件 >10MB 自动分片）
+- 图片处理（自动生成缩略图、压缩）
+- 文件管理（删除、批量删除）
+- 预签名URL（临时访问链接）
+
+**使用方式**:
+```java
+@Service
+public class FileDemoService {
+
+    @Autowired
+    private MinioStorageService minioStorageService;
+
+    // 上传普通文件
+    public void uploadFile(MultipartFile file) {
+        FileUploadResult result = minioStorageService.uploadFile(file);
+        log.info("文件上传成功: {}", result.getFileUrl());
+    }
+
+    // 上传图片（自动生成缩略图）
+    public void uploadImage(MultipartFile image) {
+        FileUploadResult result = minioStorageService.uploadImage(image);
+        log.info("原图URL: {}", result.getFileUrl());
+        log.info("缩略图URL: {}", result.getThumbnailUrl());
+    }
+
+    // 上传大文件（自动分片）
+    public void uploadLargeFile(MultipartFile largeFile) {
+        FileUploadResult result = minioStorageService.uploadLargeFile(largeFile);
+        log.info("大文件上传成功: {}", result.getFileUrl());
+    }
+
+    // 下载文件
+    public InputStream downloadFile(String filePath) {
+        return minioStorageService.downloadFile(filePath);
+    }
+
+    // 删除文件
+    public void deleteFile(String filePath) {
+        boolean success = minioStorageService.deleteFile(filePath);
+    }
+}
+```
+
+**MinIO部署**:
+使用Docker快速启动MinIO服务：
+```bash
+docker run -d \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  --name minio \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  -v /data/minio:/data \
+  quay.io/minio/minio server /data --console-address ":9001"
+```
+
+访问MinIO控制台：http://localhost:9001
+
+**配置激活**:
+在 `application.yml` 中添加：
+```yaml
+spring:
+  profiles:
+    include:
+      - minio  # 激活MinIO配置
+```
+
+## 待实现功能（框架已规划）
 
 ### Phase 4: 管理API
 在 `basebackend-admin-api` 中添加：
@@ -254,7 +330,7 @@ spring:
 ## 下一步建议
 
 1. ~~**完成备份模块**~~ - ✅ 已完成
-2. **完成MinIO集成** - 实现对象存储
+2. ~~**完成MinIO集成**~~ - ✅ 已完成
 3. **添加管理API** - 提供Web管理界面
 4. **Docker部署** - 简化部署流程
 5. **压力测试** - 验证读写分离性能提升
@@ -283,10 +359,13 @@ druid:
 - ✅ @MasterOnly注解
 - ✅ MySQL备份恢复模块
 - ✅ 自动备份调度
+- ✅ MinIO对象存储集成
+- ✅ 图片处理（缩略图、压缩）
+- ✅ 分片上传（大文件支持）
 - ✅ 完整配置示例
 - ✅ 编译测试通过
 
-核心功能框架已搭建完成，可直接使用。后续模块（MinIO、管理API、Docker部署）可根据实际需求逐步实现。
+核心功能框架已搭建完成，可直接使用。后续模块（管理API、Docker部署）可根据实际需求逐步实现。
 
 ## 快速测试
 
@@ -319,4 +398,24 @@ java -jar basebackend-admin-api.jar --spring.profiles.active=backup
 tail -f logs/backup.log
 ```
 
-所有配置和代码已提交，可以立即开始使用读写分离和备份恢复功能！
+### 测试MinIO对象存储
+```bash
+# 1. 启动MinIO服务
+docker run -d \
+  -p 9000:9000 -p 9001:9001 \
+  --name minio \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  quay.io/minio/minio server /data --console-address ":9001"
+
+# 2. 启动应用（包含MinIO配置）
+java -jar basebackend-admin-api.jar --spring.profiles.active=minio
+
+# 3. 测试文件上传（通过API或Service调用）
+# MinIO控制台: http://localhost:9001
+
+# 4. 验证文件上传成功
+# 在MinIO控制台的basebackend存储桶中查看上传的文件
+```
+
+所有配置和代码已提交，可以立即开始使用读写分离、备份恢复和MinIO对象存储功能！
