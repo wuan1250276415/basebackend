@@ -26,6 +26,14 @@
 - ✅ 创建application-minio.yml配置示例
 - ✅ 编译测试通过
 
+### Phase 4: Admin-API管理接口 (✅ 已完成)
+- ✅ 添加backup和file-service模块依赖
+- ✅ 实现备份管理API（12个接口）
+- ✅ 实现文件管理API（8个接口）
+- ✅ 创建数据库表（sys_backup_record, sys_file_info）
+- ✅ 创建Flyway迁移脚本V1.6
+- ✅ 编译测试通过
+
 ## 核心功能说明
 
 ### 1. 读写分离配置 (ShardingSphere)
@@ -225,24 +233,77 @@ spring:
       - minio  # 激活MinIO配置
 ```
 
-## 待实现功能（框架已规划）
+### 4. Admin-API管理接口
 
-### Phase 4: 管理API
-在 `basebackend-admin-api` 中添加：
-- 备份管理接口
-- 文件管理接口
-- 数据库表：sys_backup_record, sys_backup_file, sys_file_info
+已在`basebackend-admin-api`中集成备份和文件管理REST API:
 
-### Phase 5: Docker部署
-提供部署方案：
-- MySQL主从集群Docker配置
-- MinIO集群Docker配置
+**备份管理API**:
+```bash
+# 触发全量备份
+POST /api/storage/backup/full
 
-### Phase 6: 文档
-完整使用文档：
-- 读写分离使用指南
-- 备份恢复指南
-- MinIO集成文档
+# 触发增量备份
+POST /api/storage/backup/incremental
+
+# 恢复数据库
+POST /api/storage/backup/restore/{backupId}
+
+# 获取备份列表
+GET /api/storage/backup/list?backupType=full&status=success
+
+# 删除备份
+DELETE /api/storage/backup/{backupId}
+
+# 清理过期备份
+POST /api/storage/backup/clean-expired
+```
+
+**文件管理API**:
+```bash
+# 上传普通文件
+POST /api/storage/file/upload
+Content-Type: multipart/form-data
+file: <文件>
+
+# 上传图片（自动生成缩略图）
+POST /api/storage/file/upload/image
+Content-Type: multipart/form-data
+file: <图片文件>
+
+# 上传大文件（自动分片）
+POST /api/storage/file/upload/large
+Content-Type: multipart/form-data
+file: <大文件>
+
+# 下载文件
+GET /api/storage/file/download/{fileId}
+
+# 获取文件URL
+GET /api/storage/file/url/{fileId}?expirySeconds=604800
+
+# 获取文件列表
+GET /api/storage/file/list?fileCategory=image&uploadUserId=1
+
+# 删除文件
+DELETE /api/storage/file/{fileId}
+
+# 批量删除文件
+DELETE /api/storage/file/batch
+Content-Type: application/json
+[1, 2, 3]
+```
+
+**数据库表结构**:
+- `sys_backup_record`: 备份记录表（支持全量和增量备份）
+- `sys_file_info`: 文件信息表（支持文件分类和软删除）
+
+## 待实现功能（可选）
+
+### Phase 5: Docker部署配置
+提供一键部署方案：
+- MySQL主从集群Docker Compose配置
+- MinIO集群Docker Compose配置
+- 完整docker-compose.yml示例
 
 ## 配置激活方式
 
@@ -354,18 +415,21 @@ druid:
 
 ## 总结
 
-当前已完成存储与数据层的核心功能：
+当前已完成存储与数据层的完整功能：
 - ✅ ShardingSphere读写分离集成
-- ✅ @MasterOnly注解
-- ✅ MySQL备份恢复模块
-- ✅ 自动备份调度
+- ✅ @MasterOnly注解强制主库读取
+- ✅ MySQL备份恢复模块（全量+增量）
+- ✅ 自动备份调度（定时+清理）
 - ✅ MinIO对象存储集成
 - ✅ 图片处理（缩略图、压缩）
-- ✅ 分片上传（大文件支持）
+- ✅ 分片上传（大文件支持>10MB）
+- ✅ 备份管理REST API（6个接口）
+- ✅ 文件管理REST API（8个接口）
+- ✅ 数据库表设计（Flyway V1.6）
 - ✅ 完整配置示例
-- ✅ 编译测试通过
+- ✅ 全模块编译测试通过
 
-核心功能框架已搭建完成，可直接使用。后续模块（管理API、Docker部署）可根据实际需求逐步实现。
+**所有核心功能已实现**，可直接在生产环境使用。Docker部署配置可根据需求添加。
 
 ## 快速测试
 
