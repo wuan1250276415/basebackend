@@ -304,4 +304,19 @@ java -jar basebackend-admin-api.jar --spring.profiles.active=datasource
 # 读操作: Actual SQL: slave1 或 slave2
 ```
 
-所有配置和代码已提交，可以立即开始使用读写分离功能！
+### 测试备份恢复
+```bash
+# 1. 配置备份参数
+# 编辑 application.yml，添加 backup profile
+
+# 2. 启动应用（包含备份模块）
+java -jar basebackend-admin-api.jar --spring.profiles.active=backup
+
+# 3. 手动触发备份（或等待自动备份）
+# 备份文件将保存在 /data/backup/mysql/full/ 目录
+
+# 4. 查看备份日志
+tail -f logs/backup.log
+```
+
+所有配置和代码已提交，可以立即开始使用读写分离和备份恢复功能！
