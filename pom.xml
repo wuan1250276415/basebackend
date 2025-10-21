@@ -24,6 +24,7 @@
         <module>basebackend-messaging</module>
         <module>basebackend-message-service</module>
         <module>basebackend-file-service</module>
+        <module>basebackend-backup</module>
         <module>basebackend-nacos</module>
         <module>basebackend-gateway</module>
         <module>basebackend-scheduler</module>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.basebackend</groupId>
+        <artifactId>basebackend-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>basebackend-backup</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Base Backend Backup</name>
+    <description>备份恢复模块，提供MySQL自动备份、增量备份、一键恢复功能</description>
+
+    <dependencies>
+        <!-- Common Module -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Database Module -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-database</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Scheduler Module (for auto backup) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-scheduler</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- MySQL -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+
+        <!-- Commons IO (for file operations) -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
+        <!-- Hutool (for file and date utils) -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

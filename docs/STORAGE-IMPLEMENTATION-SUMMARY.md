@@ -2,11 +2,19 @@
 
 ## 已实现部分 ✅
 
-### Phase 1: 数据库读写分离基础 (部分完成)
+### Phase 1: 数据库读写分离基础 (✅ 已完成)
 - ✅ 添加ShardingSphere 5.4.1依赖
 - ✅ 添加Spring AOP依赖
 - ✅ 创建@MasterOnly注解（强制主库读取）
 - ✅ 创建application-datasource.yml配置示例
+- ✅ 编译测试通过
+
+### Phase 2: 备份恢复模块 (✅ 已完成)
+- ✅ 创建basebackend-backup模块
+- ✅ 实现MySQLBackupService（全量备份、增量备份、恢复）
+- ✅ 实现AutoBackupScheduler（自动定时备份）
+- ✅ 实现备份文件管理（保留策略、自动清理）
+- ✅ 创建application-backup.yml配置示例
 - ✅ 编译测试通过
 
 ## 核心功能说明
@@ -77,15 +85,64 @@ public class OrderService {
 }
 ```
 
-## 待实现功能（框架已规划）
+### 2. 备份恢复功能 (MySQL Backup)
 
-### Phase 2: 备份恢复模块
-需要创建 `basebackend-backup` 模块，实现：
-- 自动定时备份（每日凌晨2点）
-- 全量备份 + 增量备份(Binlog)
-- 备份文件管理（保留30天）
-- 一键恢复功能
-- PITR时间点恢复
+已创建完整备份模块 `basebackend-backup`，提供：
+
+**核心功能**:
+- 全量备份（使用mysqldump）
+- 增量备份（基于Binlog）
+- 一键恢复数据库
+- PITR时间点恢复（框架已搭建）
+- 自动定时备份
+- 过期备份自动清理
+
+**使用方式**:
+```java
+@Service
+public class BackupDemoService {
+
+    @Autowired
+    private MySQLBackupService backupService;
+
+    // 手动执行全量备份
+    public void manualBackup() {
+        BackupRecord record = backupService.fullBackup();
+        if (record.getStatus() == BackupStatus.SUCCESS) {
+            log.info("备份成功: {}", record.getFilePath());
+        }
+    }
+
+    // 恢复数据库
+    public void restoreDatabase(String backupId) {
+        boolean success = backupService.restore(backupId);
+        if (success) {
+            log.info("恢复成功");
+        }
+    }
+
+    // 查看备份列表
+    public List<BackupRecord> getBackupList() {
+        return backupService.listBackups();
+    }
+}
+```
+
+**自动备份调度**:
+- 全量备份：每天凌晨2点自动执行
+- 增量备份：每小时自动执行
+- 清理过期备份：每天凌晨3点自动执行（保留30天）
+
+**配置激活**:
+在 `application.yml` 中添加：
+```yaml
+spring:
+  profiles:
+    include:
+      - backup  # 激活备份配置
+```
+
+## 待实现功能（框架已规划）
 
 ### Phase 3: MinIO对象存储
 增强 `basebackend-file-service` 模块：
@@ -196,7 +253,7 @@ spring:
 
 ## 下一步建议
 
-1. **完成备份模块** - 保障数据安全
+1. ~~**完成备份模块**~~ - ✅ 已完成
 2. **完成MinIO集成** - 实现对象存储
 3. **添加管理API** - 提供Web管理界面
 4. **Docker部署** - 简化部署流程
@@ -221,16 +278,19 @@ druid:
 
 ## 总结
 
-当前已完成数据库读写分离的基础框架：
-- ✅ ShardingSphere集成
+当前已完成存储与数据层的核心功能：
+- ✅ ShardingSphere读写分离集成
 - ✅ @MasterOnly注解
+- ✅ MySQL备份恢复模块
+- ✅ 自动备份调度
 - ✅ 完整配置示例
 - ✅ 编译测试通过
 
-核心功能框架已搭建完成，可直接使用。后续模块（备份、MinIO、管理API）可根据实际需求逐步实现。
+核心功能框架已搭建完成，可直接使用。后续模块（MinIO、管理API、Docker部署）可根据实际需求逐步实现。
 
 ## 快速测试
 
+### 测试读写分离
 ```bash
 # 1. 配置MySQL主从
 # 参考上面的主从配置说明

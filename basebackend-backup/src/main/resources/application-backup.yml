@@ -1,0 +1,35 @@
+# 备份配置
+backup:
+  # 是否启用备份模块
+  enabled: true
+
+  # 备份存储路径
+  backup-path: /data/backup/mysql
+
+  # 备份文件保留天数
+  retention-days: 30
+
+  # 是否启用自动备份
+  auto-backup-enabled: true
+
+  # 自动备份CRON表达式（默认每天凌晨2点）
+  auto-backup-cron: 0 0 2 * * ?
+
+  # 是否启用增量备份
+  incremental-backup-enabled: true
+
+  # Binlog路径
+  binlog-path: /var/lib/mysql
+
+  # MySQL命令路径配置
+  mysqldump-path: mysqldump
+  mysql-path: mysql
+  mysqlbinlog-path: mysqlbinlog
+
+  # 数据库配置
+  database:
+    host: localhost
+    port: 3306
+    username: root
+    password: ${MYSQL_PASSWORD:root123}
+    database: basebackend
