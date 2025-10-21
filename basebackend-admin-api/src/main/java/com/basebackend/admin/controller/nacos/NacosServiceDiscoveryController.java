@@ -4,6 +4,7 @@ import com.basebackend.admin.dto.nacos.ServiceInstanceDTO;
 import com.basebackend.admin.service.nacos.NacosServiceDiscoveryManagementService;
 import com.basebackend.common.model.Result;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/nacos/service")
 @RequiredArgsConstructor
+@Validated
 public class NacosServiceDiscoveryController {
 
     private final NacosServiceDiscoveryManagementService serviceDiscoveryManagementService;

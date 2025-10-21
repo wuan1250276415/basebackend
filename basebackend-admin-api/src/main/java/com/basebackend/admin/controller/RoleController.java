@@ -21,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/roles")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "角色管理", description = "角色管理相关接口")
 public class RoleController {
 

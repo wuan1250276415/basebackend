@@ -19,6 +19,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/messaging/webhook")
+@Validated
 @Tag(name = "Webhook配置管理", description = "Webhook配置的增删改查")
 public class WebhookConfigController {
 

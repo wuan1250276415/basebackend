@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/api/messaging/event")
+@Validated
 @Tag(name = "事件发布", description = "事件发布和管理")
 public class EventController {
 

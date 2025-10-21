@@ -22,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/application/resource")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "应用资源管理", description = "应用资源管理相关接口")
 public class ApplicationResourceController {
 

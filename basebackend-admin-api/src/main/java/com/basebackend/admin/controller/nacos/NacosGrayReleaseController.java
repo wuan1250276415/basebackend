@@ -5,6 +5,7 @@ import com.basebackend.admin.service.nacos.NacosGrayReleaseManagementService;
 import com.basebackend.common.model.Result;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/nacos/gray-release")
 @RequiredArgsConstructor
+@Validated
 public class NacosGrayReleaseController {
 
     private final NacosGrayReleaseManagementService grayReleaseManagementService;

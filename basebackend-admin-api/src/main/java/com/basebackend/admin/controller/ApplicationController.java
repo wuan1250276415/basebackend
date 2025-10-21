@@ -19,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/application")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "应用管理", description = "应用管理相关接口")
 public class ApplicationController {
 

@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,6 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/actuator/gateway/routes")
 @RequiredArgsConstructor
+@Validated
 public class RouteController {
 
     private final DynamicRouteService dynamicRouteService;

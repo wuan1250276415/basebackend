@@ -64,6 +64,8 @@
 
         <!-- Security -->
         <jjwt.version>0.12.3</jjwt.version>
+        <jasypt.version>3.0.5</jasypt.version>
+        <owasp-html-sanitizer.version>20200713.1</owasp-html-sanitizer.version>
 
         <!-- Utils -->
         <lombok.version>1.18.30</lombok.version>
@@ -71,6 +73,9 @@
         <fastjson2.version>2.0.43</fastjson2.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
         <commons-io.version>2.15.1</commons-io.version>
+        
+        <!-- Build & Quality -->
+        <dependency-check.version>9.1.0</dependency-check.version>
     </properties>
 
     <dependencyManagement>
@@ -161,6 +166,20 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
+            <!-- Secret Management -->
+            <dependency>
+                <groupId>com.github.ulisesbocchio</groupId>
+                <artifactId>jasypt-spring-boot-starter</artifactId>
+                <version>${jasypt.version}</version>
+            </dependency>
+
+            <!-- XSS Sanitizer -->
+            <dependency>
+                <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+                <artifactId>owasp-java-html-sanitizer</artifactId>
+                <version>${owasp-html-sanitizer.version}</version>
+            </dependency>
+
             <!-- Lombok -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -215,6 +234,28 @@
                         <target>${java.version}</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${dependency-check.version}</version>
+                    <configuration>
+                        <failBuildOnCVSS>7.0</failBuildOnCVSS>
+                        <formats>
+                            <format>HTML</format>
+                            <format>JSON</format>
+                        </formats>
+                        <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>dependency-check</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>aggregate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

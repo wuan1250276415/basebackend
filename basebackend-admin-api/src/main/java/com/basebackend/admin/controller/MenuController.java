@@ -20,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/menus")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "菜单管理", description = "菜单管理相关接口")
 public class MenuController {
 

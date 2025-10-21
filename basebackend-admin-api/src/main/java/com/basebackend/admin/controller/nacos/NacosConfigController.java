@@ -7,6 +7,7 @@ import com.basebackend.admin.service.nacos.NacosConfigManagementService;
 import com.basebackend.common.model.Result;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/nacos/config")
 @RequiredArgsConstructor
+@Validated
 public class NacosConfigController {
 
     private final NacosConfigManagementService configManagementService;

@@ -6,6 +6,7 @@ import com.basebackend.admin.entity.nacos.SysNacosConfigHistory;
 import com.basebackend.admin.service.nacos.NacosConfigHistoryService;
 import com.basebackend.common.model.Result;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/nacos/config-history")
 @RequiredArgsConstructor
+@Validated
 public class NacosConfigHistoryController {
 
     private final NacosConfigHistoryService configHistoryService;

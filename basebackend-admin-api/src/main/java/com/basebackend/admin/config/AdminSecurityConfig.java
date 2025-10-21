@@ -1,7 +1,9 @@
 package com.basebackend.admin.config;
 
-import com.basebackend.jwt.JwtUtil;
 import com.basebackend.admin.filter.JwtAuthenticationFilter;
+import com.basebackend.common.security.CsrfCookieFilter;
+import com.basebackend.common.security.OriginValidationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,19 +14,23 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 /**
  * 后台管理API安全配置
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class AdminSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    public AdminSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
+    private final CsrfCookieFilter csrfCookieFilter;
+    private final OriginValidationFilter originValidationFilter;
 
     /**
      * 密码编码器
@@ -39,9 +45,24 @@ public class AdminSecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName("_csrf");
+
         http
-                // 禁用CSRF（因为使用JWT）
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(requestHandler)
+                        .ignoringRequestMatchers(
+                                "/api/admin/auth/**",
+                                "/api/public/**",
+                                "/actuator/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/doc.html",
+                                "/webjars/**",
+                                "/favicon.ico"
+                        )
+                )
                 // 禁用表单登录
                 .formLogin(AbstractHttpConfigurer::disable)
                 // 禁用HTTP基本认证
@@ -50,6 +71,14 @@ public class AdminSecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                // 安全响应头
+                .headers(headers -> {
+                    headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; base-uri 'self';"));
+                    headers.referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN));
+                    headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true));
+                    headers.frameOptions(frame -> frame.deny());
+                    headers.permissionsPolicy(policy -> policy.policy("geolocation=(), microphone=(), camera=()"));
+                })
                 // 配置请求授权
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
@@ -68,7 +97,9 @@ public class AdminSecurityConfig {
                         .anyRequest().authenticated()
                 )
                 // 添加JWT过滤器
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(csrfCookieFilter, BasicAuthenticationFilter.class)
+                .addFilterAfter(originValidationFilter, CsrfFilter.class);
 
         return http.build();
     }

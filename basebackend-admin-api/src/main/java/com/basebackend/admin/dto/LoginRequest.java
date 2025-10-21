@@ -1,8 +1,8 @@
 package com.basebackend.admin.dto;
 
-import lombok.Data;
-
+import com.basebackend.common.validation.SafeString;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 
 /**
  * 登录请求DTO
@@ -14,6 +14,7 @@ public class LoginRequest {
      * 用户名
      */
     @NotBlank(message = "用户名不能为空")
+    @SafeString(maxLength = 64)
     private String username;
 
     /**
@@ -25,11 +26,13 @@ public class LoginRequest {
     /**
      * 验证码
      */
+    @SafeString(maxLength = 10)
     private String captcha;
 
     /**
      * 验证码标识
      */
+    @SafeString(maxLength = 64)
     private String captchaId;
 
     /**

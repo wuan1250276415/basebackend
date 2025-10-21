@@ -1,5 +1,7 @@
 package com.basebackend.security.config;
 
+import com.basebackend.common.security.CsrfCookieFilter;
+import com.basebackend.common.security.OriginValidationFilter;
 import com.basebackend.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 /**
  * Spring Security 配置
@@ -24,6 +31,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CsrfCookieFilter csrfCookieFilter;
+    private final OriginValidationFilter originValidationFilter;
 
     /**
      * 密码编码器
@@ -38,9 +47,23 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName("_csrf");
+
         http
-                // 禁用CSRF（因为使用JWT）
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(requestHandler)
+                        .ignoringRequestMatchers(
+                                "/api/auth/**",
+                                "/api/admin/auth/**",
+                                "/api/public/**",
+                                "/actuator/**",
+                                "/v3/api-docs/**",
+                                "/doc.html",
+                                "/swagger-ui/**"
+                        )
+                )
                 // 禁用表单登录
                 .formLogin(AbstractHttpConfigurer::disable)
                 // 禁用HTTP基本认证
@@ -49,6 +72,14 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                // 安全响应头
+                .headers(headers -> {
+                    headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; base-uri 'self';"));
+                    headers.referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN));
+                    headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true));
+                    headers.frameOptions(frame -> frame.deny());
+                    headers.permissionsPolicy(policy -> policy.policy("geolocation=(), microphone=(), camera=()"));
+                })
                 // 配置请求授权
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
@@ -67,7 +98,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 // 添加JWT过滤器
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(csrfCookieFilter, BasicAuthenticationFilter.class)
+                .addFilterAfter(originValidationFilter, CsrfFilter.class);
 
         return http.build();
     }

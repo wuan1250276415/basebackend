@@ -20,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/permissions")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "权限管理", description = "权限管理相关接口")
 public class PermissionController {
 

@@ -23,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "用户管理", description = "用户管理相关接口")
 public class UserController {
 

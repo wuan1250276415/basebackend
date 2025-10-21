@@ -1,8 +1,10 @@
 package com.basebackend.jwt;
 
+import com.basebackend.common.security.SecretManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,19 +22,26 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtUtil {
 
+    private static final String DEFAULT_SECRET = "basebackend-secret-key-for-jwt-token-generation-minimum-256-bits";
+
     @Value("${jwt.secret:basebackend-secret-key-for-jwt-token-generation-minimum-256-bits}")
-    private String secret;
+    private String configuredSecret;
 
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
+
+    private final SecretManager secretManager;
 
     /**
      * 生成密钥
      */
     private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        String secretValue = secretManager.getRequiredSecret("jwt.secret",
+                () -> configuredSecret != null ? configuredSecret : DEFAULT_SECRET);
+        return Keys.hmacShaKeyFor(secretValue.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -139,5 +148,12 @@ public class JwtUtil {
         }
         long diff = expirationDate.getTime() - System.currentTimeMillis();
         return diff < 3600000; // 1小时
+    }
+
+    /**
+     * 主动刷新签名密钥缓存
+     */
+    public void refreshSigningKey() {
+        secretManager.refreshSecret("jwt.secret");
     }
 }

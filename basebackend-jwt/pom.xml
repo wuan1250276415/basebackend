@@ -18,6 +18,13 @@
     <description>JWT工具模块，提供统一的JWT生成和验证功能，不依赖Spring Security</description>
 
     <dependencies>
+        <!-- Common utilities -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot Starter - 仅基础功能，不包含Web或Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

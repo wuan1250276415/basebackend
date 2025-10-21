@@ -20,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/depts")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "部门管理", description = "部门管理相关接口")
 public class DeptController {
 
