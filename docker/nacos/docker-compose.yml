@@ -3,7 +3,7 @@ version: '3.8'
 services:
   nacos-mysql:
     container_name: nacos-mysql
-    image: mysql:8.0
+    image: mysql:8.4.6
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: nacos_config
@@ -25,7 +25,7 @@ services:
 
   nacos1:
     container_name: nacos1
-    image: nacos/nacos-server:v2.2.3
+    image: nacos/nacos-server:v3.1.0
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
@@ -36,6 +36,7 @@ services:
       - MYSQL_SERVICE_DB_NAME=nacos_config
       - MYSQL_SERVICE_USER=nacos
       - MYSQL_SERVICE_PASSWORD=nacos123
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=nacos
@@ -57,7 +58,7 @@ services:
 
   nacos2:
     container_name: nacos2
-    image: nacos/nacos-server:v2.2.3
+    image: nacos/nacos-server:v3.1.0
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
@@ -68,6 +69,7 @@ services:
       - MYSQL_SERVICE_DB_NAME=nacos_config
       - MYSQL_SERVICE_USER=nacos
       - MYSQL_SERVICE_PASSWORD=nacos123
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=nacos
@@ -89,7 +91,7 @@ services:
 
   nacos3:
     container_name: nacos3
-    image: nacos/nacos-server:v2.2.3
+    image: nacos/nacos-server:v3.1.0
     environment:
       - PREFER_HOST_MODE=hostname
       - MODE=cluster
@@ -100,6 +102,7 @@ services:
       - MYSQL_SERVICE_DB_NAME=nacos_config
       - MYSQL_SERVICE_USER=nacos
       - MYSQL_SERVICE_PASSWORD=nacos123
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
       - NACOS_AUTH_ENABLE=true
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
       - NACOS_AUTH_IDENTITY_KEY=nacos
