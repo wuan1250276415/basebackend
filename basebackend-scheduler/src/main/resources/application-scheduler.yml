@@ -1,0 +1,73 @@
+# 调度器配置
+
+# PowerJob配置
+powerjob:
+  worker:
+    # PowerJob Server地址
+    server-address: http://localhost:7700
+    # 应用名称(需要提前在PowerJob控制台创建)
+    app-name: basebackend
+    # Worker端口
+    port: 27777
+    # 协议类型: http/akka
+    protocol: http
+    # 健康检查间隔(秒)
+    health-check-interval: 30
+    # 最大任务并发数
+    max-worker-num: 200
+    # 是否启用测试模式
+    enable-test-mode: false
+
+# 调度器自定义配置
+scheduler:
+  # PowerJob配置
+  powerjob:
+    server-address: ${powerjob.worker.server-address}
+    app-name: ${powerjob.worker.app-name}
+    port: ${powerjob.worker.port}
+    protocol: ${powerjob.worker.protocol}
+    health-check-interval: ${powerjob.worker.health-check-interval}
+    max-worker-num: ${powerjob.worker.max-worker-num}
+
+  # 延迟任务配置
+  delay-task:
+    # 延迟队列类型: redis/rabbitmq
+    queue-type: redis
+    # Redis延迟队列Key前缀
+    redis-key-prefix: "delay:task:"
+    # RabbitMQ延迟交换机
+    rabbit-exchange: "delay.task.exchange"
+    # 扫描间隔(毫秒)
+    scan-interval: 1000
+
+  # 重试配置
+  retry:
+    # 默认最大重试次数
+    max-retry-times: 3
+    # 默认重试间隔(秒)
+    retry-interval: 60
+    # 是否启用指数退避
+    exponential-backoff: true
+    # 退避倍数
+    backoff-multiplier: 2.0
+    # 最大退避时间(秒)
+    max-backoff-interval: 3600
+
+  # 告警配置
+  alert:
+    # 是否启用告警
+    enabled: true
+    # 钉钉Webhook
+    ding-talk-webhook: ${DINGTALK_WEBHOOK:}
+    # 企业微信Webhook
+    wechat-webhook: ${WECHAT_WEBHOOK:}
+    # 邮件发送地址
+    email-from: ${EMAIL_FROM:noreply@basebackend.com}
+    # 邮件接收地址
+    email-to: ${EMAIL_TO:admin@basebackend.com}
+
+# 日志配置
+logging:
+  level:
+    com.basebackend.scheduler: DEBUG
+    tech.powerjob: INFO

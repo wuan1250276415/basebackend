@@ -26,6 +26,7 @@
         <module>basebackend-file-service</module>
         <module>basebackend-nacos</module>
         <module>basebackend-gateway</module>
+        <module>basebackend-scheduler</module>
         <module>basebackend-demo-api</module>
         <module>basebackend-admin-api</module>
     </modules>
