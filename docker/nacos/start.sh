@@ -15,6 +15,7 @@ else
     COMPOSE_CMD="sudo docker compose"
 fi
 
+
 # 创建必要的目录
 mkdir -p mysql/data mysql/init
 mkdir -p nacos1/logs nacos2/logs nacos3/logs

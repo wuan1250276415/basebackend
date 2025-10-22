@@ -3,13 +3,11 @@ package com.basebackend.nacos.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.stereotype.Component;
 
 /**
  * Nacos 配置属性
  */
 @Data
-@Component
 @RefreshScope
 @ConfigurationProperties(prefix = "nacos")
 public class NacosConfigProperties {

@@ -18,7 +18,7 @@
     <description>网关模块，提供统一的API入口、路由、限流、鉴权等功能</description>
 
     <dependencies>
-        <!-- Common Module -->
+        <!-- Common Module - 排除Servlet API冲突的类 -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
@@ -34,9 +34,23 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-validation</artifactId>
                 </exclusion>
+                <!-- 排除Spring Security Web，因为它依赖Servlet API -->
+                <exclusion>
+                    <groupId>org.springframework.security</groupId>
+                    <artifactId>spring-security-web</artifactId>
+                </exclusion>
+                <!-- 排除Jasypt，因为它可能依赖Servlet API -->
+                <exclusion>
+                    <groupId>com.github.ulisesbocchio</groupId>
+                    <artifactId>jasypt-spring-boot-starter</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
-
+        <!-- Spring Cloud Bootstrap -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
         <!-- JWT Module - 统一的JWT工具，不依赖Spring Security -->
         <dependency>
             <groupId>com.basebackend</groupId>

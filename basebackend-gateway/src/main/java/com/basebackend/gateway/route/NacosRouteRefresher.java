@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 
 /**
@@ -34,13 +35,26 @@ public class NacosRouteRefresher {
     @Value("${spring.cloud.nacos.config.namespace:}")
     private String namespace;
 
+    @Value("${spring.cloud.nacos.config.username:}")
+    private String username;
+
+    @Value("${spring.cloud.nacos.config.password:}")
+    private String password;
+
     private static final String ROUTE_DATA_ID = "gateway-routes";
     private static final String ROUTE_GROUP = "DEFAULT_GROUP";
 
     @PostConstruct
     public void init() {
         try {
-            ConfigService configService = NacosFactory.createConfigService(serverAddr);
+            log.info("Nacos路由监听器初始化开始，serverAddr: {}, namespace: {}", serverAddr, namespace);
+            Properties properties = new Properties();
+            properties.put("serverAddr", serverAddr);
+            properties.put("namespace", namespace);
+            properties.put("group", ROUTE_GROUP);
+            properties.put("username", username);
+            properties.put("password", password);
+            ConfigService configService = NacosFactory.createConfigService(properties);
 
             // 初始加载路由配置
             String configInfo = configService.getConfig(ROUTE_DATA_ID, ROUTE_GROUP, 5000);

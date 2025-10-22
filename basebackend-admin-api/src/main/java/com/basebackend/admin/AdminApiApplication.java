@@ -17,7 +17,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
         "com.basebackend.cache",
         "com.basebackend.logging",
         "com.basebackend.observability",
-        "com.basebackend.messaging"
+        "com.basebackend.messaging",
+        "com.basebackend.nacos",
+        "com.basebackend.file"
 })
 @MapperScan("com.basebackend.admin.mapper")
 @EnableDiscoveryClient

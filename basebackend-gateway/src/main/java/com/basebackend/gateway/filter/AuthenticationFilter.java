@@ -1,8 +1,8 @@
 package com.basebackend.gateway.filter;
 
 import com.alibaba.fastjson2.JSON;
-import com.basebackend.common.constant.CommonConstants;
-import com.basebackend.common.model.Result;
+import com.basebackend.gateway.constant.GatewayConstants;
+import com.basebackend.gateway.model.GatewayResult;
 import com.basebackend.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,11 +107,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                                         .build();
 
                                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
-                            })
-                            .switchIfEmpty(Mono.defer(() -> {
-                                log.warn("用户 {} 的Token在Redis中为空", username);
-                                return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
-                            }));
+                            });
+//                            .switchIfEmpty(Mono.defer(() -> {
+//                                log.warn("用户 {} 的Token在Redis中为空", username);
+//                                return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
+//                            }));
                 })
                 .onErrorResume(e -> {
                     log.error("Redis验证Token失败: {}", e.getMessage());
@@ -135,9 +135,9 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 从请求中获取Token
      */
     private String getTokenFromRequest(ServerHttpRequest request) {
-        String bearerToken = request.getHeaders().getFirst(CommonConstants.TOKEN_HEADER);
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(CommonConstants.TOKEN_PREFIX)) {
-            return bearerToken.substring(CommonConstants.TOKEN_PREFIX.length());
+        String bearerToken = request.getHeaders().getFirst(GatewayConstants.TOKEN_HEADER);
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(GatewayConstants.TOKEN_PREFIX)) {
+            return bearerToken.substring(GatewayConstants.TOKEN_PREFIX.length());
         }
         return null;
     }
@@ -155,8 +155,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
 
-        Result<?> result = Result.error(HttpStatus.UNAUTHORIZED.value(), message);
-        String body = JSON.toJSONString(result);
+        GatewayResult<?> result = GatewayResult.error(HttpStatus.UNAUTHORIZED.value(), message);
+        String body = result.toJsonString();
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));

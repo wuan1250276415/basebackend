@@ -2,28 +2,13 @@ server:
   port: 8080
 
 spring:
+  profiles:
+    active: dev
   application:
     name: basebackend-gateway
+  main:
+    web-application-type: reactive
   cloud:
-    nacos:
-      discovery:
-        server-addr: localhost:8848
-        namespace: public
-        group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
-        metadata:
-          version: 1.0.0
-          region: beijing
-      config:
-        server-addr: localhost:8848
-        namespace: public
-        group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
-        file-extension: yml
-        import-check:
-          enabled: false
     loadbalancer:
       ribbon:
         enabled: false
@@ -79,6 +64,13 @@ spring:
       port: 6379
       password: redis_ZJGE42
       database: 1
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
 
 # JWT配置 - 必须与demo-api保持一致
 jwt:
@@ -92,3 +84,10 @@ logging:
     com.basebackend.gateway: DEBUG
     com.basebackend.jwt: DEBUG
     com.alibaba.cloud.nacos: DEBUG
+
+## 配置刷新
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info,nacos-config,nacos-discovery

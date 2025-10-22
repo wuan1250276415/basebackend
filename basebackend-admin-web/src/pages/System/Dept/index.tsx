@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, ApartmentOutlined, ReloadOu
 import type { DataNode } from 'antd/es/tree'
 import { getDeptTree, createDept, updateDept, deleteDept } from '@/api/dept'
 import { Dept } from '@/types'
+import DeptTreeSelect from '@/components/DeptTreeSelect'
 import './index.css'
 
 const DeptList = () => {
@@ -206,14 +207,10 @@ const DeptList = () => {
           </Form.Item>
 
           <Form.Item name="parentId" label="上级部门" initialValue="0">
-            <Select placeholder="请选择上级部门">
-              <Select.Option value="0">根部门</Select.Option>
-              {buildParentDeptOptions(deptTree).map((option) => (
-                <Select.Option key={option.value} value={option.value}>
-                  {option.label}
-                </Select.Option>
-              ))}
-            </Select>
+            <DeptTreeSelect 
+              placeholder="请选择上级部门" 
+              treeData={deptTree}
+            />
           </Form.Item>
 
           <Form.Item name="orderNum" label="排序">

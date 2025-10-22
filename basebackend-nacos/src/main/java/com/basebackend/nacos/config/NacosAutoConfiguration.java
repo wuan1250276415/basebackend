@@ -3,7 +3,6 @@ package com.basebackend.nacos.config;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.naming.NamingService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,8 +32,8 @@ public class NacosAutoConfiguration {
     }
 
     @Bean
-    public NacosConfigManager nacosConfigManager() {
-        log.info("初始化 Nacos 配置管理器");
+    public NacosConfigManager customNacosConfigManager() {
+        log.info("初始化自定义 Nacos 配置管理器");
         return new NacosConfigManager(nacosConfigProperties);
     }
 
@@ -56,8 +55,4 @@ public class NacosAutoConfiguration {
         return NacosFactory.createNamingService(properties);
     }
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
 }

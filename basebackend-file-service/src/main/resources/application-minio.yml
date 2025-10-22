@@ -7,10 +7,10 @@ minio:
   endpoint: http://localhost:9000
 
   # Access Key
-  access-key: minioadmin
+  access-key: minio_hPTk7Z
 
   # Secret Key
-  secret-key: minioadmin
+  secret-key: minio_57J6Sk
 
   # 默认存储桶
   bucket-name: basebackend

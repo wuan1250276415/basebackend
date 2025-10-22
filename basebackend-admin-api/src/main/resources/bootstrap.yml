@@ -1,8 +1,9 @@
+# Nacos配置管理增强
 spring:
   application:
     name: admin-api
   profiles:
-    active: dev
+    active: dev,messaging,minio,nacos
   cloud:
     nacos:
       discovery:
@@ -11,13 +12,31 @@ spring:
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
+        # 元数据配置（用于灰度发布）
+        metadata:
+          version: ${APP_VERSION:1.0.0}
+          environment: ${SPRING_PROFILES_ACTIVE:dev}
+          gray: ${GRAY_ENABLED:false}
       config:
         server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
+        file-extension: yml
+        # 共享配置
         shared-configs:
-          - data-id: admin-api-config.yml
+          - data-id: common-config.yml
             group: DEFAULT_GROUP
+            refresh: true
+          - data-id: redis-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: mysql-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+        # 扩展配置
+        extension-configs:
+          - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
             refresh: true

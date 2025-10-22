@@ -32,6 +32,7 @@ import {
 import { getDeptTree } from '@/api/dept'
 import { getRolePage } from '@/api/role'
 import { User, Dept, Role } from '@/types'
+import DeptTreeSelect from '@/components/DeptTreeSelect'
 
 const UserList = () => {
   const [form] = Form.useForm()
@@ -383,13 +384,10 @@ const UserList = () => {
           </Form.Item>
 
           <Form.Item name="deptId" label="部门">
-            <Select placeholder="请选择部门" showSearch optionFilterProp="label">
-              {deptList.map((dept) => (
-                <Select.Option key={dept.id} value={dept.id} label={dept.deptName}>
-                  {dept.deptName}
-                </Select.Option>
-              ))}
-            </Select>
+            <DeptTreeSelect 
+              placeholder="请选择部门" 
+              treeData={deptList}
+            />
           </Form.Item>
 
           <Form.Item name="roleIds" label="角色">

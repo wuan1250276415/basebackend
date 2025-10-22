@@ -3,13 +3,11 @@ package com.basebackend.nacos.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.stereotype.Component;
 
 /**
  * Nacos 配置管理器
  */
 @Slf4j
-@Component
 @RefreshScope
 @RequiredArgsConstructor
 public class NacosConfigManager {
