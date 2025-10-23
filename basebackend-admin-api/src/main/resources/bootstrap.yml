@@ -3,11 +3,11 @@ spring:
   application:
     name: admin-api
   profiles:
-    active: dev,messaging,minio,nacos
+    active: dev
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         username: ${NACOS_USERNAME:nacos}
@@ -18,7 +18,7 @@ spring:
           environment: ${SPRING_PROFILES_ACTIVE:dev}
           gray: ${GRAY_ENABLED:false}
       config:
-        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         username: ${NACOS_USERNAME:nacos}

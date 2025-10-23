@@ -42,6 +42,9 @@ public class NacosAutoConfiguration {
         Properties properties = new Properties();
         properties.put("serverAddr", nacosConfigProperties.getConfig().getServerAddr());
         properties.put("namespace", nacosConfigProperties.getConfig().getNamespace());
+        properties.put("group", nacosConfigProperties.getConfig().getGroup());
+        properties.put("username", nacosConfigProperties.getConfig().getUsername());
+        properties.put("password", nacosConfigProperties.getConfig().getPassword());
         log.info("初始化 Nacos ConfigService: {}", properties);
         return NacosFactory.createConfigService(properties);
     }

@@ -27,7 +27,7 @@ public class NacosConfigProperties {
         /**
          * Nacos 服务地址
          */
-        private String serverAddr = "localhost:28080";
+        private String serverAddr = "141.98.196.113:8848";
 
         /**
          * 命名空间
@@ -53,6 +53,9 @@ public class NacosConfigProperties {
          * 是否启用
          */
         private boolean enabled = true;
+
+        private String username = "nacos";
+        private String password = "nacos";
     }
 
     @Data
@@ -60,7 +63,7 @@ public class NacosConfigProperties {
         /**
          * Nacos 服务地址
          */
-        private String serverAddr = "localhost:28080";
+        private String serverAddr = "141.98.196.113:8848";
 
         /**
          * 命名空间
@@ -86,5 +89,8 @@ public class NacosConfigProperties {
          * 是否启用导入检查
          */
         private boolean importCheckEnabled = true;
+
+        private String username = "nacos";
+        private String password = "nacos";
     }
 }

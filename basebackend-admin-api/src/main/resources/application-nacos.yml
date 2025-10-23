@@ -1,27 +1,27 @@
-# Nacos增强配置
-
-# Nacos基础配置
-nacos:
-  enabled: true
-  discovery:
-    server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-    namespace: ${NACOS_NAMESPACE:public}
-    group: ${NACOS_GROUP:DEFAULT_GROUP}
-    service-name: ${spring.application.name}
-    weight: 1.0
-    enabled: true
-  config:
-    server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
-    namespace: ${NACOS_NAMESPACE:public}
-    group: ${NACOS_GROUP:DEFAULT_GROUP}
-    file-extension: yml
-    enabled: true
-    import-check-enabled: true
-
-
-# 配置刷新
-management:
-  endpoints:
-    web:
-      exposure:
-        include: refresh,health,info,nacos-config,nacos-discovery
+## Nacos增强配置
+#
+## Nacos基础配置
+#nacos:
+#  enabled: true
+#  discovery:
+#    server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
+#    namespace: ${NACOS_NAMESPACE:public}
+#    group: ${NACOS_GROUP:DEFAULT_GROUP}
+#    service-name: ${spring.application.name}
+#    weight: 1.0
+#    enabled: true
+#  config:
+#    server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
+#    namespace: ${NACOS_NAMESPACE:public}
+#    group: ${NACOS_GROUP:DEFAULT_GROUP}
+#    file-extension: yml
+#    enabled: true
+#    import-check-enabled: true
+#
+#
+## 配置刷新
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: refresh,health,info,nacos-config,nacos-discovery

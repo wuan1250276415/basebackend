@@ -1,10 +1,10 @@
 # MinIO配置
 minio:
   enabled: true
-  endpoint: http://localhost:9000
-  access-key: minio_hPTk7Z
-  secret-key: minio_57J6Sk
-  bucket-name: basebackend
+  endpoint: ${minio.endpoint}
+  access-key: ${minio.access-key}
+  secret-key: ${minio.secret-key}
+  bucket-name: ${minio.bucket-name}
   path-prefix: files
   image-path: images
   large-path: large

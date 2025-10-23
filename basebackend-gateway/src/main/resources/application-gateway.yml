@@ -7,6 +7,8 @@ spring:
   application:
     name: basebackend-gateway
 
+  main:
+    web-application-type: reactive
   cloud:
     # Sentinel配置
     sentinel:
@@ -106,6 +108,18 @@ spring:
               replenishRate: 100  # 每秒补充的令牌数
               burstCapacity: 200  # 令牌桶容量
               requestedTokens: 1  # 每个请求消耗的令牌数
+  data:
+    redis:
+          host: 141.98.196.113
+          port: 6379
+          password: redis_peXryF
+          database: 1
+          lettuce:
+            pool:
+              max-active: 8
+              max-idle: 8
+              min-idle: 0
+              max-wait: -1ms
 
 # 灰度路由配置
 gateway:
@@ -127,20 +141,6 @@ gateway:
         headerName: X-Gray-Flag
         headerValue: "true"
 
-# Redis配置
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: redis_ZJGE42
-      database: 1
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
 
 # JWT配置
 jwt:

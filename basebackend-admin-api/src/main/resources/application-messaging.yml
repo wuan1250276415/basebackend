@@ -39,7 +39,7 @@ messaging:
 # Spring RabbitMQ配置
 spring:
   rabbitmq:
-    host: localhost
+    host: 141.98.196.113
     port: 5672
     username: admin
     password: admin123

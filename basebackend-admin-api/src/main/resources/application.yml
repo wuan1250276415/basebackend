@@ -5,8 +5,7 @@ spring:
   application:
     name: admin-api
   profiles:
-    active: dev,messaging,minio,nacos
-
+    active: observability
 
 # MyBatis Plus配置
 mybatis-plus:
@@ -65,7 +64,7 @@ knife4j:
     structured:
       enabled: true
       loki-enabled: true
-      loki-url: http://localhost:3100/loki/api/v1/push
+      loki-url: http://141.98.196.113:3100/loki/api/v1/push
 
   # Actuator 配置
   management:
@@ -85,17 +84,17 @@ knife4j:
   observability:
     # Prometheus 地址
     prometheus:
-      url: http://localhost:9190
+      url: http://141.98.196.113:9190
 
     # Loki 地址
     loki:
-      url: http://localhost:3100
+      url: http://141.98.196.113:3100
 
     # Tempo 配置
     tempo:
       enabled: true
-      endpoint: http://localhost:9411/api/v2/spans
-      query-url: http://localhost:3200
+      endpoint: http://141.98.196.113:9411/api/v2/spans
+      query-url: http://141.98.196.113:3200
 
     # 告警配置
     alert:

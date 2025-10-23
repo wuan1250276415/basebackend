@@ -1,0 +1,57 @@
+[
+  {
+    "resource": "admin-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 100,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 20,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  },
+  {
+    "resource": "basebackend-demo-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 200,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 50,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  },
+  {
+    "resource": "admin-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 10,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 5,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 2,
+      "fieldName": "userId"
+    }
+  },
+  {
+    "resource": "basebackend-demo-api",
+    "resourceMode": 1,
+    "grade": 1,
+    "count": 5,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 2,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 3,
+      "pattern": "/api/test/*",
+      "matchStrategy": 0
+    }
+  }
+]
