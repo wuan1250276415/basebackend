@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: admin-api-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: basebackend
+
+  # 源仓库配置
+  source:
+    repoURL: 'https://github.com/wuan1250276415/basebackend.git'
+    targetRevision: gitops
+    path: k8s/overlays/dev/admin-api
+
+  # 目标集群配置
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: basebackend-dev
+
+  # 同步策略
+  syncPolicy:
+    automated:
+      prune: true       # 自动删除不在Git中的资源
+      selfHeal: true    # 自动修复配置漂移
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true    # 自动创建命名空间
+      - PruneLast=true          # 最后才删除资源
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # 健康检查配置
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # 忽略HPA控制的副本数

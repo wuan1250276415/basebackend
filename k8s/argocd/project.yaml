@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: basebackend
+  namespace: argocd
+spec:
+  description: Base Backend微服务项目
+
+  # 允许的源仓库
+  sourceRepos:
+    - 'https://github.com/wuan1250276415/basebackend.git'
+
+  # 允许部署的目标
+  destinations:
+    - namespace: 'basebackend-*'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'argocd'
+      server: 'https://kubernetes.default.svc'
+
+  # 允许的资源类型
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # 角色配置
+  roles:
+    # 开发者角色 - 只读权限
+    - name: developer
+      description: 开发者只读权限
+      policies:
+        - p, proj:basebackend:developer, applications, get, basebackend/*, allow
+        - p, proj:basebackend:developer, applications, sync, basebackend/*-dev, allow
+      groups:
+        - developers
+
+    # 运维角色 - 完全控制
+    - name: operator
+      description: 运维人员完全权限
+      policies:
+        - p, proj:basebackend:operator, applications, *, basebackend/*, allow
+      groups:
+        - operators
+
+  # 同步窗口（可选）
+  syncWindows:
+    # 生产环境只允许在维护窗口同步
+    - kind: deny
+      schedule: '* * * * *'
+      duration: 24h
+      applications:
+        - '*-prod'
+      namespaces:
+        - basebackend-prod
+    - kind: allow
+      schedule: '0 2 * * 0-6'  # 每天凌晨2点
+      duration: 2h
+      applications:
+        - '*-prod'
+      namespaces:
+        - basebackend-prod
