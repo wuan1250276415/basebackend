@@ -1,7 +1,3 @@
-# API网关配置
-
-server:
-  port: 8080
 
 spring:
   application:
@@ -13,7 +9,7 @@ spring:
     # Sentinel配置
     sentinel:
       transport:
-        dashboard: localhost:8858  # Sentinel控制台地址
+        dashboard: 1.117.67.222:8858  # Sentinel控制台地址
         port: 8719
       eager: true
       # Nacos数据源配置
@@ -25,6 +21,8 @@ spring:
             dataId: ${spring.application.name}-flow-rules
             groupId: SENTINEL_GROUP
             rule-type: flow
+            username: nacos
+            password: nacos
         # 降级规则
         degrade:
           nacos:
@@ -32,6 +30,8 @@ spring:
             dataId: ${spring.application.name}-degrade-rules
             groupId: SENTINEL_GROUP
             rule-type: degrade
+            username: nacos
+            password: nacos
         # 网关限流规则
         gw-flow:
           nacos:
@@ -39,6 +39,8 @@ spring:
             dataId: ${spring.application.name}-gw-flow-rules
             groupId: SENTINEL_GROUP
             rule-type: gw-flow
+            username: nacos
+            password: nacos
 
     gateway:
       # 动态路由从Nacos加载
@@ -67,23 +69,6 @@ spring:
                   factor: 2
                   basedOnPreviousValue: false
 
-        # demo-api服务路由
-        - id: basebackend-demo-api
-          uri: lb://basebackend-demo-api
-          predicates:
-            - Path=/basebackend-demo-api/api/**
-          filters:
-            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
-            - name: Retry
-              args:
-                retries: 3
-                statuses: BAD_GATEWAY
-                methods: GET
-                backoff:
-                  firstBackoff: 10ms
-                  maxBackoff: 50ms
-                  factor: 2
-
       # 全局CORS配置
       globalcors:
         cors-configurations:
@@ -110,16 +95,17 @@ spring:
               requestedTokens: 1  # 每个请求消耗的令牌数
   data:
     redis:
-          host: 141.98.196.113
-          port: 6379
-          password: redis_peXryF
-          database: 1
-          lettuce:
-            pool:
-              max-active: 8
-              max-idle: 8
-              min-idle: 0
-              max-wait: -1ms
+      host: ${spring.data.redis.host}
+      port: ${spring.data.redis.port}
+      password: ${spring.data.redis.password}
+      database: ${spring.data.redis.database}
+      timeout: ${spring.data.redis.timeout}
+      lettuce:
+        pool:
+          max-active: ${spring.data.redis.max-active}
+          max-wait: ${spring.data.redis.max-wait}
+          max-idle: ${spring.data.redis.max-idle}
+          min-idle: ${spring.data.redis.min-idle}
 
 # 灰度路由配置
 gateway:

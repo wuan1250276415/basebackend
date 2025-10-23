@@ -2,7 +2,7 @@
 
 spring:
   profiles:
-    active: dev
+    active: gateway
   application:
     name: basebackend-gateway
   cloud:
@@ -13,9 +13,6 @@ spring:
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
-        # 禁用gRPC通信,使用HTTP
-        grpc:
-          enable: false
         # 元数据配置（用于灰度发布）
         metadata:
           version: ${APP_VERSION:1.0.0}
@@ -28,9 +25,6 @@ spring:
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
         file-extension: yml
-        # 禁用gRPC通信,使用HTTP
-        grpc:
-          enable: false
         import-check:
           enabled: false
         # 共享配置

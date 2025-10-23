@@ -6,8 +6,10 @@ nacos:
     server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
     namespace: ${NACOS_NAMESPACE:public}
     group: ${NACOS_GROUP:DEFAULT_GROUP}
-    service-name: ${spring.application.name}
+    username: ${NACOS_USERNAME:nacos}
+    password: ${NACOS_PASSWORD:nacos}
     weight: 1.0
+
   config:
     enabled: true
     server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
