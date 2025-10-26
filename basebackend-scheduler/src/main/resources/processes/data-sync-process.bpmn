@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_2"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="data-sync-process" name="数据同步流程" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="开始同步">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ExtractData" />
+
+    <!-- 提取数据 -->
+    <bpmn:serviceTask id="Task_ExtractData" name="提取数据"
+                      camunda:delegateExpression="${dataSyncDelegate}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ExtractData" targetRef="Task_TransformData" />
+
+    <!-- 转换数据 -->
+    <bpmn:serviceTask id="Task_TransformData" name="转换数据"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataTransformDelegate">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_TransformData" targetRef="Task_LoadData" />
+
+    <!-- 加载数据 -->
+    <bpmn:serviceTask id="Task_LoadData" name="加载数据"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataLoadDelegate">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_LoadData" targetRef="Task_Verify" />
+
+    <!-- 验证同步结果 -->
+    <bpmn:serviceTask id="Task_Verify" name="验证结果"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataVerifyDelegate">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Verify" targetRef="EndEvent_1" />
+
+    <bpmn:endEvent id="EndEvent_1" name="同步完成">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- 错误边界事件 -->
+    <bpmn:boundaryEvent id="BoundaryEvent_Error" name="同步失败" attachedToRef="Task_ExtractData">
+      <bpmn:errorEventDefinition errorRef="Error_SyncFailed" />
+      <bpmn:outgoing>Flow_Error</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_Error" sourceRef="BoundaryEvent_Error" targetRef="Task_HandleError" />
+
+    <!-- 错误处理 -->
+    <bpmn:serviceTask id="Task_HandleError" name="处理错误"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.ErrorHandlerDelegate">
+      <bpmn:incoming>Flow_Error</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Error</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_End_Error" sourceRef="Task_HandleError" targetRef="EndEvent_Error" />
+
+    <bpmn:endEvent id="EndEvent_Error" name="同步失败">
+      <bpmn:incoming>Flow_End_Error</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <bpmn:error id="Error_SyncFailed" name="SyncFailed" errorCode="SYNC_ERROR" />
+
+</bpmn:definitions>

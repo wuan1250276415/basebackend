@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_3"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="microservice-orchestration" name="微服务编排流程" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="开始编排">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Gateway_Parallel" />
+
+    <!-- 并行网关 - 分支 -->
+    <bpmn:parallelGateway id="Gateway_Parallel">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Service1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Service2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Service3</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:sequenceFlow id="Flow_Service1" sourceRef="Gateway_Parallel" targetRef="Task_CallService1" />
+    <bpmn:sequenceFlow id="Flow_Service2" sourceRef="Gateway_Parallel" targetRef="Task_CallService2" />
+    <bpmn:sequenceFlow id="Flow_Service3" sourceRef="Gateway_Parallel" targetRef="Task_CallService3" />
+
+    <!-- 调用服务1 -->
+    <bpmn:serviceTask id="Task_CallService1" name="调用用户服务"
+                      camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="serviceName">user-service</camunda:inputParameter>
+          <camunda:inputParameter name="operation">getUserInfo</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Service1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- 调用服务2 -->
+    <bpmn:serviceTask id="Task_CallService2" name="调用订单服务"
+                      camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="serviceName">order-service</camunda:inputParameter>
+          <camunda:inputParameter name="operation">getOrderList</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Service2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- 调用服务3 -->
+    <bpmn:serviceTask id="Task_CallService3" name="调用支付服务"
+                      camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="serviceName">payment-service</camunda:inputParameter>
+          <camunda:inputParameter name="operation">getPaymentStatus</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Service3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CallService1" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CallService2" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_CallService3" targetRef="Gateway_Join" />
+
+    <!-- 并行网关 - 合并 -->
+    <bpmn:parallelGateway id="Gateway_Join">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_Join" targetRef="Task_AggregateResults" />
+
+    <!-- 聚合结果 -->
+    <bpmn:serviceTask id="Task_AggregateResults" name="聚合结果"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.ResultAggregatorDelegate">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_AggregateResults" targetRef="EndEvent_1" />
+
+    <bpmn:endEvent id="EndEvent_1" name="编排完成">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+</bpmn:definitions>

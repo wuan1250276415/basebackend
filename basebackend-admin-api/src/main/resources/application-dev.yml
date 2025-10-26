@@ -1,5 +1,10 @@
 # 开发环境配置
 spring:
+  # Flyway配置 - 开发环境自动执行迁移
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
   datasource:
     url: jdbc:mysql://${spring.datasource.ip}/${spring.datasource.dbNAme}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
     username: ${spring.datasource.userName}

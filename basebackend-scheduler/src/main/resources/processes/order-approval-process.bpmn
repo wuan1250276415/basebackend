@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="order-approval-process" name="订单审批流程" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="订单提交">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ValidateOrder" />
+
+    <!-- 订单验证 -->
+    <bpmn:serviceTask id="Task_ValidateOrder" name="验证订单"
+                      camunda:class="com.basebackend.scheduler.camunda.delegate.OrderValidationDelegate">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ValidateOrder" targetRef="Gateway_CheckAmount" />
+
+    <!-- 金额检查网关 -->
+    <bpmn:exclusiveGateway id="Gateway_CheckAmount" name="检查金额">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_HighAmount</bpmn:outgoing>
+      <bpmn:outgoing>Flow_LowAmount</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- 高金额需要经理审批 -->
+    <bpmn:sequenceFlow id="Flow_HighAmount" name="金额>10000" sourceRef="Gateway_CheckAmount" targetRef="Task_ManagerApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount > 10000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- 低金额自动通过 -->
+    <bpmn:sequenceFlow id="Flow_LowAmount" name="金额<=10000" sourceRef="Gateway_CheckAmount" targetRef="Task_AutoApprove">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount <= 10000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- 经理审批任务 -->
+    <bpmn:userTask id="Task_ManagerApproval" name="经理审批" camunda:assignee="${approver}">
+      <bpmn:incoming>Flow_HighAmount</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- 自动审批 -->
+    <bpmn:serviceTask id="Task_AutoApprove" name="自动审批"
+                      camunda:expression="${execution.setVariable('approved', true)}">
+      <bpmn:incoming>Flow_LowAmount</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_ManagerApproval" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_AutoApprove" targetRef="Gateway_Merge" />
+
+    <!-- 合并网关 -->
+    <bpmn:exclusiveGateway id="Gateway_Merge">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_Merge" targetRef="Task_ProcessOrder" />
+
+    <!-- 处理订单 -->
+    <bpmn:serviceTask id="Task_ProcessOrder" name="处理订单"
+                      camunda:delegateExpression="${orderApprovalDelegate}">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_ProcessOrder" targetRef="Task_SendNotification" />
+
+    <!-- 发送通知 -->
+    <bpmn:serviceTask id="Task_SendNotification" name="发送通知"
+                      camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SendNotification" targetRef="EndEvent_1" />
+
+    <bpmn:endEvent id="EndEvent_1" name="流程结束">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <!-- 可视化布局信息省略 -->
+
+</bpmn:definitions>

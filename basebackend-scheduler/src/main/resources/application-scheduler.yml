@@ -1,5 +1,27 @@
 # 调度器配置
 
+# Camunda BPM配置
+camunda:
+  bpm:
+    enabled: true
+    admin:
+      id: admin
+      password: ${CAMUNDA_ADMIN_PASSWORD:admin}
+      first-name: Admin
+      last-name: User
+      email: admin@basebackend.com
+    history-level: full
+    database:
+      schema-update: true
+      type: mysql
+    webapp:
+      enabled: true
+      index-redirect-enabled: true
+    rest:
+      enabled: true
+    authorization:
+      enabled: true
+
 # PowerJob配置
 powerjob:
   worker:

@@ -7,6 +7,38 @@ spring:
   profiles:
     active: observability
 
+  # Flyway数据库迁移配置
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    encoding: UTF-8
+    validate-on-migrate: true
+    clean-disabled: true  # 禁用clean防止误删数据
+    out-of-order: false
+    placeholder-replacement: true
+    placeholders:
+      env: ${spring.profiles.active}
+
+  rabbitmq:
+    host: 141.98.196.113
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: basebackend
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 3
+        max-concurrency: 10
+
 # MyBatis Plus配置
 mybatis-plus:
   configuration:
@@ -114,3 +146,42 @@ knife4j:
       wechat:
         enabled: false
         webhook: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
+
+# 消息配置
+messaging:
+  # RabbitMQ配置
+  rabbitmq:
+    enabled: true
+    delay-plugin-enabled: true
+    delay-exchange: x-delayed-exchange
+    default-exchange: basebackend.direct
+    queue-prefix: basebackend.queue.
+
+  # 重试配置
+  retry:
+    enabled: true
+    max-attempts: 3
+    initial-interval: 1000
+    multiplier: 2.0
+    max-interval: 10000
+
+  # 死信队列配置
+  dead-letter:
+    enabled: true
+    exchange: basebackend.dlx
+    queue: basebackend.dlq
+    routing-key: basebackend.dlq.#
+
+  # 事务消息配置
+  transaction:
+    enabled: true
+    table-name: sys_message_log
+    check-interval: 60
+    timeout: 30
+
+  # 幂等性配置
+  idempotency:
+    enabled: true
+    expire-time: 3600
+    key-prefix: "msg:idempotent:"
+

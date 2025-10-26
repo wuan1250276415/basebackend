@@ -8,6 +8,7 @@ resources:
   - service.yaml
   - configmap.yaml
   - hpa.yaml
+  - flyway-configmap.yaml
 
 commonLabels:
   app.kubernetes.io/name: admin-api

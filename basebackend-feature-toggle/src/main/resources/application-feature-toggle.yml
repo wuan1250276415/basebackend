@@ -1,0 +1,72 @@
+# ========================================
+# Feature Toggle Configuration
+# ========================================
+feature-toggle:
+  # 是否启用特性开关
+  enabled: false
+
+  # 提供商类型：UNLEASH, FLAGSMITH, BOTH
+  provider: UNLEASH
+
+  # 当provider=BOTH时，优先使用的提供商
+  primary-provider: UNLEASH
+
+  # ----------------------------------------
+  # Unleash Configuration
+  # ----------------------------------------
+  unleash:
+    # Unleash服务URL
+    url: http://localhost:4242/api
+
+    # API Token（客户端密钥）
+    # 从Unleash控制台获取：Project -> Access -> API keys
+    api-token: ${UNLEASH_API_TOKEN:}
+
+    # 应用名称
+    app-name: basebackend
+
+    # 实例ID（可选，默认自动生成）
+    instance-id:
+
+    # 环境
+    environment: ${SPRING_PROFILES_ACTIVE:development}
+
+    # 项目名称（可选）
+    project-name:
+
+    # 同步间隔（秒）
+    fetch-toggles-interval: 10
+
+    # 指标发送间隔（秒）
+    send-metrics-interval: 60
+
+    # 启动时是否同步
+    synchronous-fetch-on-initialisation: true
+
+  # ----------------------------------------
+  # Flagsmith Configuration
+  # ----------------------------------------
+  flagsmith:
+    # Flagsmith服务URL
+    # 自托管：http://localhost:8000/api/v1/
+    # SaaS：https://edge.api.flagsmith.com/api/v1/
+    url: https://edge.api.flagsmith.com/api/v1/
+
+    # API密钥（环境密钥）
+    # 从Flagsmith控制台获取：Environment Settings -> API Keys
+    api-key: ${FLAGSMITH_API_KEY:}
+
+    # 连接超时（毫秒）
+    connect-timeout: 2000
+
+    # 写入超时（毫秒）
+    write-timeout: 5000
+
+    # 读取超时（毫秒）
+    read-timeout: 5000
+
+    # 是否启用本地评估（减少API调用）
+    enable-local-evaluation: false
+
+    # 环境刷新间隔（秒）
+    environment-refresh-interval-seconds: 60

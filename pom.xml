@@ -25,8 +25,10 @@
         <module>basebackend-file-service</module>
         <module>basebackend-backup</module>
         <module>basebackend-nacos</module>
+<!--        <module>basebackend-feature-toggle</module>-->
         <module>basebackend-gateway</module>
-<!--        <module>basebackend-scheduler</module>-->
+        <module>basebackend-scheduler</module>
+        <module>basebackend-code-generator</module>
         <module>basebackend-demo-api</module>
         <module>basebackend-admin-api</module>
     </modules>
@@ -48,6 +50,7 @@
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <mysql.version>8.0.33</mysql.version>
         <druid.version>1.2.20</druid.version>
+        <flyway.version>9.22.3</flyway.version>
 
         <!-- Cache -->
         <redisson.version>3.24.3</redisson.version>
@@ -75,6 +78,15 @@
         
         <!-- Build & Quality -->
         <dependency-check.version>9.1.0</dependency-check.version>
+        <jacoco.version>0.8.11</jacoco.version>
+        <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
+
+        <!-- Workflow -->
+        <camunda.version>7.21.0</camunda.version>
+
+        <!-- Feature Toggle -->
+        <unleash.version>9.2.2</unleash.version>
+        <flagsmith.version>7.2.0</flagsmith.version>
     </properties>
 
     <dependencyManagement>
@@ -125,6 +137,18 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid-spring-boot-3-starter</artifactId>
                 <version>${druid.version}</version>
+            </dependency>
+
+            <!-- Flyway -->
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-mysql</artifactId>
+                <version>${flyway.version}</version>
             </dependency>
 
             <!-- Redisson -->
@@ -213,6 +237,47 @@
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
+
+            <!-- Feature Toggle - Unleash -->
+            <dependency>
+                <groupId>io.getunleash</groupId>
+                <artifactId>unleash-client-java</artifactId>
+                <version>${unleash.version}</version>
+            </dependency>
+
+            <!-- Feature Toggle - Flagsmith -->
+            <dependency>
+                <groupId>com.flagsmith</groupId>
+                <artifactId>flagsmith-java-client</artifactId>
+                <version>${flagsmith.version}</version>
+            </dependency>
+
+            <!-- Camunda BPM -->
+            <dependency>
+                <groupId>org.camunda.bpm.springboot</groupId>
+                <artifactId>camunda-bpm-spring-boot-starter</artifactId>
+                <version>${camunda.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.camunda.bpm.springboot</groupId>
+                <artifactId>camunda-bpm-spring-boot-starter-rest</artifactId>
+                <version>${camunda.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.camunda.bpm.springboot</groupId>
+                <artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
+                <version>${camunda.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.camunda.bpm</groupId>
+                <artifactId>camunda-engine-plugin-spin</artifactId>
+                <version>${camunda.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.camunda.spin</groupId>
+                <artifactId>camunda-spin-dataformat-json-jackson</artifactId>
+                <version>1.23.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -256,7 +321,73 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${sonar-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>${flyway.version}</version>
+                    <configuration>
+                        <url>${flyway.url}</url>
+                        <user>${flyway.user}</user>
+                        <password>${flyway.password}</password>
+                        <locations>
+                            <location>classpath:db/migration</location>
+                        </locations>
+                        <baselineOnMigrate>true</baselineOnMigrate>
+                        <baselineVersion>0</baselineVersion>
+                        <encoding>UTF-8</encoding>
+                        <validateOnMigrate>true</validateOnMigrate>
+                        <cleanDisabled>true</cleanDisabled>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.mysql</groupId>
+                            <artifactId>mysql-connector-j</artifactId>
+                            <version>${mysql.version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
+
+    <!-- Profiles -->
+    <profiles>
+        <!-- 代码覆盖率Profile -->
+        <profile>
+            <id>coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

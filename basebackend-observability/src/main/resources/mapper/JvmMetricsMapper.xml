@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.observability.mapper.JvmMetricsMapper">
+
+    <select id="selectByInstance" resultType="com.basebackend.observability.entity.JvmMetrics">
+        SELECT * FROM jvm_metrics
+        WHERE instance_id = #{instanceId}
+        ORDER BY timestamp DESC
+        LIMIT 100
+    </select>
+
+    <select id="selectByTimeRange" resultType="com.basebackend.observability.entity.JvmMetrics">
+        SELECT * FROM jvm_metrics
+        WHERE instance_id = #{instanceId}
+        AND timestamp BETWEEN #{startTime} AND #{endTime}
+        ORDER BY timestamp ASC
+    </select>
+
+    <select id="selectLatest" resultType="com.basebackend.observability.entity.JvmMetrics">
+        SELECT * FROM jvm_metrics
+        WHERE instance_id = #{instanceId}
+        ORDER BY timestamp DESC
+        LIMIT 1
+    </select>
+
+    <delete id="deleteExpired">
+        DELETE FROM jvm_metrics
+        WHERE timestamp &lt; #{beforeTime}
+    </delete>
+
+</mapper>

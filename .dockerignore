@@ -1,0 +1,68 @@
+# Docker镜像构建忽略文件
+
+# 源代码控制
+.git
+.gitignore
+.gitattributes
+
+# IDE配置
+.idea
+.vscode
+.eclipse
+.settings
+*.iml
+*.ipr
+*.iws
+
+# 构建输出
+target/
+build/
+dist/
+out/
+
+# 日志文件
+logs/
+*.log
+
+# 测试输出
+test-output/
+coverage/
+
+# 文档
+docs/
+*.md
+!README.md
+
+# CI/CD配置（镜像构建不需要）
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# 本地配置文件
+application-local.yml
+application-local.properties
+*.env
+.env.*
+
+# 数据库文件
+*.sql
+db/
+
+# Docker相关
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
+
+# 脚本
+*.sh
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS特定文件
+.DS_Store
+Thumbs.db

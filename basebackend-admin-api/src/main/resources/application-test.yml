@@ -1,0 +1,49 @@
+# 测试环境配置
+spring:
+  # Flyway配置 - 测试环境自动执行迁移
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:basebackend_admin_test}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:1}
+      timeout: 5000ms
+
+# JWT配置
+jwt:
+  secret: test-secret-key-for-jwt-token-generation-minimum-256-bits-required
+  expiration: 86400000
+
+# 管理后台配置
+admin:
+  password:
+    min-length: 6
+    max-length: 20
+    require-uppercase: false
+    require-lowercase: false
+    require-number: false
+    require-special-char: false
+  login:
+    max-attempts: 5
+    lock-duration: 300
+    captcha-enabled: false
+  data-scope:
+    all: 1
+    dept: 2
+    dept-and-child: 3
+    self: 4

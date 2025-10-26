@@ -1,0 +1,129 @@
+version: '3.8'
+
+# Feature Toggle服务配置
+# 包含Unleash和Flagsmith两个平台的完整部署
+
+services:
+  # ==========================================
+  # Unleash - 特性开关平台
+  # ==========================================
+
+  # Unleash数据库
+  unleash-db:
+    image: postgres:15-alpine
+    container_name: basebackend-unleash-db
+    environment:
+      POSTGRES_DB: unleash
+      POSTGRES_USER: unleash
+      POSTGRES_PASSWORD: unleash_password
+      TZ: Asia/Shanghai
+    volumes:
+      - unleash-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unleash"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - basebackend-network
+
+  # Unleash服务
+  unleash:
+    image: unleashorg/unleash-server:latest
+    container_name: basebackend-unleash
+    ports:
+      - "4242:4242"
+    environment:
+      # 数据库配置
+      DATABASE_URL: postgres://unleash:unleash_password@unleash-db:5432/unleash
+      DATABASE_SSL: "false"
+
+      # 服务配置
+      LOG_LEVEL: info
+      INIT_FRONTEND_API_TOKENS: "*:development.unleash-insecure-frontend-api-token"
+      INIT_CLIENT_API_TOKENS: "*:development.unleash-insecure-client-api-token"
+
+      # 管理员配置
+      INIT_ADMIN_API_TOKENS: "*:*.unleash-insecure-api-token"
+
+      TZ: Asia/Shanghai
+    depends_on:
+      unleash-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4242/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - basebackend-network
+
+  # ==========================================
+  # Flagsmith - 特性开关平台
+  # ==========================================
+
+  # Flagsmith数据库
+  flagsmith-db:
+    image: postgres:15-alpine
+    container_name: basebackend-flagsmith-db
+    environment:
+      POSTGRES_DB: flagsmith
+      POSTGRES_USER: flagsmith
+      POSTGRES_PASSWORD: flagsmith_password
+      TZ: Asia/Shanghai
+    volumes:
+      - flagsmith-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flagsmith"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - basebackend-network
+
+  # Flagsmith服务
+  flagsmith:
+    image: flagsmith/flagsmith:latest
+    container_name: basebackend-flagsmith
+    ports:
+      - "8000:8000"
+    environment:
+      # 数据库配置
+      DATABASE_URL: postgresql://flagsmith:flagsmith_password@flagsmith-db:5432/flagsmith
+
+      # Django配置
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SECRET_KEY: flagsmith-secret-key-change-me-in-production
+
+      # 环境配置
+      ENV: production
+
+      # 邮件配置（可选）
+      #EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      #EMAIL_HOST: smtp.example.com
+      #EMAIL_PORT: 587
+      #EMAIL_HOST_USER: user@example.com
+      #EMAIL_HOST_PASSWORD: password
+      #EMAIL_USE_TLS: "True"
+
+      TZ: Asia/Shanghai
+    depends_on:
+      flagsmith-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "health_check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - basebackend-network
+
+volumes:
+  unleash-db-data:
+    driver: local
+  flagsmith-db-data:
+    driver: local
+
+networks:
+  basebackend-network:
+    driver: bridge

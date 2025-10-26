@@ -35,6 +35,11 @@ public class SchedulerProperties {
     @Data
     public static class PowerJob {
         /**
+         * 是否启用PowerJob
+         */
+        private Boolean enabled = false;
+
+        /**
          * PowerJob Server地址
          */
         private String serverAddress = "http://localhost:7700";

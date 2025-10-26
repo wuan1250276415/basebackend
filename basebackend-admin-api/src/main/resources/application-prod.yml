@@ -1,0 +1,67 @@
+# 生产环境配置
+spring:
+  # Flyway配置 - 生产环境禁用自动执行
+  # 需要手动执行迁移脚本或通过Maven命令执行
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:basebackend_admin}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall,slf4j
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 50
+          max-wait: 3000ms
+          max-idle: 20
+          min-idle: 5
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000  # 24小时
+
+# 管理后台配置
+admin:
+  password:
+    min-length: 8
+    max-length: 20
+    require-uppercase: true
+    require-lowercase: true
+    require-number: true
+    require-special-char: true
+  login:
+    max-attempts: 5
+    lock-duration: 1800  # 30分钟
+    captcha-enabled: true
+  data-scope:
+    all: 1
+    dept: 2
+    dept-and-child: 3
+    self: 4

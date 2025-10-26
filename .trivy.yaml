@@ -1,0 +1,44 @@
+# Trivy 镜像扫描配置文件
+
+# 扫描目标
+scan:
+  # 扫描类型
+  security-checks:
+    - vuln       # 漏洞扫描
+    - config     # 配置错误
+    - secret     # 密钥扫描
+
+# 漏洞检测配置
+vulnerability:
+  # 严重性级别
+  # CRITICAL: 严重漏洞
+  # HIGH: 高危漏洞
+  # MEDIUM: 中危漏洞
+  # LOW: 低危漏洞
+  # UNKNOWN: 未知级别
+  severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+
+  # 漏洞类型
+  type:
+    - os          # 操作系统包漏洞
+    - library     # 应用依赖库漏洞
+
+# 忽略的漏洞（需要团队评估后添加）
+ignore-unfixed: false  # 不忽略无修复方案的漏洞
+
+# 输出配置
+output:
+  format: table  # 输出格式: table, json, sarif
+
+# 缓存配置
+cache:
+  clear: false
+
+# 超时配置
+timeout: 10m
+
+# 忽略列表（谨慎使用，需要安全评估）
+# ign file: .trivyignore

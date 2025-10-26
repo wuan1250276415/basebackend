@@ -20,6 +20,43 @@ spec:
         prometheus.io/port: "8082"
         prometheus.io/path: "/actuator/prometheus"
     spec:
+      # Flyway数据库迁移InitContainer
+      initContainers:
+        - name: flyway-migration
+          image: flyway/flyway:9.22.3
+          command: ["flyway"]
+          args: ["migrate"]
+          env:
+            # 数据库连接配置（从Secret读取）
+            - name: FLYWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: admin-api-secrets
+                  key: database.url
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: admin-api-secrets
+                  key: database.username
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: admin-api-secrets
+                  key: database.password
+          envFrom:
+            - configMapRef:
+                name: flyway-config
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /flyway/sql
+              readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
       containers:
         - name: admin-api
           image: docker.io/YOUR_USERNAME/basebackend-admin-api:latest
@@ -84,6 +121,9 @@ spec:
         - name: config
           configMap:
             name: admin-api-config
+        - name: migration-scripts
+          configMap:
+            name: flyway-migration-scripts
       # 安全配置
       securityContext:
         runAsNonRoot: true

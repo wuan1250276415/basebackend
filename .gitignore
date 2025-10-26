@@ -56,3 +56,16 @@ uploads/
 /docker/nacos/nacos1/logs/
 /docker/nacos/nacos2/logs/
 /docker/nacos/nacos3/logs/
+
+# CI/CD
+*.sarif
+**/sbom-*.json
+**/trivy-results-*.sarif
+dependency-check-report/
+.sonar/
+.scannerwork/
+
+# Kubernetes
+*.kubeconfig
+secrets.yaml
+*-sealed.yaml

@@ -1,0 +1,112 @@
+# Camunda BPM配置
+camunda:
+  bpm:
+    enabled: true
+    # 管理员配置
+    admin:
+      id: admin
+      password: ${CAMUNDA_ADMIN_PASSWORD:admin}
+      first-name: Admin
+      last-name: User
+      email: admin@basebackend.com
+
+    # 历史级别: none, activity, audit, full
+    history-level: full
+
+    # 自动部署配置
+    auto-deploy:
+      enabled: true
+      resource-pattern: classpath*:processes/**/*.bpmn
+
+    # 作业执行配置
+    job-execution:
+      enabled: true
+      core-pool-size: 5
+      max-pool-size: 20
+      queue-capacity: 100
+      lock-time-in-millis: 300000
+
+    # 数据库配置
+    database:
+      schema-update: true
+      type: mysql
+
+    # 管理界面配置
+    webapp:
+      enabled: true
+      index-redirect-enabled: true
+
+    # REST API配置
+    rest:
+      enabled: true
+
+    # Authorization配置
+    authorization:
+      enabled: true
+      tenant-check-enabled: true
+
+    # 通用配置
+    generic-properties:
+      properties:
+        # 启用脚本编译
+        enable-script-compilation: true
+        # 启用脚本引擎
+        enable-groovy-scripts: false
+        enable-python-scripts: false
+        # 历史清理配置
+        history-cleanup-enabled: true
+        history-cleanup-batch-window-start-time: "01:00"
+        history-cleanup-batch-window-end-time: "05:00"
+        history-cleanup-batch-size: 500
+        # 指标收集
+        metrics-enabled: true
+        db-metrics-reporter-activate: true
+        # 作业配置
+        job-executor-deployment-aware: true
+
+# Spring Boot Admin配置
+spring:
+  application:
+    name: scheduler-service
+
+  # 数据源配置（使用主数据库）
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/basebackend?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 30000
+
+# 服务器配置
+server:
+  port: 8085
+  servlet:
+    context-path: /scheduler
+
+# 日志配置
+logging:
+  level:
+    org.camunda: INFO
+    com.basebackend.scheduler: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# Actuator配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    camunda:
+      enabled: true

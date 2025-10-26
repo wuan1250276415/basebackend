@@ -13,34 +13,48 @@
     <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
     <property name="LOG_PATH" value="${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}"/>
 
-    <!-- 控制台输出（彩色） -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <!-- 基础字段 -->
-            <includeContext>true</includeContext>
-            <includeMdc>true</includeMdc>
-            <includeStructuredArguments>true</includeStructuredArguments>
-            <includeTags>true</includeTags>
-            <includeCallerData>false</includeCallerData>
+    <!-- 控制台输出 - 开发环境使用彩色易读格式，生产环境使用JSON格式 -->
+    <if condition='property("ENVIRONMENT").equals("dev") || property("ENVIRONMENT").equals("observability")'>
+        <then>
+            <!-- 开发环境：彩色易读格式 -->
+            <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%15.15t]){faint} %clr(%5p) %clr([%-40.40logger{39}]){cyan} %clr(:){faint} %m%n%wEx</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <!-- 生产环境：JSON格式 -->
+            <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <!-- 基础字段 -->
+                    <includeContext>true</includeContext>
+                    <includeMdc>true</includeMdc>
+                    <includeStructuredArguments>true</includeStructuredArguments>
+                    <includeTags>true</includeTags>
+                    <includeCallerData>false</includeCallerData>
 
-            <!-- 自定义字段 -->
-            <customFields>{"application":"${APP_NAME}","environment":"${ENVIRONMENT}"}</customFields>
+                    <!-- 自定义字段 -->
+                    <customFields>{"application":"${APP_NAME}","environment":"${ENVIRONMENT}"}</customFields>
 
-            <!-- 时间戳格式 -->
-            <timeZone>Asia/Shanghai</timeZone>
-            <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSS</timestampPattern>
+                    <!-- 时间戳格式 -->
+                    <timeZone>Asia/Shanghai</timeZone>
+                    <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSS</timestampPattern>
 
-            <!-- 字段命名 -->
-            <fieldNames>
-                <timestamp>timestamp</timestamp>
-                <message>message</message>
-                <logger>logger</logger>
-                <thread>thread</thread>
-                <level>level</level>
-                <stackTrace>stackTrace</stackTrace>
-            </fieldNames>
-        </encoder>
-    </appender>
+                    <!-- 字段命名 -->
+                    <fieldNames>
+                        <timestamp>timestamp</timestamp>
+                        <message>message</message>
+                        <logger>logger</logger>
+                        <thread>thread</thread>
+                        <level>level</level>
+                        <stackTrace>stackTrace</stackTrace>
+                    </fieldNames>
+                </encoder>
+            </appender>
+        </else>
+    </if>
 
     <!-- 文件输出（JSON格式） -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">

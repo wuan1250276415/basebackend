@@ -1,0 +1,174 @@
+name: Flyway Database Migration Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**/db/migration/**'
+      - '**/pom.xml'
+      - '.github/workflows/flyway-test.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**/db/migration/**'
+  workflow_dispatch:
+
+jobs:
+  # ==========================================
+  # 迁移脚本验证
+  # ==========================================
+  validate-scripts:
+    name: Validate Migration Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Validate migration scripts syntax
+        run: |
+          echo "检查迁移脚本命名规范..."
+          cd basebackend-admin-api/src/main/resources/db/migration
+
+          for file in *.sql; do
+            if [[ ! $file =~ ^V[0-9]+(\.[0-9]+)*__[a-z_]+\.sql$ ]] && \
+               [[ ! $file =~ ^R__[a-z_]+\.sql$ ]]; then
+              echo "❌ 文件命名不符合规范: $file"
+              exit 1
+            fi
+          done
+
+          echo "✅ 所有迁移脚本命名规范正确"
+
+      - name: Check for dangerous SQL
+        run: |
+          echo "检查危险SQL语句..."
+          MIGRATION_DIR="basebackend-admin-api/src/main/resources/db/migration"
+
+          # 检查DROP语句
+          if grep -r "DROP TABLE IF EXISTS" "$MIGRATION_DIR" 2>/dev/null; then
+            echo "⚠️ 发现 DROP TABLE IF EXISTS，建议使用 CREATE TABLE IF NOT EXISTS"
+          fi
+
+          # 检查USE语句
+          if grep -r "^USE " "$MIGRATION_DIR" 2>/dev/null; then
+            echo "❌ 发现 USE 语句，Flyway会自动连接到正确的数据库"
+            exit 1
+          fi
+
+          echo "✅ SQL检查通过"
+
+  # ==========================================
+  # MySQL迁移测试
+  # ==========================================
+  test-mysql-migration:
+    name: Test MySQL Migration
+    runs-on: ubuntu-latest
+    needs: validate-scripts
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: basebackend_admin_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Wait for MySQL
+        run: |
+          echo "等待MySQL就绪..."
+          sleep 10
+
+      - name: Run Flyway Migration
+        run: |
+          mvn flyway:migrate \
+            -Dflyway.url=jdbc:mysql://localhost:3306/basebackend_admin_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai \
+            -Dflyway.user=root \
+            -Dflyway.password=root \
+            -pl basebackend-admin-api \
+            -B
+
+      - name: Verify Migration
+        run: |
+          mvn flyway:info \
+            -Dflyway.url=jdbc:mysql://localhost:3306/basebackend_admin_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai \
+            -Dflyway.user=root \
+            -Dflyway.password=root \
+            -pl basebackend-admin-api \
+            -B
+
+      - name: Validate Migration
+        run: |
+          mvn flyway:validate \
+            -Dflyway.url=jdbc:mysql://localhost:3306/basebackend_admin_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai \
+            -Dflyway.user=root \
+            -Dflyway.password=root \
+            -pl basebackend-admin-api \
+            -B
+
+      - name: Test Idempotency
+        run: |
+          echo "测试迁移幂等性..."
+          mvn flyway:migrate \
+            -Dflyway.url=jdbc:mysql://localhost:3306/basebackend_admin_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai \
+            -Dflyway.user=root \
+            -Dflyway.password=root \
+            -pl basebackend-admin-api \
+            -B
+
+          echo "✅ 迁移幂等性测试通过"
+
+  # ==========================================
+  # 测试总结
+  # ==========================================
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [validate-scripts, test-mysql-migration]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🗄️ Flyway数据库迁移测试" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 测试结果" >> $GITHUB_STEP_SUMMARY
+          echo "- 脚本验证: ${{ needs.validate-scripts.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- MySQL迁移测试: ${{ needs.test-mysql-migration.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-scripts.result }}" == "success" ]] && \
+             [[ "${{ needs.test-mysql-migration.result }}" == "success" ]]; then
+            echo "✅ **所有测试通过**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **测试失败**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

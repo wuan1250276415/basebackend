@@ -140,6 +140,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- Feature Toggle -->
+<!--        <dependency>-->
+<!--            <groupId>com.basebackend</groupId>-->
+<!--            <artifactId>basebackend-feature-toggle</artifactId>-->
+<!--            <version>1.0.0-SNAPSHOT</version>-->
+<!--        </dependency>-->
+
         <!-- MyBatis Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
