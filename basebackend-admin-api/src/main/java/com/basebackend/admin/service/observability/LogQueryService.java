@@ -21,7 +21,7 @@ import java.util.*;
 @Service
 public class LogQueryService {
 
-    @Value("${observability.loki.url:http://localhost:3100}")
+    @Value("${observability.loki.url:http://192.168.66.31:3400}")
     private String lokiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();

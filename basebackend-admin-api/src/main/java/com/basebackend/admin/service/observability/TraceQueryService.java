@@ -145,13 +145,13 @@ public class TraceQueryService {
 
                 // 计算平均持续时间
                 long totalDuration = traces.stream()
-                    .mapToLong(t -> (Long) t.getOrDefault("durationMs", 0L))
+                    .mapToLong(this::extractDurationMs)
                     .sum();
                 stats.put("avgDuration", traces.isEmpty() ? 0 : totalDuration / traces.size());
 
                 // 慢追踪数量（>1秒）
                 long slowTraces = traces.stream()
-                    .filter(t -> (Long) t.getOrDefault("durationMs", 0L) > 1000)
+                    .filter(t -> extractDurationMs(t) > 1000)
                     .count();
                 stats.put("slowTraces", slowTraces);
             }
@@ -232,5 +232,23 @@ public class TraceQueryService {
             }
         });
         return sb.toString();
+    }
+
+    /**
+     * 安全获取持续时间，避免 null 导致的 NPE
+     */
+    private long extractDurationMs(Map<String, Object> trace) {
+        Object value = trace.get("durationMs");
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException ignore) {
+                // fall through to default
+            }
+        }
+        return 0L;
     }
 }

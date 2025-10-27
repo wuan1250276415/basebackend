@@ -70,6 +70,8 @@ public class ApiMetricsAspect {
             // 记录 API 调用
             customMetrics.recordApiCall(method, uri, status);
 
+            customMetrics.apiRequestTime(method, uri, status);
+
             // 记录响应时间
             customMetrics.recordApiResponseTime(method, uri, duration);
 

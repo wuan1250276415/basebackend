@@ -90,63 +90,6 @@ knife4j:
             starttls:
               enable: true
 
-  # 日志配置
-  logging:
-    config: classpath:logback-structured.xml
-    structured:
-      enabled: true
-      loki-enabled: true
-      loki-url: http://141.98.196.113:3100/loki/api/v1/push
-
-  # Actuator 配置
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,metrics,prometheus
-    metrics:
-      export:
-        prometheus:
-          enabled: true
-    tracing:
-      sampling:
-        probability: 1.0  # 100% 采样（生产环境建议降低到 0.1）
-
-  # 可观测性配置
-  observability:
-    # Prometheus 地址
-    prometheus:
-      url: http://141.98.196.113:9190
-
-    # Loki 地址
-    loki:
-      url: http://141.98.196.113:3100
-
-    # Tempo 配置
-    tempo:
-      enabled: true
-      endpoint: http://141.98.196.113:9411/api/v2/spans
-      query-url: http://141.98.196.113:3200
-
-    # 告警配置
-    alert:
-      # 邮件告警
-      email:
-        enabled: true
-        from: alert@example.com
-        to: admin@example.com
-
-      # 钉钉告警
-      dingtalk:
-        enabled: false
-        webhook: https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN
-        secret: YOUR_SECRET
-
-      # 企业微信告警
-      wechat:
-        enabled: false
-        webhook: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
-
 # 消息配置
 messaging:
   # RabbitMQ配置

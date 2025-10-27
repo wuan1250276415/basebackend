@@ -37,7 +37,7 @@ public class CustomMetrics {
      * 记录 API 调用
      */
     public void recordApiCall(String method, String uri, String status) {
-        Counter.builder("api.calls.total")
+        Counter.builder("api_calls_total")
                 .description("Total API calls")
                 .tag("method", method)
                 .tag("uri", sanitizeUri(uri))
@@ -47,11 +47,23 @@ public class CustomMetrics {
     }
 
     /**
+     * 平均相应时间
+     */
+    public void apiRequestTime(String method, String uri, String status) {
+        Timer timer = Timer.builder("api_response_time")
+                .publishPercentiles(0.5, 0.9, 0.99)
+                .tag("method", method)
+                .tag("uri", sanitizeUri(uri))
+                .tag("status", status)
+                .register(meterRegistry);
+    }
+
+    /**
      * 记录 API 响应时间
      */
     public void recordApiResponseTime(String method, String uri, long durationMs) {
-        Timer.builder("api.response.time")
-                .description("API response time in milliseconds")
+        Timer.builder("api_response_time_seconds")
+                .description("API response time in seconds")
                 .tag("method", method)
                 .tag("uri", sanitizeUri(uri))
                 .register(meterRegistry)
@@ -62,7 +74,7 @@ public class CustomMetrics {
      * 记录 API 错误
      */
     public void recordApiError(String method, String uri, String errorType) {
-        Counter.builder("api.errors.total")
+        Counter.builder("api_errors_total")
                 .description("Total API errors")
                 .tag("method", method)
                 .tag("uri", sanitizeUri(uri))
@@ -76,7 +88,7 @@ public class CustomMetrics {
      */
     public void incrementActiveRequests() {
         long current = activeRequests.incrementAndGet();
-        Gauge.builder("api.active.requests", activeRequests, AtomicLong::get)
+        Gauge.builder("api_active_requests", activeRequests, AtomicLong::get)
                 .description("Number of active API requests")
                 .register(meterRegistry);
     }
@@ -92,7 +104,7 @@ public class CustomMetrics {
      * 记录业务操作
      */
     public void recordBusinessOperation(String operationType, String status) {
-        Counter.builder("business.operations.total")
+        Counter.builder("business_operations_total")
                 .description("Total business operations")
                 .tag("operation_type", operationType)
                 .tag("status", status)
@@ -104,7 +116,7 @@ public class CustomMetrics {
      * 记录缓存命中/未命中
      */
     public void recordCacheHit(String cacheName, boolean hit) {
-        Counter.builder("cache.access.total")
+        Counter.builder("cache_access_total")
                 .description("Cache access count")
                 .tag("cache", cacheName)
                 .tag("result", hit ? "hit" : "miss")
@@ -116,8 +128,8 @@ public class CustomMetrics {
      * 记录数据库操作
      */
     public void recordDatabaseOperation(String operation, String table, long durationMs) {
-        Timer.builder("database.operation.time")
-                .description("Database operation time")
+        Timer.builder("database_operation_time_seconds")
+                .description("Database operation time in seconds")
                 .tag("operation", operation)
                 .tag("table", table)
                 .register(meterRegistry)
@@ -128,7 +140,7 @@ public class CustomMetrics {
      * 记录队列大小
      */
     public void recordQueueSize(String queueName, int size) {
-        Gauge.builder("queue.size", () -> size)
+        Gauge.builder("queue_size", () -> size)
                 .description("Queue size")
                 .tag("queue", queueName)
                 .register(meterRegistry);

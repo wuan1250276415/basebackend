@@ -96,16 +96,16 @@ public class MetricsQueryService {
             // 内存使用率
             overview.put("memoryUsage", queryInstantMetric("jvm_memory_used_bytes{area=\"heap\"} / jvm_memory_max_bytes{area=\"heap\"} * 100"));
 
-            // API 调用总数（最近5分钟）
+            // API 调用总数（最近5分钟） - 使用自定义指标
             overview.put("apiCallsTotal", queryInstantMetric("sum(rate(api_calls_total[5m]))"));
 
-            // API 错误率（最近5分钟）
-            overview.put("apiErrorRate", queryInstantMetric("sum(rate(api_calls_total{status=\"error\"}[5m])) / sum(rate(api_calls_total[5m])) * 100"));
+            // API 错误率（最近5分钟） - 使用自定义指标
+            overview.put("apiErrorRate", queryInstantMetric("sum(rate(api_errors_total[5m])) / sum(rate(api_calls_total[5m])) * 100"));
 
-            // 平均响应时间（最近5分钟）
-            overview.put("avgResponseTime", queryInstantMetric("avg(rate(api_response_time_sum[5m]) / rate(api_response_time_count[5m]))"));
+            // 平均响应时间（最近5分钟） - 使用自定义指标
+            overview.put("avgResponseTime", queryInstantMetric("avg(rate(api_response_time_seconds_sum[5m]) / rate(api_response_time_seconds_count[5m]))"));
 
-            // 活跃请求数
+            // 活跃请求数 - 使用自定义指标
             overview.put("activeRequests", queryInstantMetric("api_active_requests"));
 
         } catch (Exception e) {

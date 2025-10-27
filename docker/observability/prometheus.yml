@@ -10,7 +10,7 @@ scrape_configs:
   - job_name: 'basebackend-admin-api'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['host.docker.internal:8080']
+      - targets: ['192.168.66.13:8080']  # 使用主机 IP 替代 host.docker.internal
         labels:
           application: 'basebackend-admin-api'
           service: 'admin'
@@ -18,4 +18,4 @@ scrape_configs:
   # Prometheus 自监控
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9190']
+      - targets: ['localhost:9090']  # 修正端口：容器内是 9090，不是 9190
