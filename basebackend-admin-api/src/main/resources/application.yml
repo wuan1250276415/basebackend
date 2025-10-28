@@ -23,7 +23,7 @@ spring:
       env: ${spring.profiles.active}
 
   rabbitmq:
-    host: 141.98.196.113
+    host: 192.168.66.31
     port: 5672
     username: admin
     password: admin123

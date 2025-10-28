@@ -39,6 +39,11 @@ spring:
           max-wait: ${spring.data.redis.max-wait}
           max-idle: ${spring.data.redis.max-idle}
           min-idle: ${spring.data.redis.min-idle}
+  servlet:
+    multipart:
+          enabled: true
+          max-file-size: 10MB
+          max-request-size: 50MB
 
 # JWT配置
 jwt:
@@ -66,3 +71,47 @@ admin:
     dept: 2     # 本部门数据权限
     dept-and-child: 3  # 本部门及以下数据权限
     self: 4     # 仅本人数据权限
+
+# MinIO配置
+minio:
+  enabled: true
+  endpoint: ${minio.endpoint}
+  access-key: ${minio.access-key}
+  secret-key: ${minio.secret-key}
+  bucket-name: ${minio.bucket-name}
+  path-prefix: files
+  image-path: images
+  large-path: large
+  thumbnail-path: thumbnails
+  max-file-size: 100
+  large-file-threshold: 10
+  part-size: 5
+  thumbnail-width: 200
+  thumbnail-height: 200
+  image-quality: 0.8
+
+# 文件服务配置
+file:
+  storage:
+    type: minio
+  upload-path: ./uploads
+  access-prefix: /files
+  allowed-types:
+    - jpg
+    - jpeg
+    - png
+    - gif
+    - bmp
+    - pdf
+    - doc
+    - docx
+    - xls
+    - xlsx
+    - ppt
+    - pptx
+    - txt
+    - zip
+    - rar
+  max-size: 10485760  # 10MB
+
+# Spring 文件上传配置

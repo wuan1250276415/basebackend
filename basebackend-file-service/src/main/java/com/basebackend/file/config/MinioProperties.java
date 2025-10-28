@@ -22,17 +22,17 @@ public class MinioProperties {
     /**
      * MinIO服务地址
      */
-    private String endpoint = "http://localhost:9000";
+    private String endpoint = "http://1.117.67.222:9001";
 
     /**
      * Access Key
      */
-    private String accessKey = "minioadmin";
+    private String accessKey = "wuan";
 
     /**
      * Secret Key
      */
-    private String secretKey = "minioadmin";
+    private String secretKey = "Wuanfuck321";
 
     /**
      * 默认存储桶名称

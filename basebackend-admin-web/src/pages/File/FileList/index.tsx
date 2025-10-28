@@ -76,8 +76,9 @@ const FileList: React.FC = () => {
         fileName: searchText || undefined,
       }
       const res = await getFileList(params)
-      setFileList(res.records)
-      setTotal(res.total)
+      const pageData = res.data
+    setFileList(pageData?.records ?? [])
+      setTotal(pageData?.total ?? 0)
     } catch (error) {
       message.error('加载文件列表失败')
     } finally {

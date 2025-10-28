@@ -4,13 +4,13 @@ minio:
   enabled: true
 
   # MinIO服务地址
-  endpoint: http://localhost:9000
+  endpoint: http://1.117.67.222:9001
 
   # Access Key
-  access-key: minio_hPTk7Z
+  access-key: wuan
 
   # Secret Key
-  secret-key: minio_57J6Sk
+  secret-key: Wuanfuck321
 
   # 默认存储桶
   bucket-name: basebackend

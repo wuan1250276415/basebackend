@@ -1,6 +1,8 @@
 package com.basebackend.admin.controller;
 
+import com.basebackend.admin.dto.ApplicationResourceDTO;
 import com.basebackend.admin.dto.MenuDTO;
+import com.basebackend.admin.service.ApplicationResourceService;
 import com.basebackend.admin.service.MenuService;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
@@ -18,7 +20,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 菜单管理控制器
@@ -32,6 +36,7 @@ import java.util.List;
 public class MenuController {
 
     private final MenuService menuService;
+    private final ApplicationResourceService applicationResourceService;
     private final JwtUtil jwtUtil;
 
     /**
@@ -42,7 +47,12 @@ public class MenuController {
     public Result<List<MenuDTO>> getMenuTree() {
         log.info("获取菜单树");
         try {
-            List<MenuDTO> menuTree = menuService.getMenuTree();
+            // 从sys_application_resource表查询所有资源
+            List<ApplicationResourceDTO> allResources = applicationResourceService.getResourceTree(null);
+
+            // 转换为MenuDTO格式
+            List<MenuDTO> menuTree = convertResourceToMenu(allResources);
+
             return Result.success("查询成功", menuTree);
         } catch (Exception e) {
             log.error("获取菜单树失败: {}", e.getMessage());
@@ -58,7 +68,12 @@ public class MenuController {
     public Result<List<MenuDTO>> getMenuList() {
         log.info("获取菜单列表");
         try {
-            List<MenuDTO> menuList = menuService.getMenuList();
+            // 从sys_application_resource表查询所有资源（平铺列表）
+            List<ApplicationResourceDTO> allResources = applicationResourceService.getResourceTree(null);
+
+            // 转换为MenuDTO格式
+            List<MenuDTO> menuList = convertResourceToMenuList(allResources);
+
             return Result.success("查询成功", menuList);
         } catch (Exception e) {
             log.error("获取菜单列表失败: {}", e.getMessage());
@@ -74,7 +89,11 @@ public class MenuController {
     public Result<MenuDTO> getById(@Parameter(description = "菜单ID") @PathVariable Long id) {
         log.info("根据ID查询菜单: {}", id);
         try {
-            MenuDTO menu = menuService.getById(id);
+            ApplicationResourceDTO resource = applicationResourceService.getResourceById(id);
+            if (resource == null) {
+                return Result.error("菜单不存在");
+            }
+            MenuDTO menu = toMenuDTO(resource);
             return Result.success("查询成功", menu);
         } catch (Exception e) {
             log.error("根据ID查询菜单失败: {}", e.getMessage());
@@ -90,8 +109,10 @@ public class MenuController {
     public Result<String> create(@Validated @RequestBody MenuDTO menuDTO) {
         log.info("创建菜单: {}", menuDTO.getMenuName());
         try {
-            menuService.create(menuDTO);
-            return Result.success("菜单创建成功");
+            // 转换MenuDTO为ApplicationResourceDTO
+            ApplicationResourceDTO resourceDTO = convertMenuToResource(menuDTO);
+            boolean success = applicationResourceService.createResource(resourceDTO);
+            return success ? Result.success("菜单创建成功") : Result.error("菜单创建失败");
         } catch (Exception e) {
             log.error("创建菜单失败: {}", e.getMessage());
             return Result.error(e.getMessage());
@@ -109,8 +130,10 @@ public class MenuController {
         log.info("更新菜单: {}", id);
         try {
             menuDTO.setId(id);
-            menuService.update(menuDTO);
-            return Result.success("菜单更新成功");
+            // 转换MenuDTO为ApplicationResourceDTO
+            ApplicationResourceDTO resourceDTO = convertMenuToResource(menuDTO);
+            boolean success = applicationResourceService.updateResource(resourceDTO);
+            return success ? Result.success("菜单更新成功") : Result.error("菜单更新失败");
         } catch (Exception e) {
             log.error("更新菜单失败: {}", e.getMessage());
             return Result.error(e.getMessage());
@@ -125,8 +148,8 @@ public class MenuController {
     public Result<String> delete(@Parameter(description = "菜单ID") @PathVariable Long id) {
         log.info("删除菜单: {}", id);
         try {
-            menuService.delete(id);
-            return Result.success("菜单删除成功");
+            boolean success = applicationResourceService.deleteResource(id);
+            return success ? Result.success("菜单删除成功") : Result.error("菜单删除失败");
         } catch (Exception e) {
             log.error("删除菜单失败: {}", e.getMessage());
             return Result.error(e.getMessage());
@@ -175,7 +198,13 @@ public class MenuController {
         try {
             // 从SecurityContext获取当前用户ID
             Long currentUserId = getCurrentUserId();
-            List<MenuDTO> menuTree = menuService.getMenuTreeByUserId(currentUserId);
+
+            // 从sys_application_resource表中获取用户的资源树
+            List<ApplicationResourceDTO> resourceTree = applicationResourceService.getUserResourceTreeByUserId(currentUserId);
+
+            // 转换为MenuDTO格式
+            List<MenuDTO> menuTree = convertResourceToMenu(resourceTree);
+
             return Result.success("查询成功", menuTree);
         } catch (Exception e) {
             log.error("获取当前用户菜单树失败: {}", e.getMessage());
@@ -234,5 +263,88 @@ public class MenuController {
             log.error("检查菜单名称唯一性失败: {}", e.getMessage());
             return Result.error(e.getMessage());
         }
+    }
+
+    /**
+     * 将ApplicationResourceDTO转换为MenuDTO
+     */
+    private List<MenuDTO> convertResourceToMenu(List<ApplicationResourceDTO> resources) {
+        if (resources == null || resources.isEmpty()) {
+            return List.of();
+        }
+
+        return resources.stream()
+                .map(this::toMenuDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 将资源树平铺为列表
+     */
+    private List<MenuDTO> convertResourceToMenuList(List<ApplicationResourceDTO> resources) {
+        List<MenuDTO> result = new ArrayList<>();
+        flattenResourceTree(resources, result);
+        return result;
+    }
+
+    private void flattenResourceTree(List<ApplicationResourceDTO> resources, List<MenuDTO> result) {
+        if (resources == null || resources.isEmpty()) {
+            return;
+        }
+        for (ApplicationResourceDTO resource : resources) {
+            result.add(toMenuDTO(resource));
+            if (resource.getChildren() != null && !resource.getChildren().isEmpty()) {
+                flattenResourceTree(resource.getChildren(), result);
+            }
+        }
+    }
+
+    /**
+     * 单个资源转换为菜单DTO
+     */
+    private MenuDTO toMenuDTO(ApplicationResourceDTO resource) {
+        MenuDTO menu = new MenuDTO();
+        menu.setId(resource.getId());
+        menu.setAppId(resource.getAppId());
+        menu.setMenuName(resource.getResourceName());
+        menu.setParentId(resource.getParentId());
+        menu.setOrderNum(resource.getOrderNum());
+        menu.setPath(resource.getPath());
+        menu.setComponent(resource.getComponent());
+        menu.setMenuType(resource.getResourceType());
+        menu.setVisible(resource.getVisible());
+        menu.setStatus(resource.getStatus());
+        menu.setPerms(resource.getPerms());
+        menu.setIcon(resource.getIcon());
+        menu.setRemark(resource.getRemark());
+
+        // 转换子资源
+        if (resource.getChildren() != null && !resource.getChildren().isEmpty()) {
+            menu.setChildren(convertResourceToMenu(resource.getChildren()));
+        }
+
+        return menu;
+    }
+
+    /**
+     * 将MenuDTO转换为ApplicationResourceDTO
+     */
+    private ApplicationResourceDTO convertMenuToResource(MenuDTO menu) {
+        ApplicationResourceDTO resource = new ApplicationResourceDTO();
+        resource.setId(menu.getId());
+        resource.setAppId(menu.getAppId());
+        resource.setResourceName(menu.getMenuName());
+        resource.setParentId(menu.getParentId());
+        resource.setResourceType(menu.getMenuType());
+        resource.setPath(menu.getPath());
+        resource.setComponent(menu.getComponent());
+        resource.setPerms(menu.getPerms());
+        resource.setIcon(menu.getIcon());
+        resource.setVisible(menu.getVisible());
+        resource.setOrderNum(menu.getOrderNum());
+        resource.setStatus(menu.getStatus());
+        resource.setRemark(menu.getRemark());
+
+        return resource;
     }
 }

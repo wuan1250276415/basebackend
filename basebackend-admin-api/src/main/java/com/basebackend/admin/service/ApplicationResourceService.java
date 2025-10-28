@@ -75,4 +75,12 @@ public interface ApplicationResourceService {
      * @return 是否成功
      */
     boolean assignRoleResources(Long roleId, List<Long> resourceIds);
+
+    /**
+     * 根据用户ID获取用户有权限的资源树（不限应用ID）
+     *
+     * @param userId 用户ID
+     * @return 资源树
+     */
+    List<ApplicationResourceDTO> getUserResourceTreeByUserId(Long userId);
 }

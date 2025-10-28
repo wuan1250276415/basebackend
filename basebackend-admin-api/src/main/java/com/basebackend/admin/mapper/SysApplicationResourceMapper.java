@@ -53,4 +53,12 @@ public interface SysApplicationResourceMapper extends BaseMapper<SysApplicationR
      * @return 菜单ID列表
      */
     List<Long> selectMenuIdsByResourceIds(@Param("resourceIds") List<Long> resourceIds);
+
+    /**
+     * 根据用户ID查询用户有权限的资源（不限应用ID）
+     *
+     * @param userId 用户ID
+     * @return 资源列表
+     */
+    List<SysApplicationResource> selectResourcesByUserId(@Param("userId") Long userId);
 }

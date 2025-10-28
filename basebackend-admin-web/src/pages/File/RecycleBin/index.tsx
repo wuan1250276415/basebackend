@@ -47,8 +47,9 @@ const RecycleBin: React.FC = () => {
     setLoading(true)
     try {
       const res = await getRecycleBinList({ current, size: pageSize })
-      setRecycleBinList(res.records)
-      setTotal(res.total)
+      const pageData = res.data
+      setRecycleBinList(pageData?.records ?? [])
+      setTotal(pageData?.total ?? 0)
     } catch (error) {
       message.error('加载回收站列表失败')
     } finally {
