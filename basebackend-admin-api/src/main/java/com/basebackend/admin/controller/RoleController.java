@@ -2,6 +2,8 @@ package com.basebackend.admin.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.RoleDTO;
+import com.basebackend.admin.entity.SysRole;
+import com.basebackend.admin.entity.SysUser;
 import com.basebackend.admin.service.RoleService;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 角色管理控制器
@@ -213,6 +216,170 @@ public class RoleController {
             return Result.success("检查完成", unique);
         } catch (Exception e) {
             log.error("检查角色标识唯一性失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取角色树
+     */
+    @GetMapping("/tree")
+    @Operation(summary = "获取角色树", description = "根据应用ID获取角色树形结构")
+    public Result<List<SysRole>> getRoleTree(
+            @Parameter(description = "应用ID") @RequestParam(required = false) Long appId) {
+        log.info("获取角色树: appId={}", appId);
+        try {
+            List<SysRole> roleTree = roleService.getRoleTree(appId);
+            return Result.success("查询成功", roleTree);
+        } catch (Exception e) {
+            log.error("获取角色树失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取角色用户列表
+     */
+    @GetMapping("/{id}/users")
+    @Operation(summary = "获取角色用户", description = "获取角色关联的用户列表")
+    public Result<List<SysUser>> getRoleUsers(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @Parameter(description = "用户名（模糊搜索）") @RequestParam(required = false) String username) {
+        log.info("获取角色用户: roleId={}, username={}", id, username);
+        try {
+            List<SysUser> users = roleService.getRoleUsers(id, username);
+            return Result.success("查询成功", users);
+        } catch (Exception e) {
+            log.error("获取角色用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 批量关联用户到角色
+     */
+    @PostMapping("/{id}/users")
+    @Operation(summary = "关联用户到角色", description = "批量关联用户到角色")
+    public Result<String> assignUsersToRole(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @RequestBody List<Long> userIds) {
+        log.info("关联用户到角色: roleId={}, userIds={}", id, userIds);
+        try {
+            roleService.assignUsersToRole(id, userIds);
+            return Result.success("用户关联成功");
+        } catch (Exception e) {
+            log.error("关联用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 取消用户角色关联
+     */
+    @DeleteMapping("/{roleId}/users/{userId}")
+    @Operation(summary = "取消用户角色关联", description = "移除角色和用户的关联关系")
+    public Result<String> removeUserFromRole(
+            @Parameter(description = "角色ID") @PathVariable Long roleId,
+            @Parameter(description = "用户ID") @PathVariable Long userId) {
+        log.info("取消用户角色关联: roleId={}, userId={}", roleId, userId);
+        try {
+            roleService.removeUserFromRole(roleId, userId);
+            return Result.success("关联已取消");
+        } catch (Exception e) {
+            log.error("取消关联失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 分配应用资源
+     */
+    @PutMapping("/{id}/resources")
+    @Operation(summary = "分配应用资源", description = "为角色分配应用资源")
+    public Result<String> assignResources(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @RequestBody List<Long> resourceIds) {
+        log.info("分配角色资源: roleId={}, resourceIds={}", id, resourceIds);
+        try {
+            roleService.assignResources(id, resourceIds);
+            return Result.success("资源分配成功");
+        } catch (Exception e) {
+            log.error("分配资源失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取角色资源列表
+     */
+    @GetMapping("/{id}/resources")
+    @Operation(summary = "获取角色资源", description = "获取角色的应用资源列表")
+    public Result<List<Long>> getRoleResources(@Parameter(description = "角色ID") @PathVariable Long id) {
+        log.info("获取角色资源: {}", id);
+        try {
+            List<Long> resourceIds = roleService.getRoleResources(id);
+            return Result.success("查询成功", resourceIds);
+        } catch (Exception e) {
+            log.error("获取角色资源失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 配置列表操作权限
+     */
+    @PutMapping("/{id}/list-operations")
+    @Operation(summary = "配置列表操作权限", description = "为角色配置列表操作权限")
+    public Result<String> configureListOperations(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        log.info("配置列表操作权限: roleId={}", id);
+        try {
+            String resourceType = (String) request.get("resourceType");
+            @SuppressWarnings("unchecked")
+            List<Long> operationIds = (List<Long>) request.get("operationIds");
+
+            roleService.configureListOperations(id, resourceType, operationIds);
+            return Result.success("配置成功");
+        } catch (Exception e) {
+            log.error("配置列表操作权限失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取角色列表操作权限
+     */
+    @GetMapping("/{id}/list-operations")
+    @Operation(summary = "获取列表操作权限", description = "获取角色的列表操作权限")
+    public Result<List<Long>> getRoleListOperations(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @Parameter(description = "资源类型") @RequestParam String resourceType) {
+        log.info("获取角色列表操作权限: roleId={}, resourceType={}", id, resourceType);
+        try {
+            List<Long> operationIds = roleService.getRoleListOperations(id, resourceType);
+            return Result.success("查询成功", operationIds);
+        } catch (Exception e) {
+            log.error("获取列表操作权限失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 配置数据权限
+     */
+    @PutMapping("/{id}/data-permissions")
+    @Operation(summary = "配置数据权限", description = "为角色配置细粒度数据权限")
+    public Result<String> configureDataPermissions(
+            @Parameter(description = "角色ID") @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        log.info("配置数据权限: roleId={}", id);
+        try {
+            String filterRule = request.get("filterRule");
+            roleService.configureDataPermissions(id, filterRule);
+            return Result.success("数据权限配置成功");
+        } catch (Exception e) {
+            log.error("配置数据权限失败: {}", e.getMessage());
             return Result.error(e.getMessage());
         }
     }

@@ -73,6 +73,7 @@ export interface User {
 // 角色类型
 export interface Role {
   id?: string
+  parentId?: string // 父角色ID（支持树形结构）
   appId?: string
   roleName: string
   roleKey: string
@@ -83,6 +84,7 @@ export interface Role {
   menuIds?: string[]
   permissionIds?: string[]
   resourceIds?: string[]
+  children?: Role[] // 子角色列表
   createTime?: string
   updateTime?: string
 }
@@ -264,6 +266,35 @@ export interface ApplicationResource {
   remark?: string
   children?: ApplicationResource[]
   appName?: string
+  createTime?: string
+  updateTime?: string
+}
+
+// 列表操作类型
+export interface ListOperation {
+  id?: string
+  operationCode: string
+  operationName: string
+  operationType: string // view-查看, add-新增, edit-编辑, delete-删除, export-导出, import-导入
+  resourceType?: string
+  icon?: string
+  orderNum?: number
+  status?: number
+  remark?: string
+  createTime?: string
+  updateTime?: string
+}
+
+// 数据权限规则类型
+export interface DataPermissionRule {
+  id?: string
+  roleId: string
+  resourceType: string
+  permissionName: string
+  filterType: string // dept-部门, field-字段, custom-自定义
+  filterRule: string // JSON格式的过滤规则
+  status?: number
+  remark?: string
   createTime?: string
   updateTime?: string
 }

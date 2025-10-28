@@ -30,11 +30,17 @@ public class PermissionController {
      * 获取权限列表
      */
     @GetMapping
-    @Operation(summary = "获取权限列表", description = "获取权限列表")
-    public Result<List<PermissionDTO>> getPermissionList() {
-        log.info("获取权限列表");
+    @Operation(summary = "获取权限列表", description = "获取权限列表，支持按类型过滤")
+    public Result<List<PermissionDTO>> getPermissionList(
+            @Parameter(description = "权限类型（可选）") @RequestParam(required = false) Integer permissionType) {
+        log.info("获取权限列表, permissionType={}", permissionType);
         try {
-            List<PermissionDTO> permissions = permissionService.getPermissionList();
+            List<PermissionDTO> permissions;
+            if (permissionType != null) {
+                permissions = permissionService.getPermissionsByType(permissionType);
+            } else {
+                permissions = permissionService.getPermissionList();
+            }
             return Result.success("查询成功", permissions);
         } catch (Exception e) {
             log.error("获取权限列表失败: {}", e.getMessage());

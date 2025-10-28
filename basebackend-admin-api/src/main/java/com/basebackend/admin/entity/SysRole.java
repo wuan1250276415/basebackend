@@ -5,6 +5,8 @@ import com.basebackend.database.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.List;
+
 /**
  * 系统角色实体
  */
@@ -12,6 +14,12 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("sys_role")
 public class SysRole extends BaseEntity {
+
+    /**
+     * 父角色ID（0表示顶级角色）
+     */
+    @TableField("parent_id")
+    private Long parentId;
 
     /**
      * 所属应用ID（NULL表示系统角色）
@@ -54,4 +62,10 @@ public class SysRole extends BaseEntity {
      */
     @TableField("remark")
     private String remark;
+
+    /**
+     * 子角色列表（用于树形结构）
+     */
+    @TableField(exist = false)
+    private List<SysRole> children;
 }

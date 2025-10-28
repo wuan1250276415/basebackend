@@ -5,12 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.RoleDTO;
-import com.basebackend.admin.entity.SysRole;
-import com.basebackend.admin.entity.SysRoleMenu;
-import com.basebackend.admin.entity.SysRolePermission;
-import com.basebackend.admin.mapper.SysRoleMapper;
-import com.basebackend.admin.mapper.SysRoleMenuMapper;
-import com.basebackend.admin.mapper.SysRolePermissionMapper;
+import com.basebackend.admin.entity.*;
+import com.basebackend.admin.mapper.*;
 import com.basebackend.admin.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 角色服务实现类
@@ -31,6 +30,10 @@ public class RoleServiceImpl implements RoleService {
     private final SysRoleMapper roleMapper;
     private final SysRoleMenuMapper roleMenuMapper;
     private final SysRolePermissionMapper rolePermissionMapper;
+    private final SysRoleResourceMapper roleResourceMapper;
+    private final SysUserRoleMapper userRoleMapper;
+    private final SysRoleListOperationMapper roleListOperationMapper;
+    private final SysRoleDataPermissionMapper roleDataPermissionMapper;
 
     @Override
     public Page<RoleDTO> page(String roleName, String roleKey, Integer status, int current, int size) {
@@ -270,6 +273,177 @@ public class RoleServiceImpl implements RoleService {
             wrapper.ne(SysRole::getId, roleId);
         }
         return roleMapper.selectCount(wrapper) == 0;
+    }
+
+    @Override
+    public List<SysRole> getRoleTree(Long appId) {
+        log.info("获取角色树: appId={}", appId);
+
+        // 查询所有角色
+        List<SysRole> allRoles = roleMapper.selectRolesByAppId(appId);
+
+        // 构建树形结构
+        return buildRoleTree(allRoles, 0L);
+    }
+
+    @Override
+    @Transactional
+    public void assignResources(Long roleId, List<Long> resourceIds) {
+        log.info("分配角色资源: roleId={}, resourceIds={}", roleId, resourceIds);
+
+        // 删除原有资源关联
+        LambdaQueryWrapper<SysRoleResource> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRoleResource::getRoleId, roleId);
+        roleResourceMapper.delete(wrapper);
+
+        // 添加新资源关联
+        if (resourceIds != null && !resourceIds.isEmpty()) {
+            for (Long resourceId : resourceIds) {
+                SysRoleResource roleResource = new SysRoleResource();
+                roleResource.setRoleId(roleId);
+                roleResource.setResourceId(resourceId);
+                roleResource.setCreateTime(LocalDateTime.now());
+                roleResourceMapper.insert(roleResource);
+            }
+        }
+
+        log.info("角色资源分配成功");
+    }
+
+    @Override
+    @Transactional
+    public void configureListOperations(Long roleId, String resourceType, List<Long> operationIds) {
+        log.info("配置列表操作权限: roleId={}, resourceType={}, operationIds={}", roleId, resourceType, operationIds);
+
+        // 删除该角色该资源类型的原有列表操作权限
+        LambdaQueryWrapper<SysRoleListOperation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRoleListOperation::getRoleId, roleId)
+                .eq(SysRoleListOperation::getResourceType, resourceType);
+        roleListOperationMapper.delete(wrapper);
+
+        // 添加新列表操作权限
+        if (operationIds != null && !operationIds.isEmpty()) {
+            for (Long operationId : operationIds) {
+                SysRoleListOperation roleListOperation = new SysRoleListOperation();
+                roleListOperation.setRoleId(roleId);
+                roleListOperation.setOperationId(operationId);
+                roleListOperation.setResourceType(resourceType);
+                roleListOperation.setCreateTime(LocalDateTime.now());
+                roleListOperationMapper.insert(roleListOperation);
+            }
+        }
+
+        log.info("列表操作权限配置成功");
+    }
+
+    @Override
+    @Transactional
+    public void configureDataPermissions(Long roleId, String filterRule) {
+        log.info("配置数据权限: roleId={}, filterRule={}", roleId, filterRule);
+
+        // 查询或创建数据权限配置
+        LambdaQueryWrapper<SysRoleDataPermission> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRoleDataPermission::getRoleId, roleId);
+
+        SysRoleDataPermission dataPermission = roleDataPermissionMapper.selectOne(wrapper);
+        if (dataPermission == null) {
+            dataPermission = new SysRoleDataPermission();
+            dataPermission.setRoleId(roleId);
+            dataPermission.setResourceType("all");
+            dataPermission.setPermissionName("数据权限");
+            dataPermission.setFilterType("custom");
+            dataPermission.setFilterRule(filterRule);
+            dataPermission.setStatus(1);
+            dataPermission.setCreateTime(LocalDateTime.now());
+            roleDataPermissionMapper.insert(dataPermission);
+        } else {
+            dataPermission.setFilterRule(filterRule);
+            dataPermission.setUpdateTime(LocalDateTime.now());
+            roleDataPermissionMapper.updateById(dataPermission);
+        }
+
+        log.info("数据权限配置成功");
+    }
+
+    @Override
+    public List<SysUser> getRoleUsers(Long roleId, String username) {
+        log.info("获取角色用户列表: roleId={}, username={}", roleId, username);
+        return roleMapper.selectUsersByRoleId(roleId, username);
+    }
+
+    @Override
+    @Transactional
+    public void assignUsersToRole(Long roleId, List<Long> userIds) {
+        log.info("批量关联用户到角色: roleId={}, userIds={}", roleId, userIds);
+
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+
+        for (Long userId : userIds) {
+            // 检查是否已存在关联
+            LambdaQueryWrapper<SysUserRole> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(SysUserRole::getUserId, userId)
+                    .eq(SysUserRole::getRoleId, roleId);
+
+            if (userRoleMapper.selectCount(wrapper) == 0) {
+                SysUserRole userRole = new SysUserRole();
+                userRole.setUserId(userId);
+                userRole.setRoleId(roleId);
+                userRole.setCreateTime(LocalDateTime.now());
+                userRole.setCreateBy(1L); // 临时硬编码
+                userRoleMapper.insert(userRole);
+            }
+        }
+
+        log.info("用户关联成功");
+    }
+
+    @Override
+    @Transactional
+    public void removeUserFromRole(Long roleId, Long userId) {
+        log.info("取消用户角色关联: roleId={}, userId={}", roleId, userId);
+
+        LambdaQueryWrapper<SysUserRole> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserRole::getUserId, userId)
+                .eq(SysUserRole::getRoleId, roleId);
+        userRoleMapper.delete(wrapper);
+
+        log.info("用户角色关联已取消");
+    }
+
+    @Override
+    public List<Long> getRoleResources(Long roleId) {
+        log.info("获取角色资源列表: roleId={}", roleId);
+
+        return roleMapper.selectResourceIdsByRoleId(roleId);
+    }
+
+    @Override
+    public List<Long> getRoleListOperations(Long roleId, String resourceType) {
+        log.info("获取角色列表操作权限: roleId={}, resourceType={}", roleId, resourceType);
+
+        return roleListOperationMapper.selectOperationIdsByRoleIdAndResourceType(roleId, resourceType);
+    }
+
+    /**
+     * 构建角色树形结构
+     */
+    private List<SysRole> buildRoleTree(List<SysRole> allRoles, Long parentId) {
+        List<SysRole> treeNodes = new ArrayList<>();
+
+        for (SysRole role : allRoles) {
+            Long roleParentId = role.getParentId() != null ? role.getParentId() : 0L;
+
+            if (roleParentId.equals(parentId)) {
+                // 递归查找子节点
+                List<SysRole> children = buildRoleTree(allRoles, role.getId());
+                role.setChildren(children);
+                treeNodes.add(role);
+            }
+        }
+
+        return treeNodes;
     }
 
     /**

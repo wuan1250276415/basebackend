@@ -1,0 +1,30 @@
+.role-management-container {
+  padding: 16px;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+.role-management-container .ant-layout {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.role-management-container .ant-layout-sider {
+  background: #fff;
+}
+
+.role-management-container .ant-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.role-management-container .ant-tree {
+  background: transparent;
+}
+
+.role-management-container .ant-tree .ant-tree-node-selected {
+  background-color: #e6f7ff !important;
+}
+
+.role-management-container .ant-tabs-nav {
+  margin-bottom: 24px;
+}
