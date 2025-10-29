@@ -8,7 +8,8 @@
                   id="Definitions_1"
                   targetNamespace="http://bpmn.io/schema/bpmn">
 
-  <bpmn:process id="order-approval-process" name="订单审批流程" isExecutable="true">
+  <bpmn:process id="order-approval-process" name="订单审批流程" isExecutable="true"
+                camunda:historyTimeToLive="180">
 
     <bpmn:startEvent id="StartEvent_1" name="订单提交">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
@@ -38,8 +39,8 @@
     </bpmn:sequenceFlow>
 
     <!-- 低金额自动通过 -->
-    <bpmn:sequenceFlow id="Flow_LowAmount" name="金额<=10000" sourceRef="Gateway_CheckAmount" targetRef="Task_AutoApprove">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount <= 10000}</bpmn:conditionExpression>
+    <bpmn:sequenceFlow id="Flow_LowAmount" name="金额gt10000" sourceRef="Gateway_CheckAmount" targetRef="Task_AutoApprove">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount gt 10000}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
 
     <!-- 经理审批任务 -->

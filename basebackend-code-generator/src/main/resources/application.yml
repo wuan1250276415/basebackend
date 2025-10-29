@@ -24,6 +24,9 @@ spring:
     baseline-version: 0
     encoding: UTF-8
     validate-on-migrate: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
     locations: classpath:db/migration
 
 mybatis-plus:

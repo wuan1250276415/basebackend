@@ -4,7 +4,8 @@
                   id="Definitions_3"
                   targetNamespace="http://bpmn.io/schema/bpmn">
 
-  <bpmn:process id="microservice-orchestration" name="微服务编排流程" isExecutable="true">
+  <bpmn:process id="microservice-orchestration" name="微服务编排流程" isExecutable="true"
+                camunda:historyTimeToLive="180">
 
     <bpmn:startEvent id="StartEvent_1" name="开始编排">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>

@@ -49,26 +49,6 @@ spring:
           enabled: true  # 启用服务发现
           lower-case-service-id: true  # 服务名小写
 
-      # 路由配置
-      routes:
-        # admin-api服务路由
-        - id: admin-api
-          uri: lb://admin-api
-          predicates:
-            - Path=/admin-api/**
-          filters:
-            - StripPrefix=1
-            - name: Retry
-              args:
-                retries: 3
-                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
-                methods: GET,POST
-                backoff:
-                  firstBackoff: 10ms
-                  maxBackoff: 50ms
-                  factor: 2
-                  basedOnPreviousValue: false
-
       # 全局CORS配置
       globalcors:
         cors-configurations:

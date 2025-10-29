@@ -70,7 +70,7 @@
         <owasp-html-sanitizer.version>20200713.1</owasp-html-sanitizer.version>
 
         <!-- Utils -->
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.38</lombok.version>
         <hutool.version>5.8.24</hutool.version>
         <fastjson2.version>2.0.43</fastjson2.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
@@ -297,6 +297,16 @@
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
                     </configuration>
                 </plugin>
                 <plugin>

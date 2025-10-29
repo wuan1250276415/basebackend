@@ -1,22 +1,23 @@
 # Camunda BPM配置
 camunda:
   bpm:
-    enabled: true
     # 管理员配置
-    admin:
+    admin-user:
       id: admin
       password: ${CAMUNDA_ADMIN_PASSWORD:admin}
       first-name: Admin
       last-name: User
-      email: admin@basebackend.com
 
     # 历史级别: none, activity, audit, full
     history-level: full
 
+    # 数据库配置
+    database:
+      schema-update: true
+
     # 自动部署配置
-    auto-deploy:
-      enabled: true
-      resource-pattern: classpath*:processes/**/*.bpmn
+    auto-deployment-enabled: true
+    deployment-resource-pattern: classpath*:**/*.bpmn
 
     # 作业执行配置
     job-execution:
@@ -26,33 +27,9 @@ camunda:
       queue-capacity: 100
       lock-time-in-millis: 300000
 
-    # 数据库配置
-    database:
-      schema-update: true
-      type: mysql
-
-    # 管理界面配置
-    webapp:
-      enabled: true
-      index-redirect-enabled: true
-
-    # REST API配置
-    rest:
-      enabled: true
-
-    # Authorization配置
-    authorization:
-      enabled: true
-      tenant-check-enabled: true
-
     # 通用配置
     generic-properties:
       properties:
-        # 启用脚本编译
-        enable-script-compilation: true
-        # 启用脚本引擎
-        enable-groovy-scripts: false
-        enable-python-scripts: false
         # 历史清理配置
         history-cleanup-enabled: true
         history-cleanup-batch-window-start-time: "01:00"
@@ -61,8 +38,6 @@ camunda:
         # 指标收集
         metrics-enabled: true
         db-metrics-reporter-activate: true
-        # 作业配置
-        job-executor-deployment-aware: true
 
 # Spring Boot Admin配置
 spring:
@@ -71,9 +46,9 @@ spring:
 
   # 数据源配置（使用主数据库）
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/basebackend?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://1.117.67.222:3306/basebackend_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:basebackend_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:5iA7pGWQJnACwXw3}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -103,10 +78,10 @@ management:
       exposure:
         include: health,info,metrics,prometheus
       base-path: /actuator
-  metrics:
-    export:
-      prometheus:
-        enabled: true
   health:
-    camunda:
+    defaults:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

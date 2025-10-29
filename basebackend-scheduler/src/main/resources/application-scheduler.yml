@@ -93,3 +93,18 @@ logging:
   level:
     com.basebackend.scheduler: DEBUG
     tech.powerjob: INFO
+
+spring:
+  data:
+    redis:
+      host: 1.117.67.222
+      port: 6379
+      password: redis_ycecQi
+      database: 1
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0

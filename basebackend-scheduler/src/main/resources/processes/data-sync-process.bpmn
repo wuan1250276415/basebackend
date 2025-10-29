@@ -4,7 +4,7 @@
                   id="Definitions_2"
                   targetNamespace="http://bpmn.io/schema/bpmn">
 
-  <bpmn:process id="data-sync-process" name="数据同步流程" isExecutable="true">
+  <bpmn:process id="data-sync-process" name="数据同步流程" isExecutable="true" camunda:historyTimeToLive="180">
 
     <bpmn:startEvent id="StartEvent_1" name="开始同步">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
@@ -54,8 +54,8 @@
 
     <!-- 错误边界事件 -->
     <bpmn:boundaryEvent id="BoundaryEvent_Error" name="同步失败" attachedToRef="Task_ExtractData">
-      <bpmn:errorEventDefinition errorRef="Error_SyncFailed" />
       <bpmn:outgoing>Flow_Error</bpmn:outgoing>
+      <bpmn:errorEventDefinition errorRef="Error_SyncFailed" />
     </bpmn:boundaryEvent>
 
     <bpmn:sequenceFlow id="Flow_Error" sourceRef="BoundaryEvent_Error" targetRef="Task_HandleError" />

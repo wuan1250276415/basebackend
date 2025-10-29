@@ -298,3 +298,39 @@ export interface DataPermissionRule {
   createTime?: string
   updateTime?: string
 }
+
+// 个人资料详情类型
+export interface ProfileDetail {
+  userId: number
+  username: string
+  nickname?: string
+  email?: string
+  phone?: string
+  avatar?: string
+  gender?: number
+  birthday?: string
+  deptId?: number
+  deptName?: string
+  userType: number
+  status: number
+  loginIp?: string
+  loginTime?: string
+  createTime: string
+}
+
+// 更新个人资料请求类型
+export interface UpdateProfileRequest {
+  nickname?: string
+  email?: string
+  phone?: string
+  avatar?: string
+  gender?: number
+  birthday?: string
+}
+
+// 修改密码请求类型
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}
