@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  seata-server:
+    image: seataio/seata-server:1.7.1
+    container_name: seata-server
+    hostname: seata-server
+    ports:
+      - "8091:8091"   # Seata Server RPC port
+      - "7091:7091"   # Seata Console Web UI
+      - "9898:9898"   # Prometheus metrics export port
+    environment:
+      # Server Configuration
+      - SEATA_IP=192.168.66.31          # Server IP (change to your server IP)
+      - SEATA_PORT=8091                  # RPC port
+      - SEATA_CONFIG_NAME=file:/root/seata-config/application
+      - SEATA_ENV=dev                    # Environment: dev/test/prod
+
+      # Store Mode (use MySQL for persistence)
+      - STORE_MODE=db
+
+      # Server Node ID (for cluster mode, each node should have unique ID)
+      - SERVER_NODE=1
+
+      # JVM Parameters
+      - SEATA_OPTS=-Xmx2048m -Xms2048m -Xmn1024m -Xss512k -XX:SurvivorRatio=10 -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=1024m -XX:-OmitStackTraceInFastThrow -XX:-UseAdaptiveSizePolicy -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/seata-server/logs/java_heapdump.hprof -XX:+DisableExplicitGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -Xloggc:/seata-server/logs/seata_gc.log -verbose:gc -Dio.netty.leakDetectionLevel=advanced
+
+    volumes:
+      # Configuration files
+      - ./config:/root/seata-config:ro
+
+      # Logs persistence
+      - ./logs:/seata-server/logs
+
+      # Session data (optional, for file store mode)
+      - ./sessionStore:/seata-server/sessionStore
+
+    networks:
+      - basebackend-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7091/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+networks:
+  basebackend-network:
+    external: true  # Use existing network (created with RocketMQ deployment)
+
+# ==================================================================================================
+# Deployment Instructions
+# ==================================================================================================
+#
+# 1. Prerequisites:
+#    - Ensure MySQL server is accessible at 192.168.66.31:3306
+#    - Create seata_server database and execute schema in sql/seata-server.sql
+#    - Ensure Nacos server is running at 192.168.66.31:8848
+#    - Create Docker network if not exists: docker network create basebackend-network
+#
+# 2. Prepare Configuration:
+#    - Edit config/application.yml with your MySQL credentials
+#    - Edit config/seataServer.properties with environment-specific settings
+#    - Upload seataServer.properties to Nacos (see README for instructions)
+#
+# 3. Start Seata Server:
+#    cd /home/wuan/IdeaProjects/basebackend/docker/seata-server
+#    docker-compose up -d
+#
+# 4. Verify Deployment:
+#    - Check logs: docker-compose logs -f seata-server
+#    - Access Console: http://192.168.66.31:7091 (username: seata, password: seata)
+#    - Check health: curl http://192.168.66.31:7091/health
+#    - Check metrics: curl http://192.168.66.31:9898/metrics
+#    - Verify Nacos registration:
+#      curl "http://192.168.66.31:8848/nacos/v1/ns/instance/list?serviceName=seata-server&groupName=SEATA_GROUP"
+#
+# 5. Troubleshooting:
+#    - View logs: docker-compose logs -f seata-server
+#    - Enter container: docker exec -it seata-server /bin/sh
+#    - Check configuration: docker exec seata-server cat /root/seata-config/application.yml
+#    - Test MySQL connectivity: docker exec seata-server nc -zv 192.168.66.31 3306
+#    - Test Nacos connectivity: docker exec seata-server nc -zv 192.168.66.31 8848
+#
+# 6. Stop and Remove:
+#    docker-compose down
+#
+# 7. For High Availability (HA) Setup:
+#    - Deploy multiple Seata Server instances with different SERVER_NODE values
+#    - All instances connect to the same MySQL database
+#    - All instances register to the same Nacos cluster
+#    - Clients automatically discover all instances via Nacos
+#
+# ==================================================================================================

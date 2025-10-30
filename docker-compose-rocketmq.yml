@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # RocketMQ NameServer
+  rocketmq-nameserver:
+    image: apache/rocketmq:5.1.4
+    container_name: rocketmq-nameserver
+    ports:
+      - "9876:9876"
+    environment:
+      - JAVA_OPT_EXT=-Xms512m -Xmx512m
+    command: sh mqnamesrv
+    networks:
+      - rocketmq-network
+    volumes:
+      - ./rocketmq/nameserver/logs:/home/rocketmq/logs
+    restart: unless-stopped
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: rocketmq-broker
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+      - "10912:10912"
+    environment:
+      - NAMESRV_ADDR=rocketmq-nameserver:9876
+      - JAVA_OPT_EXT=-Xms1g -Xmx1g
+    command: sh mqbroker -c /home/rocketmq/broker.conf
+    depends_on:
+      - rocketmq-nameserver
+    networks:
+      - rocketmq-network
+    volumes:
+      - ./rocketmq/broker/logs:/home/rocketmq/logs
+      - ./rocketmq/broker/store:/home/rocketmq/store
+      - ./rocketmq/broker/broker.conf:/home/rocketmq/broker.conf
+    restart: unless-stopped
+
+  # RocketMQ Dashboard (可视化管理界面)
+  rocketmq-dashboard:
+    image: apacherocketmq/rocketmq-dashboard:latest
+    container_name: rocketmq-dashboard
+    ports:
+      - "8089:8080"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+      - rocketmq.config.namesrvAddr=rocketmq-nameserver:9876
+    depends_on:
+      - rocketmq-nameserver
+    networks:
+      - rocketmq-network
+    restart: unless-stopped
+
+networks:
+  rocketmq-network:
+    driver: bridge
+
+volumes:
+  nameserver-logs:
+  broker-logs:
+  broker-store:

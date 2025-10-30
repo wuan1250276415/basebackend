@@ -111,6 +111,13 @@
             <artifactId>spring-retry</artifactId>
         </dependency>
 
+        <!-- Seata (Optional for distributed transaction support) -->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

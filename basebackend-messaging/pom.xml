@@ -19,10 +19,10 @@
     <description>消息集成基础模块，提供消息队列、Webhook、事件总线等功能</description>
 
     <dependencies>
-        <!-- Spring Boot AMQP (RabbitMQ) -->
+        <!-- RocketMQ Spring Boot Starter -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Spring Boot Starter Web (for WebClient) -->

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "用户偏好设置", description = "用户偏好配置相关接口")
 @RestController
-@RequestMapping("/admin/preference")
+@RequestMapping("/api/admin/preference")
 @RequiredArgsConstructor
 public class PreferenceController {
 

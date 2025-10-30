@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `user_device` (
     `browser_name` VARCHAR(100) COMMENT '浏览器名称',
     `browser_version` VARCHAR(50) COMMENT '浏览器版本',
     `user_agent` VARCHAR(500) COMMENT 'User-Agent',
-
+    is_trusted INT comment '是否信任设备',
     -- 网络信息
     `ip_address` VARCHAR(50) COMMENT 'IP地址',
     `location` VARCHAR(255) COMMENT '登录地点',
@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS `user_device` (
     `is_current` TINYINT DEFAULT 0 COMMENT '是否当前设备: 0-否, 1-是',
     `status` TINYINT DEFAULT 1 COMMENT '状态: 0-已注销, 1-在线',
     `last_active_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '最后活跃时间',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+    first_login_time DATETIME DEFAULT CURRENT_TIMESTAMP ,
     `login_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
     `logout_time` DATETIME COMMENT '注销时间',
     `expired_time` DATETIME COMMENT '过期时间',

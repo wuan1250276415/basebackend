@@ -21,6 +21,16 @@ public class SysDeadLetter {
 
     private String routingKey;
 
+    /**
+     * RocketMQ 标签
+     */
+    private String tags;
+
+    /**
+     * 消息类型
+     */
+    private String messageType;
+
     private String payload;
 
     private String headers;

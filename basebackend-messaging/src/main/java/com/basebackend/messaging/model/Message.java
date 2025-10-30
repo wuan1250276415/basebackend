@@ -26,19 +26,24 @@ public class Message<T> implements Serializable {
     private String messageId;
 
     /**
-     * 消息类型/主题
+     * 消息主题（Topic）
      */
     private String topic;
 
     /**
-     * 路由键
+     * 路由键（RabbitMQ）/ 标签（RocketMQ）
      */
     private String routingKey;
 
     /**
-     * 消息标签（用于消息过滤）
+     * 消息标签（RocketMQ Tag，用于消息过滤）
      */
-    private String tag;
+    private String tags;
+
+    /**
+     * 消息类型
+     */
+    private String messageType;
 
     /**
      * 消息体
@@ -54,6 +59,11 @@ public class Message<T> implements Serializable {
      * 发送时间
      */
     private LocalDateTime sendTime;
+
+    /**
+     * 时间戳
+     */
+    private LocalDateTime timestamp;
 
     /**
      * 延迟时间（毫秒）

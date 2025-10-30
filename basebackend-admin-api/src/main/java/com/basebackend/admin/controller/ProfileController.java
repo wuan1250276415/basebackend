@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "个人中心", description = "个人资料管理相关接口")
 @RestController
-@RequestMapping("/admin/profile")
+@RequestMapping("/api/admin/profile")
 @RequiredArgsConstructor
 public class ProfileController {
 

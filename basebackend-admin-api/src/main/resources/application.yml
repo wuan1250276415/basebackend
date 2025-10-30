@@ -22,22 +22,30 @@ spring:
     placeholders:
       env: ${spring.profiles.active}
 
-  rabbitmq:
-    host: 192.168.66.31
-    port: 5672
-    username: admin
-    password: admin123
-    virtual-host: basebackend
-    publisher-confirm-type: correlated
-    publisher-returns: true
-    template:
-      mandatory: true
-    listener:
-      simple:
-        acknowledge-mode: manual
-        prefetch: 1
-        concurrency: 3
-        max-concurrency: 10
+
+  # 邮件配置
+  mail:
+    host: smtp-mail.outlook.com
+    port: 587
+    username: wuan1250276415@outlook.com
+    password: wuanfuck321.
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          timeout: 5000
+
+  # Thymeleaf配置
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
 
 # MyBatis Plus配置
 mybatis-plus:
@@ -77,43 +85,37 @@ knife4j:
     enable-document-manage: true
     swagger-model-name: 实体类列表
 
-    # 邮件配置（用于告警）
-    mail:
-      host: smtp.example.com
-      port: 587
-      username: alert@example.com
-      password: your-password
-      properties:
-        mail:
-          smtp:
-            auth: true
-            starttls:
-              enable: true
-
+#    # 邮件配置（用于告警）
+#    mail:
+#      host: smtp.example.com
+#      port: 587
+#      username: alert@example.com
+#      password: your-password
+#      properties:
+#        mail:
+#          smtp:
+#            auth: true
+#            starttls:
+#              enable: true
 # 消息配置
 messaging:
-  # RabbitMQ配置
-  rabbitmq:
+  # RocketMQ配置
+  rocketmq:
     enabled: true
-    delay-plugin-enabled: true
-    delay-exchange: x-delayed-exchange
-    default-exchange: basebackend.direct
-    queue-prefix: basebackend.queue.
+    default-topic: basebackend-topic
+    topic-prefix: basebackend.
 
   # 重试配置
   retry:
     enabled: true
-    max-attempts: 3
-    initial-interval: 1000
-    multiplier: 2.0
-    max-interval: 10000
+    max-attempts: 16
+    # RocketMQ延迟级别：1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
 
   # 死信队列配置
   dead-letter:
     enabled: true
-    exchange: basebackend.dlx
-    queue: basebackend.dlq
-    routing-key: basebackend.dlq.#
+    topic: basebackend-dlq-topic
+    consumer-group: basebackend-dlq-consumer-group
 
   # 事务消息配置
   transaction:
@@ -127,4 +129,21 @@ messaging:
     enabled: true
     expire-time: 3600
     key-prefix: "msg:idempotent:"
+
+# Spring RocketMQ配置
+rocketmq:
+  name-server: 192.168.66.31:9876
+  producer:
+    group: basebackend-producer-group
+    send-message-timeout: 3000
+    compress-message-body-threshold: 4096
+    max-message-size: 4194304
+    retry-times-when-send-failed: 2
+    retry-times-when-send-async-failed: 2
+    retry-next-server: false
+  consumer:
+    group: basebackend-consumer-group
+#    consumeThreadMin: 20
+#    consume-thread-max: 64  # 必须大于 consume-thread-min，RocketMQ 5.x 默认最大值
+    consume-timeout: 15
 

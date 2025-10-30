@@ -56,9 +56,11 @@
         <redisson.version>3.24.3</redisson.version>
 
         <!-- Message -->
-        <rabbitmq.version>3.1.5</rabbitmq.version>
-        <rocketmq.version>2.2.3</rocketmq.version>
+        <rocketmq.version>2.3.0</rocketmq.version>
         <kafka.version>3.1.2</kafka.version>
+
+        <!-- Seata -->
+        <seata.version>1.7.1</seata.version>
 
         <!-- Observability -->
         <micrometer.version>1.12.0</micrometer.version>
@@ -158,18 +160,36 @@
                 <version>${redisson.version}</version>
             </dependency>
 
-            <!-- RabbitMQ -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-amqp</artifactId>
-                <version>${rabbitmq.version}</version>
-            </dependency>
-
             <!-- RocketMQ -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq.version}</version>
+            </dependency>
+
+            <!-- RocketMQ Client (explicit version to avoid conflicts) -->
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>5.2.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-acl</artifactId>
+                <version>5.2.0</version>
+            </dependency>
+
+            <!-- Seata -->
+            <dependency>
+                <groupId>io.seata</groupId>
+                <artifactId>seata-spring-boot-starter</artifactId>
+                <version>${seata.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.seata</groupId>
+                <artifactId>seata-all</artifactId>
+                <version>${seata.version}</version>
             </dependency>
 
             <!-- JWT -->

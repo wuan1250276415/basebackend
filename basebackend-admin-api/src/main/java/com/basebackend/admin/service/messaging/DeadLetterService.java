@@ -64,16 +64,17 @@ public class DeadLetterService {
         }
 
         try {
-            // 构建消息
+            // 构建消息（适配 RocketMQ）
             Map<String, Object> payload = JSON.parseObject(deadLetter.getPayload(), Map.class);
             Message<Object> message = Message.builder()
                     .messageId(deadLetter.getMessageId())
                     .topic(deadLetter.getTopic())
-                    .routingKey(deadLetter.getRoutingKey())
+                    .tags(deadLetter.getTags())  // RocketMQ 使用 tags 而不是 routingKey
+                    .messageType(deadLetter.getMessageType())
                     .payload(payload)
                     .build();
 
-            // 重新发送消息
+            // 重新发送消息到原始 Topic
             messageProducer.send(message);
 
             // 更新死信状态

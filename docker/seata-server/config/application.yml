@@ -1,0 +1,167 @@
+server:
+  port: 7091
+
+spring:
+  application:
+    name: seata-server
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    path: /seata-server/logs/seata
+
+console:
+  user:
+    username: seata
+    password: seata
+
+seata:
+  # ============================================================================
+  # Configuration Center (Nacos)
+  # ============================================================================
+  config:
+    type: nacos
+    nacos:
+      server-addr: 192.168.66.31:8848
+      namespace: public
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos
+      data-id: seataServer.properties
+      context-path:
+
+  # ============================================================================
+  # Service Registry (Nacos)
+  # ============================================================================
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: 192.168.66.31:8848
+      namespace: public
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos
+      cluster: default
+      context-path:
+
+  # ============================================================================
+  # Transaction Storage (MySQL Database Mode)
+  # ============================================================================
+  store:
+    mode: db
+    db:
+      datasource: druid
+      db-type: mysql
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.66.31:3306/seata_server?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
+      user: seata_server
+      password: E2J8ftznTkHJPAcB.  # CHANGE THIS: Use your MySQL password
+      min-conn: 10
+      max-conn: 100
+      global-table: global_table
+      branch-table: branch_table
+      lock-table: lock_table
+      distributed-lock-table: distributed_lock
+      query-limit: 1000
+      max-wait: 5000
+
+  # ============================================================================
+  # Server Configuration
+  # ============================================================================
+  server:
+    # Transaction Recovery
+    recovery:
+      committing-retry-period: 1000    # Retry interval for committing (ms)
+      asyn-committing-retry-period: 1000  # Async commit retry interval (ms)
+      rollbacking-retry-period: 1000   # Retry interval for rollback (ms)
+      timeout-retry-period: 1000       # Timeout check interval (ms)
+
+    # Undo Log Management
+    undo:
+      log-save-days: 7                 # Keep undo logs for 7 days
+      log-delete-period: 86400000      # Cleanup interval: 24 hours (ms)
+
+    # Transaction Timeout
+    max-commit-retry-timeout: -1       # Max commit retry timeout (-1 = unlimited)
+    max-rollback-retry-timeout: -1     # Max rollback retry timeout (-1 = unlimited)
+    rollback-retry-timeout-unlock-enable: false
+
+    # Security
+    enable-check-auth: true            # Enable authentication check
+
+    # Performance
+    enable-parallel-request-handle: true  # Enable parallel request handling
+
+  # ============================================================================
+  # Metrics (Prometheus Integration)
+  # ============================================================================
+  metrics:
+    enabled: true
+    registry-type: compact
+    exporter-list: prometheus
+    exporter-prometheus-port: 9898
+
+  # ============================================================================
+  # Transport Configuration
+  # ============================================================================
+  transport:
+    type: TCP
+    server: NIO
+    heartbeat: true
+    enable-client-batch-send-request: true
+    thread-factory:
+      boss-thread-prefix: NettyBoss
+      worker-thread-prefix: NettyServerNIOWorker
+      boss-thread-size: 1
+
+  # ============================================================================
+  # Security Configuration
+  # ============================================================================
+  security:
+    secretKey: SeataSecretKey0c382c5455jkhjk92LM4xX  # Change this for production
+    tokenValidityInMilliseconds: 1800000             # Token validity: 30 minutes
+    ignore:
+      urls: /,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-fe/public/**,/api/v1/auth/login
+
+# ==================================================================================================
+# Configuration Notes
+# ==================================================================================================
+#
+# 1. Database Configuration:
+#    - Ensure seata_server database is created before starting
+#    - Execute sql/seata-server.sql to create tables
+#    - Update MySQL password in store.db.password
+#
+# 2. Nacos Integration:
+#    - Seata Server registers itself to Nacos for service discovery
+#    - Seata Server reads additional configuration from Nacos (seataServer.properties)
+#    - Clients discover Seata Server via Nacos
+#
+# 3. Store Mode Options:
+#    - db: MySQL database (recommended for production)
+#    - redis: Redis (high performance but requires Redis persistence)
+#    - file: Local file (development/testing only)
+#
+# 4. Cluster Mode:
+#    - Deploy multiple Seata Server instances with same configuration
+#    - Each instance should have unique SERVER_NODE environment variable
+#    - All instances connect to same MySQL database
+#    - Clients automatically load balance across instances
+#
+# 5. Performance Tuning:
+#    - Increase db.max-conn for high concurrency scenarios
+#    - Adjust undo.log-save-days based on storage capacity
+#    - Enable enable-parallel-request-handle for better throughput
+#
+# 6. Security:
+#    - Change console username/password for production
+#    - Update secretKey with strong random string
+#    - Use secure MySQL connection (useSSL=true) in production
+#
+# 7. Monitoring:
+#    - Metrics exposed at http://<server-ip>:9898/metrics
+#    - Integrate with Prometheus for monitoring
+#    - View transaction statistics in Seata Console at http://<server-ip>:7091
+#
+# ==================================================================================================

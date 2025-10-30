@@ -96,6 +96,11 @@ public class UserPreference {
     private Integer pageSize;
 
     /**
+     * 仪表板布局配置（JSON格式）
+     */
+    private String dashboardLayout;
+
+    /**
      * 自动保存: 0-关闭, 1-开启
      */
     private Integer autoSave;

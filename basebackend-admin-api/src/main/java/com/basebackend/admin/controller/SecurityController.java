@@ -22,7 +22,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = "安全管理", description = "账号安全相关接口")
 @RestController
-@RequestMapping("/admin/security")
+@RequestMapping("/api/admin/security")
 @RequiredArgsConstructor
 public class SecurityController {
 

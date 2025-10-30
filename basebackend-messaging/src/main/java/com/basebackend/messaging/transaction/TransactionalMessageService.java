@@ -49,7 +49,7 @@ public class TransactionalMessageService {
                 message.getMessageId(),
                 message.getTopic(),
                 message.getRoutingKey(),
-                message.getTag(),
+                message.getTags(),  // 使用 getTags()
                 JSON.toJSONString(message.getPayload()),
                 JSON.toJSONString(message.getHeaders()),
                 message.getSendTime(),
@@ -86,6 +86,32 @@ public class TransactionalMessageService {
     public void incrementRetryCount(String messageId) {
         String sql = "UPDATE sys_message_log SET retry_count = retry_count + 1, update_time = ? WHERE message_id = ?";
         jdbcTemplate.update(sql, LocalDateTime.now(), messageId);
+    }
+
+    /**
+     * 更新消息为已发送状态
+     *
+     * @param messageId 消息ID
+     * @param msgId RocketMQ消息ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSentStatus(String messageId, String msgId) {
+        String sql = "UPDATE sys_message_log SET status = ?, mq_message_id = ?, update_time = ? WHERE message_id = ?";
+        jdbcTemplate.update(sql, MessageStatus.SENT.name(), msgId, LocalDateTime.now(), messageId);
+        log.info("Message marked as sent: messageId={}, mqMessageId={}", messageId, msgId);
+    }
+
+    /**
+     * 更新消息为失败状态
+     *
+     * @param messageId 消息ID
+     * @param errorMessage 错误信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateFailedStatus(String messageId, String errorMessage) {
+        String sql = "UPDATE sys_message_log SET status = ?, error_message = ?, update_time = ? WHERE message_id = ?";
+        jdbcTemplate.update(sql, MessageStatus.FAILED.name(), errorMessage, LocalDateTime.now(), messageId);
+        log.warn("Message marked as failed: messageId={}, error={}", messageId, errorMessage);
     }
 
     /**

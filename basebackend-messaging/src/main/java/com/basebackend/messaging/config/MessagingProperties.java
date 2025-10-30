@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 public class MessagingProperties {
 
     /**
-     * RabbitMQ配置
+     * RocketMQ配置
      */
-    private RabbitMQ rabbitmq = new RabbitMQ();
+    private RocketMQ rocketmq = new RocketMQ();
 
     /**
      * 重试配置
@@ -38,31 +38,21 @@ public class MessagingProperties {
     private Idempotency idempotency = new Idempotency();
 
     @Data
-    public static class RabbitMQ {
+    public static class RocketMQ {
         /**
          * 是否启用
          */
         private Boolean enabled = true;
 
         /**
-         * 延迟消息插件是否启用
+         * 默认 Topic
          */
-        private Boolean delayPluginEnabled = true;
+        private String defaultTopic = "basebackend-topic";
 
         /**
-         * 延迟交换机名称
+         * Topic 前缀
          */
-        private String delayExchange = "x-delayed-exchange";
-
-        /**
-         * 默认交换机
-         */
-        private String defaultExchange = "basebackend.direct";
-
-        /**
-         * 默认队列前缀
-         */
-        private String queuePrefix = "basebackend.queue.";
+        private String topicPrefix = "basebackend.";
     }
 
     @Data
@@ -73,24 +63,9 @@ public class MessagingProperties {
         private Boolean enabled = true;
 
         /**
-         * 最大重试次数
+         * 最大重试次数（RocketMQ 默认 16 次）
          */
-        private Integer maxAttempts = 3;
-
-        /**
-         * 重试间隔（毫秒）
-         */
-        private Long initialInterval = 1000L;
-
-        /**
-         * 重试间隔倍数
-         */
-        private Double multiplier = 2.0;
-
-        /**
-         * 最大重试间隔（毫秒）
-         */
-        private Long maxInterval = 10000L;
+        private Integer maxAttempts = 16;
     }
 
     @Data
@@ -101,19 +76,14 @@ public class MessagingProperties {
         private Boolean enabled = true;
 
         /**
-         * 死信交换机
+         * 死信 Topic
          */
-        private String exchange = "basebackend.dlx";
+        private String topic = "basebackend-dlq-topic";
 
         /**
-         * 死信队列
+         * 死信消费者组
          */
-        private String queue = "basebackend.dlq";
-
-        /**
-         * 死信路由键
-         */
-        private String routingKey = "basebackend.dlq.#";
+        private String consumerGroup = "basebackend-dlq-consumer-group";
     }
 
     @Data
