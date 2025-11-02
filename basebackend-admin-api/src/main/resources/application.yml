@@ -46,6 +46,10 @@ spring:
     mode: HTML
     encoding: UTF-8
     cache: false
+  cloud:
+    alibaba:
+          seata:
+            tx-service-group: basebackend-seata-group  # 必须与 seata.tx-service-group 一致
 
 # MyBatis Plus配置
 mybatis-plus:
@@ -132,7 +136,7 @@ messaging:
 
 # Spring RocketMQ配置
 rocketmq:
-  name-server: 192.168.66.31:9876
+  name-server: 192.168.66.126:9876
   producer:
     group: basebackend-producer-group
     send-message-timeout: 3000
@@ -147,3 +151,105 @@ rocketmq:
 #    consume-thread-max: 64  # 必须大于 consume-thread-min，RocketMQ 5.x 默认最大值
     consume-timeout: 15
 
+# ================================================================================================
+# Seata 分布式事务配置
+# ================================================================================================
+#
+# 启用方式：在 application.yml 的 spring.profiles.active 中添加 seata
+# 例如: spring.profiles.active: dev,seata,observability
+#
+# 或者在启动时通过参数激活: --spring.profiles.active=dev,seata
+#
+# ================================================================================================
+
+seata:
+  # ============================================================================
+  # 基础配置
+  # ============================================================================
+  enabled: true  # 临时禁用 Seata，需要时改为 true 并启动 Seata Server
+  application-id: ${spring.application.name}
+  tx-service-group: basebackend-seata-group  # 事务服务组名称
+
+  # ============================================================================
+  # 数据源代理配置
+  # ============================================================================
+  enable-auto-data-source-proxy: true
+  data-source-proxy-mode: AT  # AT: 自动补偿模式, TCC: 手动补偿模式, SAGA: 长事务模式, XA: XA分布式事务
+
+  # ============================================================================
+  # 客户端配置
+  # ============================================================================
+  client:
+    # Resource Manager (RM) 配置
+    rm:
+      async-commit-buffer-limit: 10000  # 异步提交缓冲区限制
+      report-retry-count: 5  # 事务状态上报重试次数
+      table-meta-check-enable: true  # 启用表元数据检查
+      report-success-enable: false  # 成功状态是否上报 (false: 减少网络开销)
+      saga-branch-register-enable: false  # SAGA 模式分支注册 (AT模式不需要)
+      saga-json-parser: fastjson  # SAGA JSON解析器
+      lock:
+        retry-interval: 10  # 获取全局锁重试间隔 (ms)
+        retry-times: 30  # 获取全局锁重试次数
+        retry-policy-branch-rollback-on-conflict: true  # 锁冲突时回滚分支事务
+
+    # Transaction Manager (TM) 配置
+    tm:
+      commit-retry-count: 5  # 提交重试次数
+      rollback-retry-count: 5  # 回滚重试次数
+      default-global-transaction-timeout: 60000  # 全局事务默认超时时间 (ms) = 60秒
+      degrade-check: false  # 降级检查开关
+      degrade-check-period: 2000  # 降级检查周期 (ms)
+      degrade-check-allow-times: 10  # 允许的降级检查次数
+
+    # Undo Log 配置
+    undo:
+      data-validation: true  # 启用 undo_log 数据校验
+      log-serialization: jackson  # undo_log 序列化方式 (jackson/fastjson/kryo)
+      log-table: undo_log  # undo_log 表名
+      only-care-update-columns: true  # 仅记录更新的列 (优化存储空间)
+      compress:
+        enable: true  # 启用 undo_log 压缩
+        type: zip  # 压缩类型 (zip/gzip/bzip2/lz4/deflater/zstd)
+        threshold: 64k  # 压缩阈值：超过 64KB 的数据才压缩
+
+  # ============================================================================
+  # 服务配置
+  # ============================================================================
+  service:
+    # 事务服务组映射：将事务服务组映射到 Seata Server 集群名称
+    # 格式: vgroup-mapping.<tx-service-group>=<cluster-name>
+    vgroup-mapping:
+      basebackend-seata-group: default  # basebackend-seata-group 映射到 default 集群
+
+    # 集群地址列表 (仅当 registry.type=file 时使用)
+    grouplist:
+      default: 192.168.66.126:8091  # Seata Server 地址
+
+    # 降级配置
+    enable-degrade: false  # 启用降级 (true: Seata Server 不可用时回退到本地事务)
+    disable-global-transaction: false  # 禁用全局事务 (紧急开关，禁用所有分布式事务)
+
+  # ============================================================================
+  # 注册中心配置 (Nacos)
+  # ============================================================================
+  registry:
+    type: nacos  # 注册中心类型: nacos, eureka, redis, zk, consul, etcd3, sofa, file
+    nacos:
+      application: seata-server  # Seata Server 在 Nacos 中的服务名
+      server-addr: 192.168.66.126:8848  # Nacos 服务器地址
+      namespace: public  # Nacos 命名空间 (默认: public)
+      group: SEATA_GROUP  # Nacos 分组
+      username: nacos  # Nacos 用户名
+      password: nacos  # Nacos 密码
+#      cluster: default  # Seata Server 集群名称
+
+  # ============================================================================
+  # 配置中心 (File) - 使用本地配置，避免 Nacos 配置中心依赖
+  # ============================================================================
+  config:
+    type: file  # 配置中心类型: nacos, consul, apollo, zk, etcd3, file
+
+# ================================================================================================
+# Spring Cloud Alibaba Seata 配置
+# ================================================================================================

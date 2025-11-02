@@ -6,11 +6,11 @@ spring:
     baseline-on-migrate: true
 
   datasource:
-    url: jdbc:mysql://${spring.datasource.ip}/${spring.datasource.dbNAme}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
-    username: ${spring.datasource.userName}
-    password: ${spring.datasource.passWord}
-    driver-class-name: com.mysql.cj.jdbc.Driver
     druid:
+      url: jdbc:mysql://${spring.datasource.ip}/${spring.datasource.dbNAme}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      username: ${spring.datasource.userName}
+      password: ${spring.datasource.passWord}
+      driver-class-name: com.mysql.cj.jdbc.Driver
       initial-size: 5
       min-idle: 5
       max-active: 20

@@ -136,7 +136,7 @@ public class SeataFeignConfig {
      *
      * <p><b>HTTP Header 格式:</b>
      * <pre>
-     * TX_XID: 192.168.66.31:8091:2251648626
+     * TX_XID: 192.168.66.126:8091:2251648626
      * </pre>
      *
      * <p><b>执行时机:</b>

@@ -80,7 +80,7 @@ docker-compose -f docker-compose-rocketmq.yml down
 **RocketMQ 配置示例**:
 ```yaml
 rocketmq:
-  name-server: 192.168.66.31:9876
+  name-server: 192.168.66.126:9876
   producer:
     group: basebackend-producer-group
     send-message-timeout: 3000
@@ -307,7 +307,7 @@ spring:
 ✅ **新增配置**:
 ```yaml
 rocketmq:
-  name-server: 192.168.66.31:9876  # 必填
+  name-server: 192.168.66.126:9876  # 必填
 ```
 
 ---

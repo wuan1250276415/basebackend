@@ -11,7 +11,7 @@ services:
       - "9898:9898"   # Prometheus metrics export port
     environment:
       # Server Configuration
-      - SEATA_IP=192.168.66.31          # Server IP (change to your server IP)
+      - SEATA_IP=192.168.66.126          # Server IP (change to your server IP)
       - SEATA_PORT=8091                  # RPC port
       - SEATA_CONFIG_NAME=file:/root/seata-config/application
       - SEATA_ENV=dev                    # Environment: dev/test/prod
@@ -62,9 +62,9 @@ networks:
 # ==================================================================================================
 #
 # 1. Prerequisites:
-#    - Ensure MySQL server is accessible at 192.168.66.31:3306
+#    - Ensure MySQL server is accessible at 192.168.66.126:3306
 #    - Create seata_server database and execute schema in sql/seata-server.sql
-#    - Ensure Nacos server is running at 192.168.66.31:8848
+#    - Ensure Nacos server is running at 192.168.66.126:8848
 #    - Create Docker network if not exists: docker network create basebackend-network
 #
 # 2. Prepare Configuration:
@@ -78,18 +78,18 @@ networks:
 #
 # 4. Verify Deployment:
 #    - Check logs: docker-compose logs -f seata-server
-#    - Access Console: http://192.168.66.31:7091 (username: seata, password: seata)
-#    - Check health: curl http://192.168.66.31:7091/health
-#    - Check metrics: curl http://192.168.66.31:9898/metrics
+#    - Access Console: http://192.168.66.126:7091 (username: seata, password: seata)
+#    - Check health: curl http://192.168.66.126:7091/health
+#    - Check metrics: curl http://192.168.66.126:9898/metrics
 #    - Verify Nacos registration:
-#      curl "http://192.168.66.31:8848/nacos/v1/ns/instance/list?serviceName=seata-server&groupName=SEATA_GROUP"
+#      curl "http://192.168.66.126:8848/nacos/v1/ns/instance/list?serviceName=seata-server&groupName=SEATA_GROUP"
 #
 # 5. Troubleshooting:
 #    - View logs: docker-compose logs -f seata-server
 #    - Enter container: docker exec -it seata-server /bin/sh
 #    - Check configuration: docker exec seata-server cat /root/seata-config/application.yml
-#    - Test MySQL connectivity: docker exec seata-server nc -zv 192.168.66.31 3306
-#    - Test Nacos connectivity: docker exec seata-server nc -zv 192.168.66.31 8848
+#    - Test MySQL connectivity: docker exec seata-server nc -zv 192.168.66.126 3306
+#    - Test Nacos connectivity: docker exec seata-server nc -zv 192.168.66.126 8848
 #
 # 6. Stop and Remove:
 #    docker-compose down

@@ -5,6 +5,8 @@ import type { DataNode } from 'antd/es/tree'
 import { getMenuTree, createMenu, updateMenu, deleteMenu } from '@/api/menu'
 import { getEnabledApplications } from '@/api/application'
 import { Menu, Application } from '@/types'
+import MenuStatistics from './components/MenuStatistics'
+import MenuDetailPanel from './components/MenuDetailPanel'
 import './index.css'
 
 const MenuList = () => {
@@ -178,16 +180,26 @@ const MenuList = () => {
       key: menu.id!,
       title: (
         <div className="menu-tree-node">
-          <Space>
-            {getMenuIcon(menu.menuType)}
-            <span>{menu.menuName}</span>
-            {getAppName(menu.appId)}
-            {menu.menuType === 'M' && <Tag>目录</Tag>}
-            {menu.menuType === 'C' && <Tag color="blue">菜单</Tag>}
-            {menu.menuType === 'F' && <Tag color="green">按钮</Tag>}
-            {menu.status === 0 && <Tag color="error">禁用</Tag>}
-          </Space>
-          <Space className="menu-tree-actions">
+          <div className="menu-tree-content">
+            <div className="menu-tree-title">
+              <Space size={4}>
+                {getMenuIcon(menu.menuType)}
+                <span className="menu-name">{menu.menuName}</span>
+                {menu.menuType === 'M' && <Tag color="blue">目录</Tag>}
+                {menu.menuType === 'C' && <Tag color="green">菜单</Tag>}
+                {menu.menuType === 'F' && <Tag color="orange">按钮</Tag>}
+                {menu.status === 0 && <Tag color="error">禁用</Tag>}
+                {menu.children && menu.children.length > 0 && (
+                  <Tag color="cyan">{menu.children.length}</Tag>
+                )}
+              </Space>
+            </div>
+            <div className="menu-tree-meta">
+              {menu.path && <span className="meta-item">路由: {menu.path}</span>}
+              {menu.perms && <span className="meta-item">权限: {menu.perms}</span>}
+            </div>
+          </div>
+          <Space className="menu-tree-actions" size={2}>
             <Button
               type="link"
               size="small"
@@ -252,8 +264,21 @@ const MenuList = () => {
 
   return (
     <div>
+      {/* 统计卡片 */}
+      <div style={{ marginBottom: 16 }}>
+        <MenuStatistics menus={allMenus} />
+      </div>
+
+      {/* 搜索筛选栏 */}
       <Card style={{ marginBottom: 16 }}>
         <Form form={searchForm} layout="inline">
+          <Form.Item label="菜单名称">
+            <Input
+              placeholder="搜索菜单名称"
+              allowClear
+              style={{ width: 200 }}
+            />
+          </Form.Item>
           <Form.Item label="所属应用">
             <Select
               placeholder="请选择应用"
@@ -271,31 +296,96 @@ const MenuList = () => {
               ]}
             />
           </Form.Item>
+          <Form.Item label="菜单类型">
+            <Select
+              placeholder="请选择类型"
+              allowClear
+              style={{ width: 150 }}
+              options={[
+                { label: '全部', value: undefined },
+                { label: '目录', value: 'M' },
+                { label: '菜单', value: 'C' },
+                { label: '按钮', value: 'F' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="状态">
+            <Select
+              placeholder="请选择状态"
+              allowClear
+              style={{ width: 150 }}
+              options={[
+                { label: '全部', value: undefined },
+                { label: '启用', value: 1 },
+                { label: '禁用', value: 0 },
+              ]}
+            />
+          </Form.Item>
         </Form>
       </Card>
 
-      <Card
-        title="菜单管理"
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadData}>
-              刷新
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
-              新增根菜单
-            </Button>
-          </Space>
-        }
-      >
-        <Tree
-          showLine
-          defaultExpandAll
-          expandedKeys={expandedKeys}
-          onExpand={(keys: any) => setExpandedKeys(keys)}
-          treeData={buildTreeNodes(menuTree)}
-          loading={loading}
-        />
-      </Card>
+      {/* 左右分屏布局 */}
+      <Row gutter={16}>
+        {/* 左侧：菜单树 */}
+        <Col xs={24} lg={10}>
+          <Card
+            title="菜单树"
+            extra={
+              <Space>
+                <Button icon={<ReloadOutlined />} onClick={loadData} size="small">
+                  刷新
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()} size="small">
+                  新增根菜单
+                </Button>
+              </Space>
+            }
+            style={{ minHeight: 600 }}
+          >
+            <Tree
+              showLine
+              defaultExpandAll
+              expandedKeys={expandedKeys}
+              onExpand={(keys: any) => setExpandedKeys(keys)}
+              onSelect={(selectedKeys) => {
+                if (selectedKeys.length > 0) {
+                  const findMenu = (menus: Menu[], id: string): Menu | null => {
+                    for (const menu of menus) {
+                      if (menu.id === id) return menu
+                      if (menu.children) {
+                        const found = findMenu(menu.children, id)
+                        if (found) return found
+                      }
+                    }
+                    return null
+                  }
+                  const menu = findMenu(allMenus, selectedKeys[0] as string)
+                  setSelectedMenu(menu)
+                }
+              }}
+              treeData={buildTreeNodes(menuTree)}
+              loading={loading}
+            />
+          </Card>
+        </Col>
+
+        {/* 右侧：详情面板 */}
+        <Col xs={24} lg={14}>
+          <MenuDetailPanel
+            menu={selectedMenu}
+            applications={applications}
+            onEdit={handleOpenModal}
+            onDelete={(id) => {
+              Modal.confirm({
+                title: '确定要删除吗?',
+                content: '删除后将无法恢复',
+                onOk: () => handleDelete(id)
+              })
+            }}
+            onAddChild={(parentMenu) => handleOpenModal(undefined, parentMenu)}
+          />
+        </Col>
+      </Row>
 
       <Modal
         title={modalTitle}

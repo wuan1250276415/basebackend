@@ -92,7 +92,10 @@ public class SeataDataSourceConfig {
     @ConfigurationProperties(prefix = "spring.datasource.druid")
     public DruidDataSource druidDataSource() {
         log.info("Creating Druid DataSource for Seata proxy...");
-        return new DruidDataSource();
+        DruidDataSource dataSource = new DruidDataSource();
+        // 设置数据库类型，防止 WallFilter 初始化时 dbType 为 null
+        dataSource.setDbType("mysql");
+        return dataSource;
     }
 
     /**

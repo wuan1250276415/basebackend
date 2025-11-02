@@ -29,9 +29,7 @@ import java.util.Map;
 @ConditionalOnProperty(prefix = "messaging.dead-letter", name = "enabled", havingValue = "true", matchIfMissing = true)
 @RocketMQMessageListener(
         topic = RocketMQConstants.DLQ_TOPIC,
-        consumerGroup = RocketMQConstants.DLQ_CONSUMER_GROUP,
-//        consumeThreadMin = 1,
-        consumeThreadMax = 5
+        consumerGroup = RocketMQConstants.DLQ_CONSUMER_GROUP
 )
 public class DeadLetterConsumer implements RocketMQListener<String> {
 
@@ -102,3 +100,5 @@ public class DeadLetterConsumer implements RocketMQListener<String> {
         }
     }
 }
+
+

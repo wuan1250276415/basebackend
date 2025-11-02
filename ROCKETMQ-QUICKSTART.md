@@ -106,7 +106,7 @@ docker logs -f rocketmq-nameserver
 配置在 `application-messaging.yml`:
 ```yaml
 rocketmq:
-  name-server: 192.168.66.31:9876
+  name-server: 192.168.66.126:9876
 ```
 
 **注意**: 请根据实际部署环境修改 IP 地址。
@@ -129,7 +129,7 @@ rocketmq:
 docker ps | grep nameserver
 
 # 检查端口是否开放
-telnet 192.168.66.31 9876
+telnet 192.168.66.126 9876
 ```
 
 ### 问题2: Dashboard 无法访问
