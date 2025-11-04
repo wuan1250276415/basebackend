@@ -1,9 +1,12 @@
 // API响应类型
 export interface Result<T = any> {
-  code: number
-  message: string
-  data: T
-  timestamp: number
+  code?: number // 可选，某些API使用code
+  success?: boolean // 可选，工作流API使用success
+  message?: string
+  data?: T
+  timestamp?: number
+  errorCode?: number // 可选，工作流错误码
+  total?: number // 可选，用于列表总数
 }
 
 // 分页响应类型

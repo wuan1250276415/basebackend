@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.scheduler.camunda.mapper.FormTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.basebackend.scheduler.camunda.entity.FormTemplateEntity">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="form_key" property="formKey" />
+        <result column="process_definition_key" property="processDefinitionKey" />
+        <result column="schema_json" property="schemaJson" />
+        <result column="status" property="status" />
+        <result column="version" property="version" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <!-- 根据表单Key查询模板 -->
+    <select id="selectByFormKey" resultMap="BaseResultMap">
+        SELECT * FROM workflow_form_template
+        WHERE form_key = #{formKey} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 根据流程定义Key查询模板列表 -->
+    <select id="selectByProcessDefinitionKey" resultMap="BaseResultMap">
+        SELECT * FROM workflow_form_template
+        WHERE process_definition_key = #{processDefinitionKey} AND deleted = 0
+        ORDER BY version DESC, create_time DESC
+    </select>
+
+    <!-- 查询所有启用的模板 -->
+    <select id="selectEnabledTemplates" resultMap="BaseResultMap">
+        SELECT * FROM workflow_form_template
+        WHERE status = 1 AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

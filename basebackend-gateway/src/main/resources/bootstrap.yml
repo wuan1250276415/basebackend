@@ -43,3 +43,7 @@ spring:
           - data-id: ${spring.application.name}-${spring.profiles.active}.yml
             group: ${NACOS_GROUP:DEFAULT_GROUP}
             refresh: true
+security:
+  baseline:
+    enforce-referer: false
+

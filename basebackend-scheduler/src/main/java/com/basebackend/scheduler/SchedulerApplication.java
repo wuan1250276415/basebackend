@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.basebackend.scheduler.camunda"
 })
 @EnableDiscoveryClient
+@MapperScan("com.basebackend.scheduler.camunda.mapper")
 public class SchedulerApplication {
 
     public static void main(String[] args) {

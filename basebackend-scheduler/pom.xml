@@ -148,10 +148,23 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- SpringDoc OpenAPI (Swagger) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
         <!-- 依赖其他模块 -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-database</artifactId>
             <version>${project.version}</version>
         </dependency>
 

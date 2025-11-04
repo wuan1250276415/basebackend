@@ -121,3 +121,35 @@ export const listHistoricTasksByProcessInstanceId = async (
 ): Promise<ApiResponse<PageResult<Task>>> => {
   return request.get(`${BASE_URL}/history/process-instance/${processInstanceId}`)
 }
+
+/**
+ * 批量完成任务
+ */
+export const batchCompleteTasks = async (data: {
+  taskIds: string[]
+  variables?: Record<string, any>
+}): Promise<
+  ApiResponse<{
+    successCount: number
+    failCount: number
+    errors: Record<string, string>
+  }>
+> => {
+  return request.post(`${BASE_URL}/batch-complete`, data)
+}
+
+/**
+ * 批量分配任务
+ */
+export const batchAssignTasks = async (data: {
+  taskIds: string[]
+  userId: string
+}): Promise<
+  ApiResponse<{
+    successCount: number
+    failCount: number
+    errors: Record<string, string>
+  }>
+> => {
+  return request.post(`${BASE_URL}/batch-assign`, data)
+}

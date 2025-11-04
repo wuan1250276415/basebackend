@@ -6,8 +6,20 @@ spring:
   main:
     web-application-type: reactive
   cloud:
+    # LoadBalancer 配置 - 禁用健康检查
+    loadbalancer:
+      health-check:
+        refetch-instances: false  # 禁用实例健康检查
+        refetch-instances-interval: 25s
+        repeat-health-check: false  # 禁用重复健康检查
+      configurations: default
+      cache:
+        enabled: false  # 禁用缓存，每次都获取最新实例
+
     # Sentinel配置
     sentinel:
+      # 临时禁用 Sentinel 进行测试
+      enabled: false
       transport:
         dashboard: 1.117.67.222:8858  # Sentinel控制台地址
         port: 8719

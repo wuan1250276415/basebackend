@@ -4,7 +4,7 @@ import { Result } from '@/types'
 
 // 创建axios实例
 const request: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: '/',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json;charset=UTF-8',
@@ -32,25 +32,31 @@ request.interceptors.response.use(
   (response: AxiosResponse<Result>) => {
     const res = response.data
 
-    // 如果返回的状态码不是200，说明接口请求失败
-    if (res.code !== 200) {
-      message.error(res.message || '请求失败')
-      
+    // 兼容两种返回格式：
+    // 1. { code: 200, data: {...}, message: '' }
+    // 2. { success: true, data: {...}, message: '' }
+    const isSuccess = res.code === 200 || res.success === true
+    const errorMessage = res.message || '请求失败'
+
+    // 如果返回的状态码不是200或success不是true，说明接口请求失败
+    if (!isSuccess) {
+      message.error(errorMessage)
+
       // 401: 未登录或token过期
-      if (res.code === 401) {
+      if (res.code === 401 || res.errorCode === 401) {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
         window.location.href = '/login'
       }
-      
-      return Promise.reject(new Error(res.message || '请求失败'))
+
+      return Promise.reject(new Error(errorMessage))
     }
-    
+
     return res
   },
   (error) => {
     console.error('响应错误:', error)
-    
+
     if (error.response) {
       switch (error.response.status) {
         case 401:
@@ -74,7 +80,7 @@ request.interceptors.response.use(
     } else {
       message.error('网络错误，请检查网络连接')
     }
-    
+
     return Promise.reject(error)
   }
 )

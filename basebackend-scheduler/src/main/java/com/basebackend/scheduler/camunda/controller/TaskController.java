@@ -213,4 +213,77 @@ public class TaskController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 批量完成任务
+     */
+    @PostMapping("/batch-complete")
+    public ResponseEntity<Map<String, Object>> batchCompleteTasks(
+            @RequestBody Map<String, Object> request) {
+
+        @SuppressWarnings("unchecked")
+        List<String> taskIds = (List<String>) request.get("taskIds");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> variables = (Map<String, Object>) request.get("variables");
+
+        int successCount = 0;
+        int failCount = 0;
+        Map<String, String> errors = new HashMap<>();
+
+        for (String taskId : taskIds) {
+            try {
+                taskManagementService.completeTask(taskId, variables);
+                successCount++;
+            } catch (Exception e) {
+                failCount++;
+                errors.put(taskId, e.getMessage());
+                log.error("批量完成任务失败: taskId={}", taskId, e);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", failCount == 0);
+        response.put("message", String.format("批量完成任务: 成功%d个，失败%d个", successCount, failCount));
+        response.put("successCount", successCount);
+        response.put("failCount", failCount);
+        response.put("errors", errors);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 批量分配任务
+     */
+    @PostMapping("/batch-assign")
+    public ResponseEntity<Map<String, Object>> batchAssignTasks(
+            @RequestBody Map<String, Object> request) {
+
+        @SuppressWarnings("unchecked")
+        List<String> taskIds = (List<String>) request.get("taskIds");
+        String userId = (String) request.get("userId");
+
+        int successCount = 0;
+        int failCount = 0;
+        Map<String, String> errors = new HashMap<>();
+
+        for (String taskId : taskIds) {
+            try {
+                taskManagementService.assignTask(taskId, userId);
+                successCount++;
+            } catch (Exception e) {
+                failCount++;
+                errors.put(taskId, e.getMessage());
+                log.error("批量分配任务失败: taskId={}", taskId, e);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", failCount == 0);
+        response.put("message", String.format("批量分配任务: 成功%d个，失败%d个", successCount, failCount));
+        response.put("successCount", successCount);
+        response.put("failCount", failCount);
+        response.put("errors", errors);
+
+        return ResponseEntity.ok(response);
+    }
 }
