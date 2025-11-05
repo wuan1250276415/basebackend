@@ -19,6 +19,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
 import { getCurrentUserMenuTree } from '@/api/menu'
 import { Menu as MenuType } from '@/types'
+import { NotificationBell } from '@/components/NotificationCenter'
+import { useNotificationPolling } from '@/hooks/useNotificationPolling'
+import { useNotificationSSE } from '@/hooks/useSSE'
 import './index.css'
 
 const { Header, Sider, Content } = Layout
@@ -50,6 +53,17 @@ const BasicLayout = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
+
+  // 初始化通知轮询
+  useNotificationPolling()
+
+  // 初始化 SSE 连接（用于实时通知推送）
+  const { status: sseStatus, isConnected: sseConnected } = useNotificationSSE()
+
+  // 调试信息：SSE 连接状态
+  useEffect(() => {
+    console.log('[BasicLayout] SSE 连接状态:', sseStatus, '是否已连接:', sseConnected)
+  }, [sseStatus, sseConnected])
 
   // 加载用户菜单
   useEffect(() => {
@@ -184,6 +198,7 @@ const BasicLayout = () => {
               )}
             </div>
             <div className="header-right">
+              <NotificationBell />
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                 <div className="user-info">
                   <Avatar icon={<UserOutlined />} src={userInfo?.avatar} />

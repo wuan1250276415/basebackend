@@ -1,16 +1,54 @@
+/* 部门树节点容器 */
 .dept-tree-node {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
+  align-items: flex-start;
+  padding: 8px 12px;
   width: 100%;
+  border-radius: 4px;
+  transition: all 0.3s;
 }
 
+.dept-tree-node:hover {
+  background-color: #f5f5f5;
+}
+
+/* 部门内容区域 */
+.dept-tree-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 部门标题行 */
+.dept-tree-title {
+  display: flex;
+  align-items: center;
+}
+
+.dept-tree-title .dept-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #262626;
+}
+
+/* 操作按钮 */
 .dept-tree-actions {
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.3s;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.dept-tree-node:hover .dept-tree-actions {
-  opacity: 1;
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .dept-tree-node {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dept-tree-actions {
+    align-self: flex-end;
+  }
 }

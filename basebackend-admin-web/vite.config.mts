@@ -14,8 +14,26 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
+      // auth.ts 等已包含完整路径的接口 (admin-api/api/admin/auth/**)
+      '/admin-api': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      // workflow 服务 - 转换为 scheduler-service
+      '/api/workflow': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/workflow/, '/scheduler-service'),
+      },
+      // user.ts 等简化路径的接口 (/admin/**) - 转换为 admin-api/api/admin/**
+      '/admin': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/admin/, '/admin-api/api/admin'),
+      },
+      // 其他 API 请求走默认网关路由
       '/api': {
-        target: 'http://localhost:8081', // 通过网关统一路由
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },

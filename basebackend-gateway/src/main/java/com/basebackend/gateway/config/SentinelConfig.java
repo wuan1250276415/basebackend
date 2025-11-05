@@ -29,6 +29,11 @@ import java.util.Map;
  */
 @Slf4j
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "spring.cloud.sentinel.enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class SentinelConfig {
 
     private final List<ViewResolver> viewResolvers;

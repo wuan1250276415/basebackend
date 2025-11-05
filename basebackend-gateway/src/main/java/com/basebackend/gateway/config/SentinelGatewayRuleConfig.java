@@ -22,6 +22,11 @@ import java.util.Set;
  */
 @Slf4j
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "spring.cloud.sentinel.enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class SentinelGatewayRuleConfig {
 
     @PostConstruct

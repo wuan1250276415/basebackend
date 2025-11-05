@@ -1,0 +1,81 @@
+.notificationCenter {
+  padding: 24px;
+
+  .statistics {
+    margin-bottom: 24px;
+  }
+
+  .filterSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--color-bg-hover, #fafafa);
+    border-radius: 8px;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .notificationTable {
+    :global {
+      .ant-table-row {
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: var(--color-bg-hover, #fafafa);
+        }
+      }
+    }
+  }
+
+  .notificationContent {
+    .contentHeader {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .levelIndicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+    }
+
+    .contentBody {
+      padding-left: 14px;
+      line-height: 1.6;
+    }
+
+    &:hover {
+      .contentHeader {
+        color: var(--ant-primary-color, #1890ff);
+      }
+    }
+  }
+}
+
+// 深色主题适配
+[data-theme='dark'] {
+  .notificationCenter {
+    .filterSection {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .notificationTable {
+      :global {
+        .ant-table-row {
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+          }
+        }
+      }
+    }
+  }
+}

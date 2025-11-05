@@ -16,6 +16,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @Slf4j
 @RestController
 @RequestMapping("/sentinel-test")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "spring.cloud.sentinel.enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class SentinelTestController {
 
     /**

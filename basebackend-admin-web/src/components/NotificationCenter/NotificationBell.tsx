@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Badge, Dropdown, Button, List, Typography, Space, Empty, Spin } from 'antd';
-import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
+import { BellOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '@/api/notification';
+import { useNavigate } from 'react-router-dom';
+import { getNotifications, markAsRead, markAllAsRead } from '@/api/notification';
 import type { UserNotificationDTO } from '@/api/notification';
+import { useNotificationStore } from '@/stores/notification';
+import { formatNotificationTime, getNotificationLevelColor } from '@/utils/notification';
 import styles from './NotificationBell.module.scss';
 
 const { Text, Paragraph } = Typography;
@@ -14,40 +17,49 @@ const { Text, Paragraph } = Typography;
  */
 const NotificationBell = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [shake, setShake] = useState(false);
 
-  // 获取未读数量
-  const { data: unreadCount = 0 } = useQuery(
-    'unreadCount',
-    getUnreadCount,
-    {
-      refetchInterval: 30000, // 每30秒刷新
-    }
-  );
+  const { unreadCount, setUnreadCount, decrementUnreadCount } = useNotificationStore();
 
   // 获取通知列表
   const { data: notifications = [], isLoading } = useQuery(
-    'notifications',
+    'notification-list',
     () => getNotifications(10),
     {
       enabled: open, // 只在打开时加载
+      onSuccess: (data) => {
+        // 更新未读数量
+        const unread = data.filter((n) => n.isRead === 0).length;
+        setUnreadCount(unread);
+      },
     }
   );
+
+  // 监听未读数量变化，触发摇晃动画
+  useEffect(() => {
+    if (unreadCount > 0) {
+      setShake(true);
+      const timer = setTimeout(() => setShake(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [unreadCount]);
 
   // 标记已读
   const markAsReadMutation = useMutation(markAsRead, {
     onSuccess: () => {
-      queryClient.invalidateQueries('notifications');
-      queryClient.invalidateQueries('unreadCount');
+      queryClient.invalidateQueries('notification-list');
+      decrementUnreadCount();
     },
   });
 
   // 批量标记已读
   const markAllAsReadMutation = useMutation(markAllAsRead, {
     onSuccess: () => {
-      queryClient.invalidateQueries('notifications');
-      queryClient.invalidateQueries('unreadCount');
+      queryClient.invalidateQueries('notification-list');
+      setUnreadCount(0);
     },
   });
 
@@ -56,8 +68,9 @@ const NotificationBell = () => {
     if (notification.isRead === 0) {
       markAsReadMutation.mutate(notification.id);
     }
+    setOpen(false);
     if (notification.linkUrl) {
-      window.location.href = notification.linkUrl;
+      navigate(notification.linkUrl);
     }
   };
 
@@ -68,20 +81,6 @@ const NotificationBell = () => {
       .map((n) => n.id);
     if (unreadIds.length > 0) {
       markAllAsReadMutation.mutate(unreadIds);
-    }
-  };
-
-  // 获取通知级别对应的颜色
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'error':
-        return '#ff4d4f';
-      case 'warning':
-        return '#faad14';
-      case 'success':
-        return '#52c41a';
-      default:
-        return '#1890ff';
     }
   };
 
@@ -126,12 +125,12 @@ const NotificationBell = () => {
                     <Space>
                       <div
                         className={styles.levelIndicator}
-                        style={{ backgroundColor: getLevelColor(item.level) }}
+                        style={{ backgroundColor: getNotificationLevelColor(item.level) }}
                       />
                       <Text strong>{item.title}</Text>
                     </Space>
                     <Text type="secondary" className={styles.time}>
-                      {new Date(item.createTime).toLocaleString()}
+                      {formatNotificationTime(item.createTime)}
                     </Text>
                   </div>
                   <Paragraph
@@ -148,7 +147,14 @@ const NotificationBell = () => {
       </div>
       {notifications.length > 0 && (
         <div className={styles.footer}>
-          <Button type="link" block onClick={() => setOpen(false)}>
+          <Button
+            type="link"
+            block
+            onClick={() => {
+              setOpen(false);
+              navigate('/notification/center');
+            }}
+          >
             {t('notification.viewDetail')}
           </Button>
         </div>
@@ -168,7 +174,7 @@ const NotificationBell = () => {
         <Button
           type="text"
           icon={<BellOutlined style={{ fontSize: 18 }} />}
-          className={styles.bellButton}
+          className={`${styles.bellButton} ${shake ? styles.shake : ''}`}
         />
       </Badge>
     </Dropdown>

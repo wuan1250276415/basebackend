@@ -1,69 +1,49 @@
-import { Card, Row, Col, Statistic } from 'antd'
-import { UserOutlined, TeamOutlined, FileTextOutlined, AuditOutlined } from '@ant-design/icons'
-import { useAuthStore } from '@/stores/auth'
+import { Row, Col, Spin } from 'antd'
+import { WelcomeHeader } from './components/WelcomeHeader'
+import { CoreMetrics } from './components/CoreMetrics'
+import { SystemMonitor } from './components/SystemMonitor'
+import { QuickActions } from './components/QuickActions'
+import { RecentActivities } from './components/RecentActivities'
+import { useDashboardData } from './hooks/useDashboardData'
 
 const Dashboard = () => {
-  const { userInfo } = useAuthStore()
+  const {
+    coreMetrics,
+    systemMonitor,
+    recentLogins,
+    recentOperations,
+    notifications,
+    unreadNotificationCount,
+    isLoading,
+    refetchAll,
+  } = useDashboardData()
 
   return (
     <div>
-      <h2 style={{ marginBottom: 24 }}>欢迎回来，{userInfo?.nickname || userInfo?.username}！</h2>
-      
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="用户总数"
-              value={128}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="角色总数"
-              value={12}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="菜单总数"
-              value={45}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="权限总数"
-              value={86}
-              prefix={<AuditOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
+      {/* 欢迎头部 */}
+      <WelcomeHeader onRefresh={refetchAll} loading={isLoading} />
+
+      {/* 核心指标卡片 */}
+      <CoreMetrics data={coreMetrics} loading={isLoading} />
+
+      {/* 系统监控 */}
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col xs={24} lg={24}>
+          <SystemMonitor data={systemMonitor} loading={isLoading} />
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <Card title="系统信息">
-            <p><strong>系统名称：</strong>BaseBackend 后台管理系统</p>
-            <p><strong>系统版本：</strong>1.0.0</p>
-            <p><strong>后端技术：</strong>Java 17 + Spring Boot 3.1.5 + MyBatis Plus</p>
-            <p><strong>前端技术：</strong>React 18 + Ant Design 5 + TypeScript</p>
-            <p><strong>数据库：</strong>MySQL 8.0</p>
-            <p><strong>缓存：</strong>Redis 6.0</p>
-          </Card>
-        </Col>
-      </Row>
+      {/* 最近动态 */}
+      <RecentActivities
+        recentLogins={recentLogins}
+        recentOperations={recentOperations}
+        notifications={notifications}
+        unreadCount={unreadNotificationCount}
+        loading={isLoading}
+      />
+
+      {/* 快捷入口 */}
+      <QuickActions />
     </div>
   )
 }

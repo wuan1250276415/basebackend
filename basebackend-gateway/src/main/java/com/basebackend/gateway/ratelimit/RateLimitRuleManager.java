@@ -22,6 +22,11 @@ import java.util.Set;
  */
 @Slf4j
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "spring.cloud.sentinel.enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
 public class RateLimitRuleManager {
 
     @PostConstruct

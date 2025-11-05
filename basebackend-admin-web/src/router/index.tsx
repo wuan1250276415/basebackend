@@ -22,6 +22,7 @@ import WebhookConfig from '@/pages/Integration/WebhookConfig'
 import EventLog from '@/pages/Integration/EventLog'
 import DeadLetter from '@/pages/Integration/DeadLetter'
 import Profile from '@/pages/User/Profile'
+import NotificationCenter from '@/pages/Notification'
 import ApiDocs from '@/pages/Developer/ApiDocs'
 // import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
 import TaskDetail from '@/pages/Workflow/TaskManagement/TaskDetail'
@@ -87,6 +88,9 @@ const AppRouter = () => {
 
         {/* 个人中心 */}
         <Route path="user/profile" element={<Profile />} />
+
+        {/* 通知中心 */}
+        <Route path="notification/center" element={<NotificationCenter />} />
 
         {/* 开发者工具 */}
         <Route path="developer/api-docs" element={<ApiDocs />} />

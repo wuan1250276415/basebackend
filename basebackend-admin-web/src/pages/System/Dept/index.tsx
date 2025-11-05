@@ -5,22 +5,28 @@ import type { DataNode } from 'antd/es/tree'
 import { getDeptTree, createDept, updateDept, deleteDept } from '@/api/dept'
 import { Dept } from '@/types'
 import DeptTreeSelect from '@/components/DeptTreeSelect'
+import DeptStatistics from './components/DeptStatistics'
+import DeptDetailPanel from './components/DeptDetailPanel'
 import './index.css'
 
 const DeptList = () => {
   const [form] = Form.useForm()
+  const [searchForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [deptTree, setDeptTree] = useState<Dept[]>([])
+  const [allDepts, setAllDepts] = useState<Dept[]>([])
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [modalTitle, setModalTitle] = useState('新增部门')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [selectedDept, setSelectedDept] = useState<Dept | null>(null)
 
   const loadData = async () => {
     setLoading(true)
     try {
       const response = await getDeptTree()
       setDeptTree(response.data)
+      setAllDepts(response.data)
       // 默认展开所有节点
       const keys = getAllKeys(response.data)
       setExpandedKeys(keys)
@@ -101,13 +107,20 @@ const DeptList = () => {
       key: dept.id!,
       title: (
         <div className="dept-tree-node">
-          <Space>
-            <ApartmentOutlined style={{ color: '#1890ff' }} />
-            <span>{dept.deptName}</span>
-            {dept.leader && <Tag color="blue">{dept.leader}</Tag>}
-            {dept.status === 0 && <Tag color="error">禁用</Tag>}
-          </Space>
-          <Space className="dept-tree-actions">
+          <div className="dept-tree-content">
+            <div className="dept-tree-title">
+              <Space size={4}>
+                <ApartmentOutlined style={{ color: '#1890ff' }} />
+                <span className="dept-name">{dept.deptName}</span>
+                {dept.leader && <Tag color="blue">{dept.leader}</Tag>}
+                {dept.status === 0 && <Tag color="error">禁用</Tag>}
+                {dept.children && dept.children.length > 0 && (
+                  <Tag color="cyan">{dept.children.length}</Tag>
+                )}
+              </Space>
+            </div>
+          </div>
+          <Space className="dept-tree-actions" size={2}>
             <Button
               type="link"
               size="small"
@@ -168,30 +181,105 @@ const DeptList = () => {
     return options
   }
 
+  // 根据ID查找部门
+  const findDept = (depts: Dept[], id: string): Dept | null => {
+    for (const dept of depts) {
+      if (dept.id === id) return dept
+      if (dept.children) {
+        const found = findDept(dept.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   return (
     <div>
-      <Card
-        title="部门管理"
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadData}>
-              刷新
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
-              新增根部门
-            </Button>
-          </Space>
-        }
-      >
-        <Tree
-          showLine
-          defaultExpandAll
-          expandedKeys={expandedKeys}
-          onExpand={(keys: any) => setExpandedKeys(keys)}
-          treeData={buildTreeNodes(deptTree)}
-          loading={loading}
-        />
+      {/* 统计卡片 */}
+      <div style={{ marginBottom: 16 }}>
+        <DeptStatistics depts={allDepts} />
+      </div>
+
+      {/* 搜索筛选栏 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Form form={searchForm} layout="inline">
+          <Form.Item label="部门名称">
+            <Input placeholder="搜索部门名称" allowClear style={{ width: 200 }} />
+          </Form.Item>
+          <Form.Item label="负责人">
+            <Input placeholder="搜索负责人" allowClear style={{ width: 150 }} />
+          </Form.Item>
+          <Form.Item label="状态">
+            <Select
+              placeholder="请选择状态"
+              allowClear
+              style={{ width: 150 }}
+              options={[
+                { label: '全部', value: undefined },
+                { label: '启用', value: 1 },
+                { label: '禁用', value: 0 },
+              ]}
+            />
+          </Form.Item>
+        </Form>
       </Card>
+
+      {/* 左右分屏布局 */}
+      <Row gutter={16}>
+        {/* 左侧：部门树 */}
+        <Col xs={24} lg={10}>
+          <Card
+            title="部门树"
+            extra={
+              <Space>
+                <Button icon={<ReloadOutlined />} onClick={loadData} size="small">
+                  刷新
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleOpenModal()}
+                  size="small"
+                >
+                  新增根部门
+                </Button>
+              </Space>
+            }
+            style={{ minHeight: 600 }}
+          >
+            <Tree
+              showLine
+              defaultExpandAll
+              expandedKeys={expandedKeys}
+              onExpand={(keys: any) => setExpandedKeys(keys)}
+              onSelect={(selectedKeys) => {
+                if (selectedKeys.length > 0) {
+                  const dept = findDept(deptTree, selectedKeys[0] as string)
+                  setSelectedDept(dept)
+                }
+              }}
+              treeData={buildTreeNodes(deptTree)}
+              loading={loading}
+            />
+          </Card>
+        </Col>
+
+        {/* 右侧：详情面板 */}
+        <Col xs={24} lg={14}>
+          <DeptDetailPanel
+            dept={selectedDept}
+            onEdit={handleOpenModal}
+            onDelete={(id) => {
+              Modal.confirm({
+                title: '确定要删除吗?',
+                content: '删除后将无法恢复',
+                onOk: () => handleDelete(id),
+              })
+            }}
+            onAddChild={(parentDept) => handleOpenModal(undefined, parentDept)}
+          />
+        </Col>
+      </Row>
 
       <Modal
         title={modalTitle}
