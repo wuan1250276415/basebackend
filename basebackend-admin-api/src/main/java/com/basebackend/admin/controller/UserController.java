@@ -267,4 +267,89 @@ public class UserController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 根据用户名查询用户（用于 Feign 调用）
+     */
+    @GetMapping("/by-username")
+    @Operation(summary = "根据用户名查询用户", description = "根据用户名查询用户信息")
+    public Result<UserDTO> getByUsername(@Parameter(description = "用户名") @RequestParam String username) {
+        log.info("根据用户名查询用户: {}", username);
+        try {
+            UserDTO user = userService.getByUsername(username);
+            return Result.success("查询成功", user);
+        } catch (Exception e) {
+            log.error("根据用户名查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据手机号查询用户（用于 Feign 调用）
+     */
+    @GetMapping("/by-phone")
+    @Operation(summary = "根据手机号查询用户", description = "根据手机号查询用户信息")
+    public Result<UserDTO> getByPhone(@Parameter(description = "手机号") @RequestParam String phone) {
+        log.info("根据手机号查询用户: {}", phone);
+        try {
+            UserDTO user = userService.getByPhone(phone);
+            return Result.success("查询成功", user);
+        } catch (Exception e) {
+            log.error("根据手机号查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据邮箱查询用户（用于 Feign 调用）
+     */
+    @GetMapping("/by-email")
+    @Operation(summary = "根据邮箱查询用户", description = "根据邮箱查询用户信息")
+    public Result<UserDTO> getByEmail(@Parameter(description = "邮箱") @RequestParam String email) {
+        log.info("根据邮箱查询用户: {}", email);
+        try {
+            UserDTO user = userService.getByEmail(email);
+            return Result.success("查询成功", user);
+        } catch (Exception e) {
+            log.error("根据邮箱查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 批量查询用户（用于 Feign 调用）
+     */
+    @GetMapping("/batch")
+    @Operation(summary = "批量查询用户", description = "根据用户ID列表批量查询用户信息")
+    public Result<List<UserDTO>> getBatchByIds(@Parameter(description = "用户ID列表（逗号分隔）") @RequestParam String userIds) {
+        log.info("批量查询用户: {}", userIds);
+        try {
+            String[] idArray = userIds.split(",");
+            List<Long> ids = new java.util.ArrayList<>();
+            for (String id : idArray) {
+                ids.add(Long.parseLong(id.trim()));
+            }
+            List<UserDTO> users = userService.getBatchByIds(ids);
+            return Result.success("查询成功", users);
+        } catch (Exception e) {
+            log.error("批量查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据部门ID查询用户（用于 Feign 调用）
+     */
+    @GetMapping("/by-dept")
+    @Operation(summary = "根据部门ID查询用户", description = "根据部门ID查询用户列表")
+    public Result<List<UserDTO>> getByDeptId(@Parameter(description = "部门ID") @RequestParam Long deptId) {
+        log.info("根据部门ID查询用户: {}", deptId);
+        try {
+            List<UserDTO> users = userService.getByDeptId(deptId);
+            return Result.success("查询成功", users);
+        } catch (Exception e) {
+            log.error("根据部门ID查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
 }

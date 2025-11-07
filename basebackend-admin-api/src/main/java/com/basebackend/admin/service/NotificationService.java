@@ -1,6 +1,8 @@
 package com.basebackend.admin.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.notification.CreateNotificationDTO;
+import com.basebackend.admin.dto.notification.NotificationQueryDTO;
 import com.basebackend.admin.dto.notification.UserNotificationDTO;
 
 import java.util.List;
@@ -47,6 +49,14 @@ public interface NotificationService {
     List<UserNotificationDTO> getCurrentUserNotifications(Integer limit);
 
     /**
+     * 分页查询当前用户通知列表
+     *
+     * @param queryDTO 查询参数
+     * @return 分页结果
+     */
+    Page<UserNotificationDTO> getNotificationPage(NotificationQueryDTO queryDTO);
+
+    /**
      * 获取当前用户未读通知数量
      *
      * @return 未读数量
@@ -73,4 +83,11 @@ public interface NotificationService {
      * @param notificationId 通知ID
      */
     void deleteNotification(Long notificationId);
+
+    /**
+     * 批量删除通知
+     *
+     * @param notificationIds 通知ID列表
+     */
+    void batchDeleteNotifications(List<Long> notificationIds);
 }

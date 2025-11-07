@@ -174,4 +174,73 @@ public class DeptController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 根据部门名称查询部门（用于 Feign 调用）
+     */
+    @GetMapping("/by-name")
+    @Operation(summary = "根据部门名称查询", description = "根据部门名称查询部门信息")
+    public Result<DeptDTO> getByDeptName(@Parameter(description = "部门名称") @RequestParam String deptName) {
+        log.info("根据部门名称查询: {}", deptName);
+        try {
+            DeptDTO dept = deptService.getByDeptName(deptName);
+            return Result.success("查询成功", dept);
+        } catch (Exception e) {
+            log.error("根据部门名称查询失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据部门编码查询部门（用于 Feign 调用）
+     */
+    @GetMapping("/by-code")
+    @Operation(summary = "根据部门编码查询", description = "根据部门编码查询部门信息")
+    public Result<DeptDTO> getByDeptCode(@Parameter(description = "部门编码") @RequestParam String deptCode) {
+        log.info("根据部门编码查询: {}", deptCode);
+        try {
+            DeptDTO dept = deptService.getByDeptCode(deptCode);
+            return Result.success("查询成功", dept);
+        } catch (Exception e) {
+            log.error("根据部门编码查询失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 批量查询部门（用于 Feign 调用）
+     */
+    @GetMapping("/batch")
+    @Operation(summary = "批量查询部门", description = "根据部门ID列表批量查询部门信息")
+    public Result<List<DeptDTO>> getBatchByIds(@Parameter(description = "部门ID列表（逗号分隔）") @RequestParam String deptIds) {
+        log.info("批量查询部门: {}", deptIds);
+        try {
+            String[] idArray = deptIds.split(",");
+            List<Long> ids = new java.util.ArrayList<>();
+            for (String id : idArray) {
+                ids.add(Long.parseLong(id.trim()));
+            }
+            List<DeptDTO> depts = deptService.getBatchByIds(ids);
+            return Result.success("查询成功", depts);
+        } catch (Exception e) {
+            log.error("批量查询部门失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据父部门ID查询直接子部门（用于 Feign 调用）
+     */
+    @GetMapping("/by-parent")
+    @Operation(summary = "根据父部门ID查询", description = "根据父部门ID获取直接子部门列表")
+    public Result<List<DeptDTO>> getByParentId(@Parameter(description = "父部门ID") @RequestParam Long parentId) {
+        log.info("根据父部门ID查询: {}", parentId);
+        try {
+            List<DeptDTO> depts = deptService.getByParentId(parentId);
+            return Result.success("查询成功", depts);
+        } catch (Exception e) {
+            log.error("根据父部门ID查询失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
 }

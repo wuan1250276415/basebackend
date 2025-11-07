@@ -1,9 +1,15 @@
 package com.basebackend.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.basebackend.admin.constants.NotificationConstants;
 import com.basebackend.admin.dto.notification.CreateNotificationDTO;
+import com.basebackend.admin.dto.notification.NotificationMessageDTO;
+import com.basebackend.admin.dto.notification.NotificationQueryDTO;
 import com.basebackend.admin.dto.notification.UserNotificationDTO;
 import com.basebackend.admin.entity.SysUser;
 import com.basebackend.admin.entity.UserNotification;
@@ -15,8 +21,11 @@ import com.basebackend.observability.metrics.CustomMetrics;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,6 +34,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +54,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final CustomMetrics customMetrics;
+    private final RocketMQTemplate rocketMQTemplate;
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void sendEmailNotification(String to, String subject, String content) {
@@ -111,6 +124,9 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         log.info("系统通知创建成功: notificationId={}", notification.getId());
+
+        // 发送消息到 RocketMQ
+        sendNotificationToMQ(notification);
     }
 
     @Override
@@ -247,6 +263,155 @@ public class NotificationServiceImpl implements NotificationService {
                 return "资料更新通知";
             default:
                 return "系统通知";
+        }
+    }
+
+    @Override
+    public Page<UserNotificationDTO> getNotificationPage(NotificationQueryDTO queryDTO) {
+        log.info("分页查询通知列表: {}", queryDTO);
+        customMetrics.recordBusinessOperation("notification", "page_query");
+
+        Long currentUserId = getCurrentUserId();
+
+        // 构建分页对象
+        Page<UserNotification> page = new Page<>(queryDTO.getPage(), queryDTO.getPageSize());
+
+        // 构建查询条件
+        LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserNotification::getUserId, currentUserId);
+
+        // 类型筛选
+        if (StrUtil.isNotBlank(queryDTO.getType()) && !"all".equals(queryDTO.getType())) {
+            wrapper.eq(UserNotification::getType, queryDTO.getType());
+        }
+
+        // 级别筛选
+        if (StrUtil.isNotBlank(queryDTO.getLevel()) && !"all".equals(queryDTO.getLevel())) {
+            wrapper.eq(UserNotification::getLevel, queryDTO.getLevel());
+        }
+
+        // 已读状态筛选
+        if (StrUtil.isNotBlank(queryDTO.getIsRead()) && !"all".equals(queryDTO.getIsRead())) {
+            wrapper.eq(UserNotification::getIsRead, Integer.parseInt(queryDTO.getIsRead()));
+        }
+
+        // 关键词搜索
+        if (StrUtil.isNotBlank(queryDTO.getKeyword())) {
+            wrapper.and(w -> w.like(UserNotification::getTitle, queryDTO.getKeyword())
+                    .or()
+                    .like(UserNotification::getContent, queryDTO.getKeyword()));
+        }
+
+        // 按创建时间倒序
+        wrapper.orderByDesc(UserNotification::getCreateTime);
+
+        // 执行查询
+        Page<UserNotification> notificationPage = notificationMapper.selectPage(page, wrapper);
+
+        // 转换为 DTO
+        Page<UserNotificationDTO> resultPage = new Page<>(notificationPage.getCurrent(), notificationPage.getSize(), notificationPage.getTotal());
+        List<UserNotificationDTO> dtoList = notificationPage.getRecords().stream()
+                .map(notification -> BeanUtil.copyProperties(notification, UserNotificationDTO.class))
+                .collect(Collectors.toList());
+        resultPage.setRecords(dtoList);
+
+        return resultPage;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDeleteNotifications(List<Long> notificationIds) {
+        log.info("批量删除通知: count={}", notificationIds.size());
+        customMetrics.recordBusinessOperation("notification", "batch_delete");
+
+        if (notificationIds == null || notificationIds.isEmpty()) {
+            throw new BusinessException("通知ID列表不能为空");
+        }
+
+        Long currentUserId = getCurrentUserId();
+
+        // 验证所有通知归属
+        LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserNotification::getUserId, currentUserId)
+                .in(UserNotification::getId, notificationIds);
+
+        long count = notificationMapper.selectCount(wrapper);
+        if (count != notificationIds.size()) {
+            throw new BusinessException("部分通知不存在或无权限操作");
+        }
+
+        // 批量删除
+        int result = notificationMapper.deleteBatchIds(notificationIds);
+        log.info("批量删除完成: 删除数量={}", result);
+    }
+
+    /**
+     * 发送通知消息到 RocketMQ
+     *
+     * @param notification 通知实体
+     */
+    private void sendNotificationToMQ(UserNotification notification) {
+        try {
+            // 构建消息 DTO
+            NotificationMessageDTO messageDTO = NotificationMessageDTO.builder()
+                    .id(notification.getId())
+                    .userId(notification.getUserId())
+                    .title(notification.getTitle())
+                    .content(notification.getContent())
+                    .type(notification.getType())
+                    .level(notification.getLevel())
+                    .linkUrl(notification.getLinkUrl())
+                    .extraData(notification.getExtraData())
+                    .createTime(notification.getCreateTime().format(DATE_TIME_FORMATTER))
+                    .build();
+
+            // 根据类型确定 Tag
+            String tag = getTagByType(notification.getType());
+
+            // 构建目的地 (topic:tag)
+            String destination = NotificationConstants.NOTIFICATION_TOPIC + ":" + tag;
+
+            // 构建消息
+            String payload = JSON.toJSONString(messageDTO);
+            org.springframework.messaging.Message<String> message = MessageBuilder
+                    .withPayload(payload)
+                    .setHeader("notificationId", notification.getId())
+                    .setHeader("userId", notification.getUserId())
+                    .build();
+
+            // 发送消息
+            SendResult sendResult = rocketMQTemplate.syncSend(destination, message);
+
+            log.info("通知消息发送成功: notificationId={}, msgId={}, topic={}, tag={}",
+                    notification.getId(), sendResult.getMsgId(), NotificationConstants.NOTIFICATION_TOPIC, tag);
+
+        } catch (Exception e) {
+            log.error("通知消息发送失败: notificationId={}, error={}",
+                    notification.getId(), e.getMessage(), e);
+            // 这里不抛异常，避免影响主流程
+            // 即使 MQ 发送失败，数据库已保存，用户仍然可以通过轮询获取通知
+        }
+    }
+
+    /**
+     * 根据通知类型获取 RocketMQ Tag
+     *
+     * @param type 通知类型
+     * @return Tag
+     */
+    private String getTagByType(String type) {
+        if (type == null) {
+            return NotificationConstants.TAG_SYSTEM;
+        }
+
+        switch (type.toLowerCase()) {
+            case "announcement":
+                return NotificationConstants.TAG_ANNOUNCEMENT;
+            case "reminder":
+                return NotificationConstants.TAG_REMINDER;
+            case "system":
+            default:
+                return NotificationConstants.TAG_SYSTEM;
         }
     }
 }
