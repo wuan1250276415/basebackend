@@ -145,6 +145,51 @@ public class DeptServiceImpl implements DeptService {
         return deptMapper.selectCountByParentId(deptId) > 0;
     }
 
+    @Override
+    public DeptDTO getByDeptName(String deptName) {
+        log.info("根据部门名称查询: {}", deptName);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysDept> wrapper =
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(SysDept::getDeptName, deptName);
+        SysDept dept = deptMapper.selectOne(wrapper);
+        if (dept == null) {
+            throw new RuntimeException("部门不存在");
+        }
+        return convertToDTO(dept);
+    }
+
+    @Override
+    public DeptDTO getByDeptCode(String deptCode) {
+        log.warn("getByDeptCode 方法暂未实现：数据库表 sys_dept 中没有 dept_code 字段");
+        throw new UnsupportedOperationException(
+            "根据部门编码查询功能暂未实现：数据库表中没有 dept_code 字段。请使用 getByDeptName 方法代替。"
+        );
+    }
+
+    @Override
+    public List<DeptDTO> getBatchByIds(List<Long> ids) {
+        log.info("批量查询部门: {}", ids);
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<SysDept> depts = deptMapper.selectBatchIds(ids);
+        return depts.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DeptDTO> getByParentId(Long parentId) {
+        log.info("根据父部门ID查询: {}", parentId);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysDept> wrapper =
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(SysDept::getParentId, parentId);
+        List<SysDept> depts = deptMapper.selectList(wrapper);
+        return depts.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     /**
      * 构建部门树
      */

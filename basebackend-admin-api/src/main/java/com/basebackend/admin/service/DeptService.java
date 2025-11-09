@@ -59,4 +59,24 @@ public interface DeptService {
      * 检查部门是否有子部门
      */
     boolean hasChildren(Long deptId);
+
+    /**
+     * 根据部门名称查询部门
+     */
+    DeptDTO getByDeptName(String deptName);
+
+    /**
+     * 根据部门编码查询部门
+     */
+    DeptDTO getByDeptCode(String deptCode);
+
+    /**
+     * 批量查询部门
+     */
+    List<DeptDTO> getBatchByIds(List<Long> ids);
+
+    /**
+     * 根据父部门ID查询直接子部门
+     */
+    List<DeptDTO> getByParentId(Long parentId);
 }

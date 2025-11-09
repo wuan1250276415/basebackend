@@ -364,6 +364,51 @@ public class UserServiceImpl implements UserService {
         return userMapper.selectCount(wrapper) == 0;
     }
 
+    @Override
+    public UserDTO getByPhone(String phone) {
+        log.info("根据手机号查询用户: {}", phone);
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getPhone, phone);
+        SysUser user = userMapper.selectOne(wrapper);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        return convertToDTO(user);
+    }
+
+    @Override
+    public UserDTO getByEmail(String email) {
+        log.info("根据邮箱查询用户: {}", email);
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getEmail, email);
+        SysUser user = userMapper.selectOne(wrapper);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        return convertToDTO(user);
+    }
+
+    @Override
+    public List<UserDTO> getBatchByIds(List<Long> ids) {
+        log.info("批量查询用户: {}", ids);
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<SysUser> users = userMapper.selectBatchIds(ids);
+        return users.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDTO> getByDeptId(Long deptId) {
+        log.info("根据部门ID查询用户: {}", deptId);
+        List<SysUser> users = userMapper.selectUsersByDeptId(deptId);
+        return users.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     /**
      * 转换为DTO
      */

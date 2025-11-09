@@ -87,4 +87,24 @@ public interface UserService {
      * 检查手机号是否唯一
      */
     boolean checkPhoneUnique(String phone, Long userId);
+
+    /**
+     * 根据手机号查询用户
+     */
+    UserDTO getByPhone(String phone);
+
+    /**
+     * 根据邮箱查询用户
+     */
+    UserDTO getByEmail(String email);
+
+    /**
+     * 批量查询用户
+     */
+    List<UserDTO> getBatchByIds(List<Long> ids);
+
+    /**
+     * 根据部门ID查询用户列表
+     */
+    List<UserDTO> getByDeptId(Long deptId);
 }

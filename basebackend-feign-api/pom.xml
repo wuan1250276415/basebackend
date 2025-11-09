@@ -58,10 +58,11 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
-        <!-- Swagger Annotations -->
+        <!-- https://mvnrepository.com/artifact/io.swagger.core.v3/swagger-annotations -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
+            <version>2.2.40</version>
         </dependency>
     </dependencies>
 </project>

@@ -7,6 +7,7 @@ import enUS from 'antd/locale/en_US'
 import { useTranslation } from 'react-i18next'
 import AppRouter from './router'
 import { useThemeStore } from './stores/theme'
+import { AppProvider } from './contexts'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,11 +38,13 @@ function App() {
         algorithm: actualMode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppRouter />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <AppProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppRouter />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </AppProvider>
     </ConfigProvider>
   )
 }
