@@ -61,7 +61,7 @@
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-observability</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <!-- Spring Cloud Gateway -->
         <dependency>
