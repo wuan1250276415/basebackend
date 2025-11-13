@@ -11,11 +11,11 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>basebackend-security</artifactId>
+    <artifactId>basebackend-transaction</artifactId>
     <packaging>jar</packaging>
 
-    <name>Base Backend Security</name>
-    <description>安全模块，提供JWT认证和权限控制</description>
+    <name>Base Backend Transaction</name>
+    <description>分布式事务基础模块，提供Seata分布式事务集成</description>
 
     <dependencies>
         <!-- Common Module -->
@@ -25,31 +25,22 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Web Module -->
+        <!-- Seata Distributed Transaction -->
         <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
-            <version>${project.version}</version>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- JWT Module -->
+        <!-- Spring Cloud OpenFeign -->
         <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-jwt</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Spring Boot Security -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

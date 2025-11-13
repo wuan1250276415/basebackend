@@ -18,10 +18,10 @@
     <description>公共模块，包含通用实体、工具类、异常处理等</description>
 
     <dependencies>
-        <!-- Spring Boot Web -->
+        <!-- Spring Boot Starter (核心) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Lombok -->
@@ -49,42 +49,22 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
-        <!-- Validation -->
+        <!-- Validation (for SafeString annotation) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Secret Management -->
+        <!-- Secret Management (for SecretManager) -->
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- XSS Sanitizer -->
+        <!-- XSS Sanitizer (for SanitizationUtils) -->
         <dependency>
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
-        </dependency>
-
-        <!-- Spring Security Web (for CSRF utilities) -->
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-web</artifactId>
-        </dependency>
-
-        <!-- Seata (Optional for distributed transaction support) -->
-        <dependency>
-            <groupId>io.seata</groupId>
-            <artifactId>seata-spring-boot-starter</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- OpenFeign (Optional for Seata Feign integration) -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- Test -->

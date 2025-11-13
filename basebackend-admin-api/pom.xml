@@ -88,6 +88,18 @@
 
         <dependency>
             <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-transaction</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
             <artifactId>basebackend-jwt</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -11,35 +11,27 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>basebackend-security</artifactId>
+    <artifactId>basebackend-web</artifactId>
     <packaging>jar</packaging>
 
-    <name>Base Backend Security</name>
-    <description>安全模块，提供JWT认证和权限控制</description>
+    <name>Base Backend Web</name>
+    <description>Web层基础模块，提供Web安全过滤器、响应增强、客户端识别等功能</description>
 
     <dependencies>
-        <!-- Common Module -->
+        <!-- Common Module (核心依赖) -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Web Module -->
+        <!-- Spring Boot Starter Web -->
         <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- JWT Module -->
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-jwt</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Spring Boot Security -->
+        <!-- Spring Boot Starter Security (for CSRF) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -49,6 +41,12 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+        </dependency>
+
+        <!-- Jakarta Servlet API -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>

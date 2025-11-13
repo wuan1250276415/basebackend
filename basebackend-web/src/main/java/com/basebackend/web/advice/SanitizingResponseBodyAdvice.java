@@ -1,4 +1,4 @@
-package com.basebackend.common.web;
+package com.basebackend.web.advice;
 
 import com.basebackend.common.model.Result;
 import com.basebackend.common.util.SanitizationUtils;

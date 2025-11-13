@@ -14,8 +14,8 @@ class SecretManagerTest {
     void shouldReturnSecretFromEnvironment() {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("jwt.secret", "env-secret");
-        SecurityBaselineProperties properties = new SecurityBaselineProperties();
-        properties.setSecretCacheTtl(Duration.ofMinutes(5));
+        SecretManagerProperties properties = new SecretManagerProperties();
+        properties.setCacheTtl(Duration.ofMinutes(5));
 
         SecretManager secretManager = new SecretManager(environment, properties);
 
@@ -25,8 +25,8 @@ class SecretManagerTest {
     @Test
     void shouldUseFallbackWhenMissing() {
         MockEnvironment environment = new MockEnvironment();
-        SecurityBaselineProperties properties = new SecurityBaselineProperties();
-        properties.setSecretCacheTtl(Duration.ofMinutes(5));
+        SecretManagerProperties properties = new SecretManagerProperties();
+        properties.setCacheTtl(Duration.ofMinutes(5));
 
         SecretManager secretManager = new SecretManager(environment, properties);
 
@@ -38,8 +38,8 @@ class SecretManagerTest {
     @Test
     void shouldThrowWhenMissingAndNoFallback() {
         MockEnvironment environment = new MockEnvironment();
-        SecurityBaselineProperties properties = new SecurityBaselineProperties();
-        properties.setSecretCacheTtl(Duration.ofMinutes(5));
+        SecretManagerProperties properties = new SecretManagerProperties();
+        properties.setCacheTtl(Duration.ofMinutes(5));
 
         SecretManager secretManager = new SecretManager(environment, properties);
 

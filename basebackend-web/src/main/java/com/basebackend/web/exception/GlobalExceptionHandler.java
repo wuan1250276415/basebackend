@@ -1,5 +1,6 @@
-package com.basebackend.common.exception;
+package com.basebackend.web.exception;
 
+import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
 import com.basebackend.common.util.SanitizationUtils;
 import lombok.extern.slf4j.Slf4j;

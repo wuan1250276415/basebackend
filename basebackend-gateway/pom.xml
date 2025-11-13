@@ -18,34 +18,36 @@
     <description>网关模块，提供统一的API入口、路由、限流、鉴权等功能</description>
 
     <dependencies>
-        <!-- Common Module - 排除Servlet API冲突的类 -->
+        <!-- Common Module - 现在已经不包含 Web 和 Security 依赖了 -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
             <version>${project.version}</version>
+            <!-- 不再需要排除，common 模块已经清理干净 -->
+        </dependency>
+
+        <!-- Web Module - 完全排除（Gateway 只需要配置类，不需要 Servlet 功能） -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-web</artifactId>
+            <version>${project.version}</version>
             <exclusions>
-                <!-- 排除Spring MVC，因为Gateway使用WebFlux -->
+                <!-- 排除所有 Servlet 相关依赖 -->
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-web</artifactId>
                 </exclusion>
-                <!-- 排除Validation，因为它依赖Servlet API -->
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-validation</artifactId>
+                    <artifactId>spring-boot-starter-security</artifactId>
                 </exclusion>
-                <!-- 排除Spring Security Web，因为它依赖Servlet API -->
                 <exclusion>
-                    <groupId>org.springframework.security</groupId>
-                    <artifactId>spring-security-web</artifactId>
-                </exclusion>
-                <!-- 排除Jasypt，因为它可能依赖Servlet API -->
-                <exclusion>
-                    <groupId>com.github.ulisesbocchio</groupId>
-                    <artifactId>jasypt-spring-boot-starter</artifactId>
+                    <groupId>jakarta.servlet</groupId>
+                    <artifactId>jakarta.servlet-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
+
         <!-- Spring Cloud Bootstrap -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

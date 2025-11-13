@@ -1,7 +1,7 @@
 package com.basebackend.security.config;
 
-import com.basebackend.common.security.CsrfCookieFilter;
-import com.basebackend.common.security.OriginValidationFilter;
+import com.basebackend.web.filter.CsrfCookieFilter;
+import com.basebackend.web.filter.OriginValidationFilter;
 import com.basebackend.security.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
