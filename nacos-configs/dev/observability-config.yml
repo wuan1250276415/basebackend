@@ -1,0 +1,55 @@
+# ================================================================================================
+# 可观测性配置 (Observability Config)
+# ================================================================================================
+#
+# 包含内容：
+# - Actuator 健康检查和监控端点
+# - Micrometer Metrics 指标配置
+# - Prometheus 集成配置
+#
+# ================================================================================================
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露的端点：健康检查、信息、指标、Prometheus、Nacos配置和服务发现
+        include: health,info,metrics,prometheus,refresh,nacos-config,nacos-discovery
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always  # 总是显示健康检查详情
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+
+  # 健康检查配置
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    diskspace:
+      enabled: true
+
+  # Metrics 配置
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:dev}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s,2s,5s,10s
+
+  # 跟踪配置
+  tracing:
+    sampling:
+      probability: 1.0  # 采样率：1.0 = 100%（开发环境）
