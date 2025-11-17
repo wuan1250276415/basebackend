@@ -22,54 +22,101 @@
 - **Zipkin** - 链路追踪
 - **Logback** - 日志框架
 
-## 项目结构
+## 📁 项目结构
 
 ```
 basebackend/
-├── basebackend-common/              # 公共模块
-│   ├── model/                       # 通用数据模型（Result, PageResult）
-│   ├── exception/                   # 全局异常处理
-│   ├── constant/                    # 常量定义
-│   └── enums/                       # 枚举类
+├── 📚 docs/                         # 所有项目文档
+│   ├── getting-started/             # 快速入门指南
+│   ├── guides/                      # 详细使用指南
+│   ├── architecture/                # 架构设计文档
+│   ├── troubleshooting/             # 故障排查文档
+│   ├── implementation/              # 功能实现总结
+│   ├── changelog/                   # 变更记录
+│   └── README.md                    # 文档索引
 │
-├── basebackend-database/            # 数据库模块
-│   ├── config/                      # MyBatis Plus配置
-│   ├── entity/                      # 基础实体类
-│   └── handler/                     # 字段自动填充处理器
+├── 🔧 bin/                          # 所有脚本文件
+│   ├── start/                       # 启动脚本
+│   ├── test/                        # 测试脚本
+│   ├── maintenance/                 # 运维脚本
+│   └── sql/                         # SQL脚本
 │
-├── basebackend-cache/               # 缓存模块
-│   ├── config/                      # Redis配置
-│   ├── service/                     # 缓存服务
-│   └── util/                        # Redisson分布式锁工具
+├── 🐳 docker/                       # Docker相关
+│   ├── compose/                     # Docker Compose文件
+│   ├── messaging/                   # 消息队列配置
+│   ├── nacos/                       # Nacos配置
+│   ├── observability/               # 可观测性配置
+│   └── seata-server/                # Seata配置
 │
-├── basebackend-logging/             # 日志模块
-│   ├── aspect/                      # Web日志切面
-│   └── logback-spring.xml           # Logback配置
+├── ⚙️ config/                       # 配置文件
+│   ├── nacos-configs/               # Nacos配置中心
+│   └── env/                         # 环境配置模板
 │
-├── basebackend-security/            # 安全模块
-│   ├── config/                      # Spring Security配置
-│   ├── filter/                      # JWT认证过滤器
-│   └── util/                        # JWT工具类
+├── 🔄 .github/                      # GitHub Actions CI/CD
+├── ☸️ k8s/                          # Kubernetes配置
+├── 🚀 deployment/                   # 部署相关
+├── 📦 rocketmq/                     # RocketMQ配置
+├── 🛡️ sentinel-rules/               # Sentinel规则
 │
-├── basebackend-observability/       # 可观测模块
-│   ├── config/                      # 监控指标配置
-│   └── Actuator端点                 # 健康检查、指标暴露
-│
-├── basebackend-message-service/     # 消息服务模块
-│   ├── producer/                    # 消息生产者
-│   └── consumer/                    # 消息消费者
-│
-├── basebackend-file-service/        # 文件服务模块
-│   ├── config/                      # 文件配置
-│   ├── service/                     # 文件上传下载服务
-│   └── controller/                  # 文件API接口
-│
-├── basebackend-gateway/             # 网关模块
-│   ├── filter/                      # 网关过滤器（认证、日志）
-│   └── application.yml              # 路由配置
-│
-└── pom.xml                          # Maven父POM
+└── 📦 业务模块/
+    ├── basebackend-common/          # 公共模块
+    ├── basebackend-database/        # 数据库模块
+    ├── basebackend-cache/           # 缓存模块
+    ├── basebackend-logging/         # 日志模块
+    ├── basebackend-security/        # 安全模块
+    ├── basebackend-observability/   # 可观测模块
+    ├── basebackend-messaging/       # 消息服务模块
+    ├── basebackend-file-service/    # 文件服务模块
+    ├── basebackend-gateway/         # 网关模块
+    ├── basebackend-admin-api/       # 管理后台API
+    └── ...                          # 其他业务模块
 ```
+
+### 模块详细说明
+
+#### 核心基础模块
+
+**basebackend-common** - 公共模块
+- 通用数据模型（Result, PageResult）
+- 全局异常处理
+- 常量定义和枚举类
+
+**basebackend-database** - 数据库模块
+- MyBatis Plus配置
+- 基础实体类
+- 字段自动填充处理器
+
+**basebackend-cache** - 缓存模块
+- Redis配置
+- 缓存服务
+- Redisson分布式锁工具
+
+**basebackend-logging** - 日志模块
+- Web日志切面
+- Logback配置
+
+**basebackend-security** - 安全模块
+- Spring Security配置
+- JWT认证过滤器
+- JWT工具类
+
+**basebackend-observability** - 可观测模块
+- 监控指标配置
+- Actuator端点
+- 健康检查、指标暴露
+
+**basebackend-messaging** - 消息服务模块
+- 消息生产者
+- 消息消费者
+
+**basebackend-file-service** - 文件服务模块
+- 文件配置
+- 文件上传下载服务
+- 文件API接口
+
+**basebackend-gateway** - 网关模块
+- 网关过滤器（认证、日志）
+- 路由配置
 
 ## 核心功能
 
@@ -136,6 +183,19 @@ basebackend/
 - 限流配置
 - CORS 跨域支持
 - 负载均衡
+
+## 📖 文档导航
+
+完整的项目文档请访问 [docs/](docs/) 目录：
+
+- **快速入门**: [docs/getting-started/](docs/getting-started/) - 快速上手指南
+- **详细指南**: [docs/guides/](docs/guides/) - 各功能模块的详细使用说明
+- **架构设计**: [docs/architecture/](docs/architecture/) - 系统架构和设计文档
+- **故障排查**: [docs/troubleshooting/](docs/troubleshooting/) - 常见问题解决方案
+- **实现总结**: [docs/implementation/](docs/implementation/) - 功能实现记录
+- **变更记录**: [docs/changelog/](docs/changelog/) - 功能更新历史
+
+推荐从 [docs/README.md](docs/README.md) 开始浏览完整的文档索引。
 
 ## 快速开始
 

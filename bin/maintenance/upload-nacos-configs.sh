@@ -20,7 +20,7 @@ curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
   -d "dataId=common-config.yml" \
   -d "group=$NACOS_GROUP" \
   -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat nacos-configs/common-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
+  -d "content=$(cat ../../config/nacos-configs/common-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
   -d "type=yaml"
 
 # 上传 Gateway 配置
@@ -29,7 +29,7 @@ curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
   -d "dataId=gateway-config.yml" \
   -d "group=$NACOS_GROUP" \
   -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat nacos-configs/gateway-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
+  -d "content=$(cat ../../config/nacos-configs/gateway-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
   -d "type=yaml"
 
 # 上传 Demo-API 配置
@@ -38,7 +38,7 @@ curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
   -d "dataId=demo-api-config.yml" \
   -d "group=$NACOS_GROUP" \
   -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat nacos-configs/demo-api-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
+  -d "content=$(cat ../../config/nacos-configs/demo-api-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
   -d "type=yaml"
 
 echo "✅ 配置上传完成！"

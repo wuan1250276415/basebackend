@@ -11,7 +11,7 @@ if curl -s http://localhost:8848/nacos/v1/ns/operator/servers > /dev/null; then
     
     # 上传配置到 Nacos
     echo "上传配置到 Nacos..."
-    ./upload-nacos-configs.sh
+    ../maintenance/upload-nacos-configs.sh
 else
     echo "❌ Nacos 服务未启动，请先启动 Nacos"
     echo "运行: ./start-nacos.sh 或 docker-compose up -d"
@@ -20,7 +20,7 @@ fi
 
 echo ""
 echo "启动 Demo-API 服务..."
-cd basebackend-demo-api
+cd ../../basebackend-demo-api
 mvn spring-boot:run &
 DEMO_API_PID=$!
 echo "Demo-API PID: $DEMO_API_PID"

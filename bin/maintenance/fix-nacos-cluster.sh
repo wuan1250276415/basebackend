@@ -18,7 +18,7 @@ fi
 
 # 停止并清理现有容器
 echo "正在停止现有容器..."
-$COMPOSE_CMD -f docker/nacos/docker-compose.yml down -v
+$COMPOSE_CMD -f ../../docker/nacos/docker-compose.yml down -v
 
 # 清理数据目录（可选，如果需要完全重置）
 read -p "是否要清理数据目录？这将删除所有配置数据 (y/N): " -n 1 -r
@@ -38,7 +38,7 @@ mkdir -p docker/nacos/nacos1/logs docker/nacos/nacos2/logs docker/nacos/nacos3/l
 
 # 启动服务
 echo "正在启动Nacos集群..."
-$COMPOSE_CMD -f docker/nacos/docker-compose.yml up -d
+$COMPOSE_CMD -f ../../docker/nacos/docker-compose.yml up -d
 
 # 等待MySQL启动
 echo "等待MySQL启动..."
@@ -53,7 +53,7 @@ echo ""
 echo "======================================"
 echo "   服务状态"
 echo "======================================"
-$COMPOSE_CMD -f docker/nacos/docker-compose.yml ps
+$COMPOSE_CMD -f ../../docker/nacos/docker-compose.yml ps
 
 echo ""
 echo "======================================"
@@ -78,8 +78,8 @@ echo "======================================"
 echo "   检查Nacos启动日志"
 echo "======================================"
 echo "Nacos1 日志:"
-$COMPOSE_CMD -f docker/nacos/docker-compose.yml logs nacos1 --tail=20
+$COMPOSE_CMD -f ../../docker/nacos/docker-compose.yml logs nacos1 --tail=20
 
 echo ""
 echo "如果仍有问题，请检查具体错误日志："
-echo "$COMPOSE_CMD -f docker/nacos/docker-compose.yml logs nacos1"
+echo "$COMPOSE_CMD -f ../../docker/nacos/docker-compose.yml logs nacos1"
