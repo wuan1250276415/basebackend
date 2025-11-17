@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: basebackend-system-api
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            refresh: true
+          - data-id: database-config.yml
+            refresh: true
+          - data-id: cache-config.yml
+            refresh: true

@@ -1,4 +1,4 @@
-package com.basebackend.admin.service;
+package com.basebackend.user.service;
 
 import com.basebackend.admin.dto.profile.ChangePasswordDTO;
 import com.basebackend.admin.dto.profile.ProfileDetailDTO;

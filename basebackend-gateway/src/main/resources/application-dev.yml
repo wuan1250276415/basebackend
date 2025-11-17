@@ -1,0 +1,93 @@
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:dev}
+    gateway:
+      routes:
+        # 用户服务路由
+        - id: user-api
+          uri: lb://basebackend-user-api
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - StripPrefix=0
+
+        # 系统服务路由
+        - id: system-api
+          uri: lb://basebackend-system-api
+          predicates:
+            - Path=/api/system/**
+          filters:
+            - StripPrefix=0
+
+        # 认证服务路由
+        - id: auth-api
+          uri: lb://basebackend-auth-api
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+
+        # 管理服务路由（兼容旧API）
+        - id: admin-api
+          uri: lb://basebackend-admin-api
+          predicates:
+            - Path=/api/admin/**
+          filters:
+            - StripPrefix=0
+
+      # 全局CORS配置
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            exposedHeaders:
+              - Authorization
+            allowCredentials: true
+            maxAge: 3600
+
+      # 默认过滤器
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin, RETAIN_UNIQUE
+        - AddRequestHeader=X-Request-From, Gateway
+
+# 负载均衡配置
+loadbalancer:
+  ribbon:
+    enabled: false
+
+# 熔断器配置
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      user-api:
+        baseConfig: default
+      system-api:
+        baseConfig: default
+      auth-api:
+        baseConfig: default
+
+# 日志配置
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.basebackend.gateway: DEBUG

@@ -1,4 +1,4 @@
-package com.basebackend.admin.service;
+package com.basebackend.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.UserCreateDTO;

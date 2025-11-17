@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Knife4j API Documentation
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+  production: false

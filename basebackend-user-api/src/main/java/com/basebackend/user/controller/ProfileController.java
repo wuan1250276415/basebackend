@@ -1,4 +1,4 @@
-package com.basebackend.admin.controller;
+package com.basebackend.user.controller;
 
 import com.basebackend.admin.dto.profile.ChangePasswordDTO;
 import com.basebackend.admin.dto.profile.ProfileDetailDTO;

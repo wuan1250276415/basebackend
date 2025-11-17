@@ -1,4 +1,4 @@
-package com.basebackend.admin.service.impl;
+package com.basebackend.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;

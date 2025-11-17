@@ -33,6 +33,10 @@
         <module>basebackend-scheduler</module>
         <module>basebackend-code-generator</module>
         <module>basebackend-admin-api</module>
+        <!-- 新拆分的微服务模块 -->
+        <module>basebackend-user-api</module>
+        <module>basebackend-system-api</module>
+        <module>basebackend-auth-api</module>
     </modules>
 
     <properties>
