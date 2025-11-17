@@ -76,7 +76,7 @@
 
 ### 📅 变更记录
 功能更新和增强记录
-- [最新更新](../LATEST-UPDATES.md)
+- [最新更新](LATEST-UPDATES.md)
 - [字典树增强](changelog/DICT-TREE-ENHANCEMENT.md)
 - [菜单应用隔离更新](changelog/MENU-APP-ISOLATION-UPDATE.md)
 - [消息系统实现](changelog/MESSAGING-IMPLEMENTATION.md)

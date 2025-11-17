@@ -32,7 +32,6 @@
         <module>basebackend-gateway</module>
         <module>basebackend-scheduler</module>
         <module>basebackend-code-generator</module>
-        <module>basebackend-demo-api</module>
         <module>basebackend-admin-api</module>
     </modules>
 
