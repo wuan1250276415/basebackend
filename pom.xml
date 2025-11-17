@@ -58,7 +58,8 @@
         <redisson.version>3.24.3</redisson.version>
 
         <!-- Message -->
-        <rocketmq.version>2.3.0</rocketmq.version>
+        <rocketmq-spring.version>2.3.0</rocketmq-spring.version>
+        <rocketmq.version>5.2.0</rocketmq.version>
         <kafka.version>3.1.2</kafka.version>
 
         <!-- Seata -->
@@ -87,10 +88,52 @@
 
         <!-- Workflow -->
         <camunda.version>7.21.0</camunda.version>
+        <camunda-spin.version>1.23.0</camunda-spin.version>
 
         <!-- Feature Toggle -->
         <unleash.version>9.2.2</unleash.version>
         <flagsmith.version>7.2.0</flagsmith.version>
+
+        <!-- API Documentation -->
+        <knife4j.version>4.3.0</knife4j.version>
+        <springdoc-openapi.version>2.2.0</springdoc-openapi.version>
+
+        <!-- Logging -->
+        <logstash-logback.version>7.4</logstash-logback.version>
+        <loki-logback.version>1.5.1</loki-logback.version>
+
+        <!-- Storage -->
+        <minio.version>8.5.7</minio.version>
+        <thumbnailator.version>0.4.20</thumbnailator.version>
+
+        <!-- Observability -->
+        <context-propagation.version>1.0.5</context-propagation.version>
+        <micrometer-jvm-extras.version>0.2.2</micrometer-jvm-extras.version>
+        <oshi-core.version>6.4.6</oshi-core.version>
+
+        <!-- HTTP Client -->
+        <okhttp3.version>4.12.0</okhttp3.version>
+
+        <!-- Code Quality -->
+        <google-java-format.version>1.19.2</google-java-format.version>
+
+        <!-- Compression -->
+        <commons-compress.version>1.25.0</commons-compress.version>
+
+        <!-- Database Drivers -->
+        <postgresql.version>42.7.1</postgresql.version>
+        <ojdbc8.version>21.11.0.0</ojdbc8.version>
+
+        <!-- Template Engines -->
+        <freemarker.version>2.3.32</freemarker.version>
+        <velocity.version>2.3</velocity.version>
+        <thymeleaf.version>3.1.2.RELEASE</thymeleaf.version>
+
+        <!-- Code Generation -->
+        <openapi-generator.version>7.5.0</openapi-generator.version>
+
+        <!-- Sharding -->
+        <shardingsphere.version>5.4.1</shardingsphere.version>
     </properties>
 
     <dependencyManagement>
@@ -166,20 +209,20 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
-                <version>${rocketmq.version}</version>
+                <version>${rocketmq-spring.version}</version>
             </dependency>
 
-            <!-- RocketMQ Client (explicit version to avoid conflicts) -->
+            <!-- RocketMQ Client -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
-                <version>5.2.0</version>
+                <version>${rocketmq.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-acl</artifactId>
-                <version>5.2.0</version>
+                <version>${rocketmq.version}</version>
             </dependency>
 
             <!-- Seata -->
@@ -298,7 +341,124 @@
             <dependency>
                 <groupId>org.camunda.spin</groupId>
                 <artifactId>camunda-spin-dataformat-json-jackson</artifactId>
-                <version>1.23.0</version>
+                <version>${camunda-spin.version}</version>
+            </dependency>
+
+            <!-- API Documentation -->
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+                <version>${knife4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+
+            <!-- Logging -->
+            <dependency>
+                <groupId>net.logstash.logback</groupId>
+                <artifactId>logstash-logback-encoder</artifactId>
+                <version>${logstash-logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.loki4j</groupId>
+                <artifactId>loki-logback-appender</artifactId>
+                <version>${loki-logback.version}</version>
+            </dependency>
+
+            <!-- Storage -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.coobird</groupId>
+                <artifactId>thumbnailator</artifactId>
+                <version>${thumbnailator.version}</version>
+            </dependency>
+
+            <!-- Observability -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>context-propagation</artifactId>
+                <version>${context-propagation.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.mweirauch</groupId>
+                <artifactId>micrometer-jvm-extras</artifactId>
+                <version>${micrometer-jvm-extras.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>${oshi-core.version}</version>
+            </dependency>
+
+            <!-- HTTP Client -->
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp3.version}</version>
+            </dependency>
+
+            <!-- Code Quality -->
+            <dependency>
+                <groupId>com.google.googlejavaformat</groupId>
+                <artifactId>google-java-format</artifactId>
+                <version>${google-java-format.version}</version>
+            </dependency>
+
+            <!-- Compression -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
+            </dependency>
+
+            <!-- Database Drivers -->
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.oracle.database.jdbc</groupId>
+                <artifactId>ojdbc8</artifactId>
+                <version>${ojdbc8.version}</version>
+            </dependency>
+
+            <!-- Template Engines -->
+            <dependency>
+                <groupId>org.freemarker</groupId>
+                <artifactId>freemarker</artifactId>
+                <version>${freemarker.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.velocity</groupId>
+                <artifactId>velocity-engine-core</artifactId>
+                <version>${velocity.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.thymeleaf</groupId>
+                <artifactId>thymeleaf</artifactId>
+                <version>${thymeleaf.version}</version>
+            </dependency>
+
+            <!-- Code Generation -->
+            <dependency>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator.version}</version>
+            </dependency>
+
+            <!-- Sharding -->
+            <dependency>
+                <groupId>org.apache.shardingsphere</groupId>
+                <artifactId>shardingsphere-jdbc-core</artifactId>
+                <version>${shardingsphere.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
