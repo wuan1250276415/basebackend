@@ -38,6 +38,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Security Module - 提供SecretManager -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-observability</artifactId>
