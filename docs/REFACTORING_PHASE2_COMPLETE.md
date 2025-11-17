@@ -217,6 +217,15 @@ refactor(backup): 移除对scheduler模块的不合理依赖
 - 使用Spring原生@Scheduled注解
 ```
 
+### Commit 3: 修复 Spring Boot 自动配置
+```
+fix(security): 修复Spring Boot自动配置路径
+
+- 删除web模块的AutoConfiguration.imports文件
+- 在security模块创建AutoConfiguration.imports文件
+- 更新为新路径: com.basebackend.security.config.SecurityBaselineConfiguration
+```
+
 ## 优化效果
 
 ### 改进前
