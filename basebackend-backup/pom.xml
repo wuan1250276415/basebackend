@@ -32,13 +32,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Scheduler Module (for auto backup) -->
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-scheduler</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- Spring Boot Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
