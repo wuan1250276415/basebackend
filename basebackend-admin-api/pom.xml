@@ -83,74 +83,86 @@
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-transaction</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-jwt</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-database</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-cache</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-security</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-logging</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-observability</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-messaging</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-nacos</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-backup</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-file-service</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Feature Toggle -->
 <!--        <dependency>-->
 <!--            <groupId>com.basebackend</groupId>-->
 <!--            <artifactId>basebackend-feature-toggle</artifactId>-->
-<!--            <version>1.0.0-SNAPSHOT</version>-->
+<!--            <version>${project.version}</version>-->
 <!--        </dependency>-->
 
         <!-- MyBatis Plus -->

@@ -27,7 +27,7 @@ spring:
         file-extension: yml
         import-check:
           enabled: false
-        # 共享配置
+        # 共享配置（网关所需的基础配置）
         shared-configs:
           - data-id: common-config.yml
             group: DEFAULT_GROUP
@@ -35,10 +35,13 @@ spring:
           - data-id: redis-config.yml
             group: DEFAULT_GROUP
             refresh: true
-          - data-id: mysql-config.yml
+          - data-id: observability-config.yml
             group: DEFAULT_GROUP
             refresh: true
-        # 扩展配置
+          - data-id: security-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+        # 扩展配置（网关特有配置）
         extension-configs:
           - data-id: ${spring.application.name}-${spring.profiles.active}.yml
             group: ${NACOS_GROUP:DEFAULT_GROUP}

@@ -1,7 +1,7 @@
 package com.basebackend.gateway.config;
 
-import com.basebackend.common.security.SecurityBaselineProperties;
 import com.basebackend.common.security.SecretManager;
+import com.basebackend.common.security.SecretManagerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
  * 为Gateway提供必要的安全组件，但不使用Servlet相关的Filter
  */
 @Configuration
-@EnableConfigurationProperties(SecurityBaselineProperties.class)
+@EnableConfigurationProperties(SecretManagerProperties.class)
 public class GatewaySecurityConfig {
 
     /**
@@ -21,7 +21,7 @@ public class GatewaySecurityConfig {
      */
     @Bean
     public SecretManager secretManager(ConfigurableEnvironment environment,
-                                      SecurityBaselineProperties properties) {
+                                      SecretManagerProperties properties) {
         return new SecretManager(environment, properties);
     }
 }

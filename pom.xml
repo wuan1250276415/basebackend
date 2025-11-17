@@ -15,6 +15,8 @@
 
     <modules>
         <module>basebackend-common</module>
+        <module>basebackend-web</module>
+        <module>basebackend-transaction</module>
         <module>basebackend-jwt</module>
         <module>basebackend-database</module>
         <module>basebackend-cache</module>

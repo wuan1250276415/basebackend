@@ -1,15 +1,14 @@
-package com.basebackend.common.security;
+package com.basebackend.web.config;
 
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 安全基线配置项
+ * Web 安全基线配置项
  */
 @Getter
 @Setter
@@ -25,9 +24,4 @@ public class SecurityBaselineProperties {
      * 是否强制校验 Referer，当 Origin 缺失时生效
      */
     private boolean enforceReferer = true;
-
-    /**
-     * 密钥缓存有效期
-     */
-    private Duration secretCacheTtl = Duration.ofMinutes(15);
 }

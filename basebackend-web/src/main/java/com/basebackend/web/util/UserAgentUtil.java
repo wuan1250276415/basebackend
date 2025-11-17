@@ -1,4 +1,4 @@
-package com.basebackend.common.util;
+package com.basebackend.web.util;
 
 import cn.hutool.core.util.StrUtil;
 import jakarta.servlet.http.HttpServletRequest;

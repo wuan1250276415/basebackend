@@ -1,8 +1,8 @@
 package com.basebackend.admin.config;
 
 import com.basebackend.admin.filter.JwtAuthenticationFilter;
-import com.basebackend.common.security.CsrfCookieFilter;
-import com.basebackend.common.security.OriginValidationFilter;
+import com.basebackend.web.filter.CsrfCookieFilter;
+import com.basebackend.web.filter.OriginValidationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +19,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
  * 后台管理API安全配置
@@ -53,14 +54,15 @@ public class AdminSecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
-                                "/api/admin/auth/**",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/favicon.ico"
+                                new AntPathRequestMatcher("/api/admin/auth/**"),
+                                new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/actuator/**"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/doc.html"),
+                                new AntPathRequestMatcher("/webjars/**"),
+                                new AntPathRequestMatcher("/favicon.ico"),
+                                new AntPathRequestMatcher("/camunda/api/admin/**")
                         )
                 )
                 // 禁用表单登录
@@ -83,15 +85,16 @@ public class AdminSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
                         .requestMatchers(
-                                "/api/admin/auth/**",
-                                "/api/admin/users",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/favicon.ico"
+                                new AntPathRequestMatcher("/api/admin/auth/**"),
+                                new AntPathRequestMatcher("/api/admin/users"),
+                                new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/actuator/**"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/doc.html"),
+                                new AntPathRequestMatcher("/webjars/**"),
+                                new AntPathRequestMatcher("/favicon.ico"),
+                                new AntPathRequestMatcher("/camunda/api/admin/**")
                         ).permitAll()
                         // 其他所有请求需要认证
                         .anyRequest().authenticated()

@@ -24,18 +24,30 @@ spring:
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
         file-extension: yml
-        # 共享配置
+        # 共享配置（所有微服务共享的基础配置）
         shared-configs:
           - data-id: common-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
-          - data-id: redis-config.yml
             group: DEFAULT_GROUP
             refresh: true
           - data-id: mysql-config.yml
             group: DEFAULT_GROUP
             refresh: true
-        # 扩展配置
+          - data-id: redis-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: rocketmq-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: observability-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: security-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: seata-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+        # 扩展配置（模块特有配置）
         extension-configs:
           - data-id: ${spring.application.name}-${spring.profiles.active}.yml
             group: ${NACOS_GROUP:DEFAULT_GROUP}

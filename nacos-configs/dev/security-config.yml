@@ -1,0 +1,53 @@
+# ================================================================================================
+# 安全配置 (Security Config)
+# ================================================================================================
+#
+# 包含内容：
+# - JWT 配置
+# - 管理后台密码策略和登录安全
+# - Web 安全基线配置
+# - 密钥管理器配置
+#
+# ================================================================================================
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required}
+  expiration: 86400000  # 24小时（毫秒）
+  refresh-expiration: 604800000  # 7天（毫秒）
+
+# 管理后台配置
+admin:
+  # 密码策略
+  password:
+    min-length: 6
+    max-length: 20
+    require-uppercase: false
+    require-lowercase: false
+    require-number: false
+    require-special-char: false
+
+  # 登录安全
+  login:
+    max-attempts: 5
+    lock-duration: 300  # 5分钟
+    captcha-enabled: false
+
+  # 数据权限
+  data-scope:
+    all: 1      # 全部数据权限
+    dept: 2     # 本部门数据权限
+    dept-and-child: 3  # 本部门及以下数据权限
+    self: 4     # 仅本人数据权限
+
+# Web 安全基线配置
+security:
+  baseline:
+    allowed-origins:
+      - http://localhost:3000
+      - https://localhost:3000
+    enforce-referer: true
+
+  # 密钥管理器配置
+  secret-manager:
+    cache-ttl: PT15M  # 15分钟

@@ -27,7 +27,7 @@ public class NacosConfigProperties {
         /**
          * Nacos 服务地址
          */
-        private String serverAddr = "141.98.196.113:8848";
+        private String serverAddr = "192.168.66.126:8848";
 
         /**
          * 命名空间
@@ -63,7 +63,7 @@ public class NacosConfigProperties {
         /**
          * Nacos 服务地址
          */
-        private String serverAddr = "141.98.196.113:8848";
+        private String serverAddr = "192.168.66.126:8848";
 
         /**
          * 命名空间

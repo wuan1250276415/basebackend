@@ -111,11 +111,6 @@
             <artifactId>basebackend-nacos</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- RabbitMQ -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
 
         <!-- Jackson (JSON处理) -->
         <dependency>

@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 public class SecretManager {
 
     private final ConfigurableEnvironment environment;
-    private final SecurityBaselineProperties properties;
+    private final SecretManagerProperties properties;
     private final Map<String, SecretHolder> cache = new ConcurrentHashMap<>();
 
     public Optional<String> getSecret(String key) {
@@ -48,7 +48,7 @@ public class SecretManager {
             return Optional.empty();
         }
 
-        cache.put(key, new SecretHolder(value, Instant.now().plus(properties.getSecretCacheTtl())));
+        cache.put(key, new SecretHolder(value, Instant.now().plus(properties.getCacheTtl())));
         return Optional.of(value);
     }
 

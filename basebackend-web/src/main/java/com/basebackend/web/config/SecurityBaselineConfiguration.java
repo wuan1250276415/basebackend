@@ -1,5 +1,7 @@
-package com.basebackend.common.security;
+package com.basebackend.web.config;
 
+import com.basebackend.web.filter.CsrfCookieFilter;
+import com.basebackend.web.filter.OriginValidationFilter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

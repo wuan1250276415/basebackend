@@ -25,6 +25,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Web Module -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- JWT Module -->
         <dependency>
             <groupId>com.basebackend</groupId>

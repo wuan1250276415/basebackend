@@ -1,4 +1,4 @@
-package com.basebackend.common.config;
+package com.basebackend.transaction.config;
 
 import feign.RequestInterceptor;
 import io.seata.core.context.RootContext;
