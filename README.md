@@ -2,6 +2,22 @@
 
 一个基于 Java 和 Spring Boot 的企业级微服务基础架构项目，采用 Maven 多模块管理，提供了完整的基础组件和服务模块。
 
+## 🚀 快速开始
+
+**5 分钟启动开发环境**: 查看 [快速开始指南](QUICKSTART.md)
+
+```bash
+# 1. 启动基础设施
+cd docker/compose && ./start-all.sh
+
+# 2. 导入配置
+cd ../../config/nacos-configs && ./import-nacos-configs.sh
+
+# 3. 启动应用
+mvn clean install -DskipTests
+cd basebackend-gateway && mvn spring-boot:run
+```
+
 ## 项目概述
 
 本项目是一个开箱即用的微服务架构后台系统，集成了常用的企业级功能模块，包括数据库操作、缓存、安全认证、日志、消息队列、文件服务和 API 网关等。
