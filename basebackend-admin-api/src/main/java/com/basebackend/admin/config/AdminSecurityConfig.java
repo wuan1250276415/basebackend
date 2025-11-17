@@ -1,8 +1,8 @@
 package com.basebackend.admin.config;
 
 import com.basebackend.admin.filter.JwtAuthenticationFilter;
-import com.basebackend.web.filter.CsrfCookieFilter;
-import com.basebackend.web.filter.OriginValidationFilter;
+import com.basebackend.security.filter.CsrfCookieFilter;
+import com.basebackend.security.filter.OriginValidationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

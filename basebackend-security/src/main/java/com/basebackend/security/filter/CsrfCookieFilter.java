@@ -1,4 +1,4 @@
-package com.basebackend.web.filter;
+package com.basebackend.security.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

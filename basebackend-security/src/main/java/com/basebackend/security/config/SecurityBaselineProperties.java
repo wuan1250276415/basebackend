@@ -1,4 +1,4 @@
-package com.basebackend.web.config;
+package com.basebackend.security.config;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,6 +1,6 @@
-package com.basebackend.web.filter;
+package com.basebackend.security.filter;
 
-import com.basebackend.web.config.SecurityBaselineProperties;
+import com.basebackend.security.config.SecurityBaselineProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
