@@ -1,0 +1,517 @@
+# BaseBackend微服务GitLab CI/CD配置
+# 支持多服务并行构建、自动测试、安全扫描、自动部署
+
+# 全局变量
+variables:
+  DOCKER_REGISTRY: "harbor.basebackend.com"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  SONAR_HOST_URL: "https://sonar.basebackend.com"
+  SONAR_TOKEN: "$SONAR_TOKEN"
+  KUBECONFIG: "$KUBECONFIG_SECRET"
+  HELM_VERSION: "3.13.0"
+  MAVEN_VERSION: "3.9.0"
+  NODE_VERSION: "18"
+
+# 默认缓存
+cache:
+  paths:
+    - .m2/repository/
+    - node_modules/
+    - .sonar_cache/
+
+# 阶段定义
+stages:
+  - prepare
+  - build
+  - test
+  - security
+  - package
+  - deploy
+  - notification
+
+# 基础服务
+services:
+  - docker:24.0-dind
+
+# 预定义任务模板
+.base_template: &base_template
+  before_script:
+    - echo "Starting job for $CI_PROJECT_NAME"
+    - echo "Branch: $CI_COMMIT_REF_NAME"
+    - echo "Commit: $CI_COMMIT_SHA"
+    - docker info
+  after_script:
+    - echo "Job completed"
+
+# 服务构建模板
+.service_build_template: &service_build_template
+  <<: *base_template
+  image: maven:3.9-openjdk-17
+  stage: build
+  script:
+    - echo "Building service $SERVICE_NAME"
+    - cd $SERVICE_NAME
+    - mvn clean compile
+    - mvn test -Dskip.integration.tests=true
+    - mvn package -DskipTests
+  artifacts:
+    reports:
+      junit: $SERVICE_NAME/target/surefire-reports/TEST-*.xml
+    expire_in: 1 week
+    when: always
+    paths:
+      - $SERVICE_NAME/target/*.jar
+      - $SERVICE_NAME/target/surefire-reports/
+  coverage: '/Code coverage: \d+\.\d+/'
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $DEPLOY_SERVICE == "true"
+
+# Docker镜像构建模板
+.docker_build_template: &docker_build_template
+  <<: *base_template
+  image: docker:24.0
+  stage: package
+  dependencies: []
+  before_script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $DOCKER_REGISTRY
+  script:
+    - echo "Building Docker image for $SERVICE_NAME"
+    - docker build -t $DOCKER_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHA $SERVICE_NAME
+    - docker build -t $DOCKER_REGISTRY/$SERVICE_NAME:latest $SERVICE_NAME
+    - docker push $DOCKER_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHA
+    - docker push $DOCKER_REGISTRY/$SERVICE_NAME:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+  after_script:
+    - docker logout $DOCKER_REGISTRY
+
+# 静态代码分析
+sonar:quality:
+  <<: *base_template
+  image: sonarsource/sonar-scanner-cli:latest
+  stage: test
+  dependencies: []
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  script:
+    - sonar-scanner -Dproject.settings=sonar-project.properties
+  artifacts:
+    reports:
+      junit: sonar-report.xml
+    paths:
+      - .scannerwork/
+      - sonar-report.xml
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+# 安全扫描
+security:dependency-check:
+  <<: *base_template
+  image: owasp/dependency-check:latest
+  stage: security
+  dependencies: []
+  before_script:
+    - mkdir -p /tmp/reports
+  script:
+    - dependency-check.sh --project "BaseBackend" --scan . --format "ALL" --out "/tmp/reports"
+  artifacts:
+    paths:
+      - /tmp/reports/
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+security:container-scan:
+  <<: *base_template
+  image: aquasec/trivy:latest
+  stage: security
+  dependencies:
+    - package:admin-api
+    - package:auth-service
+    - package:user-service
+    - package:gateway
+  before_script:
+    - mkdir -p /tmp/scans
+  script:
+    - echo "Scanning container images..."
+    - trivy image --format json --output /tmp/scans/admin-api.json $DOCKER_REGISTRY/admin-api:$CI_COMMIT_SHA || true
+    - trivy image --format json --output /tmp/scans/auth-service.json $DOCKER_REGISTRY/auth-service:$CI_COMMIT_SHA || true
+    - trivy image --format json --output /tmp/scans/user-service.json $DOCKER_REGISTRY/user-service:$CI_COMMIT_SHA || true
+    - trivy image --format json --output /tmp/scans/gateway.json $DOCKER_REGISTRY/gateway:$CI_COMMIT_SHA || true
+  artifacts:
+    paths:
+      - /tmp/scans/
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+security:sast-scan:
+  <<: *base_template
+  image: returntocorp/semgrep:latest
+  stage: security
+  dependencies: []
+  script:
+    - semgrep --config=auto --json --output=semgrep-results.json .
+  artifacts:
+    paths:
+      - semgrep-results.json
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+
+# 集成测试
+integration-tests:api:
+  <<: *base_template
+  image: maven:3.9-openjdk-17
+  stage: test
+  services:
+    - name: mysql:8.0
+      alias: mysql
+    - name: redis:7.0
+      alias: redis
+  variables:
+    MYSQL_ROOT_PASSWORD: rootpassword
+    MYSQL_DATABASE: basebackend_test
+    REDIS_PASSWORD: redispassword
+  before_script:
+    - echo "Waiting for services..."
+    - sleep 30
+  script:
+    - echo "Running integration tests..."
+    - cd basebackend-admin-api
+    - mvn verify -Pintegration-test -Dskip.unit.tests=true
+  artifacts:
+    reports:
+      junit: basebackend-admin-api/target/failsafe-reports/TEST-*.xml
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+integration-tests:e2e:
+  <<: *base_template
+  image: cypress/included:13.6.0
+  stage: test
+  dependencies:
+    - deploy:dev:admin-api
+  services:
+    - name: mongo:7.0
+      alias: mongodb
+  before_script:
+    - npx cypress verify
+  script:
+    - echo "Running E2E tests..."
+    - npx cypress run --spec "cypress/e2e/**/*.cy.js"
+  artifacts:
+    when: always
+    paths:
+      - cypress/screenshots/
+      - cypress/videos/
+    reports:
+      junit: cypress/results/junit.xml
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# 负载测试
+load-tests:
+  <<: *base_template
+  image: loadimpact/k6:latest
+  stage: test
+  dependencies:
+    - deploy:dev:admin-api
+  before_script:
+    - echo "Waiting for services to be ready..."
+    - sleep 60
+  script:
+    - echo "Running load tests..."
+    - k6 run --out json=load-test-results.json tests/load/test-scenarios.js
+  artifacts:
+    paths:
+      - load-test-results.json
+      - load-test-summary.json
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Helm包打包
+helm:package:
+  <<: *base_template
+  image: alpine/helm:latest
+  stage: package
+  dependencies: []
+  before_script:
+    - helm version
+  script:
+    - echo "Creating Helm packages..."
+    - mkdir -p helm-packages
+    - helm package deployment/kubernetes/helm/basebackend-admin-api --destination helm-packages
+    - helm package deployment/kubernetes/helm/basebackend-auth-service --destination helm-packages || true
+    - helm package deployment/kubernetes/helm/basebackend-user-service --destination helm-packages || true
+    - helm package deployment/kubernetes/helm/basebackend-gateway --destination helm-packages || true
+  artifacts:
+    paths:
+      - helm-packages/
+    expire_in: 1 month
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# 部署到开发环境
+deploy:dev:admin-api:
+  <<: *base_template
+  image: bitnami/kubectl:latest
+  stage: deploy
+  dependencies:
+    - package:admin-api
+  before_script:
+    - echo "Configuring kubectl..."
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+    - kubectl config use-context dev-cluster
+    - kubectl version --client
+  script:
+    - echo "Deploying to development environment..."
+    - helm upgrade --install basebackend-admin-api deployment/kubernetes/helm/basebackend-admin-api \
+        --namespace basebackend-dev \
+        --create-namespace \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=dev \
+        --wait --timeout=600s
+  environment:
+    name: development
+    url: https://api-dev.basebackend.com/admin
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+deploy:dev:auth-service:
+  <<: *base_template
+  image: bitnami/kubectl:latest
+  stage: deploy
+  dependencies:
+    - package:auth-service
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+    - kubectl config use-context dev-cluster
+  script:
+    - helm upgrade --install basebackend-auth-service deployment/kubernetes/helm/basebackend-auth-service \
+        --namespace basebackend-dev \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=dev \
+        --wait --timeout=600s
+  environment:
+    name: development
+    url: https://api-dev.basebackend.com/auth
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+deploy:dev:user-service:
+  <<: *base_template
+  image: bitnami/kubectl:latest
+  stage: deploy
+  dependencies:
+    - package:user-service
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+    - kubectl config use-context dev-cluster
+  script:
+    - helm upgrade --install basebackend-user-service deployment/kubernetes/helm/basebackend-user-service \
+        --namespace basebackend-dev \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=dev \
+        --wait --timeout=600s
+  environment:
+    name: development
+    url: https://api-dev.basebackend.com/user
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+deploy:dev:gateway:
+  <<: *base_template
+  image: bitnami/kubectl:latest
+  stage: deploy
+  dependencies:
+    - package:gateway
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+    - kubectl config use-context dev-cluster
+  script:
+    - helm upgrade --install basebackend-gateway deployment/kubernetes/helm/basebackend-gateway \
+        --namespace basebackend-dev \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=dev \
+        --wait --timeout=600s
+  environment:
+    name: development
+    url: https://api-dev.basebackend.com/gateway
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# 部署到生产环境（需要手动确认）
+deploy:prod:admin-api:
+  <<: *base_template
+  image: bitnami/kubectl:latest
+  stage: deploy
+  dependencies:
+    - package:admin-api
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_PROD" | base64 -d > ~/.kube/config
+    - kubectl config use-context prod-cluster
+  script:
+    - echo "Deploying to production environment..."
+    - helm upgrade --install basebackend-admin-api deployment/kubernetes/helm/basebackend-admin-api \
+        --namespace basebackend-prod \
+        --set image.tag=$CI_COMMIT_SHA \
+        --set environment=prod \
+        --wait --timeout=900s
+  environment:
+    name: production
+    url: https://api.basebackend.com/admin
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+# 烟雾测试
+smoke-tests:dev:
+  <<: *base_template
+  image: curlimages/curl:latest
+  stage: test
+  dependencies:
+    - deploy:dev:admin-api
+    - deploy:dev:auth-service
+    - deploy:dev:user-service
+    - deploy:dev:gateway
+  before_script:
+    - echo "Waiting for services to be ready..."
+    - sleep 60
+  script:
+    - echo "Running smoke tests..."
+    - curl -f https://api-dev.basebackend.com/admin/actuator/health || exit 1
+    - curl -f https://api-dev.basebackend.com/auth/actuator/health || exit 1
+    - curl -f https://api-dev.basebackend.com/user/actuator/health || exit 1
+    - curl -f https://api-dev.basebackend.com/gateway/actuator/health || exit 1
+    - echo "All smoke tests passed!"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+smoke-tests:prod:
+  <<: *base_template
+  image: curlimages/curl:latest
+  stage: test
+  dependencies:
+    - deploy:prod:admin-api
+  script:
+    - echo "Running production smoke tests..."
+    - sleep 30
+    - curl -f https://api.basebackend.com/admin/actuator/health || exit 1
+    - echo "Production smoke tests passed!"
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# 通知
+notification:slack:
+  <<: *base_template
+  image: alpine/curl:latest
+  stage: notification
+  dependencies: []
+  script:
+    - |
+      if [ "$CI_JOB_STATUS" = "success" ]; then
+        MESSAGE="✅ Build #${CI_PIPELINE_ID} completed successfully"
+      else
+        MESSAGE="❌ Build #${CI_PIPELINE_ID} failed"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\\"text\\":\\"${MESSAGE}\\",\\"channel\\":\\"#devops\\"}" \
+        "$SLACK_WEBHOOK"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - when: always
+
+# 生成构建报告
+build-report:
+  <<: *base_template
+  image: alpine:latest
+  stage: notification
+  dependencies:
+    - sonar:quality
+    - security:dependency-check
+    - security:container-scan
+    - build:admin-api
+  script:
+    - echo "Generating build report..."
+    - mkdir -p reports
+    - echo "# Build Report" > reports/build-report.md
+    - echo "## Pipeline: ${CI_PIPELINE_ID}" >> reports/build-report.md
+    - echo "## Commit: ${CI_COMMIT_SHA}" >> reports/build-report.md
+    - echo "## Branch: ${CI_COMMIT_REF_NAME}" >> reports/build-report.md
+    - echo "## Status: ${CI_JOB_STATUS}" >> reports/build-report.md
+  artifacts:
+    paths:
+      - reports/
+    expire_in: 1 month
+    when: always
+
+# 定义所有服务的构建任务
+build:admin-api:
+  <<: *service_build_template
+  service: admin-api
+  variables:
+    SERVICE_NAME: basebackend-admin-api
+
+build:auth-service:
+  <<: *service_build_template
+  service: auth-service
+  variables:
+    SERVICE_NAME: basebackend-auth-service
+
+build:user-service:
+  <<: *service_build_template
+  service: user-service
+  variables:
+    SERVICE_NAME: basebackend-user-service
+
+build:gateway:
+  <<: *service_build_template
+  service: gateway
+  variables:
+    SERVICE_NAME: basebackend-gateway
+
+# 定义Docker镜像构建任务
+package:admin-api:
+  <<: *docker_build_template
+  service: admin-api
+  variables:
+    SERVICE_NAME: basebackend-admin-api
+
+package:auth-service:
+  <<: *docker_build_template
+  service: auth-service
+  variables:
+    SERVICE_NAME: basebackend-auth-service
+
+package:user-service:
+  <<: *docker_build_template
+  service: user-service
+  variables:
+    SERVICE_NAME: basebackend-user-service
+
+package:gateway:
+  <<: *docker_build_template
+  service: gateway
+  variables:
+    SERVICE_NAME: basebackend-gateway

@@ -1,0 +1,111 @@
+# Chaos Mesh I/O故障实验
+# 模拟文件系统错误、磁盘满等
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: io-delay-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: I/O延迟
+  action: delay
+
+  # 延迟时间: 1000ms
+  delay: "1000ms"
+
+  # 选择模式: 随机
+  mode: random
+  value: "20%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 容器名称
+  containerName: admin-api
+
+  # 故障持续时间
+  duration: "300s"
+
+  # 每天执行一次
+  scheduler:
+    cron: "0 2 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: io-fault-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: I/O错误
+  action: fault
+
+  # 错误类型: errno
+  errno:
+    code: 5  # EIO - I/O error
+
+  # 选择模式: 随机
+  mode: random
+  value: "10%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 容器名称
+  containerName: admin-api
+
+  # 故障持续时间
+  duration: "180s"
+
+  # 每周执行一次
+  scheduler:
+    cron: "0 0 * * 0"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: io-mixed-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 混合I/O故障
+  action: mixed
+
+  # 延迟参数
+  delay: "500ms"
+
+  # 错误参数
+  errno:
+    code: 28  # ENOSPC - No space left on device
+
+  # 丢包率: 5%
+  loss:
+    loss: "5%"
+
+  # 选择模式: 全部
+  mode: all
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-gateway
+
+  # 容器名称
+  containerName: gateway
+
+  # 故障持续时间
+  duration: "240s"
+
+  # 每月执行一次
+  scheduler:
+    cron: "0 0 1 * *"

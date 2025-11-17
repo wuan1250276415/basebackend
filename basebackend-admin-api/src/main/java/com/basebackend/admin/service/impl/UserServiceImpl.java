@@ -2,6 +2,7 @@ package com.basebackend.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.UserCreateDTO;
@@ -14,6 +15,8 @@ import com.basebackend.admin.mapper.SysDeptMapper;
 import com.basebackend.admin.mapper.SysRoleMapper;
 import com.basebackend.admin.mapper.SysUserMapper;
 import com.basebackend.admin.mapper.SysUserRoleMapper;
+import com.basebackend.admin.sentinel.SentinelBlockHandler;
+import com.basebackend.admin.sentinel.SentinelFallbackHandler;
 import com.basebackend.admin.service.UserService;
 import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +97,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @SentinelResource(
+            value = "user-getById",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleUserQueryBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleUserQueryFallback"
+    )
     public UserDTO getById(Long id) {
         log.info("根据ID查询用户: {}", id);
         SysUser user = userMapper.selectById(id);
@@ -115,6 +125,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @SentinelResource(
+            value = "user-create",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleFallback"
+    )
     public void create(UserCreateDTO userCreateDTO) {
         log.info("创建用户: {}", userCreateDTO.getUsername());
 
@@ -407,6 +424,102 @@ public class UserServiceImpl implements UserService {
         return users.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUserProfile(Long userId, UserDTO userDTO) {
+        log.info("更新用户个人资料: userId={}", userId);
+        customMetrics.recordBusinessOperation("user", "update_profile");
+
+        // 查询用户是否存在
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        // 验证邮箱唯一性
+        if (StrUtil.isNotBlank(userDTO.getEmail()) && !userDTO.getEmail().equals(user.getEmail())) {
+            if (!checkEmailUnique(userDTO.getEmail(), userId)) {
+                throw new RuntimeException("邮箱已被使用");
+            }
+        }
+
+        // 验证手机号唯一性
+        if (StrUtil.isNotBlank(userDTO.getPhone()) && !userDTO.getPhone().equals(user.getPhone())) {
+            if (!checkPhoneUnique(userDTO.getPhone(), userId)) {
+                throw new RuntimeException("手机号已被使用");
+            }
+        }
+
+        // 更新用户信息（只更新个人资料字段）
+        SysUser updateUser = new SysUser();
+        updateUser.setId(userId);
+
+        // 只更新允许的字段
+        if (StrUtil.isNotBlank(userDTO.getNickname())) {
+            updateUser.setNickname(userDTO.getNickname());
+        }
+        if (StrUtil.isNotBlank(userDTO.getEmail())) {
+            updateUser.setEmail(userDTO.getEmail());
+        }
+        if (StrUtil.isNotBlank(userDTO.getPhone())) {
+            updateUser.setPhone(userDTO.getPhone());
+        }
+        if (StrUtil.isNotBlank(userDTO.getAvatar())) {
+            updateUser.setAvatar(userDTO.getAvatar());
+        }
+        if (userDTO.getGender() != null) {
+            updateUser.setGender(userDTO.getGender());
+        }
+        if (userDTO.getBirthday() != null) {
+            updateUser.setBirthday(userDTO.getBirthday());
+        }
+
+        updateUser.setUpdateTime(LocalDateTime.now());
+
+        int result = userMapper.updateById(updateUser);
+        if (result <= 0) {
+            throw new RuntimeException("更新个人资料失败");
+        }
+
+        log.info("用户个人资料更新成功: userId={}", userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeUserPassword(Long userId, String oldPassword, String newPassword) {
+        log.info("修改用户密码: userId={}", userId);
+        customMetrics.recordBusinessOperation("user", "change_password");
+
+        // 查询用户是否存在
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        // 验证旧密码是否正确
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("当前密码不正确");
+        }
+
+        // 验证新密码不能与旧密码相同
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new RuntimeException("新密码不能与旧密码相同");
+        }
+
+        // 更新密码
+        SysUser updateUser = new SysUser();
+        updateUser.setId(userId);
+        updateUser.setPassword(passwordEncoder.encode(newPassword));
+        updateUser.setUpdateTime(LocalDateTime.now());
+
+        int result = userMapper.updateById(updateUser);
+        if (result <= 0) {
+            throw new RuntimeException("修改密码失败");
+        }
+
+        log.info("用户密码修改成功: userId={}", userId);
     }
 
     /**

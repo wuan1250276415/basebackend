@@ -107,4 +107,16 @@ public interface UserService {
      * 根据部门ID查询用户列表
      */
     List<UserDTO> getByDeptId(Long deptId);
+
+    /**
+     * 更新用户个人资料（供 profile-service 调用）
+     * 包括：昵称、邮箱、手机号、头像、性别、生日等
+     */
+    void updateUserProfile(Long userId, UserDTO userDTO);
+
+    /**
+     * 修改用户密码（供 profile-service 调用）
+     * 需要验证旧密码的正确性
+     */
+    void changeUserPassword(Long userId, String oldPassword, String newPassword);
 }

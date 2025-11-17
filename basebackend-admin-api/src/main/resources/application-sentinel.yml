@@ -1,0 +1,88 @@
+# Sentinel 流控熔断配置
+spring:
+  cloud:
+    sentinel:
+      # 启用 Sentinel
+      enabled: false
+
+      # 心跳发送周期（毫秒）
+      eager: true
+
+      # Sentinel Dashboard 配置
+      transport:
+        # Dashboard 地址
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+        # 通信端口
+        port: 8719
+        # 心跳发送周期（默认 null，会在第一次调用时才和 Dashboard 通信）
+        # heartbeat-interval-ms: 10000
+
+      # Nacos 数据源配置（规则持久化）
+      datasource:
+        # 流控规则
+        flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: flow
+            username: ${spring.cloud.nacos.discovery.username}
+            password: ${spring.cloud.nacos.discovery.password}
+
+        # 降级规则
+        degrade:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-degrade-rules
+            groupId: SENTINEL_GROUP
+            rule-type: degrade
+            username: ${spring.cloud.nacos.discovery.username}
+            password: ${spring.cloud.nacos.discovery.password}
+
+        # 热点参数限流规则
+        param-flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-param-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: param-flow
+            username: ${spring.cloud.nacos.discovery.username}
+            password: ${spring.cloud.nacos.discovery.password}
+
+        # 系统保护规则
+        system:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-system-rules
+            groupId: SENTINEL_GROUP
+            rule-type: system
+            username: ${spring.cloud.nacos.discovery.username}
+            password: ${spring.cloud.nacos.discovery.password}
+
+        # 授权规则
+        authority:
+          nacos:
+            server-addr: ${spring.cloud.nacos.discovery.server-addr}
+            dataId: ${spring.application.name}-authority-rules
+            groupId: SENTINEL_GROUP
+            rule-type: authority
+            username: ${spring.cloud.nacos.discovery.username}
+            password: ${spring.cloud.nacos.discovery.password}
+
+      # 过滤器配置（Web Servlet）
+      web-context-unify: true  # 统一 context 名称
+
+      # HTTP 方法限流
+      http-method-specify: true  # 区分 HTTP 方法
+
+      # 日志配置
+      log:
+        # 日志目录
+        dir: ${user.home}/logs/csp/
+        # 是否切换日志文件
+        switch-pid: false
+
+# Feign Sentinel 支持
+feign:
+  sentinel:
+    enabled: true  # 开启 Feign 对 Sentinel 的支持

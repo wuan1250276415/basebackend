@@ -1,6 +1,7 @@
 package com.basebackend.admin.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.basebackend.admin.dto.LoginLogDTO;
 import com.basebackend.admin.dto.LoginRequest;
 import com.basebackend.admin.dto.LoginResponse;
@@ -8,6 +9,8 @@ import com.basebackend.admin.dto.PasswordChangeDTO;
 import com.basebackend.admin.entity.SysUser;
 import com.basebackend.admin.mapper.SysDeptMapper;
 import com.basebackend.admin.mapper.SysUserMapper;
+import com.basebackend.admin.sentinel.SentinelBlockHandler;
+import com.basebackend.admin.sentinel.SentinelFallbackHandler;
 import com.basebackend.admin.service.AuthService;
 import com.basebackend.admin.service.LogService;
 import com.basebackend.cache.service.RedisService;
@@ -48,6 +51,13 @@ public class AuthServiceImpl implements AuthService {
     private static final String ONLINE_USER_KEY = "online_users:";
 
     @Override
+    @SentinelResource(
+            value = "user-login",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleLoginBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleLoginFallback"
+    )
     public LoginResponse login(LoginRequest loginRequest) {
         log.info("用户登录: {}", loginRequest.getUsername());
 
@@ -178,6 +188,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @SentinelResource(
+            value = "refresh-token",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleFallback"
+    )
     public LoginResponse refreshToken(String refreshToken) {
         if (StrUtil.isBlank(refreshToken)) {
             throw new RuntimeException("刷新Token不能为空");
@@ -252,6 +269,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @SentinelResource(
+            value = "change-password",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleFallback"
+    )
     public void changePassword(PasswordChangeDTO passwordChangeDTO) {
         // 验证新密码和确认密码是否一致
         if (!passwordChangeDTO.getNewPassword().equals(passwordChangeDTO.getConfirmPassword())) {

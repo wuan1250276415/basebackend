@@ -1,0 +1,316 @@
+# Prometheus告警规则配置
+# 定义各种告警规则和阈值
+
+groups:
+  # 基础架构告警
+  - name: infrastructure_alerts
+    rules:
+      # Kubernetes集群告警
+      - alert: KubernetesClusterDown
+        expr: up{job="kubernetes-apiservers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Kubernetes API Server is down"
+          description: "Kubernetes API Server has been down for more than 1 minute."
+          runbook_url: "https://runbooks.basebackend.com/kubernetes/kube-apiserver-down"
+
+      - alert: NodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Node {{ $labels.node }} is not ready"
+          description: "Node {{ $labels.node }} has been not ready for more than 5 minutes."
+
+      - alert: PodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+          description: "Pod {{ $labels.pod }} has been restart {{ $value }} times in the last 15 minutes."
+
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{condition="false"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Pod {{ $labels.pod }} is not ready"
+          description: "Pod {{ $labels.pod }} has been in a non-ready state for longer than 5 minutes."
+
+      # 资源使用告警
+      - alert: HighCpuUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 80% for more than 5 minutes."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 80% on {{ $labels.instance }}."
+
+  # 应用告警
+  - name: application_alerts
+    rules:
+      # HTTP请求告警
+      - alert: HighHttpErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate for {{ $labels.service }}"
+          description: "Error rate is {{ $value }} errors per second"
+          runbook_url: "https://runbooks.basebackend.com/application/high-error-rate"
+
+      - alert: HighHttpLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High latency for {{ $labels.service }}"
+          description: "95th percentile latency is {{ $value }} seconds"
+
+      - alert: HighHttpLatencyP99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Critical latency for {{ $labels.service }}"
+          description: "99th percentile latency is {{ $value }} seconds"
+
+      # 数据库告警
+      - alert: DatabaseConnectionsHigh
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High database connections usage"
+          description: "Database connections usage is {{ $value }}%"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High number of slow queries"
+          description: "Slow query rate is {{ $value }} per second"
+
+      - alert: DatabaseReplicationLag
+        expr: mysql_slave_status_seconds_behind_master > 300
+        for: 5m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "MySQL replication lag"
+          description: "MySQL replication is behind master by {{ $value }} seconds"
+
+      # Redis告警
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients / redis_config_maxclients * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High Redis connections usage"
+          description: "Redis connections usage is {{ $value }}%"
+
+      - alert: RedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value }}%"
+
+  # 业务告警
+  - name: business_alerts
+    rules:
+      # 认证服务告警
+      - alert: AuthServiceErrorRate
+        expr: rate(http_requests_total{service="auth-service",status=~"5.."}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+          service: auth-service
+        annotations:
+          summary: "Authentication service error rate is high"
+          description: "Authentication service error rate is {{ $value }} errors per second"
+
+      - alert: LoginFailureRate
+        expr: rate(http_requests_total{service="auth-service",uri="/auth/login",status!~"2.."}[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          service: auth-service
+        annotations:
+          summary: "High login failure rate"
+          description: "Login failure rate is {{ $value }} per second"
+
+      # 用户服务告警
+      - alert: UserServiceDown
+        expr: up{service="user-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+          service: user-service
+        annotations:
+          summary: "User service is down"
+          description: "User service has been down for more than 2 minutes"
+
+      - alert: UserServiceHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="user-service"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          service: user-service
+        annotations:
+          summary: "User service latency is high"
+          description: "95th percentile latency is {{ $value }} seconds"
+
+  # 安全告警
+  - name: security_alerts
+    rules:
+      - alert: High401ErrorRate
+        expr: rate(http_requests_total{status="401"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High 401 error rate"
+          description: "401 error rate is {{ $value }} per second - possible authentication issues"
+
+      - alert: High403ErrorRate
+        expr: rate(http_requests_total{status="403"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High 403 error rate"
+          description: "403 error rate is {{ $value }} per second - possible authorization issues"
+
+      - alert: SuspiciousActivity
+        expr: rate(http_requests_total{source_ip=~".*"} by (source_ip)[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "IP {{ $labels.source_ip }} is making excessive requests ({{ $value }} per second)"
+
+  # 基础设施服务告警
+  - name: infrastructure_service_alerts
+    rules:
+      # Kafka告警
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Kafka broker is down"
+          description: "Kafka broker {{ $labels.instance }} has been down for more than 2 minutes"
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Kafka consumer lag is {{ $value }} messages"
+
+      # Prometheus告警
+      - alert: PrometheusConfigReloadFailure
+        expr: prometheus_config_last_reload_successful == 0
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Prometheus configuration reload failure"
+          description: "Prometheus configuration reload has failed"
+
+      - alert: PrometheusRuleEvaluationFailure
+        expr: rate(prometheus_rule_evaluation_failures_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Prometheus rule evaluation failure"
+          description: "Prometheus rule evaluation failures rate is {{ $value }}"
+
+  # 容量告警
+  - name: capacity_alerts
+    rules:
+      - alert: ServiceScalingNeeded
+        expr: kube_deployment_status_replicas_unavailable > 0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Service scaling needed"
+          description: "Deployment {{ $labels.deployment }} has {{ $value }} unavailable replicas"
+
+      - alert: HighErrorRateScaling
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High error rate - scaling may be needed"
+          description: "High error rate detected - consider scaling up {{ $labels.service }}"

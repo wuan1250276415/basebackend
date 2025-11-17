@@ -1,0 +1,166 @@
+# Chaos Mesh 综合混沌实验套件
+# 按顺序执行多种故障类型，测试系统韧性
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: resilience-test-suite
+  namespace: chaos-testing
+spec:
+  entry: entry-experiment
+  templates:
+    # 入口实验
+    - name: entry-experiment
+      templateType: Step
+      steps:
+        - name: step-1
+          template: pod-kill-test
+        - name: step-2
+          template: network-delay-test
+        - name: step-3
+          template: cpu-stress-test
+        - name: step-4
+          template: io-delay-test
+        - name: step-5
+          template: time-offset-test
+
+    # Pod杀死实验
+    - name: pod-kill-test
+      templateType: PodChaos
+      podChaos:
+        action: pod-kill
+        mode: random
+        value: "10%"
+        selector:
+          namespaces: ["basebackend"]
+          labelSelectors:
+            app: basebackend-admin-api
+        duration: "60s"
+
+    # 网络延迟实验
+    - name: network-delay-test
+      templateType: NetworkChaos
+      networkChaos:
+        action: delay
+        delay:
+          latency: "1000ms"
+          jitter: "500ms"
+        mode: random
+        value: "20%"
+        selector:
+          namespaces: ["basebackend"]
+          labelSelectors:
+            app: basebackend-admin-api
+        duration: "60s"
+
+    # CPU压力实验
+    - name: cpu-stress-test
+      templateType: StressChaos
+      stressChaos:
+        action: cpu
+        cpu:
+          load: 80
+          workers: 2
+        mode: random
+        value: "30%"
+        selector:
+          namespaces: ["basebackend"]
+          labelSelectors:
+            app: basebackend-admin-api
+        containerName: admin-api
+        duration: "60s"
+
+    # I/O延迟实验
+    - name: io-delay-test
+      templateType: IOChaos
+      ioChaos:
+        action: delay
+        delay: "500ms"
+        mode: random
+        value: "10%"
+        selector:
+          namespaces: ["basebackend"]
+          labelSelectors:
+            app: basebackend-admin-api
+        containerName: admin-api
+        duration: "60s"
+
+    # 时间偏移实验
+    - name: time-offset-test
+      templateType: TimeChaos
+      timeChaos:
+        action: skew
+        timeOffset: "300s"
+        mode: random
+        value: "5%"
+        selector:
+          namespaces: ["basebackend"]
+          labelSelectors:
+            app: basebackend-admin-api
+        containerName: admin-api
+        duration: "60s"
+
+---
+# 随机混沌实验
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: random-chaos-suite
+  namespace: chaos-testing
+spec:
+  entry: random-entry
+  templates:
+    - name: random-entry
+      templateType: Step
+      steps:
+        - name: random-step
+          template: random-choice
+
+    # 随机选择实验模板
+    - name: random-choice
+      templateType: Parallel
+      parallel:
+        # 选择以下任意一个实验执行
+        templates:
+          - name: random-pod-kill
+            templateType: PodChaos
+            podChaos:
+              action: pod-kill
+              mode: random
+              value: "5%"
+              selector:
+                namespaces: ["basebackend"]
+                labelSelectors:
+                  app: basebackend-admin-api
+              duration: "30s"
+
+          - name: random-network-loss
+            templateType: NetworkChaos
+            networkChaos:
+              action: loss
+              loss:
+                loss: "5%"
+                correlation: "0"
+              mode: random
+              value: "10%"
+              selector:
+                namespaces: ["basebackend"]
+                labelSelectors:
+                  app: basebackend-admin-api
+              duration: "30s"
+
+          - name: random-cpu-stress
+            templateType: StressChaos
+            stressChaos:
+              action: cpu
+              cpu:
+                load: 50
+                workers: 1
+              mode: random
+              value: "20%"
+              selector:
+                namespaces: ["basebackend"]
+                labelSelectors:
+                  app: basebackend-admin-api
+              containerName: admin-api
+              duration: "30s"

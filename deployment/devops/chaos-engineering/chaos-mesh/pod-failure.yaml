@@ -1,0 +1,88 @@
+# Chaos Mesh Pod Failure 实验
+# 模拟Pod随机故障，测试系统容错能力
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: Pod失败
+  action: pod-failure
+
+  # 选择模式
+  mode: one
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 故障持续时间
+  duration: "300s"
+
+  # 暂停后恢复时间
+  scheduler:
+    cron: "@every 2h"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 杀死Pod
+  action: pod-kill
+
+  # 选择模式: 随机选择一个
+  mode: random
+
+  # 随机选择百分比 (10%)
+  value: "10%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 故障持续时间
+  duration: "180s"
+
+  # 每30分钟执行一次
+  scheduler:
+    cron: "@every 30m"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: container-kill-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 杀死容器
+  action: container-kill
+
+  # 选择模式: 所有匹配的Pod
+  mode: all
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-gateway
+
+  # 容器名称
+  containerName: gateway
+
+  # 故障持续时间
+  duration: "120s"
+
+  # 每小时执行一次
+  scheduler:
+    cron: "@every 1h"

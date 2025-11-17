@@ -1,0 +1,311 @@
+# SkyWalking OAP (Observability Analysis Platform) 配置
+# 核心配置文档
+
+# Storage 配置
+storage:
+  # 存储类型 (elasticsearch7, mysql, h2)
+  type: elasticsearch7
+
+  # Elasticsearch 7.x 配置
+  elasticsearch7:
+    # 集群配置
+    clusterNodes: ${SW_STORAGE_ES_CLUSTER_NODES:elasticsearch:9200}
+    # 索引前缀
+    indexShardsNumber: ${SW_STORAGE_ES_INDEX_SHARDS:3}
+    indexReplicasNumber: ${SW_STORAGE_ES_INDEX_REPLICAS:0}
+    # 健康检查
+    healthCheck: ${SW_STORAGE_ES_HEALTH_CHECK:true}
+    # 超时时间
+    timeout: ${SW_STORAGE_ES_TIMEOUT:30}
+    # 索引生命周期管理
+    user: ${SW_ES_USER:""}
+    password: ${SW_ES_PASSWORD:""}
+    # 索引配置
+    dayStep: ${SW_STORAGE_ES_DAY_STEP:1}
+    indexShards: ${SW_STORAGE_ES_INDEX_SHARDS:3}
+    indexReplicas: ${SW_STORAGE_ES_INDEX_REPLICAS:0}
+    # 保存期限
+    recordDataTTL: ${SW_STORAGE_ES_RECORD_DATA_TTL:3} # 3 天
+    minuteMetricsDataTTL: ${SW_STORAGE_ES_MINUTE_METRIC_DATA_TTL:7} # 7 天
+    hourMetricsDataTTL: ${SW_STORAGE_ES_HOUR_METRIC_DATA_TTL:2} # 2 个月
+    dayMetricsDataTTL: ${SW_STORAGE_ES_DAY_METRIC_DATA_TTL:45} # 45 天
+    monthMetricsDataTTL: ${SW_STORAGE_ES_MONTH_METRIC_DATA_TTL:18} # 18 个月
+
+# Core 模块配置
+core:
+  # Selector 配置 (默认: default)
+  selector: ${SW_CORE_SELECTOR:default}
+  # 混合协议服务配置
+  default:
+    # gRPC 服务端口
+    gRPCPort: ${SW_CORE_GRPC_PORT:11800}
+    # REST API 端口
+    restPort: ${SW_CORE_REST_PORT:12800}
+    # 服务名称
+    serviceName: ${SW_CORE_SERVICE_NAME:"SkyWalking-OAP"}
+    # 存储选择器
+    storageSelector: ${SW_CORE_STORAGE_SELECTOR:elasticsearch7}
+    # 跟踪数据采样率
+    traceDataTTL: ${SW_CORE_TRACE_DATA_TTL:3} # 3 天
+    # 指标数据 TTL
+    minuteMetricDataTTL: ${SW_CORE_MINUTE_METRIC_DATA_TTL:7} # 7 天
+    hourMetricDataTTL: ${SW_CORE_HOUR_METRIC_DATA_TTL:2} # 2 个月
+    dayMetricDataTTL: ${SW_CORE_DAY_METRIC_DATA_TTL:45} # 45 天
+    monthMetricDataTTL: ${SW_CORE_MONTH_METRIC_DATA_TTL:18} # 18 个月
+    # 采样率配置
+    sampleRate: ${SW_CORE_SAMPLE_RATE:10000} # 100% 采样
+    # 延迟分析配置
+    enableLatencyThreshold: ${SW_CORE_ENABLE_LATENCY_THRESHOLD:true}
+    latencyThreshold: ${SW_CORE_LATENCY_THRESHOLD:1000} # 1 秒
+    # 数据获取间隔
+    dataCycle: ${SW_CORE_DATA_CYCLE:1} # 1 分钟
+    # 批量处理配置
+    bulkSize: ${SW_CORE_BULK_SIZE:5000}
+    flushTimeout: ${SW_CORE_FLUSH_TIMEOUT:3} # 3 秒
+    # 动态配置
+    dynamicConfigEnabled: ${SW_CORE_DYNAMIC_CONFIG_ENABLED:true}
+
+# 日志分析配置
+logging:
+  # 日志级别
+  level: ${SW_LOGGING_LEVEL:INFO}
+  # 文件配置
+  file:
+    # 启用文件日志
+    enabled: ${SW_LOGGING_FILE_ENABLED:true}
+    # 日志文件路径
+    path: ${SW_LOGGING_FILE_PATH:""}
+    # 文件名模式
+    pattern: ${SW_LOGGING_FILE_PATTERN:skywalking-oap.log.%d{yyyyMMdd}}
+    # 文件大小限制
+    maxFileSize: ${SW_LOGGING_FILE_MAX_SIZE:300}
+    # 保留文件数量
+    maxHistory: ${SW_LOGGING_FILE_MAX_HISTORY:10}
+    # 输出格式
+      # 配置日志格式为 JSON，便于结构化日志
+    pattern: ${SW_LOGGING_PATTERN:"{\\n  \\\"timestamp\\\": \\\"%d{yyyy-MM-dd HH:mm:ss.SSS}\\\",\\n  \\\"level\\\": \\\"%level\\\",\\n  \\\"logger\\\": \\\"%logger{36}\\\",\\n  \\\"message\\\": \\\"%msg\\\",\\n  \\\"trace_id\\\": \\\"%X{trace_id}\\\",\\n  \\\"span_id\\\": \\\"%X{span_id}\\\",\\n  \\\"service\\\": \\\"%X{service}\\\"%n}"}
+    # 输出到控制台
+    consolePattern: ${SW_LOGGING_CONSOLE_PATTERN:"%d{yyyy-MM-dd HH:mm:ss.SSS} [%trace_id] [%span_id] [%thread] %-5level %logger{36} - %msg%n"}
+  # 输出格式
+  formatter: ${SW_LOGGING_FORMATTER:json}
+
+# 查询配置
+query:
+  # 查询协议类型
+  typeGraphql: ${SW_QUERY_TYPE:GraphQL}
+
+# 告警配置
+alarm:
+  # 启用告警
+  enabled: ${SW_ALARM_ENABLED:true}
+  # 默认阈值
+  defaultThreshold: ${SW_ALARM_DEFAULT_THRESHOLD:3}
+  # 时间窗口
+  timeWindow: ${SW_ALARM_TIME_WINDOW:10} # 10 分钟
+  # 告警间隔
+  checkInterval: ${SW_ALARM_CHECK_INTERVAL:10} # 10 秒
+  # 自定义阈值配置
+  rule:
+    # HTTP 请求告警规则
+    http_response_time:
+      threshold: 1000 # 1 秒
+      period: 10 # 10 分钟
+      count: 10
+      silencePeriod: 5
+      message: HTTP response time is over threshold
+    # 错误率告警规则
+    http_error_rate:
+      threshold: 0.1 # 10%
+      period: 5 # 5 分钟
+      count: 10
+      silencePeriod: 5
+      message: HTTP error rate is over threshold
+    # 数据库查询告警规则
+    database_response_time:
+      threshold: 500 # 500 毫秒
+      period: 10
+      count: 10
+      silencePeriod: 5
+      message: Database response time is over threshold
+
+# 遥测配置
+telemetry:
+  # 启用遥测
+  enabled: ${SW_TELEMETRY_ENABLED:true}
+  # 遥测目标
+  target: ${SW_TELEMETRY_TARGET:prometheus}
+  # 遥测配置
+  prometheus:
+    # 绑定端口
+    host: ${SW_TELEMETRY_PROMETHEUS_HOST:0.0.0.0}
+    port: ${SW_TELEMETRY_PROMETHEUS_PORT:1234}
+    # 指标配置
+    metricsPath: ${SW_TELEMETRY_PROMETHEUS_METRICS_PATH:/metrics}
+    # 纳秒单位
+    unit: ${SW_TELEMETRY_PROMETHEUS_UNIT:nano}
+
+# Agent 分析配置
+agent-analyzer:
+  # 默认采样率
+  sampleRate: ${SW_AGENT_ANALYZER_SAMPLE_RATE:10000} # 100%
+  # 慢阈值
+  slowDBAccessThreshold: ${SW_AGENT_ANALYZER_SLOW_DB_ACCESS_THRESHOLD:10s} # 10 秒
+  # 批量处理配置
+  threadPoolMaxSize: ${SW_AGENT_ANALYZER_THREAD_POOL_MAX_SIZE:200}
+  # 告警阈值配置
+  alarmThreshold: ${SW_AGENT_ANALYZER_ALARM_THRESHOLD:1000} # 1 秒
+
+# 服务网格分析配置
+service-mesh:
+  # 启用服务网格分析
+  enabled: ${SW_SERVICE_MESH_ENABLED:false}
+  # 采样率
+  sampleRate: ${SW_SERVICE_MESH_SAMPLE_RATE:10000} # 100%
+  # 配置中心
+  configSource: ${SW_SERVICE_MESH_CONFIG_SOURCE:istio}
+
+# 事件配置
+event:
+  # 事件发布周期
+  publishInterval: ${SW_EVENT_PUBLISH_INTERVAL:1} # 1 秒
+  # 事件缓冲大小
+  bufferSize: ${SW_EVENT_BUFFER_SIZE:10000}
+
+# 遥测配置
+receiver-trace:
+  # 启用追踪数据接收器
+  enabled: ${SW_RECEIVER_TRACE_ENABLED:true}
+  # 协议
+  protocol: ${SW_RECEIVER_TRACE_PROTOCOL:gRPC}
+
+receiver-meter:
+  # 启用指标接收器
+  enabled: ${SW_RECEIVER_METER_ENABLED:true}
+
+receiver-log:
+  # 启用日志接收器
+  enabled: ${SW_RECEIVER_LOG_ENABLED:true}
+
+# 健康检查配置
+health-checker:
+  # 默认检查间隔
+  defaultCheckInterval: ${SW_HEALTH_CHECKER_DEFAULT_CHECK_INTERVAL:10} # 10 秒
+  # 检查器列表
+  checkers:
+    - name: storage
+      interval: ${SW_HEALTH_CHECKER_STORAGE_CHECK_INTERVAL:10}
+    - name: cluster
+      interval: ${SW_HEALTH_CHECKER_CLUSTER_CHECK_INTERVAL:5}
+
+# 插件配置
+plugin:
+  # HTTP 插件配置
+  http:
+    # HTTP 请求追踪配置
+    traceHTTPRequest: ${SW_PLUGIN_HTTP_TRACE_HTTP_REQUEST:true}
+    # HTTP 方法过滤
+    httpMethodExcludeCheck: ${SW_PLUGIN_HTTP_HTTP_METHOD_EXCLUDE_CHECK:true}
+
+  # 数据库插件配置
+  database:
+    # SQL 追踪配置
+    traceSQL: ${SW_PLUGIN_DATABASE_TRACE_SQL:true}
+    # SQL 参数追踪配置
+    traceSQLParameters: ${SW_PLUGIN_DATABASE_TRACE_SQL_PARAMETERS:true}
+    # SQL 类型过滤
+    sqlTypeFilter: ${SW_PLUGIN_DATABASE_SQL_TYPE_FILTER:true,select}
+
+  # 缓存插件配置
+  cache:
+    # Redis 追踪配置
+    traceRedis: ${SW_PLUGIN_CACHE_TRACE_REDIS:true}
+
+  # 消息队列插件配置
+  mq:
+    # Kafka 追踪配置
+    traceKafka: ${SW_PLUGIN_MQ_TRACE_KAFKA:true}
+    # RocketMQ 追踪配置
+    traceRocketMQ: ${SW_PLUGIN_MQ_TRACE_ROCKET_MQ:true}
+
+  # 安全插件配置
+  security:
+    # JWT 追踪配置
+    traceJWT: ${SW_PLUGIN_SECURITY_TRACE_JWT:true}
+
+# 地理信息配置
+geo:
+  # IP 地理信息数据库路径
+  ip2hostDatabasePath: ${SW_GEO_IP2HOST_DATABASE_PATH:"skywalking-geoip2host-db"}
+  # 最大地理信息缓存大小
+  maxCacheSize: ${SW_GEO_MAX_CACHE_SIZE:1000}
+
+# 功能开关
+feature:
+  # 启用事件分析
+  enableEventAnalysis: ${SW_FEATURE_ENABLE_EVENT_ANALYSIS:true}
+  # 启用遥测数据收集
+  enableTelemetryData: ${SW_FEATURE_ENABLE_TELEMETRY_DATA:true}
+  # 启用分组查询
+  enableGroupQuery: ${SW_FEATURE_ENABLE_GROUP_QUERY:true}
+
+# 分发配置
+exporter:
+  # 启用导出器
+  enabled: ${SW_EXPORTER_ENABLED:false}
+  # 导出目标
+  target: ${SW_EXPORTER_TARGET:prometheus}
+  # 导出配置
+  prometheus:
+    # 导出端口
+    port: ${SW_EXPORTER_PROMETHEUS_PORT:9543}
+
+# HTTP 配置
+configuration:
+  # 启用动态配置
+  enabled: ${SW_CONFIGURATION_ENABLED:true}
+  # 动态配置选择器
+  selector: ${SW_CONFIGURATION_SELECTOR:default}
+  # 动态配置源
+  default:
+    # APISIX 配置源
+    apisix:
+      enabled: ${SW_CONFIGURATION_APISIX_ENABLED:false}
+      # APISIX 配置
+      apisix:
+        host: ${SW_CONFIGURATION_APISIX_HOST:"http://127.0.0.1:9080"}
+        namespace: ${SW_CONFIGURATION_APISIX_NAMESPACE:"default"}
+        # APISIX 配置路径
+        configPath: ${SW_CONFIGURATION_APISIX_CONFIG_PATH:"/apisix/admin/plugin_configs"}
+
+# 安全配置
+security:
+  # 启用 JWT 认证
+  jwt:
+    enabled: ${SW_SECURITY_JWT_ENABLED:false}
+    # JWT 密钥
+    secret: ${SW_SECURITY_JWT_SECRET:""}
+    # JWT 过期时间
+    expireTime: ${SW_SECURITY_JWT_EXPIRE_TIME:900} # 15 分钟
+
+# 集群配置
+cluster:
+  # 集群模式 (standalone, zookeeper, kubernetes, consul, etcd)
+  mode: ${SW_CLUSTER_MODE:standalone}
+  # Zookeeper 配置
+  zookeeper:
+    # Zookeeper 主机
+    hostPort: ${SW_CLUSTER_ZK_HOST_PORT:localhost:2181}
+    # 命名空间
+    namespace: ${SW_CLUSTER_ZK_NAMESPACE:/skywalking}
+    # 会话超时时间
+    sessionTimeout: ${SW_CLUSTER_ZK_SESSION_TIMEOUT:100000} # 100 秒
+    # 连接超时时间
+    connectionTimeout: ${SW_CLUSTER_ZK_CONNECTION_TIMEOUT:100000} # 100 秒
+  # Kubernetes 配置
+  kubernetes:
+    # 命名空间
+    namespace: ${SW_CLUSTER_K8S_NAMESPACE:default}
+    # 标签选择器
+    labelSelector: ${SW_CLUSTER_K8S_LABEL_SELECTOR:""}
+    # 服务选择器
+    serviceSelector: ${SW_CLUSTER_K8S_SERVICE_SELECTOR:""}

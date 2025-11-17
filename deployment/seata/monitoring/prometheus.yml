@@ -1,0 +1,76 @@
+# Prometheus 监控配置
+
+global:
+  # 全局采集间隔
+  scrape_interval: 15s
+  # 全局评估间隔
+  evaluation_interval: 15s
+
+# 规则文件配置
+rule_files:
+  - "seata-alerts.yml"
+
+# 告警管理配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# 采集目标配置
+scrape_configs:
+  # Seata Server 监控
+  - job_name: 'seata-server'
+    static_configs:
+      - targets: ['seata-server:7091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # MySQL 监控
+  - job_name: 'mysql-seata'
+    static_configs:
+      - targets: ['mysql-seata:9104']
+    scrape_interval: 15s
+
+  # Nacos 监控
+  - job_name: 'nacos-seata'
+    static_configs:
+      - targets: ['nacos-seata:8848']
+    metrics_path: '/nacos/v1/console/metrics'
+    scrape_interval: 30s
+
+  # Spring Boot 应用监控 (示例)
+  - job_name: 'spring-boot-apps'
+    static_configs:
+      - targets:
+        - 'basebackend-user-service:8081'
+        - 'basebackend-auth-service:8082'
+        - 'basebackend-menu-service:8088'
+        - 'basebackend-application-service:8087'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    # 添加标签
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        regex: 'basebackend-([^-]+)-service'
+        replacement: '$1'
+
+  # Redis 监控
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Node Exporter 监控
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s

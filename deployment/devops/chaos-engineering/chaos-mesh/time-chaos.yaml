@@ -1,0 +1,69 @@
+# Chaos Mesh 时间故障实验
+# 模拟系统时间漂移
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: TimeChaos
+metadata:
+  name: time-offset-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 时间偏移
+  action: skew
+
+  # 时间偏移量: +300s
+  timeOffset: "300s"
+
+  # 选择模式: 随机
+  mode: random
+  value: "10%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 容器名称
+  containerName: admin-api
+
+  # 故障持续时间
+  duration: "180s"
+
+  # 每天执行一次
+  scheduler:
+    cron: "0 3 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: TimeChaos
+metadata:
+  name: time-clock-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 时钟漂移
+  action: clock
+
+  # 时钟类型: CLOCK_MONOTONIC
+  clockIds: ["CLOCK_MONOTONIC"]
+
+  # 选择模式: 随机
+  mode: random
+  value: "5%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-auth-service
+
+  # 容器名称
+  containerName: auth-service
+
+  # 故障持续时间
+  duration: "120s"
+
+  # 每周执行一次
+  scheduler:
+    cron: "0 0 * * 0"

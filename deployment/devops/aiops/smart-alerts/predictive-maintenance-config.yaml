@@ -1,0 +1,815 @@
+# AI驱动的预测性运维配置
+# 基于时间序列预测的资源需求预测系统
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: predictive-maintenance-config
+  namespace: basebackend
+data:
+  # 预测模型配置
+  prediction_models.yaml: |
+    # 预测模型配置
+    models:
+      # CPU使用率预测
+      cpu_prediction:
+        type: "time_series"
+        algorithm: "lstm"
+        model_name: "cpu_forecast_lstm_v1"
+        parameters:
+          sequence_length: 24  # 24小时历史数据
+          prediction_horizon: 168  # 预测未来168小时 (7天)
+          hidden_units: 128
+          dropout: 0.2
+          learning_rate: 0.001
+          epochs: 100
+          batch_size: 32
+        features:
+          - "cpu_usage_percent"
+          - "cpu_usage_trend"
+          - "day_of_week"
+          - "hour_of_day"
+          - "is_business_hours"
+          - "is_weekend"
+          - "active_user_count"
+          - "request_rate"
+          - "system_load"
+        target: "cpu_usage_percent"
+        update_frequency: "6h"
+        retrain_frequency: "7d"
+        accuracy_threshold: 0.85
+        prediction_interval: "1h"
+
+      # 内存使用率预测
+      memory_prediction:
+        type: "time_series"
+        algorithm: "prophet"
+        model_name: "memory_forecast_prophet_v1"
+        parameters:
+          seasonality_mode: "additive"
+          changepoint_prior_scale: 0.05
+          seasonality_prior_scale: 10
+          holiday_prior_scale: 10
+          mcmc_samples: 300
+        features:
+          - "memory_usage_percent"
+          - "memory_available"
+          - "gc_frequency"
+          - "cache_hit_rate"
+          - "active_connections"
+          - "heap_size"
+          - "non_heap_size"
+        seasonality:
+          daily: true
+          weekly: true
+          yearly: false
+        holidays:
+          enabled: true
+          country: "US"
+        update_frequency: "12h"
+        retrain_frequency: "14d"
+        accuracy_threshold: 0.80
+        prediction_interval: "1h"
+
+      # 存储需求预测
+      storage_prediction:
+        type: "growth_model"
+        algorithm: "exponential_smoothing"
+        model_name: "storage_forecast_holt_winters"
+        parameters:
+          alpha: 0.4
+          beta: 0.2
+          gamma: 0.3
+          seasonality_periods: 7
+        features:
+          - "storage_used_gb"
+          - "storage_growth_rate"
+          - "data_retention_policy"
+          - "backup_frequency"
+          - "user_activity"
+          - "transaction_volume"
+        target: "storage_used_gb"
+        update_frequency: "24h"
+        retrain_frequency: "30d"
+        accuracy_threshold: 0.75
+        prediction_interval: "1d"
+
+      # 网络流量预测
+      network_prediction:
+        type: "time_series"
+        algorithm: "arima"
+        model_name: "network_forecast_arima_v1"
+        parameters:
+          p: 3
+          d: 1
+          q: 2
+          seasonal: true
+          seasonal_periods: 24
+          P: 1
+          D: 1
+          Q: 1
+        features:
+          - "network_rx_bytes"
+          - "network_tx_bytes"
+          - "connection_count"
+          - "bandwidth_utilization"
+          - "packet_loss_rate"
+          - "active_sessions"
+        target: "network_throughput"
+        update_frequency: "4h"
+        retrain_frequency: "14d"
+        accuracy_threshold: 0.82
+        prediction_interval: "1h"
+
+      # 负载预测
+      load_prediction:
+        type: "ensemble"
+        algorithm: "xgboost_lstm_hybrid"
+        model_name: "load_forecast_hybrid_v1"
+        parameters:
+          # XGBoost参数
+          xgb_params:
+            n_estimators: 200
+            max_depth: 6
+            learning_rate: 0.1
+            subsample: 0.8
+            colsample_bytree: 0.8
+          # LSTM参数
+          lstm_params:
+            sequence_length: 48
+            hidden_units: 64
+            dropout: 0.3
+          # 集成参数
+          ensemble_method: "stacking"
+          meta_learner: "linear_regression"
+        features:
+          - "concurrent_users"
+          - "request_rate"
+          - "response_time_p95"
+          - "cpu_usage"
+          - "memory_usage"
+          - "timestamp"
+          - "day_of_week"
+          - "hour_of_day"
+          - "is_holiday"
+          - "marketing_campaign_active"
+        target: "system_load"
+        update_frequency: "8h"
+        retrain_frequency: "10d"
+        accuracy_threshold: 0.88
+        prediction_interval: "30m"
+
+      # 错误率预测
+      error_rate_prediction:
+        type: "classification"
+        algorithm: "random_forest"
+        model_name: "error_forecast_rf_v1"
+        parameters:
+          n_estimators: 200
+          max_depth: 10
+          min_samples_split: 5
+          min_samples_leaf: 2
+          class_weight: "balanced"
+        features:
+          - "error_rate"
+          - "error_types"
+          - "deployment_frequency"
+          - "code_complexity"
+          - "test_coverage"
+          - "bug_count"
+          - "technical_debt"
+          - "team_velocity"
+        target: "error_rate_category"  # low/medium/high/critical
+        update_frequency: "12h"
+        retrain_frequency: "21d"
+        accuracy_threshold: 0.80
+        prediction_interval: "2h"
+
+      # 容量规划预测
+      capacity_planning:
+        type: "optimization"
+        algorithm: "reinforcement_learning"
+        model_name: "capacity_rl_v1"
+        parameters:
+          algorithm: "proximal_policy_optimization"
+          learning_rate: 0.0003
+          n_steps: 2048
+          batch_size: 64
+          n_epochs: 10
+          gamma: 0.99
+          gae_lambda: 0.95
+        state_space:
+          - "current_cpu_usage"
+          - "current_memory_usage"
+          - "current_replica_count"
+          - "predicted_load"
+          - "cost_budget"
+          - "sla_requirements"
+        action_space:
+          - "scale_replicas"
+          - "change_instance_type"
+          - "adjust_resource_limits"
+          - "enable_caching"
+          - "optimize_database"
+        reward_function:
+          - "+100 per SLA_fulfilled"
+          - "-10 per cost_over_budget"
+          - "-50 per outage"
+          - "-1 per unnecessary_replica"
+        update_frequency: "1h"
+        retrain_frequency: "continuous"
+        simulation_environment: true
+
+    # 预测质量评估
+    quality_metrics:
+      - metric: "mean_absolute_error"
+        threshold: 0.1
+        weight: 0.3
+      - metric: "root_mean_square_error"
+        threshold: 0.15
+        weight: 0.25
+      - metric: "mean_absolute_percentage_error"
+        threshold: 0.15
+        weight: 0.25
+      - metric: "r2_score"
+        threshold: 0.8
+        weight: 0.2
+
+    # 预测置信度
+    confidence_levels:
+      high:
+        threshold: 0.9
+        actions: ["auto_scaling", "capacity_reservation"]
+      medium:
+        threshold: 0.7
+        actions: ["alert_engineering_team"]
+      low:
+        threshold: 0.5
+        actions: ["increase_monitoring"]
+
+  # 预测性维护规则
+  predictive_rules.yaml: |
+    # 预测性维护规则
+    rules:
+      # 规则1: CPU容量预测
+      - name: "CPUCapacityPrediction"
+        description: "CPU容量不足预测"
+        prediction_model: "cpu_prediction"
+        conditions:
+          - predicted_cpu_usage: ">80%"
+            time_horizon: "24h"
+            confidence: ">0.9"
+        actions:
+          - action: "send_capacity_alert"
+            channels: ["slack", "email"]
+            priority: "high"
+            template: "cpu_capacity_warning"
+          - action: "recommend_scaling"
+            scaling_type: "horizontal"
+            min_replicas_increase: 2
+            max_replicas_increase: 5
+          - action: "provision_resources"
+            if: "confidence > 0.95 && predicted_duration > 48h"
+          - action: "update_capacity_plan"
+            update_type: "cpu_allocation"
+        threshold: 0.85
+        severity: "warning"
+
+      # 规则2: 内存泄漏预测
+      - name: "MemoryLeakPrediction"
+        description: "内存泄漏风险预测"
+        prediction_model: "memory_prediction"
+        conditions:
+          - predicted_memory_usage: ">90%"
+            time_horizon: "12h"
+            trend: "increasing"
+            confidence: ">0.85"
+        actions:
+          - action: "send_leak_alert"
+            channels: ["pagerduty"]
+            priority: "critical"
+            template: "memory_leak_warning"
+          - action: "schedule_maintenance"
+            maintenance_window: "next_business_hours"
+          - action: "enable_memory_profiling"
+            profile_duration: "24h"
+          - action: "prepare_rollback_plan"
+        threshold: 0.80
+        severity: "critical"
+
+      # 规则3: 存储耗尽预测
+      - name: "StorageExhaustionPrediction"
+        description: "存储空间耗尽预测"
+        prediction_model: "storage_prediction"
+        conditions:
+          - days_until_exhaustion: "<30"
+            confidence: ">0.9"
+            growth_rate: ">10%/week"
+        actions:
+          - action: "storage_alert"
+            channels: ["slack", "email"]
+            priority: "high"
+            template: "storage_exhaustion_warning"
+          - action: "auto_cleanup"
+            if: "auto_cleanup_enabled"
+            cleanup_types: ["temp_files", "old_logs", "unused_backups"]
+          - action: "provision_storage"
+            if: "days_until_exhaustion < 14"
+          - action: "update_capacity_plan"
+            update_type: "storage_allocation"
+        threshold: 0.75
+        severity: "warning"
+
+      # 规则4: 网络流量激增预测
+      - name: "NetworkTrafficSurgePrediction"
+        description: "网络流量激增预测"
+        prediction_model: "network_prediction"
+        conditions:
+          - predicted_bandwidth_usage: ">80%"
+            time_horizon: "2h"
+            confidence: ">0.9"
+            surge_factor: ">2x normal"
+        actions:
+          - action: "bandwidth_alert"
+            channels: ["slack"]
+            priority: "medium"
+            template: "bandwidth_surge_warning"
+          - action: "enable_cdn"
+            if: "cdn_available"
+          - action: "rate_limit"
+            if: "predicted_exceeds_capacity"
+            rate_limit_factor: 0.8
+          - action: "provision_bandwidth"
+            if: "confidence > 0.95"
+        threshold: 0.80
+        severity: "warning"
+
+      # 规则5: 系统负载峰值预测
+      - name: "LoadPeakPrediction"
+        description: "系统负载峰值预测"
+        prediction_model: "load_prediction"
+        conditions:
+          - predicted_load: ">90%"
+            time_horizon: "4h"
+            confidence: ">0.85"
+            pattern: "recurring"  # recurring or anomalous
+        actions:
+          - action: "load_alert"
+            channels: ["slack", "email"]
+            priority: "high"
+            template: "load_peak_warning"
+          - action: "preemptive_scaling"
+            if: "pattern == recurring"
+            scale_up_time: "30m before peak"
+          - action: "resource_reservation"
+            if: "peak_duration > 2h"
+          - action: "load_shedding_plan"
+            if: "confidence > 0.9 && peak_duration > 4h"
+        threshold: 0.85
+        severity: "warning"
+
+      # 规则6: 错误率激增预测
+      - name: "ErrorRateSurgePrediction"
+        description: "错误率激增预测"
+        prediction_model: "error_rate_prediction"
+        conditions:
+          - predicted_error_rate: ">5%"
+            time_horizon: "6h"
+            confidence: ">0.8"
+            current_trend: "increasing"
+        actions:
+          - action: "error_alert"
+            channels: ["pagerduty", "slack"]
+            priority: "critical"
+            template: "error_rate_warning"
+          - action: "feature_rollback"
+            if: "recent_deployment && confidence > 0.9"
+          - action: "increase_monitoring"
+            monitoring_level: "verbose"
+            duration: "12h"
+          - action: "create_incident"
+            if: "predicted_error_rate > 10%"
+        threshold: 0.75
+        severity: "critical"
+
+      # 规则7: 容量规划建议
+      - name: "CapacityPlanningRecommendation"
+        description: "智能容量规划建议"
+        prediction_model: "capacity_planning"
+        conditions:
+          - prediction_horizon: "90d"
+          - confidence: ">0.8"
+          - optimization_potential: ">20%"
+        actions:
+          - action: "generate_capacity_plan"
+            plan_duration: "90d"
+            update_frequency: "weekly"
+          - action: "cost_optimization_report"
+            potential_savings: "calculate"
+          - action: "schedule_optimization"
+            if: "confidence > 0.9"
+            optimization_types: ["resource_rightsizing", "reserved_instances"]
+          - action: "present_to_stakeholders"
+            stakeholders: ["cto", "finops_team"]
+        threshold: 0.80
+        severity: "info"
+
+  # 预测性维护工作流
+  predictive_workflows.yaml: |
+    # 预测性维护工作流
+    workflows:
+      # 工作流1: 容量预警工作流
+      capacity_warning_workflow:
+        name: "容量预警工作流"
+        trigger:
+          condition: "predicted_capacity_threshold_breach"
+          min_confidence: 0.85
+        steps:
+          - step: "validate_prediction"
+            action: "cross_validate_forecast"
+            models: ["primary", "secondary"]
+            threshold: 0.8
+          - step: "assess_impact"
+            action: "calculate_business_impact"
+            metrics: ["sla", "user_experience", "cost"]
+          - step: "recommend_action"
+            action: "generate_recommendation"
+            recommendation_types: ["scaling", "optimization", "provision"]
+          - step: "calculate_cost"
+            action: "estimate_action_cost"
+            scenarios: ["do_nothing", "manual_action", "automated_action"]
+          - step: "execute_action"
+            if: "confidence > 0.9 && cost_benefit_ratio > 2"
+            timeout: "10m"
+          - step: "verify_action"
+            action: "verify_effectiveness"
+            duration: "30m"
+          - step: "document_lesson"
+            action: "log_prediction_accuracy"
+        automation_level: "semi_automated"  # automated/semi_automated/manual
+
+      # 工作流2: 预测性扩容工作流
+      predictive_scaling_workflow:
+        name: "预测性扩容工作流"
+        trigger:
+          condition: "predicted_load_increase > 30%"
+          time_horizon: "2-4h"
+          pattern: "recurring"
+        steps:
+          - step: "pattern_analysis"
+            action: "analyze_load_pattern"
+            lookback_period: "30d"
+          - step: "capacity_calculation"
+            action: "calculate_required_capacity"
+            buffer: 0.2
+          - step: "scaling_plan"
+            action: "create_scaling_plan"
+            scaling_type: "predictive"
+          - step: "schedule_scaling"
+            action: "schedule_automated_scaling"
+            lead_time: "30m before peak"
+          - step: "execute_scaling"
+            action: "execute_scaling"
+            verification: true
+          - step: "monitor_impact"
+            action: "monitor_scaling_impact"
+            duration: "2h"
+          - step: "verify_sla"
+            action: "verify_sla_compliance"
+            sla_targets: ["response_time", "availability", "throughput"]
+        automation_level: "automated"
+        rollback:
+          enabled: true
+          conditions: ["sla_violation", "cost_overrun"]
+          rollback_time: "15m"
+
+      # 工作流3: 预测性维护工作流
+      predictive_maintenance_workflow:
+        name: "预测性维护工作流"
+        trigger:
+          condition: "component_lifetime_prediction < threshold"
+          min_confidence: 0.85
+        steps:
+          - step: "health_assessment"
+            action: "assess_component_health"
+            metrics: ["performance", "error_rate", "resource_usage"]
+          - step: "lifetime_prediction"
+            action: "predict_remaining_lifetime"
+            methods: ["statistical", "machine_learning", "physics_based"]
+          - step: "maintenance_planning"
+            action: "create_maintenance_plan"
+            considerations: ["business_impact", "cost", "availability"]
+          - step: "resource_coordination"
+            action: "coordinate_maintenance_resources"
+            resources: ["personnel", "tools", "replacement_parts"]
+          - step: "schedule_maintenance"
+            action: "schedule_optimal_time"
+            optimization: "minimize_business_impact"
+          - step: "notify_stakeholders"
+            action: "send_maintenance_notification"
+            stakeholders: ["operations", "engineering", "business"]
+          - step: "execute_maintenance"
+            action: "perform_maintenance"
+            verification: true
+          - step: "validate_fix"
+            action: "validate_maintenance_effectiveness"
+            duration: "24h"
+        automation_level: "manual"  # manual/semi_automated/automated
+        approval_required: true
+        approval_timeout: "24h"
+
+      # 工作流4: 预测性优化工作流
+      predictive_optimization_workflow:
+        name: "预测性优化工作流"
+        trigger:
+          condition: "optimization_potential > 20%"
+          time_horizon: "7d"
+          roi_threshold: 3.0
+        steps:
+          - step: "identify_opportunities"
+            action: "identify_optimization_opportunities"
+            categories: ["resource", "performance", "cost"]
+          - step: "impact_analysis"
+            action: "analyze_optimization_impact"
+            metrics: ["performance_gain", "cost_savings", "risk"]
+          - step: "optimization_plan"
+            action: "create_optimization_plan"
+            timeline: "30d"
+          - step: "risk_assessment"
+            action: "assess_optimization_risks"
+            risks: ["performance_regression", "service_disruption"]
+          - step: "pilot_testing"
+            action: "run_pilot_optimization"
+            if: "risk_level > medium"
+            pilot_scope: "10% traffic"
+          - step: "full_deployment"
+            action: "deploy_optimization"
+            if: "pilot_success"
+          - step: "monitoring"
+            action: "monitor_optimization_impact"
+            duration: "7d"
+          - step: "measure_results"
+            action: "measure_optimization_results"
+            success_criteria: ["performance_gain", "cost_savings"]
+        automation_level: "semi_automated"
+        approval_required: true
+        success_criteria:
+          - "performance_improvement > 15%"
+          - "cost_reduction > 20%"
+          - "no_sla_violations"
+
+  # 容量规划配置
+  capacity_planning.yaml |
+    # 容量规划配置
+    planning_parameters:
+      # 规划时间范围
+      planning_horizon:
+        short_term: "30d"
+        medium_term: "90d"
+        long_term: "365d"
+
+      # 预测模型配置
+      prediction_models:
+        - name: "cpu_forecast"
+          type: "time_series"
+          accuracy_threshold: 0.85
+          update_frequency: "weekly"
+
+        - name: "memory_forecast"
+          type: "growth_model"
+          accuracy_threshold: 0.80
+          update_frequency: "monthly"
+
+        - name: "storage_forecast"
+          type: "exponential_smoothing"
+          accuracy_threshold: 0.75
+          update_frequency: "monthly"
+
+        - name: "load_forecast"
+          type: "ensemble"
+          accuracy_threshold: 0.88
+          update_frequency: "weekly"
+
+      # 容量阈值
+      capacity_thresholds:
+        cpu:
+          warning: 70%
+          critical: 85%
+          action_required: 90%
+
+        memory:
+          warning: 75%
+          critical: 85%
+          action_required: 90%
+
+        storage:
+          warning: 80%
+          critical: 90%
+          action_required: 95%
+
+        network:
+          warning: 60%
+          critical: 80%
+          action_required: 90%
+
+      # 安全缓冲
+      safety_buffers:
+        cpu: 20%
+        memory: 25%
+        storage: 30%
+        network: 15%
+
+      # 规划假设
+      planning_assumptions:
+        business_growth_rate: "15% annually"
+        traffic_pattern: "seasonal_variations"
+        user_growth: "20% annually"
+        feature_additions: "monthly"
+        performance_improvement: "10% annually"
+        cost_optimization: "15% annually"
+
+    # 容量规划模型
+    planning_models:
+      # 线性增长模型
+      linear_growth:
+        formula: "current_capacity * (1 + growth_rate) ^ months"
+       適用场景: "steady_growth"
+        accuracy: "medium"
+
+      # 指数增长模型
+      exponential_growth:
+        formula: "current_capacity * e^(growth_rate * months)"
+        適用场景: "accelerating_growth"
+        accuracy: "high"
+
+      # 季节性模型
+      seasonal_model:
+        formula: "base_capacity * (1 + seasonal_factor)"
+        適用场景: "seasonal_patterns"
+        accuracy: "high"
+
+      # 机器学习模型
+      ml_model:
+        algorithm: "ensemble"
+        features: ["historical_usage", "business_events", "external_factors"]
+        accuracy: "very_high"
+
+    # 优化建议
+    optimization_strategies:
+      - strategy: "rightsizing"
+        description: "根据实际使用情况调整资源大小"
+        potential_savings: "15-30%"
+        implementation_effort: "low"
+
+      - strategy: "reserved_instances"
+        description: "购买预留实例降低计算成本"
+        potential_savings: "30-50%"
+        commitment: "1-3 years"
+        implementation_effort: "low"
+
+      - strategy: "spot_instances"
+        description: "使用竞价实例处理非关键负载"
+        potential_savings: "50-90%"
+        use_case: "batch_jobs, testing"
+        implementation_effort: "medium"
+
+      - strategy: "auto_scaling"
+        description: "基于负载自动调整资源"
+        benefits: ["cost_optimization", "performance", "availability"]
+        implementation_effort: "medium"
+
+      - strategy: "resource_pooling"
+        description: "资源池化提高利用率"
+        potential_savings: "20-40%"
+        implementation_effort: "high"
+
+    # 成本优化
+    cost_optimization:
+      # 成本模型
+      cost_models:
+        compute:
+          on_demand: "$0.05/hour per vCPU"
+          reserved_1y: "$0.03/hour per vCPU (67% discount)"
+          reserved_3y: "$0.02/hour per vCPU (75% discount)"
+          spot: "$0.015/hour per vCPU (70% discount)"
+
+        storage:
+          hot_tier: "$0.08/GB/month"
+          warm_tier: "$0.04/GB/month"
+          cold_tier: "$0.01/GB/month"
+
+        network:
+          ingress: "$0.01/GB"
+          egress: "$0.05/GB"
+
+      # 优化机会
+      optimization_opportunities:
+        - opportunity: "underutilized_instances"
+          detection_criteria: "avg_cpu < 20% for 30 days"
+          potential_savings: "30-50%"
+          action: "downsize_or_rightsize"
+
+        - opportunity: "overprovisioned_storage"
+          detection_criteria: "utilization < 50%"
+          potential_savings: "40-60%"
+          action: "resize_storage"
+
+        - opportunity: "long_running_reserved_instances"
+          detection_criteria: "usage > 80% for 6 months"
+          potential_savings: "10-20%"
+          action: "switch_to_reserved"
+
+        - opportunity: "inefficient_scaling"
+          detection_criteria: "scaling_frequency > threshold"
+          potential_savings: "15-25%"
+          action: "optimize_scaling_policy"
+
+    # 容量规划报告
+    reporting:
+      # 报告类型
+      report_types:
+        - name: "capacity_forecast"
+          frequency: "weekly"
+          recipients: ["operations", "engineering", "management"]
+          format: ["pdf", "dashboard"]
+
+        - name: "cost_optimization"
+          frequency: "monthly"
+          recipients: ["finops", "management"]
+          format: ["pdf", "excel"]
+
+        - name: "performance_trends"
+          frequency: "daily"
+          recipients: ["operations"]
+          format: ["dashboard", "email"]
+
+        - name: "anomaly_alerts"
+          frequency: "real_time"
+          recipients: ["on_call"]
+          format: ["pagerduty", "slack"]
+
+      # 关键指标
+      kpis:
+        - name: "capacity_utilization"
+          target: "< 80%"
+          current: "calculate"
+          trend: "increasing/decreasing"
+
+        - name: "prediction_accuracy"
+          target: "> 85%"
+          current: "calculate"
+          timeframe: "30d"
+
+        - name: "cost_per_transaction"
+          target: "< $0.01"
+          current: "calculate"
+          trend: "decreasing"
+
+        - name: "sla_compliance"
+          target: "99.9%"
+          current: "calculate"
+          timeframe: "30d"
+
+        - name: "resource_efficiency"
+          target: "> 75%"
+          current: "calculate"
+          category: "overall"
+
+    # 警报与升级
+    alerting:
+      # 预测性警报
+      predictive_alerts:
+        - alert: "capacity_breach_forecast"
+          condition: "predicted_capacity > threshold in 7d"
+          confidence: "> 0.9"
+          channels: ["email", "slack", "dashboard"]
+          escalation: "manager in 24h"
+
+        - alert: "cost_overrun_forecast"
+          condition: "predicted_cost > budget in 30d"
+          severity: "high"
+          channels: ["email", "finance"]
+          escalation: "finance_director in 48h"
+
+        - alert: "performance_degradation_forecast"
+          condition: "predicted_response_time > sla in 4h"
+          severity: "critical"
+          channels: ["pagerduty", "slack", "on_call"]
+          escalation: "immediate"
+
+      # 升级路径
+      escalation_paths:
+        - level: 1
+          recipients: ["operations_team"]
+          response_time: "1h"
+          max_duration: "4h"
+
+        - level: 2
+          recipients: ["engineering_team", "operations_manager"]
+          response_time: "30m"
+          max_duration: "2h"
+
+        - level: 3
+          recipients: ["cto", "vp_engineering"]
+          response_time: "15m"
+          max_duration: "1h"

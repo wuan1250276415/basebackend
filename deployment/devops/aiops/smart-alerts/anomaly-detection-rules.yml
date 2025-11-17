@@ -1,0 +1,564 @@
+# AI驱动的异常检测规则配置
+# 基于机器学习算法的智能异常检测系统
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detection-rules
+  namespace: basebackend
+data:
+  # 异常检测模型配置
+  model_config.yaml: |
+    # 异常检测模型配置
+    models:
+      # CPU异常检测模型
+      cpu_anomaly:
+        type: "isolation_forest"
+        algorithm: "isolation_forest"
+        parameters:
+          contamination: 0.1  # 异常比例
+          random_state: 42
+        features:
+          - "cpu_usage_percent"
+          - "cpu_usage_trend"
+          - "cpu_usage_acceleration"
+          - "load_average_1m"
+          - "load_average_5m"
+          - "cpu_throttle_count"
+        time_window: "15m"
+        update_frequency: "5m"
+        sensitivity: "high"  # high/medium/low
+
+      # 内存异常检测模型
+      memory_anomaly:
+        type: "lstm_autoencoder"
+        algorithm: "lstm_autoencoder"
+        parameters:
+          sequence_length: 30
+          encoding_dim: 10
+          epochs: 100
+          batch_size: 32
+        features:
+          - "memory_usage_percent"
+          - "memory_available"
+          - "memory_cache"
+          - "memory_swap"
+          - "oom_kill_count"
+          - "page_faults"
+        time_window: "30m"
+        update_frequency: "10m"
+        sensitivity: "medium"
+
+      # 响应时间异常检测模型
+      latency_anomaly:
+        type: "statistical"
+        algorithm: "ewma_statistical"
+        parameters:
+          alpha: 0.3
+          deviation_threshold: 3
+          consecutive_violations: 2
+        features:
+          - "response_time_p50"
+          - "response_time_p95"
+          - "response_time_p99"
+          - "request_rate"
+          - "error_rate"
+          - "concurrent_requests"
+        time_window: "10m"
+        update_frequency: "2m"
+        sensitivity: "high"
+
+      # 网络异常检测模型
+      network_anomaly:
+        type: "one_class_svm"
+        algorithm: "one_class_svm"
+        parameters:
+          kernel: "rbf"
+          gamma: "scale"
+          nu: 0.05
+        features:
+          - "network_rx_bytes"
+          - "network_tx_bytes"
+          - "network_errors"
+          - "network_drops"
+          - "connection_count"
+          - "connection_errors"
+        time_window: "20m"
+        update_frequency: "5m"
+        sensitivity: "medium"
+
+      # 业务异常检测模型
+      business_anomaly:
+        type: "prophet"
+        algorithm: "facebook_prophet"
+        parameters:
+          seasonality_mode: "additive"
+          changepoint_prior_scale: 0.05
+          seasonality_prior_scale: 10
+        features:
+          - "user_login_count"
+          - "api_call_count"
+          - "transaction_volume"
+          - "error_rate"
+          - "feature_usage"
+        time_window: "7d"
+        update_frequency: "1h"
+        sensitivity: "low"
+
+    # 异常严重性分类
+    severity_classification:
+      critical:
+        cpu_usage: ">95%"
+        memory_usage: ">90%"
+        response_time: "p99 > 5s"
+        error_rate: ">5%"
+        score_threshold: 0.9
+
+      warning:
+        cpu_usage: "80-95%"
+        memory_usage: "70-90%"
+        response_time: "p99 > 2s"
+        error_rate: "1-5%"
+        score_threshold: 0.7
+
+      info:
+        cpu_usage: "70-80%"
+        memory_usage: "60-70%"
+        response_time: "p95 > 1s"
+        error_rate: "0.5-1%"
+        score_threshold: 0.5
+
+    # 异常响应策略
+    response_strategies:
+      auto_investigate:
+        enabled: true
+        max_concurrent: 5
+        timeout: "10m"
+
+      auto_remediate:
+        enabled: false  # 需要人工确认
+        actions:
+          - name: "scale_up"
+            condition: "cpu_anomaly"
+            min_confidence: 0.85
+          - name: "restart_pod"
+            condition: "memory_anomaly"
+            min_confidence: 0.9
+
+      alert_routing:
+        critical:
+          immediate: true
+          channels: ["pagerduty", "slack-critical"]
+          escalation: "5m"
+
+        warning:
+          immediate: false
+          channels: ["slack", "email"]
+          escalation: "30m"
+
+  # 异常检测规则
+  detection_rules.yaml: |
+    # 异常检测规则定义
+    rules:
+      # 规则1: CPU使用率异常
+      - name: "CPUUsageAnomaly"
+        description: "CPU使用率异常波动检测"
+        model: "cpu_anomaly"
+        scope:
+          services: ["*"]
+          namespaces: ["basebackend"]
+        conditions:
+          - metric: "cpu_usage_percent"
+            operator: ">"
+            threshold: 90
+            duration: "5m"
+        actions:
+          - type: "alert"
+            template: "cpu_anomaly"
+          - type: "investigate"
+            depth: "shallow"
+          - type: "collect_diagnostics"
+            artifacts: ["top", "perf", "strace"]
+
+      # 规则2: 内存泄漏检测
+      - name: "MemoryLeakDetection"
+        description: "内存持续增长检测"
+        model: "memory_anomaly"
+        scope:
+          services: ["*"]
+          namespaces: ["basebackend"]
+        conditions:
+          - metric: "memory_usage_percent"
+            operator: "increasing"
+            rate: ">5%"
+            duration: "15m"
+        actions:
+          - type: "alert"
+            template: "memory_leak"
+          - type: "investigate"
+            depth: "deep"
+          - type: "heap_dump"
+            if: "severity == critical"
+          - type: "restart_recommendation"
+
+      # 规则3: 响应时间异常
+      - name: "LatencyAnomaly"
+        description: "API响应时间异常检测"
+        model: "latency_anomaly"
+        scope:
+          services: ["*-api", "*-gateway"]
+          endpoints: ["*/api/*"]
+        conditions:
+          - metric: "response_time_p99"
+            operator: ">"
+            threshold: "2s"
+            duration: "3m"
+          - metric: "error_rate"
+            operator: ">"
+            threshold: "1%"
+            duration: "3m"
+        actions:
+          - type: "alert"
+            template: "latency_anomaly"
+          - type: "investigate"
+            depth: "medium"
+          - type: "trace_analysis"
+            service: "{{service}}"
+          - type: "profiling"
+            duration: "2m"
+
+      # 规则4: 流量异常
+      - name: "TrafficAnomaly"
+        description: "流量模式异常检测"
+        model: "business_anomaly"
+        scope:
+          services: ["*-gateway", "*-auth-service"]
+        conditions:
+          - metric: "request_rate"
+            operator: "anomaly"
+            confidence: ">0.8"
+          - metric: "user_login_count"
+            operator: "anomaly"
+            confidence: ">0.8"
+        actions:
+          - type: "alert"
+            template: "traffic_anomaly"
+          - type: "security_scan"
+            if: "anomaly_type == sudden_spike"
+          - type: "capacity_check"
+
+      # 规则5: 数据库连接异常
+      - name: "DatabaseConnectionAnomaly"
+        description: "数据库连接数异常"
+        model: "statistical"
+        algorithm: "zscore"
+        scope:
+          services: ["*-database", "*-user-service"]
+        conditions:
+          - metric: "db_connections_active"
+            operator: ">"
+            threshold: "mean + 3*std"
+          - metric: "db_query_duration"
+            operator: ">"
+            threshold: "5s"
+            duration: "2m"
+        actions:
+          - type: "alert"
+            template: "database_connection"
+          - type: "investigate"
+            depth: "deep"
+          - type: "db_analysis"
+            queries: ["slow", "locking", "deadlocks"]
+          - type: "connection_pool_recommendation"
+
+      # 规则6: 磁盘IO异常
+      - name: "DiskIOAnomaly"
+        description: "磁盘IO性能异常"
+        model: "statistical"
+        algorithm: "ewma"
+        scope:
+          nodes: ["*"]
+        conditions:
+          - metric: "disk_io_util"
+            operator: ">"
+            threshold: 90
+            duration: "5m"
+          - metric: "disk_latency"
+            operator: ">"
+            threshold: "50ms"
+            duration: "5m"
+        actions:
+          - type: "alert"
+            template: "disk_io"
+          - type: "investigate"
+            depth: "shallow"
+          - type: "iostat_collect"
+          - type: "storage_check"
+
+      # 规则7: 网络延迟异常
+      - name: "NetworkLatencyAnomaly"
+        description: "网络延迟异常"
+        model: "network_anomaly"
+        scope:
+          services: ["*"]
+        conditions:
+          - metric: "network_latency"
+            operator: ">"
+            threshold: "100ms"
+            percentile: 95
+            duration: "5m"
+          - metric: "packet_loss"
+            operator: ">"
+            threshold: "1%"
+            duration: "2m"
+        actions:
+          - type: "alert"
+            template: "network_latency"
+          - type: "ping_test"
+            targets: ["upstream", "downstream"]
+          - type: "trace_route"
+
+      # 规则8: 容器重启异常
+      - name: "ContainerRestartAnomaly"
+        description: "容器频繁重启检测"
+        model: "statistical"
+        algorithm: "count_threshold"
+        scope:
+          pods: ["*"]
+        conditions:
+          - metric: "restart_count"
+            operator: ">"
+            threshold: 3
+          - metric: "restart_rate"
+            operator: ">"
+            threshold: "1/hour"
+            duration: "30m"
+        actions:
+          - type: "alert"
+            template: "container_restart"
+          - type: "investigate"
+            depth: "deep"
+          - type: "logs_analysis"
+            last: "10m"
+          - type: "event_analysis"
+
+      # 规则9: 资源配额异常
+      - name: "ResourceQuotaAnomaly"
+        description: "资源配额使用异常"
+        model: "statistical"
+        algorithm: "trend_analysis"
+        scope:
+          namespaces: ["basebackend"]
+        conditions:
+          - metric: "quota_usage_percent"
+            operator: ">"
+            threshold: 90
+          - metric: "quota_usage_trend"
+            operator: "increasing"
+            rate: ">10%/day"
+        actions:
+          - type: "alert"
+            template: "resource_quota"
+          - type: "usage_analysis"
+          - type: "capacity_planning"
+
+  # 异常处理工作流
+  workflows.yaml: |
+    # 异常处理自动化工作流
+    workflows:
+      # 工作流1: CPU异常处理
+      cpu_anomaly_workflow:
+        name: "CPU异常处理工作流"
+        trigger:
+          rule: "CPUUsageAnomaly"
+          severity: ["warning", "critical"]
+        steps:
+          - step: "diagnose"
+            action: "collect_cpu_metrics"
+            timeout: "2m"
+          - step: "analyze"
+            action: "analyze_cpu_pattern"
+            timeout: "3m"
+          - step: "recommend"
+            action: "generate_recommendation"
+            conditions:
+              - if: "confidence > 0.8"
+                then: "scale_recommendation"
+              - else: "manual_review"
+          - step: "execute"
+            action: "auto_remediate"
+            conditions:
+              - if: "auto_remediate_enabled && confidence > 0.9"
+                then: "scale_up"
+          - step: "verify"
+            action: "verify_fix"
+            timeout: "5m"
+
+      # 工作流2: 内存泄漏处理
+      memory_leak_workflow:
+        name: "内存泄漏处理工作流"
+        trigger:
+          rule: "MemoryLeakDetection"
+          severity: ["critical"]
+        steps:
+          - step: "immediate_action"
+            action: "capture_heap_dump"
+            timeout: "1m"
+          - step: "diagnose"
+            action: "analyze_memory_pattern"
+            timeout: "5m"
+          - step: "investigate"
+            action: "find_leak_source"
+            timeout: "10m"
+          - step: "recommend"
+            action: "recommend_restart"
+          - step: "execute"
+            action: "schedule_restart"
+            conditions:
+              - if: "confirmed_leak"
+                then: "graceful_restart"
+          - step: "monitor"
+            action: "monitor_memory_after_restart"
+            duration: "30m"
+
+      # 工作流3: 延迟异常处理
+      latency_anomaly_workflow:
+        name: "延迟异常处理工作流"
+        trigger:
+          rule: "LatencyAnomaly"
+          severity: ["warning", "critical"]
+        steps:
+          - step: "trace"
+            action: "collect_traces"
+            timeout: "2m"
+          - step: "analyze"
+            action: "find_slow_spans"
+            timeout: "3m"
+          - step: "correlate"
+            action: "correlate_logs_metrics_traces"
+            timeout: "5m"
+          - step: "recommend"
+            action: "optimization_recommendations"
+          - step: "execute"
+            action: "apply_optimizations"
+            conditions:
+              - if: "optimization_type == config"
+                then: "update_config"
+              - if: "optimization_type == code"
+                then: "flag_for_review"
+
+      # 工作流4: 安全事件处理
+      security_event_workflow:
+        name: "安全事件处理工作流"
+        trigger:
+          rule: "TrafficAnomaly"
+          conditions:
+            - if: "anomaly_type == security"
+        steps:
+          - step: "alert"
+            action: "immediate_security_alert"
+          - step: "investigate"
+            action: "security_investigation"
+            timeout: "5m"
+          - step: "contain"
+            action: "activate_security_protocols"
+          - step: "analyze"
+            action: "threat_analysis"
+          - step: "report"
+            action: "generate_security_report"
+          - step: "escalate"
+            action: "escalate_to_security_team"
+            conditions:
+              - if: "threat_level == high"
+
+  # 异常分类与标签
+  classification.yaml: |
+    # 异常分类体系
+    anomaly_types:
+      # 按性能分类
+      performance:
+        - name: "cpu_spike"
+          description: "CPU使用率激增"
+          category: "compute"
+          auto_remediable: true
+
+        - name: "memory_leak"
+          description: "内存泄漏"
+          category: "compute"
+          auto_remediable: false
+
+        - name: "disk_full"
+          description: "磁盘空间不足"
+          category: "storage"
+          auto_remediable: false
+
+        - name: "io_slow"
+          description: "IO性能下降"
+          category: "storage"
+          auto_remediable: true
+
+      # 按网络分类
+      network:
+        - name: "latency_spike"
+          description: "网络延迟激增"
+          category: "network"
+          auto_remediable: true
+
+        - name: "packet_loss"
+          description: "数据包丢失"
+          category: "network"
+          auto_remediable: false
+
+        - name: "bandwidth_exhaustion"
+          description: "带宽耗尽"
+          category: "network"
+          auto_remediable: true
+
+      # 按业务分类
+      business:
+        - name: "traffic_spike"
+          description: "流量激增"
+          category: "business"
+          auto_remediable: true
+
+        - name: "error_rate_spike"
+          description: "错误率激增"
+          category: "business"
+          auto_remediable: false
+
+        - name: "conversion_drop"
+          description: "转化率下降"
+          category: "business"
+          auto_remediable: false
+
+    # 标签体系
+    labels:
+      # 技术标签
+      tech:
+        - "kubernetes"
+        - "docker"
+        - "istio"
+        - "prometheus"
+        - "grafana"
+
+      # 严重性标签
+      severity:
+        - "p1_critical"  # 影响核心业务
+        - "p2_high"      # 影响主要功能
+        - "p3_medium"    # 影响次要功能
+        - "p4_low"       # 轻微影响
+
+      # 自动化标签
+      automation:
+        - "auto_detected"
+        - "auto_investigated"
+        - "auto_remediated"
+        - "manual_review_required"
+
+      # 根因标签
+      root_cause:
+        - "code_issue"
+        - "config_error"
+        - "resource_exhaustion"
+        - "external_dependency"
+        - "unknown"

@@ -1,0 +1,465 @@
+# BaseBackend微服务GitHub Actions CI/CD工作流
+# 支持多服务并行构建、测试、安全扫描、自动部署
+
+name: BaseBackend CI/CD
+
+# 触发条件
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 每日凌晨2点构建
+    - cron: '0 2 * * *'
+
+# 全局环境变量
+env:
+  REGISTRY: harbor.basebackend.com
+  IMAGE_NAME: basebackend
+  HELM_VERSION: 3.13.0
+  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+# 默认资源
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 工作流程
+jobs:
+  # 作业1: 环境准备
+  prepare:
+    name: Prepare Environment
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.discover.outputs.services }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Discover services
+        id: discover
+        run: |
+          # 发现所有微服务
+          services=$(find . -name "pom.xml" -type f -not -path "./deployment/*" -not -path "./docs/*" | xargs dirname | sort | jq -R . | jq -s .)
+          echo "services=$services" >> $GITHUB_OUTPUT
+          echo "Discovered services: $services"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+  # 作业2: 静态代码分析
+  code-analysis:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up SonarQube
+        uses: sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+      - name: Run SonarQube analysis
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=basebackend \
+            -Dsonar.projectName=BaseBackend \
+            -Dsonar.projectVersion=${{ github.run_number }} \
+            -Dsonar.sources=. \
+            -Dsonar.java.binaries=target/classes \
+            -Dsonar.tests=src/test/java \
+            -Dsonar.test.inclusions=**/*Test*.java \
+            -Dsonar.coverage.exclusions=**/*Configuration*.java,**/Application*.java \
+            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ env.SONAR_TOKEN }}
+
+  # 作业3: 并行构建所有服务
+  build-services:
+    name: Build Services
+    runs-on: ubuntu-latest
+    needs: [prepare, code-analysis]
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.services) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build service
+        run: |
+          cd ${{ matrix.service }}
+          mvn clean compile
+          mvn test -Dskip.integration.tests=true
+          mvn package -DskipTests
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+          retention-days: 30
+
+  # 作业4: 构建Docker镜像
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [prepare, build-services]
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.services) }}
+    outputs:
+      image-digest-${{ matrix.service }}: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=${{ matrix.service }}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output digest
+        run: echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+  # 作业5: 安全扫描
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [prepare, build-images]
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.services) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # 作业6: 集成测试
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [prepare, build-images]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: basebackend_test
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      redis:
+        image: redis:7.0
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for MySQL..."
+          timeout 60 bash -c 'until nc -z localhost 3306; do sleep 1; done'
+          echo "Waiting for Redis..."
+          timeout 60 bash -c 'until nc -z localhost 6379; do sleep 1; done'
+
+      - name: Run integration tests
+        run: |
+          cd basebackend-admin-api
+          mvn verify -Pintegration-test -Dskip.unit.tests=true
+
+      - name: Archive integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: basebackend-admin-api/target/failsafe-reports/
+          retention-days: 30
+
+  # 作业7: E2E测试
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [prepare, build-images]
+    services:
+      mongo:
+        image: mongo:7.0
+        options: >-
+          --health-cmd="mongo --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Run E2E tests
+        run: |
+          npx cypress run
+
+      - name: Archive E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            cypress/screenshots/
+            cypress/videos/
+          retention-days: 30
+
+  # 作业8: 部署到开发环境
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [build-images, integration-tests]
+    if: github.ref == 'refs/heads/develop'
+    environment: development
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_DEV }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          kubectl version
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=kubeconfig
+          for service in ${{ fromJson(needs.prepare.outputs.services) }}; do
+            echo "Deploying $service..."
+            helm upgrade --install $service deployment/kubernetes/helm/$service \
+              --namespace basebackend-dev \
+              --create-namespace \
+              --set image.tag=${{ github.sha }} \
+              --set environment=dev \
+              --wait --timeout=600s
+          done
+
+      - name: Run smoke tests
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 60
+          curl -f https://api-dev.basebackend.com/admin/actuator/health
+          curl -f https://api-dev.basebackend.com/auth/actuator/health
+          curl -f https://api-dev.basebackend.com/user/actuator/health
+
+  # 作业9: 部署到生产环境（需要手动确认）
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-images, integration-tests]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_PROD }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          kubectl version
+
+      - name: Manual confirmation
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: ${{ vars.DEPLOY_APPROVERS }}
+          minimum-approvals: 1
+          issue-title: "Deploy ${{ github.sha }} to production"
+          issue-body: "Automatic deployment to production environment"
+          extract-issue-pattern: "deploy.*"
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=kubeconfig
+          for service in ${{ fromJson(needs.prepare.outputs.services) }}; do
+            echo "Rolling upgrade $service..."
+            helm upgrade $service deployment/kubernetes/helm/$service \
+              --namespace basebackend-prod \
+              --set image.tag=${{ github.sha }} \
+              --set environment=prod \
+              --wait --timeout=900s
+          done
+
+      - name: Run production smoke tests
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 60
+          curl -f https://api.basebackend.com/admin/actuator/health
+
+  # 作业10: 通知
+  notify:
+    name: Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-dev, deploy-prod]
+    if: always()
+    steps:
+      - name: Send notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#devops'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: |
+            ${{ github.repository }} - Build #${GITHUB_RUN_NUMBER}
+            Branch: ${{ github.ref_name }}
+            Status: ${{ job.status }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            Link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # 作业11: 生成报告
+  generate-report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [build-images, security-scan, integration-tests, e2e-tests]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate build report
+        run: |
+          mkdir -p reports
+          echo "# Build Report" > reports/build-report.md
+          echo "## Pipeline: ${{ github.run_number }}" >> reports/build-report.md
+          echo "## Commit: ${{ github.sha }}" >> reports/build-report.md
+          echo "## Branch: ${{ github.ref_name }}" >> reports/build-report.md
+          echo "## Status: ${{ job.status }}" >> reports/build-report.md
+          echo "## Timestamp: $(date -u)" >> reports/build-report.md
+
+      - name: Archive report
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report
+          path: reports/
+          retention-days: 30

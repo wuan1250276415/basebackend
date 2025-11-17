@@ -1,0 +1,346 @@
+# FinOps 成本告警规则
+# 监控成本相关指标，防止预算超支
+
+groups:
+  # ==================== 成本预算告警 ====================
+  - name: finops_budget_alerts
+    rules:
+      # 月度预算使用率告警
+      - alert: MonthlyBudgetUsageHigh
+        expr: (sum(rate(cost_total[30d])) / sum(budget_total)) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: finops
+          category: budget
+        annotations:
+          summary: "Monthly budget usage is high"
+          description: "Monthly budget usage is {{ $value }}% - approaching limit"
+          runbook_url: "https://runbooks.basebackend.com/finops/budget-usage"
+          budget_threshold: "80%"
+
+      - alert: MonthlyBudgetUsageExceeded
+        expr: (sum(rate(cost_total[30d])) / sum(budget_total)) * 100 > 100
+        for: 0m
+        labels:
+          severity: critical
+          team: finops
+          category: budget
+        annotations:
+          summary: "Monthly budget has been exceeded"
+          description: "Monthly budget usage is {{ $value }}% - budget exceeded!"
+          runbook_url: "https://runbooks.basebackend.com/finops/budget-exceeded"
+          budget_threshold: "100%"
+
+      # 日度预算使用率告警
+      - alert: DailyBudgetUsageHigh
+        expr: (sum(rate(cost_total[1d])) / sum(daily_budget_total)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          team: finops
+          category: budget
+        annotations:
+          summary: "Daily budget usage is high"
+          description: "Daily budget usage is {{ $value }}% - approaching daily limit"
+          runbook_url: "https://runbooks.basebackend.com/finops/budget-usage"
+          budget_threshold: "90%"
+
+  # ==================== 资源使用率告警 ====================
+  - name: finops_resource_alerts
+    rules:
+      # CPU 使用率过高 (成本与性能双重考虑)
+      - alert: CPUUtilizationHigh
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+          category: resource
+        annotations:
+          summary: "High CPU utilization detected"
+          description: "CPU utilization is {{ $value }}% on {{ $labels.instance }}"
+          cost_impact: "High CPU usage increases compute costs"
+          optimization_suggestion: "Consider scaling up or optimizing CPU-intensive workloads"
+
+      # 内存使用率过高
+      - alert: MemoryUtilizationHigh
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+          category: resource
+        annotations:
+          summary: "High memory utilization detected"
+          description: "Memory utilization is {{ $value }}% on {{ $labels.instance }}"
+          cost_impact: "High memory usage may require more instance types"
+          optimization_suggestion: "Consider optimizing memory usage or upgrading instance type"
+
+      # 磁盘使用率过高
+      - alert: DiskUtilizationHigh
+        expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: resource
+        annotations:
+          summary: "High disk utilization detected"
+          description: "Disk utilization is {{ $value }}% on {{ $labels.instance }}"
+          cost_impact: "High disk usage may require storage upgrades"
+          optimization_suggestion: "Consider cleaning up or moving data to cheaper storage tiers"
+
+      # Pod CPU 使用率过高
+      - alert: PodCPUUtilizationHigh
+        expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod, namespace) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+          category: resource
+        annotations:
+          summary: "High CPU utilization on pod {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has CPU usage of {{ $value }}%"
+          cost_impact: "High CPU usage increases Kubernetes compute costs"
+          optimization_suggestion: "Consider horizontal pod autoscaling or resource optimization"
+
+      # Pod 内存使用率过高
+      - alert: PodMemoryUtilizationHigh
+        expr: (container_memory_working_set_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: resource
+        annotations:
+          summary: "High memory utilization on pod {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} has memory usage of {{ $value }}% of limit"
+          cost_impact: "High memory usage may trigger out-of-memory events"
+          optimization_suggestion: "Increase memory limits or optimize memory usage"
+
+  # ==================== 成本效率告警 ====================
+  - name: finops_efficiency_alerts
+    rules:
+      # 低资源使用率 (资源浪费)
+      - alert: LowResourceUtilization
+        expr: avg_over_time(cpu_usage_percent[1h]) < 20
+        for: 30m
+        labels:
+          severity: warning
+          team: finops
+          category: efficiency
+        annotations:
+          summary: "Low resource utilization detected"
+          description: "Resource utilization is {{ $value }}% - potential cost savings"
+          cost_saving_opportunity: "Reduce resource allocation to save costs"
+          optimization_suggestion: "Consider downscaling or using smaller instance types"
+
+      # 空转的 Pod
+      - alert: IdlePod
+        expr: (container_cpu_usage_seconds_total / container_spec_cpu_quota * 100) < 5
+        for: 30m
+        labels:
+          severity: info
+          team: platform
+          category: efficiency
+        annotations:
+          summary: "Idle pod detected"
+          description: "Pod {{ $labels.pod }} has CPU usage of {{ $value }}% - potential to delete"
+          cost_saving_opportunity: "Deleting idle pods can reduce costs"
+          optimization_suggestion: "Review if this pod is necessary or can be resized"
+
+      # 冷启动次数过多 (无服务器成本)
+      - alert: HighColdStarts
+        expr: rate(cold_starts_total[1h]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: efficiency
+        annotations:
+          summary: "High cold start rate detected"
+          description: "Cold start rate is {{ $value }} per hour"
+          cost_impact: "High cold start rate increases latency and potential costs"
+          optimization_suggestion: "Consider keeping minimum instances warm to reduce cold starts"
+
+  # ==================== 存储成本告警 ====================
+  - name: finops_storage_alerts
+    rules:
+      # 存储使用率过高
+      - alert: StorageUtilizationHigh
+        expr: (storage_used_bytes / storage_total_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: storage
+        annotations:
+          summary: "High storage utilization detected"
+          description: "Storage utilization is {{ $value }}%"
+          cost_impact: "Storage costs are increasing rapidly"
+          optimization_suggestion: "Consider archiving old data or moving to cheaper storage tiers"
+
+      # 存储增长过快
+      - alert: StorageGrowthRateHigh
+        expr: rate(storage_used_bytes[1h]) > 1000000000  # 1 GB/hour
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: storage
+        annotations:
+          summary: "High storage growth rate"
+          description: "Storage is growing at {{ $value }} bytes/hour"
+          cost_impact: "Rapid storage growth increases costs"
+          optimization_suggestion: "Review data retention policies and cleanup strategies"
+
+  # ==================== 网络成本告警 ====================
+  - name: finops_network_alerts
+    rules:
+      # 网络流量过高 (出口成本)
+      - alert: HighNetworkEgress
+        expr: rate(network_egress_bytes_total[5m]) > 100000000  # 100 MB/s
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: network
+        annotations:
+          summary: "High network egress detected"
+          description: "Network egress is {{ $value }} bytes/s"
+          cost_impact: "High egress traffic incurs higher network costs"
+          optimization_suggestion: "Consider using CDN or optimizing data transfer patterns"
+
+      # 跨可用区流量过高
+      - alert: HighCrossAZTraffic
+        expr: rate(cross_az_traffic_bytes_total[5m]) > 50000000  # 50 MB/s
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+          category: network
+        annotations:
+          summary: "High cross-AZ traffic detected"
+          description: "Cross-AZ traffic is {{ $value }} bytes/s"
+          cost_impact: "Cross-AZ traffic incurs additional data transfer costs"
+          optimization_suggestion: "Keep services in same AZ when possible"
+
+  # ==================== 未使用资源告警 ====================
+  - name: finops_unused_resources
+    rules:
+      # 未使用的持久卷
+      - alert: UnusedPersistentVolume
+        expr: kube_persistentvolume_status_phase{phase="Released"} > 0
+        for: 1h
+        labels:
+          severity: info
+          team: platform
+          category: cleanup
+        annotations:
+          summary: "Unused persistent volume detected"
+          description: "PV {{ $labels.persistentvolume }} is released but not deleted"
+          cost_impact: "Released PVs may still incur costs"
+          cleanup_action: "Delete released PVs to free up resources"
+
+      # 无服务引用的 Service
+      - alert: OrphanedService
+        expr: kube_service_status_load_balancer_ingress == 0 and kube_service_created > 0
+        for: 1h
+        labels:
+          severity: info
+          team: platform
+          category: cleanup
+        annotations:
+          summary: "Orphaned service detected"
+          description: "Service {{ $labels.service }} has no load balancer ingress"
+          cost_impact: "Orphaned services may waste resources"
+          cleanup_action: "Review and remove unnecessary services"
+
+  # ==================== 成本异常告警 ====================
+  - name: finops_cost_anomalies
+    rules:
+      # 成本激增
+      - alert: SuddenCostSpike
+        expr: rate(cost_total[5m]) > (rate(cost_total[5m] offset 1h)) * 2
+        for: 0m
+        labels:
+          severity: critical
+          team: finops
+          category: anomaly
+        annotations:
+          summary: "Sudden cost spike detected"
+          description: "Cost is spiking at {{ $value }} vs {{ $value }} at same time yesterday"
+          cost_impact: "Unexpected cost increase"
+          investigation_action: "Review recent deployments and resource changes"
+
+      # 夜间成本异常
+      - alert: NightTimeCostAnomaly
+        expr: (hour() >= 22 or hour() <= 6) and rate(cost_total[5m]) > avg_over_time(rate(cost_total[5m] offset 24h)[1h]) * 3
+        for: 30m
+        labels:
+          severity: warning
+          team: finops
+          category: anomaly
+        annotations:
+          summary: "Night-time cost anomaly detected"
+          description: "Night-time cost is significantly higher than expected"
+          cost_impact: "Unexpected overnight costs"
+          investigation_action: "Check for runaway processes or incorrect deployments"
+
+  # ==================== 资源配额告警 ====================
+  - name: finops_resource_quota_alerts
+    rules:
+      # CPU 配额使用率过高
+      - alert: CPUQuotaUsageHigh
+        expr: (sum(container_cpu_usage_seconds_total) / sum(kube_resourcequota_hard{resource="limits.cpu"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: quota
+        annotations:
+          summary: "CPU quota usage is high"
+          description: "CPU quota usage is {{ $value }}%"
+          quota_threshold: "80%"
+          action_required: "Consider increasing quota or optimizing resource usage"
+
+      # 内存配额使用率过高
+      - alert: MemoryQuotaUsageHigh
+        expr: (sum(container_memory_working_set_bytes) / sum(kube_resourcequota_hard{resource="limits.memory"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: quota
+        annotations:
+          summary: "Memory quota usage is high"
+          description: "Memory quota usage is {{ $value }}%"
+          quota_threshold: "80%"
+          action_required: "Consider increasing quota or optimizing resource usage"
+
+  # ==================== 成本预算配置 ====================
+  # 默认阈值配置
+  #
+  # 1. 预算告警:
+  #    - 80% 预算使用率: 警告
+  #    - 100% 预算使用率: 严重
+  #    - 日度 90% 使用率: 警告
+  #
+  # 2. 资源使用率:
+  #    - 85% CPU 使用率: 警告
+  #    - 85% 内存使用率: 警告
+  #    - 85% 磁盘使用率: 警告
+  #
+  # 3. 效率告警:
+  #    - < 20% 资源使用率: 浪费
+  #    - < 5% Pod CPU 使用率: 空转
+  #
+  # 4. 成本异常:
+  #    - 成本激增 > 2x: 严重
+  #    - 夜间成本 > 3x 平均值: 警告
+  #
+  # 5. 响应流程:
+  #    - Critical: 立即响应
+  #    - Warning: 1小时内响应
+  #    - Info: 24小时内响应

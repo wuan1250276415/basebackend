@@ -1,0 +1,111 @@
+# Chaos Mesh 压力测试实验
+# 模拟CPU、内存等资源压力
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: CPU压力
+  action: cpu
+
+  # CPU压力参数
+  cpu:
+    load: 80         # CPU负载: 80%
+    workers: 2       # 工作线程数
+
+  # 选择模式: 随机
+  mode: random
+  value: "30%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 容器名称
+  containerName: admin-api
+
+  # 故障持续时间
+  duration: "300s"
+
+  # 每天执行两次
+  scheduler:
+    cron: "0 6,18 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 内存压力
+  action: memory
+
+  # 内存压力参数
+  memory:
+    size: "128Mi"    # 内存大小: 128MB
+
+  # 选择模式: 随机
+  mode: random
+  value: "20%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-auth-service
+
+  # 容器名称
+  containerName: auth-service
+
+  # 故障持续时间
+  duration: "240s"
+
+  # 每12小时执行一次
+  scheduler:
+    cron: "0 */12 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: mixed-stress-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 混合压力
+  action: mixed
+
+  # CPU压力参数
+  cpu:
+    load: 50
+    workers: 4
+
+  # 内存压力参数
+  memory:
+    size: "256Mi"
+
+  # 选择模式: 全部
+  mode: all
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-gateway
+
+  # 容器名称
+  containerName: gateway
+
+  # 故障持续时间
+  duration: "600s"
+
+  # 每周执行一次
+  scheduler:
+    cron: "0 0 * * 0"

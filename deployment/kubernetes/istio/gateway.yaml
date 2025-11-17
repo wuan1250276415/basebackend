@@ -1,0 +1,80 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: basebackend-gateway
+  namespace: basebackend
+  labels:
+    app: basebackend
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: basebackend-tls
+    hosts:
+    - api.basebackend.com
+    - admin.basebackend.com
+    - auth.basebackend.com
+    - user.basebackend.com
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - api.basebackend.com
+    - admin.basebackend.com
+    - auth.basebackend.com
+    - user.basebackend.com
+    tls:
+      httpsRedirect: true
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: basebackend-internal-gateway
+  namespace: basebackend
+  labels:
+    app: basebackend-internal
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+  - port:
+      number: 15443
+      name: tls
+      protocol: TLS
+    tls:
+      mode: ISTIO_MUTUAL
+    hosts:
+    - "*.basebackend.svc.cluster.local"
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: basebackend-msa-gateway
+  namespace: basebackend
+  labels:
+    app: basebackend-mesh
+spec:
+  selector:
+    istio: sidecar
+  servers:
+  - port:
+      number: 15090
+      name: http-monitoring
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 15021
+      name: status-port
+      protocol: HTTP
+    hosts:
+    - "*"

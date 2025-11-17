@@ -1,0 +1,34 @@
+[
+  {
+    "resource": "user-getById",
+    "grade": 1,
+    "count": 100,
+    "paramIdx": 0,
+    "durationInSec": 1,
+    "controlBehavior": 0,
+    "maxQueueingTimeMs": 0,
+    "burstCount": 0,
+    "clusterMode": false,
+    "clusterConfig": {
+      "flowId": 1,
+      "thresholdType": 0,
+      "fallbackToLocalWhenFail": true
+    }
+  },
+  {
+    "resource": "role-getById",
+    "grade": 1,
+    "count": 100,
+    "paramIdx": 0,
+    "durationInSec": 1,
+    "controlBehavior": 0,
+    "maxQueueingTimeMs": 0,
+    "burstCount": 0,
+    "clusterMode": false,
+    "clusterConfig": {
+      "flowId": 2,
+      "thresholdType": 0,
+      "fallbackToLocalWhenFail": true
+    }
+  }
+]

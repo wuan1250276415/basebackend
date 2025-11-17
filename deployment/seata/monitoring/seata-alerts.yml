@@ -1,0 +1,192 @@
+# Seata 分布式事务告警规则
+
+groups:
+  # Seata 事务告警
+  - name: seata_transaction_alerts
+    rules:
+      # 事务失败率过高
+      - alert: SeataTransactionFailureRateHigh
+        expr: |
+          (
+            rate(seata_global_table_status{status="2"}[5m]) +
+            rate(seata_global_table_status{status="4"}[5m]) +
+            rate(seata_global_table_status{status="5"}[5m])
+          ) / rate(seata_global_table_status[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata 事务失败率过高"
+          description: "Seata 事务失败率: {{ $value | humanizePercentage }}，超过阈值 10%"
+          runbook_url: "https://docs.seata.io/zh-cn/docs/dev/ops/troubleshoot"
+
+      # 事务超时
+      - alert: SeataTransactionTimeout
+        expr: |
+          histogram_quantile(0.95,
+            rate(seata_global_table_transaction_duration_seconds_bucket[5m])
+          ) > 60
+        for: 1m
+        labels:
+          severity: critical
+          service: seata
+        annotations:
+          summary: "Seata 事务执行超时"
+          description: "P95 事务执行时间: {{ $value }}秒，阈值 60秒"
+          runbook_url: "https://docs.seata.io/zh-cn/docs/dev/ops/troubleshoot"
+
+      # 活跃事务数过多
+      - alert: SeataActiveTransactionsHigh
+        expr: seata_global_table_status{status="1"} > 100
+        for: 1m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata 活跃事务数过多"
+          description: "活跃事务数: {{ $value }}，超过阈值 100"
+          runbook_url: "https://docs.seata.io/zh-cn/docs/dev/ops/troubleshoot"
+
+      # 事务补偿频繁
+      - alert: SeataTransactionCompensationFrequent
+        expr: rate(seata_global_table_status{status="6"}[5m]) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata 事务补偿频繁"
+          description: "事务补偿频率: {{ $value }}/分钟，补偿过多说明系统不稳定"
+
+      # 锁等待时间过长
+      - alert: SeataLockWaitTimeHigh
+        expr: |
+          histogram_quantile(0.95,
+            rate(seata_lock_table_wait_time_seconds_bucket[5m])
+          ) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata 锁等待时间过长"
+          description: "P95 锁等待时间: {{ $value }}秒，阈值 10秒"
+
+      # 分支事务数量异常
+      - alert: SeataBranchTransactionsAbnormal
+        expr: |
+          (
+            rate(seata_branch_table_status[5m]) /
+            rate(seata_global_table_status[5m])
+          ) < 1.5
+        for: 5m
+        labels:
+          severity: info
+          service: seata
+        annotations:
+          summary: "Seata 分支事务数量异常"
+          description: "平均分支事务数: {{ $value }}，每个全局事务应有至少 1 个分支事务"
+
+      # 全局事务未完成时间过长
+      - alert: SeataTransactionIncompleteLong
+        expr: |
+          time() - seata_global_table_begin_time_seconds > 300
+        for: 3m
+        labels:
+          severity: critical
+          service: seata
+        annotations:
+          summary: "Seata 全局事务未完成时间过长"
+          description: "事务已执行: {{ $value }}秒，超过 5 分钟未完成"
+
+  # Seata Server 系统告警
+  - name: seata_system_alerts
+    rules:
+      # Server 内存使用率高
+      - alert: SeataServerMemoryUsageHigh
+        expr: (1 - (jvm_memory_used_bytes{job="seata-server"} / jvm_memory_max_bytes{job="seata-server"})) * 100 < 20
+        for: 3m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata Server 内存使用率过高"
+          description: "内存使用率: {{ $value }}%，剩余可用内存不足 20%"
+
+      # Server GC 频繁
+      - alert: SeataServerGCFrequent
+        expr: rate(jvm_gc_collection_seconds_sum{job="seata-server"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata Server GC 频繁"
+          description: "GC 频率: {{ $value }}/秒，频率过高说明内存压力较大"
+
+      # Server 线程池异常
+      - alert: SeataServerThreadPoolAbnormal
+        expr: |
+          jvm_threads_active{job="seata-server"} / jvm_threads_max{job="seata-server"} > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata Server 线程池使用率过高"
+          description: "线程池使用率: {{ $value | humanizePercentage }}，超过 80%"
+
+  # Seata 客户端告警
+  - name: seata_client_alerts
+    rules:
+      # 客户端注册失败
+      - alert: SeataClientRegisterFailed
+        expr: increase(seata_client_register_fail_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: seata
+        annotations:
+          summary: "Seata 客户端注册失败频繁"
+          description: "5分钟内客户端注册失败: {{ $value }}次"
+
+      # 客户端重试过多
+      - alert: SeataClientRetryFrequent
+        expr: increase(seata_client_retry_total[5m]) > 50
+        for: 3m
+        labels:
+          severity: warning
+          service: seata
+        annotations:
+          summary: "Seata 客户端重试频繁"
+          description: "5分钟内客户端重试: {{ $value }}次"
+
+  # 业务服务告警
+  - name: business_service_alerts
+    rules:
+      # 分布式事务成功率低
+      - alert: DistributedTransactionSuccessRateLow
+        expr: |
+          (
+            sum(rate(seata_global_table_status{status="1",job=~".*-service"}[5m])) /
+            sum(rate(seata_global_table_status{job=~".*-service"}[5m]))
+          ) * 100 < 95
+        for: 2m
+        labels:
+          severity: critical
+          service: distributed-transaction
+        annotations:
+          summary: "分布式事务成功率过低"
+          description: "服务: {{ $job }}，成功率: {{ $value }}%，低于 95%"
+
+      # 服务中断
+      - alert: ServiceDown
+        expr: up{job=~".*-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: distributed-transaction
+        annotations:
+          summary: "服务中断"
+          description: "服务: {{ $job }} 已中断超过 1 分钟"

@@ -1,0 +1,66 @@
+# 权限服务网关路由配置
+# 创建时间: 2025-11-15
+# 描述: 配置权限服务的网关路由、限流、熔断等
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # 权限服务路由
+        - id: auth-service
+          uri: lb://basebackend-auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            # 请求限流
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+            # 熔断降级
+            - name: CircuitBreaker
+              args:
+                name: auth-service-circuit-breaker
+                fallbackUri: forward:/fallback/auth
+            # 请求响应头过滤
+            - StripPrefix=1
+            # 重试机制
+            - name: Retry
+              args:
+                retries: 3
+                statuses: 503,502,504
+                methods: GET,POST
+                backoff:
+                  initial-interval: 100
+                  factor: 2
+                  max-interval: 1000
+
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-headers: "*"
+            allowed-methods: "*"
+            expose-headers: "X-Auth-Token,Authorization"
+            allow-credentials: true
+            max-age: 3600
+
+      # 默认过滤器
+      default-filters:
+        # 移除响应头中的敏感信息
+        - name: RemoveResponseHeader
+          args:
+            name: Server
+        - name: RemoveResponseHeader
+          args:
+            name: X-Powered-By
+        # 添加响应头
+        - name: AddResponseHeader
+          args:
+            name: X-Gateway-Server
+            value: basebackend-gateway
+        # 请求日志
+        - name: RequestSize
+          args:
+            max-size: 10MB

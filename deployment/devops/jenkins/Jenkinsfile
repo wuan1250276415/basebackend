@@ -1,0 +1,705 @@
+// BaseBackend微服务CI/CD流水线
+// 支持多服务并行构建、自动测试、安全扫描、镜像推送、自动部署
+
+pipeline {
+    agent none
+
+    // 环境变量
+    environment {
+        DOCKER_REGISTRY = 'harbor.basebackend.com'
+        DOCKER_REGISTRY_CREDENTIALS = 'harbor-registry'
+        GIT_CREDENTIALS = 'git-credentials'
+        KUBECONFIG_CREDENTIALS = 'kubeconfig'
+        SONAR_TOKEN = 'sonarqube-token'
+        NEXUS_URL = 'https://nexus.basebackend.com'
+        NEXUS_CREDENTIALS = 'nexus-credentials'
+        SLACK_WEBHOOK = 'slack-webhook'
+    }
+
+    // 触发器
+    triggers {
+        // GitHub Pull Request
+        githubPullRequest()
+        // 代码提交
+        pollSCM('H/5 * * * *')
+        // 定时构建
+        cron('0 2 * * *')
+    }
+
+    // 参数化构建
+    parameters {
+        string(name: 'SERVICE_NAME', defaultValue: 'all', description: '要构建的服务名称 (admin-api, auth-service, user-service, gateway, all)')
+        string(name: 'BRANCH', defaultValue: 'develop', description: 'Git分支')
+        string(name: 'BUILD_ENV', defaultValue: 'dev', description: '构建环境 (dev, test, prod)')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: '是否运行单元测试')
+        booleanParam(name: 'RUN_INTEGRATION_TESTS', defaultValue: true, description: '是否运行集成测试')
+        booleanParam(name: 'RUN_SECURITY_SCAN', defaultValue: true, description: '是否运行安全扫描')
+        booleanParam(name: 'DEPLOY_TO_DEV', defaultValue: false, description: '是否部署到开发环境')
+        booleanParam(name: 'DEPLOY_TO_TEST', defaultValue: false, description: '是否部署到测试环境')
+        booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: '是否部署到生产环境')
+    }
+
+    // 流水线阶段
+    stages {
+        // 阶段1: 环境准备
+        stage('Environment Setup') {
+            parallel {
+                stage('Prepare Docker') {
+                    agent {
+                        docker {
+                            image 'docker:24.0-dind'
+                            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                docker version
+                                docker info
+                                docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASSWORD} ${DOCKER_REGISTRY}
+                            '''
+                        }
+                    }
+                }
+
+                stage('Prepare Tools') {
+                    agent {
+                        docker {
+                            image 'maven:3.9-openjdk-17'
+                        }
+                    }
+                    steps {
+                        sh '''
+                            mvn --version
+                            java -version
+                            helm version
+                            kubectl version --client
+                        '''
+                    }
+                }
+            }
+        }
+
+        // 阶段2: 代码获取和静态分析
+        stage('Code Analysis') {
+            parallel {
+                stage('Checkout') {
+                    agent any
+                    steps {
+                        checkout scm
+                        script {
+                            // 获取所有微服务列表
+                            if (params.SERVICE_NAME == 'all') {
+                                env.SERVICES = sh(
+                                    script: 'find . -name "pom.xml" -type f -not -path "./deployment/*" -not -path "./docs/*" | xargs dirname | sort',
+                                    returnStdout: true
+                                ).trim()
+                                env.SERVICE_ARRAY = env.SERVICES.split('\n')
+                            } else {
+                                env.SERVICE_ARRAY = [params.SERVICE_NAME]
+                            }
+                            echo "Services to build: ${env.SERVICE_ARRAY.join(', ')}"
+                        }
+                    }
+                }
+
+                stage('SonarQube Analysis') {
+                    agent any
+                    when {
+                        anyOf {
+                            branch 'develop'
+                            branch 'main'
+                            changeRequest()
+                        }
+                    }
+                    steps {
+                        script {
+                            def sonarQubeScannerHome = tool 'SonarQube Scanner'
+                            sh """
+                                ${sonarQubeScannerHome}/bin/sonar-scanner \\
+                                    -Dsonar.projectKey=basebackend \\
+                                    -Dsonar.projectName=BaseBackend \\
+                                    -Dsonar.projectVersion=${env.BUILD_NUMBER} \\
+                                    -Dsonar.sources=. \\
+                                    -Dsonar.java.binaries=target/classes \\
+                                    -Dsonar.tests=src/test/java \\
+                                    -Dsonar.test.inclusions=**/*Test*.java \\
+                                    -Dsonar.coverage.exclusions=**/*Configuration*.java,**/Application*.java \\
+                                    -Dsonar.host.url=${SONAR_HOST_URL} \\
+                                    -Dsonar.login=${SONAR_TOKEN}
+                            """
+                        }
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'target/surefire-reports/TEST-*.xml'
+                        }
+                        unstable {
+                            // 测试质量门槛
+                            timeout(time: 1, unit: 'HOURS') {
+                                input message: 'SonarQube quality gate failed. Do you want to continue?', ok: 'Continue'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 阶段3: 并行构建所有服务
+        stage('Parallel Build') {
+            parallel {
+                // 获取所有服务
+                script {
+                    def services = []
+                    if (params.SERVICE_NAME == 'all') {
+                        // 从目录结构自动发现服务
+                        def serviceDirs = findFiles(glob: '*/pom.xml')
+                        services = serviceDirs.collect { it.path.split('/')[0] }
+                    } else {
+                        services = [params.SERVICE_NAME]
+                    }
+                    env.SERVICE_LIST = services.join(',')
+                }
+
+                // 为每个服务创建构建任务
+                script {
+                    env.SERVICE_ARRAY.split(',').each { service ->
+                        def serviceName = service.trim()
+                        if (serviceName && serviceName != '') {
+                            "build_${serviceName.replace('-', '_')}" {
+                                buildService(serviceName)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 阶段4: 集成测试
+        stage('Integration Tests') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'main'
+                    allParamsTrue('RUN_INTEGRATION_TESTS')
+                }
+            }
+            parallel {
+                stage('API Integration Tests') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running API integration tests..."
+                                # 运行集成测试
+                                mvn clean verify -Pintegration-test -Dskip.unit.tests=true
+                            '''
+                        }
+                        publishTestResults testResultsPattern: 'target/failsafe-reports/TEST-*.xml'
+                    }
+                }
+
+                stage('Contract Tests') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running contract tests..."
+                                # 运行契约测试
+                                ./scripts/run-contract-tests.sh
+                            '''
+                        }
+                    }
+                }
+
+                stage('Load Tests') {
+                    agent {
+                        docker {
+                            image 'loadimpact/k6'
+                        }
+                    }
+                    when {
+                        anyOf {
+                            branch 'main'
+                            allParamsTrue('RUN_LOAD_TESTS')
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running load tests..."
+                                k6 run --out json=test-results.json tests/load/test-scenarios.js
+                            '''
+                        }
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: '.',
+                            reportFiles: 'test-results.html',
+                            reportName: 'Load Test Report'
+                        ])
+                    }
+                }
+            }
+        }
+
+        // 阶段5: 安全扫描
+        stage('Security Scanning') {
+            when {
+                allParamsTrue('RUN_SECURITY_SCAN')
+            }
+            parallel {
+                stage('Dependency Check') {
+                    agent {
+                        docker {
+                            image 'owasp/dependency-check:latest'
+                        }
+                    }
+                    steps {
+                        sh '''
+                            dependency-check.sh \
+                                --project "BaseBackend" \
+                                --scan . \
+                                --format "ALL" \
+                                --out "dependency-check-reports"
+                        '''
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'dependency-check-reports',
+                            reportFiles: 'dependency-check-report.html',
+                            reportName: 'Dependency Check Report'
+                        ])
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'dependency-check-reports/**/*', allowEmptyArchive: true
+                        }
+                    }
+                }
+
+                stage('Container Security Scan') {
+                    agent {
+                        docker {
+                            image 'aquasec/trivy:latest'
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                echo "Scanning container images..."
+                                # 扫描所有镜像
+                                for service in ${SERVICE_ARRAY}; do
+                                    echo "Scanning ${service}..."
+                                    trivy image --format json --output ${service}-scan.json ${DOCKER_REGISTRY}/${service}:${env.BUILD_NUMBER}
+                                done
+                            '''
+                        }
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportFiles: '*.html',
+                            reportName: 'Container Security Report'
+                        ])
+                    }
+                }
+
+                stage('SAST Scan') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running SAST scan..."
+                                # 使用Semgrep进行静态代码分析
+                                semgrep --config=auto --json --output=semgrep-results.json .
+                            '''
+                        }
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportFiles: 'semgrep-results.html',
+                            reportName: 'SAST Report'
+                        ])
+                    }
+                }
+            }
+        }
+
+        // 阶段6: 部署到开发环境
+        stage('Deploy to Dev') {
+            when {
+                allOf {
+                    anyOf {
+                        branch 'develop'
+                        allParamsTrue('DEPLOY_TO_DEV')
+                    }
+                }
+            }
+            parallel {
+                stage('Deploy Services') {
+                    agent {
+                        docker {
+                            image 'bitnami/kubectl:latest'
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                echo "Deploying to development environment..."
+                                # 配置kubectl
+                                kubectl config use-context dev-cluster
+                                # 部署服务
+                                for service in ${SERVICE_ARRAY}; do
+                                    echo "Deploying ${service}..."
+                                    helm upgrade --install ${service} ./deployment/kubernetes/helm/${service} \\
+                                        --namespace basebackend-dev \\
+                                        --create-namespace \\
+                                        --set image.tag=${env.BUILD_NUMBER} \\
+                                        --set environment=dev \\
+                                        --wait --timeout=600s
+                                done
+                            '''
+                        }
+                    }
+                }
+
+                stage('Run Smoke Tests') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running smoke tests..."
+                                # 等待服务就绪
+                                sleep 60
+                                # 运行烟雾测试
+                                ./scripts/run-smoke-tests.sh dev
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        // 阶段7: 部署到测试环境
+        stage('Deploy to Test') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'release/*'
+                    allParamsTrue('DEPLOY_TO_TEST')
+                }
+            }
+            parallel {
+                stage('Deploy with Canary') {
+                    agent {
+                        docker {
+                            image 'bitnami/kubectl:latest'
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                echo "Deploying to test environment with canary strategy..."
+                                # 蓝绿部署
+                                kubectl config use-context test-cluster
+                                # 创建新的测试版本
+                                for service in ${SERVICE_ARRAY}; do
+                                    echo "Deploying ${service} with canary..."
+                                    helm upgrade --install ${service}-blue ./deployment/kubernetes/helm/${service} \\
+                                        --namespace basebackend-test \\
+                                        --set image.tag=${env.BUILD_NUMBER} \\
+                                        --set image.tagSuffix=-blue \\
+                                        --set environment=test \\
+                                        --wait --timeout=600s
+                                done
+                                # 流量切换
+                                ./scripts/switch-traffic.sh test blue
+                            '''
+                        }
+                    }
+                }
+
+                stage('E2E Tests') {
+                    agent {
+                        docker {
+                            image 'cypress/included:13.6.0'
+                        }
+                    }
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running end-to-end tests..."
+                                # 等待服务就绪
+                                sleep 120
+                                # 运行E2E测试
+                                cypress run --spec "cypress/e2e/**/*.cy.js"
+                            '''
+                        }
+                        publishTestResults testResultsPattern: 'cypress/results/**/*.xml'
+                    }
+                    post {
+                        always {
+                            publishHTML([
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'cypress/screenshots',
+                                reportFiles: '*.png',
+                                reportName: 'E2E Test Screenshots'
+                            ])
+                        }
+                    }
+                }
+            }
+        }
+
+        // 阶段8: 部署到生产环境
+        stage('Deploy to Production') {
+            when {
+                allOf {
+                    anyOf {
+                        branch 'main'
+                        tag 'v*'
+                    }
+                    allParamsTrue('DEPLOY_TO_PROD')
+                }
+            }
+            parallel {
+                stage('Helm Package') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Creating Helm packages..."
+                                # 为每个服务创建Helm包
+                                for service in ${SERVICE_ARRAY}; do
+                                    echo "Packaging ${service}..."
+                                    helm package ./deployment/kubernetes/helm/${service}
+                                done
+                                # 上传到Helm仓库
+                                helm repo add basebackend https://helm.basebackend.com
+                                helm repo update
+                            '''
+                        }
+                        archiveArtifacts artifacts: '*.tgz', allowEmptyArchive: true
+                    }
+                }
+
+                stage('Production Deployment') {
+                    agent {
+                        docker {
+                            image 'bitnami/kubectl:latest'
+                        }
+                    }
+                    steps {
+                        script {
+                            // 人工确认
+                            timeout(time: 30, unit: 'MINUTES') {
+                                input message: 'Deploy to production?', ok: 'Deploy'
+                            }
+                            sh '''
+                                echo "Deploying to production environment..."
+                                kubectl config use-context prod-cluster
+                                # 滚动升级
+                                for service in ${SERVICE_ARRAY}; do
+                                    echo "Rolling upgrade ${service}..."
+                                    helm upgrade ${service} ./deployment/kubernetes/helm/${service} \\
+                                        --namespace basebackend-prod \\
+                                        --set image.tag=${env.BUILD_NUMBER} \\
+                                        --set environment=prod \\
+                                        --wait --timeout=900s
+                                done
+                            '''
+                        }
+                    }
+                    post {
+                        success {
+                            // 发送成功通知
+                            sh '''
+                                curl -X POST -H 'Content-type: application/json' \
+                                --data "{\\"text\\":\\"✅ Production deployment successful for ${SERVICE_ARRAY} (Build ${env.BUILD_NUMBER})\\"}" \
+                                ${SLACK_WEBHOOK}
+                            '''
+                        }
+                        failure {
+                            // 发送失败通知和自动回滚
+                            sh '''
+                                curl -X POST -H 'Content-type: application/json' \
+                                --data "{\\"text\\":\\"❌ Production deployment failed for ${SERVICE_ARRAY} (Build ${env.BUILD_NUMBER}). Starting rollback...\\"}" \
+                                ${SLACK_WEBHOOK}
+                                # 自动回滚
+                                for service in ${SERVICE_ARRAY}; do
+                                    helm rollback ${service} -n basebackend-prod
+                                done
+                            '''
+                        }
+                    }
+                }
+
+                stage('Production Smoke Tests') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Running production smoke tests..."
+                                sleep 60
+                                ./scripts/run-smoke-tests.sh prod
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        // 阶段9: 通知和报告
+        stage('Notification & Reports') {
+            parallel {
+                stage('Generate Report') {
+                    agent any
+                    steps {
+                        script {
+                            sh '''
+                                echo "Generating build report..."
+                                ./scripts/generate-build-report.sh
+                            '''
+                        }
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'reports',
+                            reportFiles: 'build-report.html',
+                            reportName: 'Build Report'
+                        ])
+                    }
+                }
+
+                stage('Slack Notification') {
+                    agent any
+                    steps {
+                        script {
+                            def status = currentBuild.currentResult
+                            def message = ""
+                            if (status == 'SUCCESS') {
+                                message = "✅ Build #${env.BUILD_NUMBER} completed successfully for services: ${SERVICE_ARRAY}"
+                            } else {
+                                message = "❌ Build #${env.BUILD_NUMBER} failed for services: ${SERVICE_ARRAY}"
+                            }
+                            sh """
+                                curl -X POST -H 'Content-type: application/json' \
+                                --data "{\\"text\\":\\"${message}\\",\\"channel\\":\\"#devops\\"}" \
+                                ${SLACK_WEBHOOK}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 流水线完成后清理
+    post {
+        always {
+            // 清理工作空间
+            cleanWs()
+        }
+        success {
+            // 构建成功后的操作
+            script {
+                if (env.BRANCH_NAME == 'main') {
+                    // 合并到生产分支
+                    sh 'git push origin develop:main'
+                }
+            }
+        }
+        failure {
+            // 构建失败后的操作
+            script {
+                // 发送告警邮件
+                emailext (
+                    subject: "Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                    body: "Build failed. Check console output at ${env.BUILD_URL}",
+                    to: "${env.CHANGE_AUTHOR_EMAIL}",
+                    attachmentsPattern: '**/*.log'
+                )
+            }
+        }
+        unstable {
+            // 构建不稳定后的操作
+            echo "Build completed with warnings or test failures"
+        }
+    }
+}
+
+// 构建单个服务的辅助函数
+def buildService(String serviceName) {
+    return {
+        stage("Build ${serviceName}") {
+            agent {
+                docker {
+                    image 'maven:3.9-openjdk-17'
+                }
+            }
+            steps {
+                script {
+                    dir(serviceName) {
+                        sh '''
+                            echo "Building ${serviceName}..."
+                            # 清理
+                            mvn clean
+                            # 编译
+                            mvn compile
+                            # 运行单元测试
+                            mvn test -Dskip.integration.tests=true
+                            # 打包
+                            mvn package -DskipTests
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: "${serviceName}/target/surefire-reports/TEST-*.xml"
+                }
+            }
+        }
+
+        stage("Docker Image ${serviceName}") {
+            agent any
+            steps {
+                script {
+                    // 构建Docker镜像
+                    sh """
+                        echo "Building Docker image for ${serviceName}..."
+                        docker build -t ${DOCKER_REGISTRY}/${serviceName}:${env.BUILD_NUMBER} ${serviceName}
+                        docker build -t ${DOCKER_REGISTRY}/${serviceName}:latest ${serviceName}
+                    """
+                    // 推送到镜像仓库
+                    sh """
+                        echo "Pushing Docker image..."
+                        docker push ${DOCKER_REGISTRY}/${serviceName}:${env.BUILD_NUMBER}
+                        docker push ${DOCKER_REGISTRY}/${serviceName}:latest
+                    """
+                }
+            }
+            post {
+                always {
+                    // 镜像扫描
+                    sh """
+                        echo "Scanning Docker image for ${serviceName}..."
+                        trivy image --format json --output ${serviceName}-scan.json ${DOCKER_REGISTRY}/${serviceName}:${env.BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+    }
+}
+
+// 检查所有布尔参数是否为true的辅助函数
+def allParamsTrue(String paramName) {
+    return params[paramName] == true
+}

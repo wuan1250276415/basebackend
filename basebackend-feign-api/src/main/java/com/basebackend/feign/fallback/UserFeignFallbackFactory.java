@@ -61,15 +61,14 @@ public class UserFeignFallbackFactory implements FallbackFactory<UserFeignClient
             }
 
             @Override
-            public Result<List<Long>> getUserRoles(Long userId) {
-                log.error("[Feign降级] 获取用户角色失败: userId={}, error={}", userId, cause.getMessage(), cause);
+            public Result<List<Long>> getUserRoleIds(Long userId) {
+                log.error("[Feign降级] 获取用户角色ID失败: userId={}, error={}", userId, cause.getMessage(), cause);
                 return Result.success("用户服务暂时不可用，返回空列表", Collections.emptyList());
             }
 
             @Override
             public Result<Boolean> checkUsernameUnique(String username, Long userId) {
                 log.error("[Feign降级] 检查用户名唯一性失败: username={}, error={}", username, cause.getMessage(), cause);
-                // 降级时返回不唯一，避免误操作
                 return Result.success("用户服务暂时不可用，建议稍后重试", false);
             }
 
@@ -83,6 +82,42 @@ public class UserFeignFallbackFactory implements FallbackFactory<UserFeignClient
             public Result<Boolean> checkPhoneUnique(String phone, Long userId) {
                 log.error("[Feign降级] 检查手机号唯一性失败: phone={}, error={}", phone, cause.getMessage(), cause);
                 return Result.success("用户服务暂时不可用，建议稍后重试", false);
+            }
+
+            @Override
+            public Result<Void> updateUserProfile(Long userId, UserBasicDTO userDTO) {
+                log.warn("[Feign降级] 更新用户资料失败: userId={}", userId, cause);
+                return Result.error("用户服务暂时不可用，请稍后重试");
+            }
+
+            @Override
+            public Result<Void> changePassword(Long userId, String oldPassword, String newPassword) {
+                log.warn("[Feign降级] 修改用户密码失败: userId={}", userId, cause);
+                return Result.error("用户服务暂时不可用，请稍后重试");
+            }
+
+            @Override
+            public Result<List<String>> getUserPermissions(Long userId) {
+                log.error("[Feign降级] 获取用户权限失败: userId={}, error={}", userId, cause.getMessage(), cause);
+                return Result.success("用户服务暂时不可用，返回空列表", Collections.emptyList());
+            }
+
+            @Override
+            public Result<List<String>> getUserRoleNames(Long userId) {
+                log.error("[Feign降级] 获取用户角色名称失败: userId={}, error={}", userId, cause.getMessage(), cause);
+                return Result.success("用户服务暂时不可用，返回空列表", Collections.emptyList());
+            }
+
+            @Override
+            public Result<Void> updateLoginInfo(Long userId, String loginIp, String loginTime) {
+                log.warn("[Feign降级] 更新用户登录信息失败: userId={}", userId, cause);
+                return Result.error("用户服务暂时不可用，请稍后重试");
+            }
+
+            @Override
+            public Result<Void> resetPassword(Long userId, String newPassword) {
+                log.warn("[Feign降级] 重置用户密码失败: userId={}", userId, cause);
+                return Result.error("用户服务暂时不可用，请稍后重试");
             }
         };
     }

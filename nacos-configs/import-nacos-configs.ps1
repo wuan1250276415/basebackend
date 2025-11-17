@@ -11,7 +11,7 @@
 # ================================================================================================
 
 param(
-    [string]$NacosServer = "localhost:8848",
+    [string]$NacosServer = "192.168.66.126:8848",
     [string]$Namespace = "public",
     [string]$Username = "nacos",
     [string]$Password = "nacos"
@@ -39,7 +39,9 @@ if (-not (Test-Path $ConfigDir)) {
 # 导入配置文件的函数
 function Import-Config {
     param(
-        [string]$DataId
+        [string]$DataId,
+        [string]$ConfigType = "yaml",
+        [string]$ConfigGroup = $Group
     )
 
     $ConfigFile = Join-Path $ConfigDir $DataId
@@ -58,9 +60,60 @@ function Import-Config {
         # 构建请求体
         $Body = @{
             dataId   = $DataId
-            group    = $Group
+            group    = $ConfigGroup
             content  = $Content
-            type     = "yaml"
+            type     = $ConfigType
+            tenant   = $Namespace
+            username = $Username
+            password = $Password
+        }
+
+        # 发送请求到 Nacos
+        $Url = "http://$NacosServer/nacos/v1/cs/configs"
+        $Response = Invoke-RestMethod -Uri $Url -Method Post -Body $Body -ContentType "application/x-www-form-urlencoded; charset=UTF-8"
+
+        if ($Response -eq "true" -or $Response -eq $true) {
+            Write-Host "✓ 成功" -ForegroundColor Green
+            return $true
+        }
+        else {
+            Write-Host "✗ 失败" -ForegroundColor Red
+            Write-Host "  响应: $Response" -ForegroundColor Yellow
+            return $false
+        }
+    }
+    catch {
+        Write-Host "✗ 失败" -ForegroundColor Red
+        Write-Host "  错误: $($_.Exception.Message)" -ForegroundColor Yellow
+        return $false
+    }
+}
+
+# 导入 Sentinel 规则的函数
+function Import-SentinelRule {
+    param(
+        [string]$DataId
+    )
+
+    $ConfigFile = Join-Path $PSScriptRoot $DataId
+
+    if (-not (Test-Path $ConfigFile)) {
+        Write-Host "✗ 跳过（文件不存在）: $DataId" -ForegroundColor Red
+        return $false
+    }
+
+    Write-Host -NoNewline "导入 Sentinel 规则: $DataId ... "
+
+    try {
+        # 读取配置文件内容
+        $Content = Get-Content -Path $ConfigFile -Raw -Encoding UTF8
+
+        # 构建请求体
+        $Body = @{
+            dataId   = $DataId
+            group    = "SENTINEL_GROUP"
+            content  = $Content
+            type     = "json"
             tenant   = $Namespace
             username = $Username
             password = $Password
@@ -108,6 +161,33 @@ $Configs = @(
 foreach ($Config in $Configs) {
     $Total++
     if (Import-Config -DataId $Config) {
+        $Success++
+    }
+    else {
+        $Failed++
+    }
+}
+
+Write-Host ""
+Write-Host "------------------------------------------------------------------------------------------------" -ForegroundColor Cyan
+Write-Host " 导入 Sentinel 规则" -ForegroundColor Cyan
+Write-Host "------------------------------------------------------------------------------------------------" -ForegroundColor Cyan
+Write-Host ""
+
+$SentinelRules = @(
+    "basebackend-gateway-flow-rules.json",
+    "basebackend-gateway-degrade-rules.json",
+    "basebackend-gateway-gw-flow-rules.json",
+    "admin-api-flow-rules.json",
+    "admin-api-degrade-rules.json",
+    "admin-api-param-flow-rules.json",
+    "admin-api-system-rules.json",
+    "admin-api-authority-rules.json"
+)
+
+foreach ($Rule in $SentinelRules) {
+    $Total++
+    if (Import-SentinelRule -DataId $Rule) {
         $Success++
     }
     else {

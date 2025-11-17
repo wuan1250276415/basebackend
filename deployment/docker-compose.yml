@@ -1,0 +1,292 @@
+# ================================================================================================
+# BaseBackend 开发环境 Docker Compose 配置
+# ================================================================================================
+#
+# 包含服务：
+# - MySQL 8.0: 数据库
+# - Redis 7.2: 缓存
+# - Nacos 2.3: 配置中心和服务发现
+# - RocketMQ 5.1: 消息队列（NameServer + Broker）
+# - Prometheus: 监控数据收集
+# - Grafana: 监控数据可视化
+# - Zipkin: 分布式链路追踪
+#
+# 使用方法：
+# 1. 启动所有服务：docker-compose up -d
+# 2. 停止所有服务：docker-compose down
+# 3. 查看日志：docker-compose logs -f [service-name]
+# 4. 重启单个服务：docker-compose restart [service-name]
+#
+# ================================================================================================
+
+version: '3.8'
+
+# ========================================
+# 网络配置
+# ========================================
+networks:
+  basebackend-network:
+    driver: bridge
+
+# ========================================
+# 数据卷配置
+# ========================================
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  nacos-data:
+    driver: local
+  rocketmq-namesrv-data:
+    driver: local
+  rocketmq-broker-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+# ========================================
+# 服务定义
+# ========================================
+services:
+
+  # ========================================
+  # MySQL 8.0
+  # ========================================
+  mysql:
+    image: mysql:8.0.33
+    container_name: basebackend-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: basebackend
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Redis 7.2
+  # ========================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: basebackend-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ""
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ========================================
+  # Nacos 2.3.0
+  # ========================================
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: basebackend-nacos
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: root123456
+      NACOS_AUTH_ENABLE: false
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      TZ: Asia/Shanghai
+    volumes:
+      - nacos-data:/home/nacos/data
+    networks:
+      - basebackend-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ========================================
+  # RocketMQ NameServer
+  # ========================================
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: basebackend-rocketmq-namesrv
+    restart: unless-stopped
+    ports:
+      - "9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+      TZ: Asia/Shanghai
+    command: sh mqnamesrv
+    volumes:
+      - rocketmq-namesrv-data:/home/rocketmq/logs
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f mqnamesrv || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # RocketMQ Broker
+  # ========================================
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: basebackend-rocketmq-broker
+    restart: unless-stopped
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+      TZ: Asia/Shanghai
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    volumes:
+      - rocketmq-broker-data:/home/rocketmq/logs
+      - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+    networks:
+      - basebackend-network
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f mqbroker || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Prometheus
+  # ========================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: basebackend-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Grafana
+  # ========================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: basebackend-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_INSTALL_PLUGINS: ""
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      TZ: Asia/Shanghai
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - basebackend-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Zipkin (分布式链路追踪)
+  # ========================================
+  zipkin:
+    image: openzipkin/zipkin:2.24
+    container_name: basebackend-zipkin
+    restart: unless-stopped
+    ports:
+      - "9411:9411"
+    environment:
+      STORAGE_TYPE: mem
+      TZ: Asia/Shanghai
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Sentinel Dashboard (流控监控面板)
+  # ========================================
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: basebackend-sentinel-dashboard
+    restart: unless-stopped
+    ports:
+      - "8858:8858"
+    environment:
+      TZ: Asia/Shanghai
+      # Sentinel Dashboard 配置
+      JAVA_OPTS: >-
+        -Dserver.port=8858
+        -Dcsp.sentinel.dashboard.server=localhost:8858
+        -Dproject.name=sentinel-dashboard
+        -Dcsp.sentinel.api.port=8719
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8858"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

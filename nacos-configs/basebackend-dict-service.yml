@@ -1,0 +1,143 @@
+# Nacos配置 - 字典服务
+# 创建时间: 2025-11-15
+# 命名空间: basebackend
+# 分组: DEFAULT_GROUP
+# 数据ID: basebackend-dict-service.yml
+
+server:
+  port: 8083
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: basebackend-dict-service
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:basebackend_dict}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    druid:
+      initial-size: ${DRUID_INITIAL_SIZE:5}
+      min-idle: ${DRUID_MIN_IDLE:5}
+      max-active: ${DRUID_MAX_ACTIVE:20}
+      max-wait: ${DRUID_MAX_WAIT:60000}
+      time-between-eviction-runs-millis: ${DRUID_TIME_BETWEEN_EVICTION_RUNS:60000}
+      min-evictable-idle-time-millis: ${DRUID_MIN_EVICTABLE_IDLE_TIME:300000}
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: ${DRUID_MAX_POOL_PREPARED_STATEMENT_SIZE:20}
+      stat-view-servlet:
+        enabled: ${DRUID_STAT_VIEW_ENABLED:true}
+        url-pattern: /druid/*
+        login-username: ${DRUID_LOGIN_USERNAME:admin}
+        login-password: ${DRUID_LOGIN_PASSWORD:admin123}
+      filter:
+        stat:
+          enabled: ${DRUID_STAT_FILTER_ENABLED:true}
+          log-slow-sql: ${DRUID_LOG_SLOW_SQL:true}
+          slow-sql-millis: ${DRUID_SLOW_SQL_MILLIS:2000}
+        wall:
+          enabled: ${DRUID_WALL_FILTER_ENABLED:true}
+          config:
+            multi-statement-allow: true
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DB:0}
+    timeout: ${REDIS_TIMEOUT:5000ms}
+    lettuce:
+      pool:
+        max-active: ${REDIS_POOL_MAX_ACTIVE:20}
+        max-wait: ${REDIS_POOL_MAX_WAIT:-1}
+        max-idle: ${REDIS_POOL_MAX_IDLE:10}
+        min-idle: ${REDIS_POOL_MIN_IDLE:5}
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:basebackend}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        metadata:
+          version: ${SERVICE_VERSION:1.0.0}
+          zone: ${SERVICE_ZONE:zone-1}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: ${MYBATIS_CACHE_ENABLED:false}
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.stdout.StdOutImpl}
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: is_deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: NOT_NULL
+      update-strategy: NOT_NULL
+      select-strategy: NOT_EMPTY
+  mapper-locations: ${MYBATIS_MAPPER_LOCATIONS:classpath*:mapper/**/*.xml}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+  info:
+    title: ${SWAGGER_TITLE:字典服务 API}
+    description: ${SWAGGER_DESCRIPTION:系统字典管理服务}
+    version: ${SWAGGER_VERSION:1.0.0}
+
+logging:
+  level:
+    com.basebackend.dict: ${LOG_LEVEL_DICT:debug}
+    com.basebackend.dict.mapper: ${LOG_LEVEL_DICT_MAPPER:debug}
+  pattern:
+    console: "${LOG_PATTERN_CONSOLE:%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n}"
+    file: "${LOG_PATTERN_FILE:%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n}"
+  file:
+    name: ${LOG_FILE_NAME:logs/dict-service.log}
+    max-size: ${LOG_FILE_MAX_SIZE:100MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      show-details: ${ACTUATOR_HEALTH_DETAILS:when-authorized}
+  metrics:
+    export:
+      prometheus:
+        enabled: ${METRICS_PROMETHEUS_ENABLED:true}
+
+# 字典服务特有配置
+dict:
+  # 缓存配置
+  cache:
+    enabled: ${DICT_CACHE_ENABLED:true}
+    expire-time: ${DICT_CACHE_EXPIRE:1800}  # 30分钟
+    max-size: ${DICT_CACHE_MAX_SIZE:1000}
+
+  # 分页配置
+  page:
+    default-size: ${DICT_PAGE_DEFAULT_SIZE:10}
+    max-size: ${DICT_PAGE_MAX_SIZE:100}
+
+  # 业务配置
+  business:
+    max-retry-times: ${DICT_MAX_RETRY_TIMES:3}
+    timeout: ${DICT_TIMEOUT:5000}  # 5秒

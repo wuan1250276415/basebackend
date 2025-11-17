@@ -1,0 +1,139 @@
+# ========================================
+# BaseBackend Application Service 配置
+# ========================================
+# 应用服务：应用注册与配置管理
+# 端口：8086
+# 数据库：basebackend_application
+# ========================================
+
+server:
+  port: 8086
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: basebackend-application-service
+
+  # ======================================
+  # 数据源配置
+  # ======================================
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/basebackend_application?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:root}
+
+    # Druid 连接池配置
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+
+  # ======================================
+  # Cloud 配置
+  # ======================================
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+        refresh-enabled: true
+
+# ======================================
+# MyBatis Plus 配置
+# ======================================
+mybatis-plus:
+  # 实体类扫描路径
+  type-aliases-package: com.basebackend.application.entity
+  # Mapper XML 文件路径
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 配置
+  configuration:
+    # 驼峰转下划线
+    map-underscore-to-camel-case: true
+    # 日志实现
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # 全局配置
+  global-config:
+    db-config:
+      # 主键类型（雪花算法）
+      id-type: ASSIGN_ID
+      # 逻辑删除字段
+      logic-delete-field: deleted
+      # 逻辑删除值
+      logic-delete-value: 1
+      # 逻辑未删除值
+      logic-not-delete-value: 0
+
+# ======================================
+# Logging 配置
+# ======================================
+logging:
+  level:
+    root: INFO
+    com.basebackend.application: DEBUG
+    com.basebackend.application.mapper: DEBUG
+    com.alibaba.cloud.nacos: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+
+# ======================================
+# SpringDoc OpenAPI 配置
+# ======================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  packages-to-scan: com.basebackend.application.controller
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# ======================================
+# 管理端点配置
+# ======================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

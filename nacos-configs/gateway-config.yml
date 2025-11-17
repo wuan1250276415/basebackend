@@ -5,8 +5,80 @@ server:
 spring:
   cloud:
     gateway:
+      # ======================================
       # 路由配置
+      # ======================================
       routes:
+        # 用户服务路由（优先级最高）
+        - id: basebackend-user-service
+          uri: lb://basebackend-user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/$\{segment}
+        # 认证服务路由（登录、认证、安全管理）
+        - id: basebackend-auth-service
+          uri: lb://basebackend-auth-service
+          predicates:
+            - Path=/api/auth/**,/api/security/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+        # 菜单权限服务路由（菜单、角色、权限管理）
+        - id: basebackend-menu-service
+          uri: lb://basebackend-menu-service
+          predicates:
+            - Path=/api/menus/**,/api/roles/**,/api/permissions/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+        # 字典服务路由（字典类型、字典数据管理）
+        - id: basebackend-dict-service
+          uri: lb://basebackend-dict-service
+          predicates:
+            - Path=/api/dicts/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+        # 部门服务路由（部门组织架构管理）
+        - id: basebackend-dept-service
+          uri: lb://basebackend-dept-service
+          predicates:
+            - Path=/api/depts/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+        # 日志服务路由（登录日志和操作日志管理）
+        - id: basebackend-log-service
+          uri: lb://basebackend-log-service
+          predicates:
+            - Path=/api/logs/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
+        # 应用服务路由（应用信息、应用资源管理）
+        - id: basebackend-application-service
+          uri: lb://basebackend-application-service
+          predicates:
+            - Path=/api/applications/**,/api/application/resources/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
+        # 通知服务路由（用户通知、邮件、SSE推送）
+        - id: basebackend-notification-service
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
+        # 监控服务路由（系统监控、在线用户、服务器信息、缓存管理）
+        - id: basebackend-monitor-service
+          uri: lb://basebackend-monitor-service
+          predicates:
+            - Path=/api/monitor/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
+        # 用户档案服务路由（个人资料、偏好设置管理）
+        - id: basebackend-profile-service
+          uri: lb://basebackend-profile-service
+          predicates:
+            - Path=/api/profile/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
         # demo-api服务路由（包含所有API，包括auth）
         - id: basebackend-demo-api
           uri: lb://basebackend-demo-api
@@ -22,7 +94,9 @@ spring:
           filters:
             - StripPrefix=1
 
-      # 全局CORS配置
+      # ======================================
+      # 全局 CORS 配置
+      # ======================================
       globalcors:
         cors-configurations:
           '[/**]':
@@ -37,17 +111,46 @@ spring:
             allow-credentials: false
             max-age: 3600
 
+      # ======================================
       # 默认过滤器
+      # ======================================
       default-filters:
         # 添加响应头
         - AddResponseHeader=X-Response-Default,BaseBackend-Gateway
+        - AddResponseHeader=X-Gateway-Enhanced,true
+
+      # ======================================
+      # HTTP 客户端配置
+      # ======================================
+      httpclient:
+        # 连接超时（毫秒）
+        connect-timeout: 3000
+        # 响应超时（毫秒）
+        response-timeout: 5s
+        # 连接池配置
+        pool:
+          type: ELASTIC            # 弹性连接池
+          max-connections: 500     # 最大连接数
+          max-idle-time: 20s       # 最大空闲时间
+          max-life-time: 60s       # 连接最大存活时间
+          acquire-timeout: 45s     # 获取连接超时
+
+      # ======================================
+      # 全局限流配置（基于 Redis）
+      # ======================================
+      redis-rate-limiter:
+        # 是否包含请求头
+        include-headers: true
+        # 速率限制配置
+        replenish-rate: 100        # 令牌桶填充速率（每秒）
+        burst-capacity: 200        # 令牌桶容量
 
   # Redis配置（用于限流）
   data:
     redis:
-      host: localhost
+      host: 1.117.67.222
       port: 6379
-      password: redis_ZJGE42
+      password: redis_ycecQi
       database: 0
 
 # 日志配置
@@ -56,3 +159,59 @@ logging:
     org.springframework.cloud.gateway: INFO
     com.basebackend.gateway: DEBUG
     com.alibaba.cloud.nacos: DEBUG
+
+# ======================================
+# Gateway 增强功能配置
+# ======================================
+gateway:
+  # 超时配置
+  timeout:
+    defaults:
+      connect-timeout: 3000      # 连接超时 3 秒
+      response-timeout: 5000     # 响应超时 5 秒
+      read-timeout: 30000        # 读取超时 30 秒
+      write-timeout: 30000       # 写入超时 30 秒
+    services:
+      basebackend-admin-api:
+        connect-timeout: 3000
+        response-timeout: 5000
+        read-timeout: 30000
+        write-timeout: 30000
+      basebackend-demo-api:
+        connect-timeout: 2000
+        response-timeout: 3000
+        read-timeout: 10000
+        write-timeout: 10000
+      file-service:
+        connect-timeout: 5000
+        response-timeout: 30000
+        read-timeout: 60000
+        write-timeout: 60000
+
+  # 限流配置
+  rate-limit:
+    enabled: true                # 是否启用限流
+    default-rule:
+      replenish-rate: 100        # 默认令牌桶填充速率
+      burst-capacity: 200        # 默认令牌桶容量
+    services:
+      basebackend-admin-api:
+        replenish-rate: 100
+        burst-capacity: 200
+      basebackend-demo-api:
+        replenish-rate: 200
+        burst-capacity: 400
+      file-service:
+        replenish-rate: 10
+        burst-capacity: 20
+    apis:
+      /api/auth/login:
+        replenish-rate: 5         # 登录接口严格限流
+        burst-capacity: 10
+      /api/auth/register:
+        replenish-rate: 3
+        burst-capacity: 6
+      /api/files/upload:
+        replenish-rate: 5
+        burst-capacity: 10
+

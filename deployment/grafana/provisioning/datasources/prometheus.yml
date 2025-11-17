@@ -1,0 +1,21 @@
+# ================================================================================================
+# Grafana 数据源配置 - Prometheus
+# ================================================================================================
+#
+# 用途：自动配置 Prometheus 作为 Grafana 数据源
+# 路径：/etc/grafana/provisioning/datasources/prometheus.yml
+#
+# ================================================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s

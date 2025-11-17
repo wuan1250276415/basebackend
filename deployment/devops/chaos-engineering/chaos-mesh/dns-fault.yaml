@@ -1,0 +1,53 @@
+# Chaos Mesh DNS故障实验
+# 模拟DNS解析失败、错误响应等
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: dns-error-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: DNS错误
+  action: error
+
+  # 模式: 随机
+  mode: random
+  value: "30%"
+
+  # DNS记录模式
+  patterns:
+    - "*.basebackend.com"
+    - "mysql.basebackend.svc.cluster.local"
+    - "redis.basebackend.svc.cluster.local"
+
+  # 故障持续时间
+  duration: "120s"
+
+  # 每天执行一次
+  scheduler:
+    cron: "0 1 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: dns-random-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: DNS随机错误
+  action: random
+
+  # 模式: 全部
+  mode: all
+
+  # DNS记录模式
+  patterns:
+    - "*.basebackend.com"
+    - "*.svc.cluster.local"
+
+  # 故障持续时间
+  duration: "60s"
+
+  # 每12小时执行一次
+  scheduler:
+    cron: "0 */12 * * *"

@@ -1,0 +1,802 @@
+# AI驱动的智能容量规划配置
+# 基于机器学习和优化算法的智能资源调度系统
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-capacity-planning-config
+  namespace: basebackend
+data:
+  # AI容量规划模型配置
+  ai_planning_models.yaml: |
+    # AI容量规划模型配置
+    models:
+      # 资源需求预测模型
+      resource_demand_model:
+        type: "hybrid_lstm_transformer"
+        architecture: "temporal_fusion_transformer"
+        parameters:
+          # LSTM组件
+          lstm_layers: 2
+          lstm_hidden_size: 128
+          lstm_dropout: 0.1
+          # Transformer组件
+          attention_heads: 8
+          attention_dim: 256
+          transformer_layers: 4
+          # 预测参数
+          lookback_window: 168  # 7天
+          forecast_horizon: 720  # 30天
+          update_frequency: "1h"
+        input_features:
+          # 时间特征
+          - "timestamp"
+          - "hour_of_day"
+          - "day_of_week"
+          - "day_of_month"
+          - "month"
+          - "is_weekend"
+          - "is_holiday"
+          - "is_business_hours"
+          # 业务特征
+          - "active_users"
+          - "request_rate"
+          - "transaction_volume"
+          - "peak_traffic_periods"
+          - "marketing_campaigns"
+          - "product_launches"
+          # 系统特征
+          - "cpu_usage"
+          - "memory_usage"
+          - "disk_io"
+          - "network_throughput"
+          - "response_time"
+          - "error_rate"
+          # 外部特征
+          - "industry_benchmarks"
+          - "seasonal_patterns"
+          - "economic_indicators"
+        output_targets:
+          - "predicted_cpu_demand"
+          - "predicted_memory_demand"
+          - "predicted_storage_demand"
+          - "predicted_network_demand"
+        training_schedule:
+          full_training: "weekly"
+          incremental_training: "daily"
+          online_learning: true
+        performance_metrics:
+          - metric: "mean_absolute_percentage_error"
+            target: "< 10%"
+          - metric: "root_mean_square_error"
+            target: "< 15%"
+          - metric: "directional_accuracy"
+            target: "> 85%"
+
+      # 成本优化模型
+      cost_optimization_model:
+        type: "reinforcement_learning"
+        algorithm: "deep_reinforcement_learning"
+        network_architecture: "dueling_dqn"
+        parameters:
+          # DQN网络参数
+          hidden_layers: [256, 256, 128]
+          activation: "relu"
+          dropout: 0.2
+          learning_rate: 0.0003
+          # 训练参数
+          replay_buffer_size: 100000
+          batch_size: 64
+          epsilon_decay: 0.995
+          epsilon_min: 0.01
+          gamma: 0.99
+          target_update_freq: 1000
+          # 多智能体参数
+          num_agents: 5
+          agent_coordination: "centralized_training_decentralized_execution"
+        state_space:
+          - "current_resource_utilization"
+          - "historical_usage_patterns"
+          - "business_forecast"
+          - "cost_budget"
+          - "sla_requirements"
+          - "compliance_constraints"
+        action_space:
+          - "scale_up_replicas"
+          - "scale_down_replicas"
+          - "change_instance_type"
+          - "modify_resource_limits"
+          - "enable_spot_instances"
+          - "reserve_instances"
+          - "optimize_storage_tier"
+          - "enable_auto_scaling"
+        reward_function:
+          terms:
+            - name: "sla_compliance"
+              weight: 100
+              formula: "100 if sla_met else -1000"
+            - name: "cost_efficiency"
+              weight: -1
+              formula: "-total_cost"
+            - name: "resource_utilization"
+              weight: 50
+              formula: "utilization_rate * 50"
+            - name: "stability_bonus"
+              weight: 20
+              formula: "20 if no_scaling_for_1h else 0"
+        training_data:
+          source: "historical_usage_data"
+          timeframe: "2_years"
+          update_frequency: "real_time"
+        evaluation_metrics:
+          - "cumulative_reward"
+          - "cost_savings"
+          - "sla_compliance_rate"
+          - "resource_efficiency"
+
+      # 多目标优化模型
+      multi_objective_model:
+        type: "evolutionary_algorithm"
+        algorithm: "nsga_iii"
+        parameters:
+          # NSGA-III参数
+          population_size: 100
+          num_generations: 200
+          crossover_probability: 0.9
+          mutation_probability: 0.1
+          archive_size: 100
+          # 目标函数
+          objectives:
+            - name: "minimize_cost"
+              weight: 1.0
+            - name: "maximize_performance"
+              weight: 1.0
+            - name: "minimize_energy"
+              weight: 0.5
+            - name: "maximize_reliability"
+              weight: 0.8
+            - name: "minimize_carbon_footprint"
+              weight: 0.3
+          # 约束条件
+          constraints:
+            - "sla_compliance >= 99.9%"
+            - "budget <= allocated_budget"
+            - "resource_limits <= capacity"
+            - "compliance_requirements_met"
+        decision_variables:
+          - "instance_type"
+          - "replica_count"
+          - "auto_scaling_policy"
+          - "resource_limits"
+          - "storage_configuration"
+          - "network_configuration"
+          - "deployment_strategy"
+        optimization_schedule:
+          full_optimization: "monthly"
+          quick_reoptimization: "weekly"
+          triggered_optimization: "on-demand"
+        output_format:
+          - "pareto_front"
+          - "recommended_configuration"
+          - "trade_off_analysis"
+
+      # 异常容量模式检测模型
+      anomaly_capacity_model:
+        type: "unsupervised_learning"
+        algorithm: "isolation_forest_plus_vae"
+        parameters:
+          # Isolation Forest
+          isolation_params:
+            n_estimators: 200
+            contamination: 0.05
+            random_state: 42
+          # Variational Autoencoder
+          vae_params:
+            latent_dim: 16
+            hidden_dim: 64
+            learning_rate: 0.001
+            batch_size: 128
+            epochs: 100
+            beta: 1.0  # KL divergence weight
+        detection_features:
+          - "usage_pattern_deviation"
+          - "sudden_traffic_spike"
+          - "unusual_resource_consumption"
+          - "anomalous_scaling_behavior"
+          - "unexpected_cost_increase"
+          - "performance_degradation"
+        detection_scenarios:
+          - "ddos_attack"
+          - "bot_traffic"
+          - "flash_crowd"
+          - "deployment_issues"
+          - "memory_leak"
+          - "infinite_loop"
+        alert_thresholds:
+          anomaly_score: 0.8
+          confidence: 0.9
+        response_actions:
+          - "immediate_alert"
+          - "automatic_scaling"
+          - "traffic_throttling"
+          - "rate_limiting"
+          - "failover_activation"
+
+      # 容量推荐模型
+      capacity_recommendation_model:
+        type: "gradient_boosting"
+        algorithm: "xgboost"
+        parameters:
+          n_estimators: 500
+          max_depth: 8
+          learning_rate: 0.1
+          subsample: 0.8
+          colsample_bytree: 0.8
+          reg_alpha: 0.1
+          reg_lambda: 0.1
+          objective: "reg:squarederror"
+        training_features:
+          # 历史模式
+          - "avg_cpu_usage"
+          - "peak_cpu_usage"
+          - "avg_memory_usage"
+          - "peak_memory_usage"
+          - "traffic_pattern"
+          - "user_activity_pattern"
+          # 业务信息
+          - "sla_tier"
+          - "business_criticality"
+          - "growth_rate"
+          - "seasonal_factor"
+          # 成本约束
+          - "budget_limit"
+          - "cost_performance_ratio"
+          - "reserved_instance_eligible"
+        target_variables:
+          - "recommended_cpu_cores"
+          - "recommended_memory_gb"
+          - "recommended_storage_gb"
+          - "recommended_replicas"
+          - "recommended_instance_type"
+        recommendation_confidence:
+          high: "> 0.9"
+          medium: "0.7 - 0.9"
+          low: "< 0.7"
+        recommendation_actions:
+          high: "auto_apply"
+          medium: "suggest_to_operator"
+          low: "flag_for_review"
+
+    # 模型集成策略
+    model_ensemble:
+      strategy: "weighted_voting"
+      weights:
+        resource_demand_model: 0.4
+        cost_optimization_model: 0.3
+        multi_objective_model: 0.2
+        anomaly_capacity_model: 0.1
+      conflict_resolution: "majority_vote"
+      confidence_threshold: 0.75
+
+  # 容量规划策略
+  planning_strategies.yaml |
+    # 容量规划策略
+    strategies:
+      # 策略1: 敏捷容量规划
+      agile_capacity_planning:
+        name: "敏捷容量规划"
+        description: "快速响应变化的敏捷容量规划"
+        characteristics:
+          - "快速迭代"
+          - "自动化决策"
+          - "持续优化"
+          - "数据驱动"
+       适用场景:
+          - "初创公司"
+          - "快速增长的业务"
+          - "不确定的需求"
+        planning_horizon: "3-6个月"
+        update_frequency: "weekly"
+        automation_level: "high"
+        key_metrics:
+          - "time_to_capacity_adjustment"
+          - "over_provisioning_rate"
+          - "under_provisioning_rate"
+          - "cost_variance"
+        action_triggers:
+          - "demand_change > 20%"
+          - "capacity_utilization > 85%"
+          - "cost_variance > 15%"
+
+      # 策略2: 预测性容量规划
+      predictive_capacity_planning:
+        name: "预测性容量规划"
+        description: "基于机器学习的预测性容量规划"
+        characteristics:
+          - "machine_learning_predictions"
+          - "proactive_scaling"
+          - "seasonal_adjustment"
+          - "growth_trend_analysis"
+       适用场景:
+          - "有明确增长模式"
+          - "季节性业务"
+          - "可预测的流量"
+        planning_horizon: "6-12个月"
+        update_frequency: "daily"
+        automation_level: "medium"
+        prediction_horizon: "30-90天"
+        accuracy_target: "> 85%"
+        key_metrics:
+          - "prediction_accuracy"
+          - "proactive_scaling_efficiency"
+          - "cost_optimization_rate"
+        confidence_based_actions:
+          - "confidence > 0.9: auto_execute"
+          - "confidence 0.7-0.9: suggest"
+          - "confidence < 0.7: flag_for_review"
+
+      # 策略3: 弹性容量规划
+      elastic_capacity_planning:
+        name: "弹性容量规划"
+        description: "完全自动化的弹性容量规划"
+        characteristics:
+          - "real_time_adjustment"
+          - "auto_scaling_policies"
+          - "machine_learning_optimization"
+          - "minimal_human_intervention"
+       适用场景:
+          - "高度动态的业务"
+          - "不可预测的负载"
+          - "微服务架构"
+        automation_level: "very_high"
+        scaling_policies:
+          scale_up:
+            triggers:
+              - "cpu_usage > 70%"
+              - "memory_usage > 80%"
+              - "response_time > sla"
+            actions:
+              - "increase_replicas"
+              - "scale_resources"
+              - "enable_caching"
+          scale_down:
+            triggers:
+              - "cpu_usage < 30%"
+              - "memory_usage < 40%"
+              - "low_traffic for 30m"
+            actions:
+              - "decrease_replicas"
+              - "release_resources"
+        safety_measures:
+          - "min_replicas: 2"
+          - "max_replicas: 100"
+          - "cooldown_period: 10m"
+          - "scaling_step: 10%"
+
+      # 策略4: 成本优化容量规划
+      cost_optimized_capacity_planning:
+        name: "成本优化容量规划"
+        description: "以成本优化为核心的容量规划"
+        characteristics:
+          - "cost_minimization"
+          - "reserved_instance_optimization"
+          - "spot_instance_utilization"
+          - "right_sizing"
+       适用场景:
+          - "成本敏感的业务"
+          - "预算严格的环境"
+          - "长期运行的系统"
+        optimization_goals:
+          primary: "minimize_total_cost"
+          secondary:
+            - "maintain_performance"
+            - "ensure_reliability"
+            - "meet_compliance"
+        cost_optimization_techniques:
+          - "reserved_instances"
+          - "spot_instances"
+          - "scheduled_scaling"
+          - "resource_right_sizing"
+          - "storage_optimization"
+        savings_target: "30-50%"
+        budget_variance_threshold: "10%"
+
+      # 策略5: 可持续容量规划
+      sustainable_capacity_planning:
+        name: "可持续容量规划"
+        description: "环保和可持续的容量规划"
+        characteristics:
+          - "carbon_footprint_minimization"
+          - "energy_efficiency"
+          - "green_computing"
+          - "renewable_energy_usage"
+       适用场景:
+          - "环保要求严格"
+          - "esg_compliance"
+          - "绿色数据中心"
+        sustainability_metrics:
+          - "carbon_footprint_per_transaction"
+          - "energy_efficiency_ratio"
+          - "renewable_energy_percentage"
+          - "waste_reduction_rate"
+        optimization_targets:
+          - "minimize_carbon_emissions"
+          - "maximize_energy_efficiency"
+          - "optimize_resource_lifecycle"
+        green_practices:
+          - "efficient_scheduling"
+          - "workload_consolidation"
+          - "energy_aware_scaling"
+          - "carbon_aware_location"
+
+  # 容量优化算法
+  optimization_algorithms.yaml |
+    # 容量优化算法
+    algorithms:
+      # 算法1: 遗传算法优化
+      genetic_algorithm:
+        name: "遗传算法容量优化"
+        description: "使用遗传算法优化资源分配"
+        parameters:
+          population_size: 100
+          max_generations: 200
+          crossover_rate: 0.8
+          mutation_rate: 0.1
+          elitism_ratio: 0.1
+        fitness_function:
+          components:
+            - "performance_score"
+            - "cost_score"
+            - "reliability_score"
+            - "sustainability_score"
+          weights: [0.4, 0.3, 0.2, 0.1]
+        chromosome_encoding:
+          genes:
+            - "instance_count"
+            - "instance_type"
+            - "auto_scaling_config"
+            - "resource_limits"
+        termination_criteria:
+          - "max_generations_reached"
+          - "fitness_convergence"
+          - "time_limit_exceeded"
+        convergence_threshold: 0.01
+
+      # 算法2: 粒子群优化
+      particle_swarm_optimization:
+        name: "粒子群优化"
+        description: "使用PSO算法优化容量配置"
+        parameters:
+          swarm_size: 50
+          max_iterations: 150
+          inertia_weight: 0.9
+          cognitive_coefficient: 2.0
+          social_coefficient: 2.0
+        velocity_update:
+          formula: "v = w*v + c1*r1*(pbest - x) + c2*r2*(gbest - x)"
+        position_update:
+          formula: "x = x + v"
+        constraints_handling: "penalty_function"
+        objective_function: "minimize(cost + penalty)"
+        termination: "max_iterations or convergence"
+
+      # 算法3: 模拟退火
+      simulated_annealing:
+        name: "模拟退火算法"
+        description: "全局优化容量配置"
+        parameters:
+          initial_temperature: 1000
+          cooling_rate: 0.95
+          min_temperature: 1
+          max_iterations: 1000
+        neighborhood_function:
+          - "random_mutation"
+          - "swap_mutation"
+          - "gaussian_mutation"
+        acceptance_criteria:
+          if: "f(new) < f(old)"
+            then: "accept"
+          else:
+            probability: "exp(-(new - old) / temperature)"
+        annealing_schedule: "exponential"
+
+      # 算法4: 强化学习
+      reinforcement_learning:
+        name: "深度强化学习"
+        description: "使用RL优化动态容量调整"
+        agent_config:
+          algorithm: "proximal_policy_optimization"
+          network: "lstm_policy_value_network"
+          hidden_layers: [256, 128]
+          learning_rate: 0.0003
+        environment:
+          state_space: "current_capacity + historical_usage"
+          action_space: "scaling_actions"
+          reward_function: "cost + performance + penalty"
+        training:
+          total_timesteps: 1000000
+          batch_size: 64
+          epochs: 10
+          gamma: 0.99
+        deployment:
+          mode: "online_learning"
+          update_frequency: "hourly"
+          exploration_rate: 0.1
+
+      # 算法5: 多目标优化
+      multi_objective_optimization:
+        name: "多目标进化优化"
+        algorithm: "nsga_ii"
+        parameters:
+          population_size: 100
+          max_generations: 200
+          crossover_probability: 0.9
+          mutation_probability: 0.1
+        objectives:
+          - "minimize_cost"
+          - "maximize_performance"
+          - "minimize_energy"
+          - "maximize_reliability"
+        constraints:
+          - "sla_compliance >= 99.9%"
+          - "budget <= limit"
+          - "resource_availability"
+        pareto_front:
+          preservation: "crowding_distance"
+          selection: "tournament"
+        output: "pareto_optimal_solutions"
+
+  # 容量规划仪表板配置
+  dashboard_config.yaml |
+    # AIOps容量规划仪表板配置
+    dashboard:
+      title: "AI驱动容量规划中心"
+      refresh_interval: "30s"
+      panels:
+        # 面板1: 容量概览
+        - title: "容量概览"
+          type: "stat"
+          queries:
+            - "sum(kube_deployment_status_replicas)"
+            - "avg(container_cpu_usage_seconds_total)"
+            - "avg(container_memory_working_set_bytes)"
+            - "sum(container_fs_usage_bytes)"
+          visualization:
+            format: "number"
+            thresholds:
+              - color: "green"
+                value: 0
+              - color: "yellow"
+                value: 70
+              - color: "red"
+                value: 90
+
+        # 面板2: 预测趋势
+        - title: "容量预测趋势"
+          type: "timeseries"
+          queries:
+            - "predicted_cpu_demand[30d]"
+            - "predicted_memory_demand[30d]"
+            - "current_cpu_usage"
+            - "current_memory_usage"
+          visualization:
+            line_width: 2
+            fill_opacity: 0.3
+            legend:
+              show: true
+              placement: "bottom"
+
+        # 面板3: 成本分析
+        - title: "成本分析"
+          type: "piechart"
+          queries:
+            - "sum(cost_by_instance_type)"
+          visualization:
+            legend:
+              placement: "right"
+              show_legend: true
+
+        # 面板4: 优化建议
+        - title: "AI优化建议"
+          type: "table"
+          queries:
+            - "ai_recommendations"
+          columns:
+            - "recommendation_id"
+            - "type"
+            - "confidence"
+            - "potential_savings"
+            - "action"
+
+        # 面板5: 资源利用率热力图
+        - title: "资源利用率热力图"
+          type: "heatmap"
+          queries:
+            - "rate(container_cpu_usage_seconds_total[5m]) by (instance, cluster)"
+          visualization:
+            color_scale: "viridis"
+            legend:
+              show: true
+
+        # 面板6: 预测准确性
+        - title: "预测准确性"
+          type: "stat"
+          queries:
+            - "avg(prediction_accuracy)"
+          visualization:
+            format: "percent"
+            thresholds:
+              - color: "red"
+                value: 0
+              - color: "yellow"
+                value: 0.8
+              - color: "green"
+                value: 0.9
+
+      alerts:
+        - name: "capacity_prediction_breach"
+          condition: "predicted_usage > capacity_threshold"
+          severity: "warning"
+
+        - name: "prediction_accuracy_low"
+          condition: "accuracy < 0.8"
+          severity: "warning"
+
+        - name: "cost_overrun_predicted"
+          condition: "predicted_cost > budget * 1.1"
+          severity: "critical"
+
+  # 自动化执行策略
+  automation_policies.yaml |
+    # 自动化执行策略
+    automation:
+      # 自动执行规则
+      auto_execution_rules:
+        - rule: "high_confidence_prediction"
+          condition: "confidence > 0.9 and risk_level == low"
+          action: "auto_execute"
+          notification: true
+
+        - rule: "capacity_imminent_breach"
+          condition: "predicted_breach in 2h"
+          action: "immediate_scaling"
+          approval_required: false
+
+        - rule: "cost_optimization_opportunity"
+          condition: "savings_potential > 30%"
+          action: "suggest_and_apply"
+          approval_required: true
+
+        - rule: "emergency_capacity"
+          condition: "current_usage > 95%"
+          action: "emergency_scale"
+          approval_required: false
+
+      # 安全措施
+      safety_measures:
+        - "max_scaling_rate: 50% per hour"
+        - "min_replicas: always >= 2"
+        - "backup_before_change: true"
+        - "rollback_capability: always"
+        - "approval_for_critical_services: required"
+        - "testing_in_staging: mandatory for major changes"
+
+      # 审批流程
+      approval_process:
+        automated:
+          confidence_threshold: 0.9
+          risk_level: "low"
+          max_cost_impact: "5%"
+          execution_delay: "0"
+
+        semi_automated:
+          confidence_threshold: 0.7
+          risk_level: "medium"
+          max_cost_impact: "15%"
+          approval_timeout: "1h"
+          approvers:
+            - "platform_engineer"
+            - "cost_engineer"
+
+        manual_review:
+          confidence_threshold: "< 0.7"
+          risk_level: "high"
+          max_cost_impact: "no_limit"
+          approval_timeout: "24h"
+          approvers:
+            - "engineering_manager"
+            - "finance_manager"
+            - "cto"
+
+      # 回滚策略
+      rollback_strategy:
+        automatic_triggers:
+          - "sla_violation_detected"
+          - "cost_overrun > 20%"
+          - "performance_degradation > 30%"
+          - "availability_drop < 99.5%"
+        manual_triggers:
+          - "operator_initiated"
+          - "stakeholder_request"
+          - "security_audit"
+        rollback_timeline:
+          detection: "immediate"
+          decision: "< 5m"
+          execution: "< 10m"
+          verification: "< 15m"
+
+  # 容量规划API
+  api_config.yaml |
+    # 容量规划API配置
+    api:
+      endpoints:
+        - path: "/api/v1/capacity/predict"
+          methods: ["GET"]
+          description: "获取容量预测"
+          parameters:
+            - name: "service"
+              type: "string"
+              required: true
+            - name: "horizon"
+              type: "string"
+              required: false
+              default: "7d"
+            - name: "granularity"
+              type: "string"
+              required: false
+              default: "1h"
+
+        - path: "/api/v1/capacity/optimize"
+          methods: ["POST"]
+          description: "执行容量优化"
+          request_body:
+            type: "object"
+            properties:
+              service: "string"
+              constraints: "object"
+              objectives: "array"
+              preferences: "object"
+
+        - path: "/api/v1/capacity/recommendations"
+          methods: ["GET"]
+          description: "获取AI推荐"
+          parameters:
+            - name: "confidence_threshold"
+              type: "number"
+              default: 0.7
+
+        - path: "/api/v1/capacity/apply"
+          methods: ["POST"]
+          description: "应用容量配置"
+          request_body:
+            type: "object"
+            properties:
+              configuration: "object"
+              dry_run: "boolean"
+              approval_token: "string"
+
+        - path: "/api/v1/capacity/history"
+          methods: ["GET"]
+          description: "获取容量规划历史"
+          parameters:
+            - name: "start_date"
+              type: "string"
+            - name: "end_date"
+              type: "string"
+            - name: "service"
+              type: "string"
+
+      authentication:
+        type: "oauth2"
+        scopes:
+          - "capacity:read"
+          - "capacity:write"
+          - "capacity:admin"
+
+      rate_limiting:
+        default: "100 requests/hour"
+        burst: "10 requests/second"
+
+      response_format:
+        type: "json"
+        version: "v1"

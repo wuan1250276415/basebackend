@@ -1,0 +1,352 @@
+# OpenTelemetry Collector 配置
+# 统一的指标、链路、日志收集与处理
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  # 接收器 - 数据源
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 16
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+
+  jaeger:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:14250
+      thrift_http:
+        endpoint: 0.0.0.0:14268
+      thrift_compact:
+        endpoint: 0.0.0.0:6831/udp
+      thrift_binary:
+        endpoint: 0.0.0.0:6832/udp
+
+  zipkin:
+    endpoint: 0.0.0.0:9411
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+
+  # 接收器 - 日志
+  filelog:
+    include: [ /var/log/**/*.log ]
+    exclude: [ /var/log/containers/*_otel-collector*.log ]
+    operators:
+      - type: json_parser
+        timestamp:
+          parse_from: timestamp
+          layout: '%Y-%m-%d %H:%M:%S'
+      - type: add
+        field: service.name
+        value: "basebackend-service"
+
+  # 接收器 - 主机指标
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            description: "CPU utilization"
+            unit: "1"
+      memory:
+        metrics:
+          system.memory.utilization:
+            description: "Memory utilization"
+            unit: "1"
+      disk:
+        metrics:
+          system.disk.io:
+            description: "Disk I/O"
+      network:
+        metrics:
+          system.network.packets:
+            description: "Network packets"
+
+processors:
+  # 批处理器 - 优化数据传输
+  batch:
+    timeout: 1s
+    send_batch_size: 8192
+    send_batch_max_size: 10000
+
+  # 内存限制处理器 - 防止OOM
+  memory_limiter:
+    limit_mib: 1536
+    spike_limit_mib: 512
+    check_interval: 5s
+
+  # 资源处理器 - 丰富标签信息
+  resource:
+    attributes:
+      - key: environment
+        value: production
+        action: upsert
+      - key: team
+        value: backend
+        action: upsert
+      - key: project
+        value: basebackend
+        action: upsert
+
+  # 属性处理器 - 添加/修改标签
+  attributes:
+    actions:
+      - key: http.method
+        pattern: "^HTTP/(?P<version>.*)$"
+        type: inserterror: true
+
+  # 过滤处理器 - 排除不需要的数据
+  filter/trace:
+    traces:
+      span:
+        - 'attributes["http.status_code"] == 200'
+  filter/metric:
+    metrics:
+      metric:
+        - 'name == "system.memory.usage"'
+
+  # 采样处理器 - 控制数据量
+  probabilistic_sampler:
+    sampling_percentage: 10
+
+  # 排序处理器 - 优化性能
+  span:
+    name:
+      to_attributes:
+        with_keys: [ "http.method", "http.route" ]
+        separator: "."
+
+exporters:
+  # 导出器 - Jaeger (链路追踪)
+  jaeger:
+    endpoint: jaeger-collector:14250
+    tls:
+      insecure: true
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # 导出器 - Prometheus (指标)
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "basebackend"
+    const_labels:
+      project: basebackend
+      env: production
+    metric_expiration: 180m
+    enable_open_metrics: true
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # 导出器 - Elasticsearch (日志存储)
+  elasticsearch:
+    endpoints: [http://elasticsearch:9200]
+    index: otel-logs-%{+yyyy.MM.dd}
+    mapping:
+      template_file: /etc/otel/index-template.json
+    sending_queue:
+      enabled: true
+      max_consumers: 5
+    retry_on_failure:
+      enabled: true
+
+  # 导出器 - Loki (日志聚合)
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    labels:
+      resource:
+        service.name:
+          from_attribute: service.name
+    sending_queue:
+      enabled: true
+      num_consumers: 5
+    retry_on_failure:
+      enabled: true
+
+  # 导出器 - 调试 (开发阶段使用)
+  debug:
+    verbosity: detailed
+    sampling_initial: 2
+    sampling_thereafter: 500
+
+  # 导出器 - 数据导出到外部系统
+  otlp:
+    endpoint: http://external-collector:4317
+    tls:
+      insecure: true
+    timeout: 10s
+
+service:
+  # 服务配置
+  extensions: [health_check, pprof, zpages]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
+      level: detailed
+
+  # 管道配置
+  pipelines:
+    # 链路追踪管道
+    traces:
+      receivers: [otlp, jaeger, zipkin]
+      processors: [memory_limiter, resource, batch]
+      exporters: [jaeger]
+
+    # 指标管道
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+
+    # 日志管道
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resource, batch]
+      exporters: [elasticsearch, loki]
+
+  # 日志配置
+  logs:
+    level: debug
+    encoding: json
+
+---
+# OpenTelemetry Collector DaemonSet (主机指标收集)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector-agent
+  namespace: observability
+  labels:
+    app: otel-collector-agent
+spec:
+  selector:
+    matchLabels:
+      app: otel-collector-agent
+  template:
+    metadata:
+      labels:
+        app: otel-collector-agent
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: otel-collector-agent
+        image: otel/opentelemetry-collector-contrib:0.89.0
+        command:
+          - "/otelcol-contrib"
+          - "--config=/etc/otel-collector-config.yaml"
+        ports:
+        - hostPort: 4317
+          containerPort: 4317
+          name: otlp-grpc
+        - hostPort: 4318
+          containerPort: 4318
+          name: otlp-http
+        - hostPort: 1777
+          containerPort: 1777
+          name: pprof
+        - hostPort: 55679
+          containerPort: 55679
+          name: zpages
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        volumeMounts:
+        - name: otel-collector-config
+          mountPath: /etc/otel-collector-config.yaml
+          readOnly: true
+          subPath: collector-config.yaml
+        - name: varlogpods
+          mountPath: /var/log/pods
+          readOnly: true
+        - name: varlogcontainers
+          mountPath: /var/log/containers
+          readOnly: true
+        - name: syslogs
+          mountPath: /var/log/syslog
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+      volumes:
+      - name: otel-collector-config
+        configMap:
+          name: otel-collector-config
+      - name: varlogpods
+        hostPath:
+          path: /var/log/pods
+      - name: varlogcontainers
+        hostPath:
+          path: /var/log/containers
+      - name: syslogs
+        hostPath:
+          path: /var/log/syslog
+
+---
+# ConfigMap for OpenTelemetry Collector
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+  labels:
+    app: otel-collector
+data:
+  collector-config.yaml: |
+    # 此配置会被上述 DaemonSet 使用
+    # 详细配置见上文的 receivers, processors, exporters 部分

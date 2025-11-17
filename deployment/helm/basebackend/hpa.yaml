@@ -1,0 +1,460 @@
+# Horizontal Pod Autoscaler (HPA) 自动伸缩配置
+# 基于 CPU、内存和自定义指标自动调整 Pod 数量
+
+# Admin API Service HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-admin-api-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-admin-api
+    component: autoscaler
+spec:
+  # 目标服务
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-admin-api
+
+  # 最小/最大副本数
+  minReplicas: 3
+  maxReplicas: 20
+
+  # 伸缩策略
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5分钟冷却期
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 4
+        periodSeconds: 60
+      selectPolicy: Max
+
+  # 监控指标
+  metrics:
+    # CPU 使用率 (平均值 > 70% 时扩容)
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # 内存使用率 (平均值 > 80% 时扩容)
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    # 请求速率 (QPS)
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"
+
+    # 响应时间 (95th percentile)
+    - type: Object
+      object:
+        metric:
+          name: http_request_duration_p95
+        describedObject:
+          apiVersion: v1
+          kind: Service
+          name: basebackend-admin-api-service
+        target:
+          type: Value
+          value: "500m"
+
+---
+# User Service HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-user-service-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-user-service
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-user-service
+
+  minReplicas: 2
+  maxReplicas: 15
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      selectPolicy: Max
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    - type: Pods
+      pods:
+        metric:
+          name: database_query_duration_p95
+        target:
+          type: AverageValue
+          averageValue: "100m"
+
+---
+# Auth Service HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-auth-service-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-auth-service
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-auth-service
+
+  minReplicas: 3
+  maxReplicas: 10
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 认证服务冷却期较长
+      policies:
+      - type: Percent
+        value: 30
+        periodSeconds: 60
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+      selectPolicy: Max
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # 认证服务要求更高性能
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+    - type: Pods
+      pods:
+        metric:
+          name: auth_login_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "500"
+
+---
+# Gateway HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-gateway-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-gateway
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-gateway
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      selectPolicy: Max
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    - type: Pods
+      pods:
+        metric:
+          name: gateway_request_rate
+        target:
+          type: AverageValue
+          averageValue: "2000"
+
+---
+# Vertical Pod Autoscaler (VPA) 配置
+# 动态调整 Pod 资源限制
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: basebackend-admin-api-vpa
+  namespace: basebackend
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-admin-api
+
+  updatePolicy:
+    updateMode: "Auto"  # 自动更新资源限制
+
+  resourcePolicy:
+    containerPolicies:
+    - containerName: admin-api
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 4
+        memory: 4Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+# Database HPA (如果有独立数据库服务)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-database-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-database
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-database
+
+  minReplicas: 1
+  maxReplicas: 5
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 数据库冷却期较长
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 120
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 120
+      selectPolicy: Max
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+
+    - type: Pods
+      pods:
+        metric:
+          name: database_connections_active
+        target:
+          type: AverageValue
+          averageValue: "80"
+
+---
+# Redis HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: basebackend-redis-hpa
+  namespace: basebackend
+  labels:
+    app: basebackend-redis
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: basebackend-redis
+
+  minReplicas: 1
+  maxReplicas: 3
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 120
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 120
+      selectPolicy: Max
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    - type: Pods
+      pods:
+        metric:
+          name: redis_connected_clients
+        target:
+          type: AverageValue
+          averageValue: "100"
+
+---
+# Cluster Autoscaler 配置
+# 自动调整节点数量
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-status
+  namespace: kube-system
+data:
+  scale-down-enabled: "true"
+  scale-down-delay-after-add: "10m"
+  scale-down-unneeded-time: "10m"
+  max-node-provision-time: "15m"
+  skip-nodes-with-local-storage: "true"
+  skip-nodes-with-system-pods: "false"
+
+---
+# HPA 配置说明
+# 所有 HPA 配置均包含以下特性:
+#
+# 1. CPU 使用率阈值
+#    - Admin API: 70%
+#    - User Service: 60%
+#    - Auth Service: 50% (高优先级)
+#    - Gateway: 60%
+#    - Database: 80%
+#    - Redis: 75%
+#
+# 2. 内存使用率阈值
+#    - Admin API: 80%
+#    - User Service: 70%
+#    - Auth Service: 60%
+#    - Gateway: 70%
+#    - Database: 85%
+#    - Redis: 80%
+#
+# 3. 冷却期 (Stabilization Window)
+#    - 扩容: 1-5分钟 (快速响应)
+#    - 缩容: 5-10分钟 (避免频繁伸缩)
+#
+# 4. 扩展策略
+#    - 扩容: 每次50-100%或4个Pod
+#    - 缩容: 每次20-50%或2个Pod
+#
+# 5. 最小/最大副本数
+#    - 根据服务重要性配置
+#    - 核心服务 (Auth): 最少3个副本
+#    - 边缘服务 (Gateway): 最少2个副本
+#    - 数据库: 最少1个副本

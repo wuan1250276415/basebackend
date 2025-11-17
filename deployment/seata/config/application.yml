@@ -1,0 +1,193 @@
+# Seata Server 配置文件
+# 适用于 Seata 2.0.0
+
+server:
+  port: 7091
+  address: 0.0.0.0:7091
+
+spring:
+  application:
+    name: seata-server
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    io.seata: INFO
+
+console:
+  user:
+    username: ${SEATA_CONSOLE_USER:admin}
+    password: ${SEATA_CONSOLE_PASSWORD:admin}
+
+# Seata 配置
+seata:
+  # 配置中心
+  config:
+    # 配置类型: nacos, consul, apollo, zk, etcd3
+    type: nacos
+    nacos:
+      server-addr: ${SEATA_NACOS_SERVER_ADDR:nacos-seata:8848}
+      namespace: ${SEATA_NACOS_NAMESPACE:}
+      group: ${SEATA_NACOS_GROUP:SEATA_GROUP}
+      username: ${SEATA_NACOS_USERNAME:nacos}
+      password: ${SEATA_NACOS_PASSWORD:nacos}
+      context-path: ${SEATA_NACOS_CONTEXT_PATH:}
+      data-id: ${SEATA_NACOS_DATA_ID:seata-server.properties}
+      cluster: ${SEATA_NACOS_CLUSTER:default}
+      extension:
+        - com.alibaba.nacos.client.naming: ${SEATA_NACOS_EXTENSION_NAME:}
+        - com.alibaba.nacos.client.config: ${SEATA_NACOS_EXTENSION_CONFIG:}
+
+  # 注册中心
+  registry:
+    # 注册类型: nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    nacos:
+      application: ${SEATA_NACOS_APPLICATION:seata-server}
+      server-addr: ${SEATA_NACOS_SERVER_ADDR:nacos-seata:8848}
+      namespace: ${SEATA_NACOS_NAMESPACE:}
+      group: ${SEATA_NACOS_GROUP:SEATA_GROUP}
+      username: ${SEATA_NACOS_USERNAME:nacos}
+      password: ${SEATA_NACOS_PASSWORD:nacos}
+      context-path: ${SEATA_NACOS_CONTEXT_PATH:}
+      cluster: ${SEATA_NACOS_CLUSTER:default}
+      weight: ${SEATA_NACOS_WEIGHT:1}
+      extension:
+        - com.alibaba.nacos.client.naming: ${SEATA_NACOS_EXTENSION_NAME:}
+        - com.alibaba.nacos.client.config: ${SEATA_NACOS_EXTENSION_CONFIG:}
+
+  # 数据存储配置
+  store:
+    # 存储模式: file, db, redis, raft
+    mode: db
+    # 文件存储模式配置
+    file:
+      file-store-path: ${SEATA_FILE_STORE_PATH:../sessionStore}
+      max-branch-session-size: ${SEATA_FILE_MAX_BRANCH_SESSION_SIZE:16384}
+      max-global-session-size: ${SEATA_FILE_MAX_GLOBAL_SESSION_SIZE:512}
+      file-write-buffer-cache-size: ${SEATA_FILE_WRITE_BUFFER_CACHE_SIZE:16384}
+      session-reload-read-size: ${SEATA_SESSION_RELOAD_READ_SIZE:100}
+      flush-disk-mode: ${SEATA_FLUSH_DISK_MODE:async}
+    # 数据库存储模式配置
+    db:
+      datasource: ${SEATA_DB_DATASOURCE:druid}
+      db-type: ${SEATA_DB_DBTYPE:mysql}
+      driver-class-name: ${SEATA_DB_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+      url: ${SEATA_DB_URL:jdbc:mysql://mysql-seata:3306/seata?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true}
+      user: ${SEATA_DB_USER:root}
+      password: ${SEATA_DB_PASSWORD:123456}
+      min-conn: ${SEATA_DB_MIN_CONN:1}
+      max-conn: ${SEATA_DB_MAX_CONN:20}
+      global-table: ${SEATA_DB_GLOBAL_TABLE:global_table}
+      branch-table: ${SEATA_DB_BRANCH_TABLE:branch_table}
+      lock-table: ${SEATA_DB_LOCK_TABLE:lock_table}
+      distributed-lock-table: ${SEATA_DB_DISTRIBUTED_LOCK_TABLE:distributed_lock}
+      query-limit: ${SEATA_DB_QUERY_LIMIT:100}
+      max-wait: ${SEATA_DB_MAX_WAIT:5000}
+    # Redis 存储模式配置
+    redis:
+      mode: ${SEATA_REDIS_MODE:single}
+      database: ${SEATA_REDIS_DATABASE:0}
+      master: ${SEATA_REDIS_MASTER:}
+      sentinel:
+        master: ${SEATA_REDIS_SENTINEL_MASTER:}
+        sentinel-urls: ${SEATA_REDIS_SENTINEL_URLS:}
+      url: ${SEATA_REDIS_URL:}
+      password: ${SEATA_REDIS_PASSWORD:}
+      timeout: ${SEATA_REDIS_TIMEOUT:10000}
+      pool:
+        max-total: ${SEATA_REDIS_POOL_MAX_ACTIVE:20}
+        max-idle: ${SEATED_DB_POOL_MAX_IDLE:10}
+        min-idle: ${SEATA_REDIS_POOL_MIN_IDLE:0}
+    # Raft 存储模式配置
+    raft:
+      cluster:
+        node-1: ${SEATA_RAFT_NODE1:127.0.0.1:7091}
+        node-2: ${SEATA_RAFT_NODE2:127.0.0.1:7092}
+        node-3: ${SEATA_RAFT_NODE3:127.0.0.1:7093}
+      group: ${SEATA_RAFT_GROUP:default}
+
+  # 传输配置
+  transport:
+    # tcp, unix-domain-socket
+    type: TCP
+    # TCP Server 配置
+    server:
+      # 端口
+      port: ${SEATA_TRANSACTION_PORT:8091}
+      # NIO, NATIVE, AIO
+      nio: NIO
+      # 使用 linux native socket
+      use-native-transport: ${SEATA_TRANSACTION_USE_NATIVE_TRANSPORT:false}
+      # 线程池配置
+      thread-factory:
+        boss-thread-prefix: ${SEATA_TRANSACTION_BOSS_THREAD_PREFIX:NettyBoss}
+        worker-thread-prefix: ${SEATA_TRANSACTION_WORKER_THREAD_PREFIX:NettyServerNIOWorker}
+        server-executor-thread-prefix: ${SEATA_TRANSACTION_SERVER_EXECUTOR_THREAD_PREFIX:NettyServerBizHandler}
+        share-boss-worker: ${SEATA_TRANSACTION_SHARE_BOSS_WORKER:false}
+        client-selector-thread-prefix: ${SEATA_TRANSACTION_CLIENT_SELECTOR_THREAD_PREFIX:NettyClientSelector}
+        client-selector-thread-size: ${SEATA_TRANSACTION_CLIENT_SELECTOR_THREAD_SIZE:4}
+        client-worker-thread-prefix: ${SEATA_TRANSACTION_CLIENT_WORKER_THREAD_PREFIX:NettyClientWorkerThread}
+        # netty boss thread size,will not use for default
+        boss-thread-size: ${SEATA_TRANSACTION_BOSS_THREAD_SIZE:1}
+        # auto default pin or 8
+        worker-thread-size: ${SEATA_TRANSACTION_WORKER_THREAD_SIZE:default}
+      shutdown:
+        # when destroy server, wait seconds
+        wait: ${SEATA_TRANSACTION_SHUTDOWN_WAIT:3}
+      serialization: seata
+      compressor: none
+    # Client 配置
+    client:
+      rm:
+        # 异步提交缓存队列大小
+        async-commit-buffer-limit: ${SEATA_RM_ASYNC_COMMIT_BUFFER_LIMIT:10000}
+        # 事务重试次数
+        report-retry-count: ${SEATA_RM_REPORT_RETRY_COUNT:5}
+        # 表全量检测周期 (ms)
+        table-meta-check-enable: ${SEATA_RM_TABLE_META_CHECK_ENABLE:false}
+        # 分支会话最大数
+        branch-session-size-limit: ${SEATA_RM_BRANCH_SESSION_SIZE_LIMIT:16384}
+        # 分支会话列表大小
+        branch-table-name-size-limit: ${SEATA_RM_BRANCH_TABLE_NAME_SIZE_LIMIT:64}
+        # db lock 保留时间 (ms)
+        db-lock-keep-alive: ${SEATA_RM_DB_LOCK_KEEP_ALIVE:false}
+        # db lock 探测周期 (ms)
+        db-lock-retry-interval: ${SEATA_RM_DB_LOCK_RETRY_INTERVAL:60000}
+        # db lock 超时时间 (ms)
+        db-lock-retry-timeout: ${SEATA_RM_DB_LOCK_RETRY_TIMEOUT:30000}
+        # db lock 错误分支重试次数
+        db-lock-retry-times: ${SEATA_RM_DB_LOCK_RETRY_TIMES:3}
+        # 查询全局锁的重试间隔 (ms)
+        report-unity-enable: ${SEATA_RM_REPORT_UNITY_ENABLE:false}
+      tm:
+        # 提交重试次数
+        commit-retry-count: ${SEATA_TM_COMMIT_RETRY_COUNT:3}
+        # 回滚重试次数
+        rollback-retry-count: ${SEATA_TM_ROLLBACK_RETRY_COUNT:3}
+        # 默认超时时间 (ms)
+        default-global-transaction-timeout: ${SEATA_TM_DEFAULT_GLOBAL_TRANSACTION_TIMEOUT:60000}
+        # 是否启用噸询超时时间 (ms)
+        degrade-check: ${SEATA_TM_DEGRADE_CHECK:false}
+        # 噸询周期 (ms)
+        degrade-check-period: ${SEATA_TM_DEGRADE_CHECK_PERIOD:2000}
+        # 降级阈值
+        degrade-check-allow-times: ${SEATA_TM_DEGRADE_CHECK_ALLOW_TIMES:10}
+      undo:
+        # undo 保留天数
+        data-validation: ${SEATA_UNDO_DATA_VALIDATION:true}
+        log-serialization: ${SEATA_UNDO_LOG_SERIALIZATION:jackson}
+        log-table: ${SEATA_UNDO_LOG_TABLE:undo_log}
+        # 是否保留回滚日志
+        only-care-update-columns: ${SEATA_UNDO_ONLY_CARE_UPDATE_COLUMNS:true}
+
+# 安全配置
+security:
+  secret:
+    # 密钥
+    key: ${SEATA_SECRET_KEY:seataSecretKey0e228282319204768856573234047381747127281}
+    # Token 有效期 (秒)
+    token-validity-in-seconds: ${SEATA_TOKEN_VALIDITY_IN_SECONDS:18000}
+  ignore:
+    # 忽略的 URL
+    urls: ${SEATA_IGNORE_URLS:/**,!/api/v1/**,!/api/v2/**,!/api/v3/**}

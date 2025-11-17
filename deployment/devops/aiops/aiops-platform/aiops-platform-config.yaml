@@ -1,0 +1,933 @@
+# AIOps智能化运维平台配置
+# 统一的AI驱动运维管理平台
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aiops-platform-config
+  namespace: basebackend
+data:
+  # AIOps平台架构配置
+  platform_architecture.yaml |
+    # AIOps平台架构
+    platform:
+      name: "BaseBackend AIOps Platform"
+      version: "1.0.0"
+      description: "AI驱动的智能化运维中心"
+
+      # 核心组件
+      core_components:
+        # 数据采集层
+        data_collection:
+          - component: "metric_collector"
+            description: "指标采集器"
+            tech_stack: ["Prometheus", "Telegraf", "StatsD"]
+            capabilities:
+              - "real_time_metrics"
+              - "custom_metrics"
+              - "batch_metrics"
+              - "distributed_metrics"
+
+          - component: "log_aggregator"
+            description: "日志聚合器"
+            tech_stack: ["Fluentd", "Filebeat", "Logstash"]
+            capabilities:
+              - "structured_logging"
+              - "log_enrichment"
+              - "log_pattern_recognition"
+              - "security_log_analysis"
+
+          - component: "trace_collector"
+            description: "链路追踪采集器"
+            tech_stack: ["Jaeger", "Zipkin", "OpenTelemetry"]
+            capabilities:
+              - "distributed_tracing"
+              - "span_correlation"
+              - "performance_profiling"
+              - "dependency_mapping"
+
+          - component: "event_collector"
+            description: "事件采集器"
+            tech_stack: ["Kubernetes Events", "Webhooks", "Custom Events"]
+            capabilities:
+              - "infrastructure_events"
+              - "deployment_events"
+              - "security_events"
+              - "business_events"
+
+        # 数据处理层
+        data_processing:
+          - component: "stream_processor"
+            description: "流式数据处理器"
+            tech_stack: ["Apache Kafka", "Apache Flink", "Apache Storm"]
+            capabilities:
+              - "real_time_processing"
+              - "complex_event_processing"
+              - "data_enrichment"
+              - "anomaly_detection_streaming"
+
+          - component: "batch_processor"
+            description: "批处理引擎"
+            tech_stack: ["Apache Spark", "Hadoop", "Airflow"]
+            capabilities:
+              - "historical_analysis"
+              - "trend_analysis"
+              - "model_training"
+              - "report_generation"
+
+          - component: "data_lake"
+            description: "数据湖"
+            tech_stack: ["Apache Parquet", "Delta Lake", "Iceberg"]
+            capabilities:
+              - "data_storage"
+              - "data_versioning"
+              - "data_lineage"
+              - "schema_evolution"
+
+        # AI/ML层
+        ai_ml_layer:
+          - component: "anomaly_detection_engine"
+            description: "异常检测引擎"
+            tech_stack: ["scikit-learn", "TensorFlow", "PyTorch"]
+            models:
+              - "isolation_forest"
+              - "lstm_autoencoder"
+              - "prophet"
+              - "statistical_methods"
+            features:
+              - "real_time_detection"
+              - "pattern_recognition"
+              - "multi_metric_correlation"
+              - "seasonal_adjustment"
+
+          - component: "prediction_engine"
+            description: "预测引擎"
+            tech_stack: ["LSTM", "Prophet", "ARIMA", "XGBoost"]
+            capabilities:
+              - "capacity_forecasting"
+              - "trend_prediction"
+              - "seasonal_forecasting"
+              - "anomaly_forecasting"
+
+          - component: "root_cause_engine"
+            description: "根因分析引擎"
+            tech_stack: ["Knowledge Graph", "Graph Neural Networks"]
+            capabilities:
+              - "dependency_analysis"
+              - "causal_inference"
+              - "correlation_analysis"
+              - "impact_propagation"
+
+          - component: "recommendation_engine"
+            description: "推荐引擎"
+            tech_stack: ["Collaborative Filtering", "Content-based", "Deep Learning"]
+            capabilities:
+              - "optimization_recommendations"
+              - "best_practices"
+              - "similar_incidents"
+              - "resolution_suggestions"
+
+        # 应用服务层
+        application_services:
+          - component: "incident_management"
+            description: "事件管理服务"
+            tech_stack: ["Spring Boot", "React", "GraphQL"]
+            features:
+              - "auto_creation"
+              - "intelligent_routing"
+              - "correlation"
+              - "resolution_tracking"
+
+          - component: "automation_engine"
+            description: "自动化引擎"
+            tech_stack: ["Kubernetes Operators", "Ansible", "Terraform"]
+            features:
+              - "auto_remediation"
+              - "policy_enforcement"
+              - "deployment_automation"
+              - "testing_automation"
+
+          - component: "capacity_planning"
+            description: "容量规划服务"
+            tech_stack: ["Optimization Algorithms", "RL Models"]
+            features:
+              - "demand_forecasting"
+              - "cost_optimization"
+              - "resource_allocation"
+              - "scenario_planning"
+
+          - component: "knowledge_management"
+            description: "知识管理服务"
+            tech_stack: ["Elasticsearch", "NLP", "Knowledge Graphs"]
+            features:
+              - "incident_history"
+              - "runbook_automation"
+              - "best_practices"
+              - "lessons_learned"
+
+        # 可视化层
+        visualization_layer:
+          - component: "dashboard_engine"
+            description: "仪表板引擎"
+            tech_stack: ["Grafana", "Kibana", "Custom Dashboards"]
+            features:
+              - "real_time_dashboards"
+              - "customizable_widgets"
+              - "interactive_charts"
+              - "drill_down_capability"
+
+          - component: "alerting_system"
+            description: "告警系统"
+            tech_stack: ["AlertManager", "PagerDuty", "Slack"]
+            features:
+              - "intelligent_routing"
+              - "aggregation"
+              - "suppression"
+              - "escalation"
+
+          - component: "reporting_engine"
+            description: "报告引擎"
+            tech_stack: ["Custom Reports", "PDF Generation", "Scheduled Reports"]
+            features:
+              - "scheduled_reports"
+              - "custom_templates"
+              - "performance_reports"
+              - "capacity_reports"
+
+      # 技术架构
+      architecture:
+        deployment_model: "microservices"
+        container_platform: "kubernetes"
+        service_mesh: "istio"
+        api_gateway: "spring_cloud_gateway"
+        database: "postgresql + mongodb + redis"
+        message_queue: "apache_kafka"
+        caching: "redis_cluster"
+        storage: "ceph + s3"
+
+      # 数据流
+      data_flow:
+        collection: "agents -> collectors -> message_queue"
+        processing: "stream_processor + batch_processor -> data_lake"
+        analysis: "ai_models -> insights -> actions"
+        action: "automation_engine -> kubernetes_api"
+        feedback: "results -> model_retraining"
+
+  # AIOps平台服务配置
+  platform_services.yaml |
+    # AIOps平台核心服务
+    services:
+      # API网关服务
+      api_gateway:
+        image: "basebackend/aiops-api-gateway:v1.0.0"
+        replicas: 3
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+        ports:
+          - 8080  # HTTP
+          - 8443  # HTTPS
+        env:
+          - name: "RATE_LIMIT"
+            value: "1000/hour"
+          - name: "CIRCUIT_BREAKER"
+            value: "enabled"
+          - name: "AUTH_SERVICE"
+            value: "http://auth-service:8080"
+        config:
+          routes:
+            - path: "/api/v1/anomalies"
+              service: "anomaly-detection"
+            - path: "/api/v1/predictions"
+              service: "prediction-engine"
+            - path: "/api/v1/incidents"
+              service: "incident-management"
+            - path: "/api/v1/automation"
+              service: "automation-engine"
+            - path: "/api/v1/capacity"
+              service: "capacity-planning"
+
+      # 异常检测服务
+      anomaly_detection:
+        image: "basebackend/aiops-anomaly-detection:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 4
+            memory: 16Gi
+        ports:
+          - 8081
+        env:
+          - name: "MODEL_UPDATE_INTERVAL"
+            value: "3600"  # 1小时
+          - name: "DETECTION_SENSITIVITY"
+            value: "medium"
+          - name: "REDIS_URL"
+            value: "redis://redis:6379"
+        config:
+          models:
+            - "cpu_anomaly"
+            - "memory_anomaly"
+            - "latency_anomaly"
+            - "network_anomaly"
+
+      # 预测引擎服务
+      prediction_engine:
+        image: "basebackend/aiops-prediction-engine:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 2
+            memory: 8Gi
+          limits:
+            cpu: 4
+            memory: 16Gi
+        ports:
+          - 8082
+        env:
+          - name: "TRAINING_DATA_WINDOW"
+            value: "30d"
+          - name: "PREDICTION_HORIZON"
+            value: "168h"  # 7天
+          - name: "MODEL_RETRAIN_INTERVAL"
+            value: "86400"  # 24小时
+        config:
+          models:
+            - "capacity_forecast"
+            - "cost_forecast"
+            - "load_forecast"
+            - "trend_analysis"
+
+      # 根因分析服务
+      root_cause_analysis:
+        image: "basebackend/aiops-rca:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+        ports:
+          - 8083
+        env:
+          - name: "GRAPH_DB_URL"
+            value: "neo4j://neo4j:7687"
+          - name: "ANALYSIS_TIMEOUT"
+            value: "300"  # 5分钟
+          - name: "CORRELATION_WINDOW"
+            value: "60m"
+        config:
+          algorithms:
+            - "dependency_graph"
+            - "causal_inference"
+            - "correlation_analysis"
+
+      # 事件管理服务
+      incident_management:
+        image: "basebackend/aiops-incident-mgmt:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+        ports:
+          - 8084
+        env:
+          - name: "DATABASE_URL"
+            value: "postgresql://postgres:5432/incidents"
+          - name: "AUTO_ASSIGNMENT"
+            value: "true"
+          - name: "ESCALATION_ENABLED"
+            value: "true"
+        config:
+          auto_routing: true
+          correlation: true
+          sla_tracking: true
+
+      # 自动化引擎
+      automation_engine:
+        image: "basebackend/aiops-automation:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+        ports:
+          - 8085
+        env:
+          - name: "KUBERNETES_URL"
+            value: "https://kubernetes.default.svc"
+          - name: "AUTO_EXECUTION"
+            value: "false"  # 需要人工确认
+          - name: "MAX_ATTEMPTS"
+            value: "3"
+        config:
+          safety_checks: true
+          rollback_enabled: true
+          approval_required: true
+
+      # 容量规划服务
+      capacity_planning:
+        image: "basebackend/aiops-capacity-planning:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+        ports:
+          - 8086
+        env:
+          - name: "OPTIMIZATION_ENGINE"
+            value: "genetic_algorithm"
+          - name: "COST_BUDGET"
+            value: "5000"  # 月度预算
+          - name: "RESERVATION_THRESHOLD"
+            value: "0.8"
+        config:
+          optimization_frequency: "weekly"
+          prediction_accuracy_threshold: 0.85
+          auto_scaling_enabled: true
+
+      # 知识管理服务
+      knowledge_management:
+        image: "basebackend/aiops-knowledge:v1.0.0"
+        replicas: 1
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1
+            memory: 4Gi
+        ports:
+          - 8087
+        env:
+          - name: "ELASTICSEARCH_URL"
+            value: "http://elasticsearch:9200"
+          - name: "NLP_MODEL_PATH"
+            value: "/models/nlp"
+          - name: "KNOWLEDGE_UPDATE_INTERVAL"
+            value: "86400"  # 24小时
+        config:
+          semantic_search: true
+          auto_tagging: true
+          learning_enabled: true
+
+      # 前端应用
+      frontend:
+        image: "basebackend/aiops-frontend:v1.0.0"
+        replicas: 2
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        ports:
+          - 3000
+        config:
+          theme: "dark"
+          refresh_interval: "30s"
+          real_time_updates: true
+
+      # 监控服务
+      monitoring:
+        image: "basebackend/aiops-monitoring:v1.0.0"
+        replicas: 1
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        ports:
+          - 9090
+        config:
+          metrics_enabled: true
+          tracing_enabled: true
+          health_checks: true
+
+  # 数据库配置
+  databases.yaml |
+    # AIOps平台数据库
+    databases:
+      # PostgreSQL - 事务数据
+      postgresql:
+        image: "postgres:14"
+        replicas: 3
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+        storage:
+          size: "100Gi"
+          class: "basebackend-fast-ssd"
+        env:
+          - name: "POSTGRES_DB"
+            value: "aiops_platform"
+          - name: "POSTGRES_USER"
+            valueFrom:
+              secretKeyRef:
+                name: "aiops-secrets"
+                key: "db_user"
+          - name: "POSTGRES_PASSWORD"
+            valueFrom:
+              secretKeyRef:
+                name: "aiops-secrets"
+                key: "db_password"
+        config:
+          max_connections: 200
+          shared_buffers: "1GB"
+          effective_cache_size: "3GB"
+
+      # MongoDB - 文档存储
+      mongodb:
+        image: "mongo:5.0"
+        replicas: 3
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1
+            memory: 4Gi
+        storage:
+          size: "200Gi"
+          class: "basebackend-standard-storage"
+        config:
+          sharding: enabled
+          replica_set: "aiops_rs"
+          auth: enabled
+
+      # Redis - 缓存
+      redis:
+        image: "redis:7.0"
+        replicas: 3
+        resources:
+          requests:
+            cpu: 200m
+            memory: 1Gi
+          limits:
+            cpu: 500m
+            memory: 2Gi
+        config:
+          maxmemory: "1GB"
+          maxmemory_policy: "allkeys-lru"
+          cluster_enabled: true
+          nodes: 3
+
+      # Neo4j - 图形数据库
+      neo4j:
+        image: "neo4j:5.0"
+        replicas: 1
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+        storage:
+          size: "500Gi"
+          class: "basebackend-fast-ssd"
+        config:
+          heap_size: "2GB"
+          page_cache: "2GB"
+          auth_enabled: true
+
+      # Elasticsearch - 搜索引擎
+      elasticsearch:
+        image: "elasticsearch:8.0"
+        replicas: 3
+        resources:
+          requests:
+            cpu: 1
+            memory: 4Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+        storage:
+          size: "500Gi"
+          class: "basebackend-fast-ssd"
+        config:
+          cluster_name: "aiops-logs"
+          node_count: 3
+          shards: 5
+          replicas: 1
+
+      # InfluxDB - 时间序列数据库
+      influxdb:
+        image: "influxdb:2.0"
+        replicas: 1
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1
+            memory: 4Gi
+        storage:
+          size: "200Gi"
+          class: "basebackend-standard-storage"
+        config:
+          retention_policy: "30d"
+          compression: enabled
+
+  # 监控与告警配置
+  monitoring_alerting.yaml |
+    # AIOps平台监控
+    monitoring:
+      # Prometheus监控
+      prometheus:
+        retention: "30d"
+        scrape_interval: "15s"
+        rules:
+          - alert: "ServiceDown"
+            expr: "up == 0"
+            for: "1m"
+            labels:
+              severity: "critical"
+            annotations:
+              summary: "Service {{ $labels.instance }} is down"
+
+          - alert: "HighLatency"
+            expr: "histogram_quantile(0.99, http_request_duration_seconds) > 0.5"
+            for: "5m"
+            labels:
+              severity: "warning"
+            annotations:
+              summary: "High latency detected"
+
+          - alert: "HighErrorRate"
+            expr: "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.1"
+            for: "2m"
+            labels:
+              severity: "critical"
+            annotations:
+              summary: "High error rate detected"
+
+      # Grafana仪表板
+      grafana:
+        dashboards:
+          - name: "AIOps Platform Overview"
+            refresh: "30s"
+            panels:
+              - "Total Incidents"
+              - "Anomalies Detected"
+              - "Automation Rate"
+              - "MTTR"
+              - "Cost Savings"
+
+          - name: "AI Model Performance"
+            refresh: "1m"
+            panels:
+              - "Model Accuracy"
+              - "Prediction Error"
+              - "Anomaly Detection Rate"
+              - "False Positive Rate"
+
+          - name: "System Health"
+            refresh: "15s"
+            panels:
+              - "CPU Usage"
+              - "Memory Usage"
+              - "Disk I/O"
+              - "Network Traffic"
+
+      # AlertManager告警
+      alertmanager:
+        route:
+          receiver: "default"
+          routes:
+            - match:
+                severity: "critical"
+              receiver: "pagerduty"
+            - match:
+                severity: "warning"
+              receiver: "slack"
+        receivers:
+          - name: "pagerduty"
+            pagerduty_configs:
+              - routing_key: "${PAGERDUTY_KEY}"
+                description: "{{ .GroupLabels.alertname }}"
+
+          - name: "slack"
+            slack_configs:
+              - api_url: "${SLACK_WEBHOOK}"
+                channel: "#aiops-alerts"
+                title: "{{ .GroupLabels.alertname }}"
+                text: "{{ .CommonAnnotations.summary }}"
+
+          - name: "email"
+            email_configs:
+              - to: "aiops-team@company.com"
+                subject: "AIOps Alert: {{ .GroupLabels.alertname }}"
+                body: "{{ .CommonAnnotations.summary }}"
+
+  # 安全配置
+  security.yaml |
+    # AIOps平台安全
+    security:
+      # 认证授权
+      authentication:
+        type: "oauth2"
+        providers:
+          - "github"
+          - "google"
+          - "saml"
+        session_timeout: "8h"
+        jwt_secret_rotation: "24h"
+
+      authorization:
+        rbac:
+          enabled: true
+          roles:
+            - name: "admin"
+              permissions: ["*"]
+            - name: "operator"
+              permissions: ["read", "write"]
+            - name: "viewer"
+              permissions: ["read"]
+
+        abac:
+          enabled: true
+          policies:
+            - subject: "user"
+              resource: "incidents"
+              action: "create"
+              condition: "user.team == operations"
+
+      # 网络安全
+      network:
+        encryption: "tls 1.3"
+        mTLS: "enabled"
+        network_policies: enabled
+        ingress_whitelist: ["10.0.0.0/8"]
+        egress_whitelist: ["*"]
+
+      # 数据安全
+      data:
+        encryption_at_rest: true
+        encryption_in_transit: true
+        data_masking: enabled
+        backup_encryption: true
+        retention_policy: "2y"
+
+      # 审计日志
+      audit:
+        enabled: true
+        log_level: "info"
+        retention: "1y"
+        sensitive_data_filtering: true
+        realtime_monitoring: true
+
+      # 安全扫描
+      security_scanning:
+        image_scanning: true
+        dependency_scanning: true
+        container_orchestration: "trivy"
+        scan_frequency: "daily"
+
+  # 备份与恢复
+  backup_recovery.yaml |
+    # AIOps平台备份与恢复
+    backup:
+      strategy: "3-2-1"
+      schedule:
+        databases:
+          frequency: "6h"
+          retention: "30d"
+          compression: true
+          encryption: true
+
+        configurations:
+          frequency: "daily"
+          retention: "90d"
+          versioning: true
+
+        models:
+          frequency: "weekly"
+          retention: "1y"
+          versioning: true
+
+      storage:
+        primary: "s3-compatible-storage"
+        secondary: "glacier"
+        encryption: "aes256"
+        access_control: "iam"
+
+      testing:
+        frequency: "monthly"
+        restore_validation: true
+        performance_testing: true
+
+      recovery:
+        rto: "4h"  # Recovery Time Objective
+        rpo: "1h"  # Recovery Point Objective
+        automated_failover: true
+        disaster_recovery_site: "enabled"
+
+  # 性能优化
+  performance.yaml |
+    # AIOps平台性能优化
+    performance:
+      # 缓存策略
+      caching:
+        layer_1: "in_memory"
+          size: "1GB"
+          ttl: "5m"
+
+        layer_2: "redis_cluster"
+          size: "10GB"
+          ttl: "1h"
+
+        layer_3: "cdn"
+          size: "unlimited"
+          ttl: "24h"
+
+      # 数据库优化
+      database:
+        connection_pooling: enabled
+        read_replicas: 3
+        write_master: 1
+        sharding: enabled
+        query_optimization: true
+
+      # API性能
+      api:
+        rate_limiting: "1000 requests/minute"
+        compression: "gzip"
+        http2: enabled
+        keep_alive: "30s"
+        timeout: "30s"
+
+      # 消息队列
+      message_queue:
+        partitions: 10
+        replication_factor: 3
+        min_insync_replicas: 2
+        retention: "7d"
+
+      # 并发处理
+      concurrency:
+        worker_threads: 100
+        async_processing: enabled
+        load_balancing: "round_robin"
+        circuit_breakers: enabled
+
+  # 扩展性配置
+  scalability.yaml |
+    # AIOps平台扩展性
+    scalability:
+      # 水平扩展
+      horizontal:
+        auto_scaling: true
+        min_replicas: 2
+        max_replicas: 100
+        target_cpu: "70%"
+        target_memory: "80%"
+        scale_up_cooldown: "5m"
+        scale_down_cooldown: "15m"
+
+      # 垂直扩展
+      vertical:
+        automatic: true
+        max_limits: "8 CPU, 32GB RAM"
+        adjustment_policy: "conservative"
+
+      # 多租户
+      multi_tenant:
+        enabled: true
+        isolation: "namespace"
+        resource_quota: enabled
+        rate_limiting: enabled
+
+      # 地理分布
+      multi_region:
+        enabled: false
+        regions: ["us-east-1", "eu-west-1"]
+        replication: "async"
+        failover: "manual"
+
+  # API文档
+  api_docs.yaml |
+    # AIOps平台API文档
+    api:
+      openapi: "3.0.0"
+      documentation:
+        endpoint: "/docs"
+        format: "swagger_ui"
+
+      endpoints:
+        anomalies:
+          - GET "/api/v1/anomalies"
+          - GET "/api/v1/anomalies/{id}"
+          - POST "/api/v1/anomalies/detect"
+
+        predictions:
+          - GET "/api/v1/predictions/capacity"
+          - GET "/api/v1/predictions/cost"
+          - POST "/api/v1/predictions/optimize"
+
+        incidents:
+          - GET "/api/v1/incidents"
+          - POST "/api/v1/incidents"
+          - PUT "/api/v1/incidents/{id}"
+          - DELETE "/api/v1/incidents/{id}"
+
+        automation:
+          - POST "/api/v1/automation/execute"
+          - GET "/api/v1/automation/history"
+          - POST "/api/v1/automation/rollback"
+
+        capacity:
+          - GET "/api/v1/capacity/plans"
+          - POST "/api/v1/capacity/apply"
+          - GET "/api/v1/capacity/recommendations"
+
+        knowledge:
+          - GET "/api/v1/knowledge/search"
+          - POST "/api/v1/knowledge/learn"
+          - GET "/api/v1/knowledge/runbooks"
+
+      examples:
+        create_incident:
+          method: "POST"
+          endpoint: "/api/v1/incidents"
+          body:
+            title: "High CPU usage detected"
+            severity: "warning"
+            service: "basebackend-api"
+            description: "CPU usage exceeded 80%"
+
+      error_codes:
+        400: "Bad Request"
+        401: "Unauthorized"
+        403: "Forbidden"
+        404: "Not Found"
+        429: "Too Many Requests"
+        500: "Internal Server Error"
+        503: "Service Unavailable"

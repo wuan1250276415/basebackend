@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # XXL-Job 调度中心
+  # ========================================
+  xxl-job-server:
+    image: xuxueli/xxl-job-admin:2.4.0
+    container_name: xxl-job-server
+    ports:
+      - "8080:8080"
+    environment:
+      - PARAMS=--spring.datasource.username=root
+      - PARAMS=--spring.datasource.password=123456
+      - PARAMS=--spring.datasource.url=jdbc:mysql://mysql-xxljob:3306/xxl_job?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+      - PARAMS=--spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+      - PARAMS=--xxl.job.i18n=zh_CN
+      - PARAMS=--xxl.job.accessToken=basebackend_xxl_job_token_2024
+      - PARAMS=--xxl.job.admin.userfailover=true
+      - PARAMS=--xxl.job.admin.failover=true
+    volumes:
+      - ./xxljob-logs:/data/applogs/xxl-job
+    depends_on:
+      mysql-xxljob:
+        condition: service_healthy
+    networks:
+      - xxljob-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/xxl-job-admin/toLogin"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ========================================
+  # MySQL 数据库
+  # ========================================
+  mysql-xxljob:
+    image: mysql:8.0
+    container_name: mysql-xxljob
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: xxl_job
+      MYSQL_USER: xxljob
+      MYSQL_PASSWORD: xxljob_password
+    volumes:
+      - ./xxljob-db/init:/docker-entrypoint-initdb.d
+      - mysql-xxljob-data:/var/lib/mysql
+    networks:
+      - xxljob-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --lower_case_table_names=1
+
+  # ========================================
+  # XXL-Job 执行器示例
+  # ========================================
+  xxl-job-executor-sample:
+    image: xxl-job-executor-sample-springboot:2.4.0
+    container_name: xxl-job-executor-sample
+    ports:
+      - "8081:8081"
+    environment:
+      - PARAMS=--xxl.job.admin.addresses=http://xxl-job-server:8080/xxl-job-admin
+      - PARAMS=--xxl.job.executor.appname=basebackend-executor-sample
+      - PARAMS=--xxl.job.executor.port=8081
+      - PARAMS=--xxl.job.executor.logpath=/data/applogs/xxl-job
+      - PARAMS=--xxl.job.accessToken=basebackend_xxl_job_token_2024
+      - PARAMS=--server.port=8081
+    volumes:
+      - ./xxljob-executor-logs:/data/applogs/xxl-job
+    depends_on:
+      xxl-job-server:
+        condition: service_healthy
+    networks:
+      - xxljob-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ========================================
+  # Prometheus 监控
+  # ========================================
+  prometheus-xxljob:
+    image: prom/prometheus:latest
+    container_name: prometheus-xxljob
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./monitoring/prometheus-xxljob.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-xxljob-data:/prometheus
+    networks:
+      - xxljob-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # ========================================
+  # Grafana 可视化
+  # ========================================
+  grafana-xxljob:
+    image: grafana/grafana:latest
+    container_name: grafana-xxljob
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana-xxljob/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana-xxljob/dashboards:/var/lib/grafana/dashboards
+      - grafana-xxljob-data:/var/lib/grafana
+    depends_on:
+      - prometheus-xxljob
+    networks:
+      - xxljob-network
+    restart: unless-stopped
+
+networks:
+  xxljob-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mysql-xxljob-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./mysql-data
+  prometheus-xxljob-data:
+    driver: local
+  grafana-xxljob-data:
+    driver: local

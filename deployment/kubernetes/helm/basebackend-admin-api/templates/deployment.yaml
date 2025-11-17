@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "basebackend-admin-api.fullname" . }}
+  namespace: {{ .Release.Namespace | default "basebackend" }}
+  labels:
+    {{- include "basebackend-admin-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "basebackend-admin-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "basebackend-admin-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "basebackend-admin-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers.waitForDatabase.enabled }}
+      initContainers:
+      - name: wait-for-database
+        image: busybox:1.35
+        command:
+          - 'sh'
+          - '-c'
+          - |
+            echo "Waiting for MySQL database..."
+            until nc -z {{ .Values.database.host }} {{ .Values.database.port }}; do
+              echo "Database is unavailable - sleeping"
+              sleep 5
+            done
+            echo "Database is up - continuing"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "100m"
+          limits:
+            memory: "64Mi"
+            cpu: "200m"
+      {{- end }}
+      {{- if .Values.initContainers.waitForRedis.enabled }}
+      - name: wait-for-redis
+        image: busybox:1.35
+        command:
+          - 'sh'
+          - '-c'
+          - |
+            echo "Waiting for Redis..."
+            until nc -z {{ .Values.redis.host }} {{ .Values.redis.port }}; do
+              echo "Redis is unavailable - sleeping"
+              sleep 5
+            done
+            echo "Redis is up - continuing"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "100m"
+          limits:
+            memory: "64Mi"
+            cpu: "200m"
+      {{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.environment | quote }}
+        - name: TZ
+          value: "Asia/Shanghai"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus"
+        {{- if .Values.database.enabled }}
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.existingSecret | default "admin-api-secrets" }}
+              key: database-url
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.existingSecret | default "admin-api-secrets" }}
+              key: database-username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.existingSecret | default "admin-api-secrets" }}
+              key: {{ .Values.database.existingSecretKey | default "database-password" }}
+        {{- end }}
+        {{- if .Values.redis.enabled }}
+        - name: SPRING_REDIS_HOST
+          value: {{ .Values.redis.host | quote }}
+        - name: SPRING_REDIS_PORT
+          value: {{ .Values.redis.port | quote }}
+        - name: SPRING_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.existingSecret | default "admin-api-secrets" }}
+              key: {{ .Values.redis.existingSecretKey | default "redis-password" }}
+        {{- end }}
+        {{- if .Values.kafka.enabled }}
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "{{ .Values.kafka.host }}:{{ .Values.kafka.port }}"
+        {{- end }}
+        {{- if .Values.oauth2.enabled }}
+        - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+          value: {{ .Values.oauth2.issuerUri | quote }}
+        {{- end }}
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- if .Values.healthCheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.livenessProbe.periodSeconds }}
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.readinessProbe.periodSeconds }}
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.healthCheck.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.startupProbe.periodSeconds }}
+          timeoutSeconds: 5
+          failureThreshold: 30
+          successThreshold: 1
+        {{- end }}
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      volumes:
+      - name: app-logs
+        emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

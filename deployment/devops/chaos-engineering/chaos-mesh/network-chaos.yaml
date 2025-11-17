@@ -1,0 +1,163 @@
+# Chaos Mesh 网络故障实验
+# 模拟网络分区、延迟、丢包等网络故障
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 网络延迟
+  action: delay
+
+  # 延迟时间: 2000ms
+  delay:
+    latency: "2000ms"
+    jitter: "500ms"
+
+  # 选择模式: 随机
+  mode: random
+  value: "20%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 故障持续时间
+  duration: "300s"
+
+  # 每2小时执行一次
+  scheduler:
+    cron: "@every 2h"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-loss-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 网络丢包
+  action: loss
+
+  # 丢包率: 10%
+  loss:
+    loss: "10%"
+    correlation: "0"
+
+  # 选择模式: 定向
+  mode: one
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-auth-service
+
+  # 故障持续时间
+  duration: "240s"
+
+  # 每4小时执行一次
+  scheduler:
+    cron: "@every 4h"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-partition-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 网络分区
+  action: partition
+
+  # 方向: 双向
+  direction: both
+
+  # 选择模式: 全部
+  mode: all
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-user-service
+
+  # 故障持续时间
+  duration: "180s"
+
+  # 每天执行一次
+  scheduler:
+    cron: "0 3 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-bandwidth-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 带宽限制
+  action: bandwidth
+
+  # 带宽限制: 10KB/s
+  bandwidth:
+    rate: "10KB/s"
+    limit: 1000
+    buffer: 1000
+
+  # 选择模式: 随机
+  mode: random
+  value: "15%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-gateway
+
+  # 故障持续时间
+  duration: "600s"
+
+  # 每天执行两次
+  scheduler:
+    cron: "0 2,14 * * *"
+
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-duplicate-test
+  namespace: chaos-testing
+spec:
+  # 故障类型: 重复包
+  action: duplicate
+
+  # 重复率: 5%
+  duplicate:
+    duplicate: "5%"
+    correlation: "0"
+
+  # 选择模式: 随机
+  mode: random
+  value: "25%"
+
+  # 目标Pod标签
+  selector:
+    namespaces:
+      - basebackend
+    labelSelectors:
+      app: basebackend-admin-api
+
+  # 故障持续时间
+  duration: "300s"
+
+  # 每周执行一次
+  scheduler:
+    cron: "0 0 * * 0"

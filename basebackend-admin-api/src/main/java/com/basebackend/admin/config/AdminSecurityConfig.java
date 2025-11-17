@@ -19,9 +19,13 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
- * 后台管理API安全配置
+ * ��̨����API��ȫ����
  */
 @Configuration
 @EnableWebSecurity
@@ -33,7 +37,7 @@ public class AdminSecurityConfig {
     private final OriginValidationFilter originValidationFilter;
 
     /**
-     * 密码编码器
+     * ���������
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -41,37 +45,48 @@ public class AdminSecurityConfig {
     }
 
     /**
-     * 安全过滤器链配置
+     * ��ȫ������������
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, HandlerMappingIntrospector introspector) throws Exception {
         CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
         requestHandler.setCsrfRequestAttributeName("_csrf");
+
+        MvcRequestMatcher.Builder mvc = new MvcRequestMatcher.Builder(introspector).servletPath("/");
+        RequestMatcher actuatorMatcher = new AntPathRequestMatcher("/actuator/**");
+        RequestMatcher[] csrfIgnoredMatchers = new RequestMatcher[]{
+                mvc.pattern("/api/admin/auth/**"),
+                mvc.pattern("/api/public/**"),
+                actuatorMatcher,
+                mvc.pattern("/swagger-ui/**"),
+                mvc.pattern("/v3/api-docs/**"),
+                mvc.pattern("/doc.html"),
+                mvc.pattern("/webjars/**"),
+                mvc.pattern("/favicon.ico")
+        };
+        RequestMatcher[] publicMatchers = new RequestMatcher[]{
+                mvc.pattern("/api/admin/auth/**"),
+                mvc.pattern("/api/admin/users"),
+                mvc.pattern("/api/public/**"),
+                actuatorMatcher,
+                mvc.pattern("/swagger-ui/**"),
+                mvc.pattern("/v3/api-docs/**"),
+                mvc.pattern("/doc.html"),
+                mvc.pattern("/webjars/**"),
+                mvc.pattern("/favicon.ico")
+        };
 
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
-                        .ignoringRequestMatchers(
-                                "/api/admin/auth/**",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/favicon.ico"
-                        )
+                        .ignoringRequestMatchers(csrfIgnoredMatchers)
                 )
-                // 禁用表单登录
                 .formLogin(AbstractHttpConfigurer::disable)
-                // 禁用HTTP基本认证
                 .httpBasic(AbstractHttpConfigurer::disable)
-                // 设置会话管理策略为无状态
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // 安全响应头
                 .headers(headers -> {
                     headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; base-uri 'self';"));
                     headers.referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN));
@@ -79,24 +94,14 @@ public class AdminSecurityConfig {
                     headers.frameOptions(frame -> frame.deny());
                     headers.permissionsPolicy(policy -> policy.policy("geolocation=(), microphone=(), camera=()"));
                 })
-                // 配置请求授权
+                // ����������Ȩ
                 .authorizeHttpRequests(auth -> auth
-                        // 公开接口
-                        .requestMatchers(
-                                "/api/admin/auth/**",
-                                "/api/admin/users",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/favicon.ico"
-                        ).permitAll()
-                        // 其他所有请求需要认证
+                        // �����ӿ�
+                        .requestMatchers(publicMatchers).permitAll()
+                        // ��������������Ҫ��֤
                         .anyRequest().authenticated()
                 )
-                // 添加JWT过滤器
+                // ����JWT������
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(csrfCookieFilter, BasicAuthenticationFilter.class)
                 .addFilterAfter(originValidationFilter, CsrfFilter.class);

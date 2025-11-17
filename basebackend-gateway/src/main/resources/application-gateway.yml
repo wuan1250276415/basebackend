@@ -18,10 +18,10 @@ spring:
 
     # Sentinel配置
     sentinel:
-      # 临时禁用 Sentinel 进行测试
-      enabled: false
+      # 启用 Sentinel
+      enabled: true
       transport:
-        dashboard: 1.117.67.222:8858  # Sentinel控制台地址
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}  # Sentinel控制台地址
         port: 8719
       eager: true
       # Nacos数据源配置

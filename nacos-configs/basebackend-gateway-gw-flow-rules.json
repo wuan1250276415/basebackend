@@ -1,0 +1,41 @@
+[
+  {
+    "resource": "admin-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 100,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 20,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  },
+  {
+    "resource": "demo-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 200,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 40,
+    "maxQueueingTimeoutMs": 500,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  },
+  {
+    "resource": "auth_api",
+    "resourceMode": 1,
+    "grade": 1,
+    "count": 50,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 10,
+    "maxQueueingTimeoutMs": 1000,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  }
+]

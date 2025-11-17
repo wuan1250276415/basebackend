@@ -1,0 +1,354 @@
+# AI驱动的异常检测服务
+# 基于机器学习的智能异常检测系统
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detection-service
+  namespace: basebackend
+  labels:
+    app: anomaly-detection
+    version: v1.0.0
+    component: aiops
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: anomaly-detection
+  template:
+    metadata:
+      labels:
+        app: anomaly-detection
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: anomaly-detection
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: anomaly-detection
+          image: basebackend/anomaly-detection:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus.monitoring.svc.cluster.local:9090"
+            - name: JAEGER_URL
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: MODEL_CONFIG_PATH
+              value: "/config/model_config.yaml"
+            - name: REDIS_URL
+              value: "redis://redis.basebackend.svc.cluster.local:6379"
+            - name: MODEL_UPDATE_INTERVAL
+              value: "300"  # 5分钟
+            - name: LOG_LEVEL
+              value: "INFO"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+            - name: model-storage
+              mountPath: /models
+            - name: logs
+              mountPath: /var/log/anomaly-detection
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config-volume
+          configMap:
+            name: anomaly-detection-rules
+        - name: model-storage
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - anomaly-detection
+                topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values:
+                      - compute-optimized
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anomaly-detection-service
+  namespace: basebackend
+  labels:
+    app: anomaly-detection
+    component: aiops
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app: anomaly-detection
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: anomaly-detection
+  namespace: basebackend
+  labels:
+    app: anomaly-detection
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: anomaly-detection-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - endpoints
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources:
+      - events
+    verbs: ["get", "list", "watch", "create"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - pods
+      - nodes
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: anomaly-detection-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: anomaly-detection-role
+subjects:
+  - kind: ServiceAccount
+    name: anomaly-detection
+    namespace: basebackend
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: anomaly-detection-metrics
+  namespace: basebackend
+  labels:
+    app: anomaly-detection
+    component: aiops
+spec:
+  selector:
+    matchLabels:
+      app: anomaly-detection
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: model-training
+  namespace: basebackend
+spec:
+  schedule: "0 2 * * *"  # 每天凌晨2点训练模型
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: anomaly-detection
+          restartPolicy: OnFailure
+          containers:
+            - name: model-trainer
+              image: basebackend/anomaly-detection:v1.0.0
+              command:
+                - python
+                - /app/train_models.py
+              env:
+                - name: TRAINING_MODE
+                  value: "full"
+                - name: PROMETHEUS_URL
+                  value: "http://prometheus.monitoring.svc.cluster.local:9090"
+                - name: TRAINING_DATA_WINDOW
+                  value: "30d"
+              volumeMounts:
+                - name: config-volume
+                  mountPath: /config
+                - name: model-storage
+                  mountPath: /models
+              resources:
+                requests:
+                  cpu: 2
+                  memory: 8Gi
+                limits:
+                  cpu: 4
+                  memory: 16Gi
+          volumes:
+            - name: config-volume
+              configMap:
+                name: anomaly-detection-rules
+            - name: model-storage
+              emptyDir: {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detection-service-config
+  namespace: basebackend
+data:
+  application.yml: |
+    server:
+      port: 8080
+      grpc:
+        port: 9090
+
+    spring:
+      application:
+        name: anomaly-detection-service
+      profiles:
+        active: kubernetes
+      autoconfigure:
+        exclude: |
+          org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,
+          org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,ready,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+
+    anomaly:
+      detection:
+        models:
+          cpu:
+            enabled: true
+            model-type: isolation_forest
+            update-interval: 300s
+            sensitivity: high
+          memory:
+            enabled: true
+            model-type: lstm_autoencoder
+            update-interval: 600s
+            sensitivity: medium
+          latency:
+            enabled: true
+            model-type: statistical
+            update-interval: 120s
+            sensitivity: high
+          network:
+            enabled: true
+            model-type: one_class_svm
+            update-interval: 300s
+            sensitivity: medium
+          business:
+            enabled: true
+            model-type: prophet
+            update-interval: 3600s
+            sensitivity: low
+        thresholds:
+          critical: 0.9
+          warning: 0.7
+          info: 0.5
+        response:
+          auto-investigate: true
+          max-concurrent-investigations: 5
+          investigation-timeout: 10m
+          auto-remediate: false
+      prometheus:
+        url: ${PROMETHEUS_URL:http://prometheus:9090}
+        query-timeout: 30s
+      jaeger:
+        url: ${JAEGER_URL:http://jaeger:14268/api/traces}
+      redis:
+        url: ${REDIS_URL:redis://localhost:6379}
+        ttl: 3600

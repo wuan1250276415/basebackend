@@ -61,6 +61,12 @@ public class UserBasicDTO implements Serializable {
     @Schema(description = "状态：0-禁用，1-启用")
     private Integer status;
 
+    @Schema(description = "用户类型：admin-管理员，user-普通用户等")
+    private Integer userType;
+
+    @Schema(description = "加密后的登录密码")
+    private String password;
+
     @Schema(description = "角色ID列表")
     private List<Long> roleIds;
 

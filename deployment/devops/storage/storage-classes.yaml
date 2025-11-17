@@ -1,0 +1,204 @@
+# Kubernetes Storage Classes
+# 不同存储类型用于数据分层优化
+
+# ==================== 高性能存储 (热数据) ====================
+# 用于生产数据库、活跃日志
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-fast-ssd
+  labels:
+    tier: hot
+    cost: high
+    performance: high
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3  # GP3 SSD - 3000 IOPS, 125 MB/s
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+mountOptions:
+  - rw
+  - noatime
+  - nodiratime
+---
+# ==================== 标准存储 (温数据) ====================
+# 用于测试数据库、归档日志
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-standard-storage
+  labels:
+    tier: warm
+    cost: medium
+    performance: medium
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2  # GP2 SSD - 基础性能
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+mountOptions:
+  - rw
+  - noatime
+---
+# ==================== 冷存储 (冷数据) ====================
+# 用于备份、长期归档数据
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-cold-storage
+  labels:
+    tier: cold
+    cost: low
+    performance: low
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: sc1  # 冷存储 HDD - 成本极低
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+mountOptions:
+  - rw
+  - noatime
+---
+# ==================== 块存储优化版本 ====================
+# 使用 gp3 并启用存储桶
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-optimized
+  labels:
+    tier: optimized
+    cost: optimized
+    performance: high
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "16000"  # 高 IOPS
+  throughput: "1000"  # 高吞吐量
+  encrypted: "true"
+  # 启用 EBS 存储桶优化
+  allow-enhanced-switching: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# ==================== EFS 文件存储 (共享存储) ====================
+# 用于多个 Pod 共享文件
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-efs-storage
+  labels:
+    type: filesystem
+    shared: "true"
+    cost: medium
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_FILE_SYSTEM_ID}
+  directoryPerms: "755"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+  basePath: "/"
+volumeBindingMode: Immediate
+allowVolumeExpansion: false
+reclaimPolicy: Delete
+
+---
+# ==================== FSx for Lustre (高性能计算) ====================
+# 用于需要超高性能的场景
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: basebackend-fsx-storage
+  labels:
+    type: high-performance
+    cost: high
+    performance: ultra
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: fsx.csi.aws.com
+parameters:
+  # FSx for Lustre 配置
+  deploymentType: PERSISTENT_1
+  storageType: SSD
+  perUnitStorageThroughput: "1000"  # 1000 MB/s/TiB
+  dataCompressionType: NONE
+  # 自动备份配置
+  automaticBackupRetentionDays: "7"
+  copyTagsToBackups: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: false
+reclaimPolicy: Delete
+
+---
+# ==================== 存储成本对比表 ====================
+#
+# 存储类型          | 成本/GB/月 | 性能 (IOPS) | 吞吐 | 使用场景
+# ----------------|-----------|------------|------|---------
+# GP3 (Fast SSD)   | $0.08     | 16000      | 1000 | 生产数据库
+# GP2 (Standard)   | $0.10     | 3000       | 250  | 测试/开发
+# SC1 (Cold HDD)   | $0.015    | 250        | 250  | 备份/归档
+# EFS (File)       | $0.30     | N/A        | N/A  | 共享文件
+# FSx (Lustre)     | $0.60     | 1M+        | 1000+| HPC/分析
+#
+# ==================== 数据分层策略 ====================
+#
+# 热数据 (Hot Tier):
+#   - 生产数据库
+#   - 活跃日志 (7天内)
+#   - 实时缓存
+#   - 使用: basebackend-fast-ssd
+#
+# 温数据 (Warm Tier):
+#   - 测试数据库
+#   - 归档日志 (7-30天)
+#   - 中间结果
+#   - 使用: basebackend-standard-storage
+#
+# 冷数据 (Cold Tier):
+#   - 备份数据
+#   - 长期归档 (30天+)
+#   - 审计日志
+#   - 使用: basebackend-cold-storage
+#
+# ==================== 存储优化建议 ====================
+#
+# 1. 数据库优化:
+#    - 主库: 使用 GP3 (高性能)
+#    - 只读副本: 使用 GP2 (标准)
+#    - 备份: 使用 SC1 (冷存储)
+#
+# 2. 日志优化:
+#    - 活跃日志: GP3 (7天)
+#    - 归档日志: GP2 (30天)
+#    - 长期归档: SC1 (1年+)
+#
+# 3. 缓存优化:
+#    - Redis: 使用 GP3 (内存为主)
+#    - 应用缓存: EFS (共享)
+#
+# 4. 备份策略:
+#    - 每日备份: 存储在 SC1
+#    - 每周备份: 存储在 EFS
+#    - 每月备份: 存储在 S3 Glacier
+#
+# 5. 成本估算:
+#    - 100GB 热存储: $8/月
+#    - 500GB 温存储: $50/月
+#    - 2TB 冷存储: $30/月
+#    - 总计: $88/月

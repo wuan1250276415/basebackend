@@ -352,4 +352,45 @@ public class UserController {
             return Result.error(e.getMessage());
         }
     }
+
+    // ==================== 新增：供 profile-service 调用的端点 ====================
+
+    /**
+     * 更新用户个人资料（供 profile-service 调用）
+     * 包括：昵称、邮箱、手机号、头像、性别、生日等
+     */
+    @PutMapping("/{id}/profile")
+    @Operation(summary = "更新用户个人资料", description = "更新用户基本信息（供 profile-service 调用）")
+    public Result<Void> updateUserProfile(
+            @Parameter(description = "用户ID") @PathVariable Long id,
+            @Validated @RequestBody UserDTO userDTO) {
+        log.info("更新用户个人资料: userId={}", id);
+        try {
+            userService.updateUserProfile(id, userDTO);
+            return Result.success();
+        } catch (Exception e) {
+            log.error("更新个人资料失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 修改用户密码（供 profile-service 调用）
+     * 需要验证旧密码的正确性
+     */
+    @PutMapping("/{id}/password")
+    @Operation(summary = "修改用户密码", description = "修改用户登录密码（供 profile-service 调用）")
+    public Result<Void> changePassword(
+            @Parameter(description = "用户ID") @PathVariable Long id,
+            @Parameter(description = "旧密码") @RequestParam String oldPassword,
+            @Parameter(description = "新密码") @RequestParam String newPassword) {
+        log.info("修改用户密码: userId={}", id);
+        try {
+            userService.changeUserPassword(id, oldPassword, newPassword);
+            return Result.success();
+        } catch (Exception e) {
+            log.error("修改密码失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
 }

@@ -1,0 +1,240 @@
+# Filebeat 配置 - 日志收集与转发
+# 收集应用日志、容器日志、系统日志并发送到 Elasticsearch
+
+filebeat.inputs:
+  # 输入配置 - 容器日志
+  - type: container
+    paths:
+      - /var/log/containers/*basebackend*.log
+    exclude_lines: ['^$']  # 排除空行
+    fields:
+      log_type: application
+      environment: production
+    fields_under_root: true
+    processors:
+      # 添加 Docker metadata
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      # 添加 Kubernetes metadata
+      - add_kubernetes_metadata:
+          host: ${NODE_NAME}
+          matchers:
+          - logs_path:
+              logs_path: "/var/log/containers/"
+      # 解析 JSON 日志
+      - decode_json_fields:
+          fields: ["message"]
+          target: "json"
+          overwrite_keys: true
+      # 添加 TraceID
+      - add_fields:
+          target: "@metadata"
+          fields:
+            trace_id: "${TRACE_ID}"
+
+  # 输入配置 - 系统日志
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/syslog
+      - /var/log/messages
+    fields:
+      log_type: system
+      environment: production
+    fields_under_root: true
+    exclude_lines: ['^$', '^\s*$']  # 排除空行和空白行
+
+  # 输入配置 - 应用访问日志
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/basebackend/access.log
+    fields:
+      log_type: access
+      environment: production
+    fields_under_root: true
+
+# processors 配置
+processors:
+  # 1. 删除密码等敏感信息
+  - drop_fields:
+      fields: ["password", "token", "secret", "key"]
+      ignore_missing: true
+
+  # 2. 添加时间戳
+  - timestamp:
+      field: "@timestamp"
+      layouts:
+        - '2006-01-02T15:04:05.000Z'
+      test:
+        - '2024-01-01T00:00:00.000Z'
+
+  # 3. 添加地理信息 (如果 IP 存在)
+  - geoip:
+      field: "http.request.headers.x-forwarded-for"
+      target: "geoip"
+
+  # 4. 添加用户代理信息
+  - user_agent:
+      field: "http.request.headers.user-agent"
+      target: "user_agent"
+
+  # 5. 解析日志级别
+  - dissect:
+      tokenizer: "%{timestamp} %{level} %{logger} - %{message}"
+      field: "message"
+      target_prefix: "parsed"
+
+  # 6. 添加服务信息
+  - add_fields:
+      target: ""
+      fields:
+        service.name: "${SERVICE_NAME}"
+        service.version: "${SERVICE_VERSION}"
+        service.environment: "production"
+
+  # 7. 添加 TraceID/SpanID (从日志中提取)
+  - dissect:
+      tokenizer: "trace_id=%{trace_id} span_id=%{span_id}"
+      field: "message"
+      target: "trace"
+
+# 输出配置 - Elasticsearch
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "basebackend-logs-%{+yyyy.MM.dd}"
+
+  # 索引模板
+  template.name: "basebackend-logs"
+  template.pattern: "basebackend-logs-*"
+  template.json.path: "/etc/filebeat/template.json"
+  template.json.enabled: true
+
+  # 索引生命周期管理 (ILM)
+  ilm.enabled: true
+ ilm.rollover_alias: "basebackend-logs"
+  ilm.pattern: "{now/d}-000001"
+  ilm.policy: "basebackend-logs-policy"
+
+  # 认证信息 (如果需要)
+  # username: "elastic"
+  # password: "changeme"
+
+  # 性能优化
+  compression_level: 5
+  worker: 4
+  bulk_max_size: 2048
+  flush_timeout: 5s
+
+# 调试输出 (仅用于调试，生产环境请禁用)
+# output.debug: true
+
+# 日志级别
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# 监控配置
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+
+# Kibana 连接 (用于索引模板和仪表板)
+setup.kibana:
+  host: "kibana:5601"
+
+# Dashboards
+setup.dashboards.enabled: true
+setup.dashboards.retry.enabled: true
+setup.dashboards.retry.logout: 10
+
+# 索引模板
+setup.template.settings:
+  index.number_of_shards: 3
+  index.number_of_replicas: 1
+  index.refresh_interval: "5s"
+  index.codec: "best_compression"
+
+# 高级配置
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 5s
+
+# 处理器缓存
+queue.mem.events: 4096
+queue.mem.flush.min_events: 512
+queue.mem.flush.timeout: 5s
+
+# 监控配置
+http.port: 5066
+http.enabled: true
+
+# 重试配置
+max_retries: 3
+backoff.init: 1s
+backoff.max: 60s
+
+# 速率限制
+rate_limit:
+  burst: 100
+  rate: 1000
+
+---
+# Elasticsearch 索引生命周期管理策略
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-ilm-policy
+  namespace: observability
+data:
+  basebackend-logs-policy.json: |
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "actions": {
+              "rollover": {
+                "max_size": "10GB",
+                "max_age": "1d"
+              },
+              "set_priority": {
+                "priority": 100
+              }
+            }
+          },
+          "warm": {
+            "min_age": "7d",
+            "actions": {
+              "set_priority": {
+                "priority": 50
+              },
+              "allocate": {
+                "number_of_replicas": 0
+              }
+            }
+          },
+          "cold": {
+            "min_age": "30d",
+            "actions": {
+              "set_priority": {
+                "priority": 0
+              },
+              "allocate": {
+                "number_of_replicas": 0
+              }
+            }
+          },
+          "delete": {
+            "min_age": "90d",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }

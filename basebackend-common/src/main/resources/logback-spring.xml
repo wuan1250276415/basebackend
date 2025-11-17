@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 定义常量 -->
+    <springProfile name="!test">
+        <property name="LOG_PATH" value="${LOG_PATH:-/var/log/basebackend}" />
+    </springProfile>
+
+    <springProfile name="test">
+        <property name="LOG_PATH" value="${LOG_PATH:-./logs}" />
+    </springProfile>
+
+    <property name="LOG_FILE" value="${LOG_PATH}/basebackend" />
+
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <!-- 时间戳 -->
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+
+                <!-- 日志级别 -->
+                <logLevel>
+                    <fieldName>level</fieldName>
+                </logLevel>
+
+                <!-- 记录器名称 -->
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+
+                <!-- 消息 -->
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+
+                <!-- 异常 -->
+                <throwable>
+                    <fieldName>exception</fieldName>
+                    <throwableRenderer class="net.logstash.logback.renderer.JavaThrowablesRenderer"/>
+                </throwable>
+
+                <!-- MDC 上下文 -->
+                <mdc>
+                    <fieldName>mdc</fieldName>
+                </mdc>
+
+                <!-- 包含 TraceID/SpanID -->
+                <includeMdcKey name="trace_id"/>
+                <includeMdcKey name="span_id"/>
+                <includeMdcKey name="user_id"/>
+                <includeMdcKey name="request_id"/>
+
+                <!-- 自定义字段 -->
+                <includeMdcKey name="service"/>
+                <includeMdcKey name="environment"/>
+                <includeMdcKey name="host"/>
+
+                <!-- 线程信息 -->
+                <includeMdcKey name="thread"/>
+                <includeMdcKey name="thread_id"/>
+            </providers>
+
+            <!-- JSON 配置 -->
+            <jsonGeneratorDecorator class="net.logstash.logback.decorator.BodySizeDefensiveJsonGeneratorDecorator"/>
+        </encoder>
+
+        <!-- 只输出 INFO 及以上级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 应用日志文件 (JSON 格式) -->
+    <springProfile name="!test">
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}.log</file>
+
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                    </timestamp>
+                    <logLevel/>
+                    <loggerName/>
+                    <message/>
+                    <throwable>
+                        <fieldName>exception</fieldName>
+                        <throwableRenderer class="net.logstash.logback.renderer.JavaThrowablesRenderer"/>
+                    </throwable>
+                    <mdc/>
+                    <includeMdcKey name="trace_id"/>
+                    <includeMdcKey name="span_id"/>
+                    <includeMdcKey name="user_id"/>
+                    <includeMdcKey name="request_id"/>
+                    <includeMdcKey name="service"/>
+                    <includeMdcKey name="environment"/>
+                    <includeMdcKey name="host"/>
+                    <includeMdcKey name="thread"/>
+                    <includeMdcKey name="thread_id"/>
+                </providers>
+            </encoder>
+
+            <!-- 滚动策略 -->
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+
+                <!-- 保留 30 天的日志 -->
+                <maxHistory>30</maxHistory>
+
+                <!-- 单个文件最大 100MB -->
+                <maxFileSize>100MB</maxFileSize>
+
+                <!-- 总大小限制 10GB -->
+                <totalSizeCap>10GB</totalSizeCap>
+            </rollingPolicy>
+
+            <!-- 只输出 INFO 及以上级别的日志 -->
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <level>INFO</level>
+                <onMatch>ACCEPT</onMatch>
+                <onMismatch>DENY</onMismatch>
+            </filter>
+        </appender>
+    </springProfile>
+
+    <!-- 访问日志文件 -->
+    <springProfile name="!test">
+        <appender name="ACCESS_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}-access.log</file>
+
+            <encoder class="net.logstash.logback.encoder.AccessEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp/>
+                    <requestId/>
+                    <remoteHost/>
+                    <remoteAddr/>
+                    <remoteUser/>
+                    <method/>
+                    <uri/>
+                    <protocol/>
+                    <statusCode/>
+                    <contentLength/>
+                    <elapsedTime/>
+                    <includeRequestHeaders>true</includeRequestHeaders>
+                    <includeResponseHeaders>true</includeResponseHeaders>
+                    <includeHeaders>
+                        <header>User-Agent</header>
+                        <header>X-Trace-ID</header>
+                        <header>Authorization</header>
+                    </includeHeaders>
+                    <includeQueryString>true</includeQueryString>
+                    <includeClientInfo>true</includeClientInfo>
+                    <mdc>
+                        <fieldName>mdc</fieldName>
+                    </mdc>
+                    <includeMdcKey name="trace_id"/>
+                    <includeMdcKey name="service"/>
+                </providers>
+            </encoder>
+
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}-access.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxHistory>30</maxHistory>
+                <maxFileSize>100MB</maxFileSize>
+                <totalSizeCap>10GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
+
+    <!-- 错误日志文件 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <springProfile name="!test">
+            <file>${LOG_FILE}-error.log</file>
+        </springProfile>
+        <springProfile name="test">
+            <file>${LOG_FILE}-error.log</file>
+        </springProfile>
+
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <throwable>
+                    <fieldName>exception</fieldName>
+                    <throwableRenderer class="net.logstash.logback.renderer.JavaThrowablesRenderer"/>
+                </throwable>
+                <mdc/>
+                <includeMdcKey name="trace_id"/>
+                <includeMdcKey name="span_id"/>
+                <includeMdcKey name="service"/>
+                <includeMdcKey name="host"/>
+                <includeMdcKey name="thread"/>
+            </providers>
+        </encoder>
+
+        <!-- 只输出 ERROR 级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <springProfile name="!test">
+                <fileNamePattern>${LOG_FILE}-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            </springProfile>
+            <springProfile name="test">
+                <fileNamePattern>${LOG_FILE}-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            </springProfile>
+            <maxHistory>90</maxHistory>
+            <maxFileSize>200MB</maxFileSize>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 异步日志配置 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1024</queueSize>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <springProfile name="!test">
+        <appender name="ASYNC_ACCESS_LOG" class="ch.qos.logback.classic.AsyncAppender">
+            <discardingThreshold>0</discardingThreshold>
+            <queueSize>1024</queueSize>
+            <includeCallerData>false</includeCallerData>
+            <appender-ref ref="ACCESS_LOG"/>
+        </appender>
+    </springProfile>
+
+    <!-- 日志级别配置 -->
+    <springProfile name="!prod">
+        <logger name="com.basebackend" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+
+    <springProfile name="prod">
+        <logger name="com.basebackend" level="INFO"/>
+        <logger name="org.springframework.web" level="INFO"/>
+        <logger name="org.hibernate.SQL" level="INFO"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="INFO"/>
+    </springProfile>
+
+    <!-- 根日志级别 -->
+    <springProfile name="!test">
+        <root level="INFO">
+            <springProfile name="!prod">
+                <appender-ref ref="CONSOLE"/>
+                <appender-ref ref="ASYNC_FILE"/>
+                <appender-ref ref="ERROR_FILE"/>
+            </springProfile>
+
+            <springProfile name="prod">
+                <appender-ref ref="ASYNC_FILE"/>
+                <springProfile name="!test">
+                    <appender-ref ref="ASYNC_ACCESS_LOG"/>
+                </springProfile>
+                <appender-ref ref="ERROR_FILE"/>
+            </springProfile>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- 关闭某些第三方库的日志 -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.elasticsearch" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="com.netflix" level="WARN"/>
+</configuration>

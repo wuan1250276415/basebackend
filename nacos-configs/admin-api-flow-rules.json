@@ -1,0 +1,65 @@
+[
+  {
+    "resource": "user-login",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 50.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "refresh-token",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 100.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "change-password",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 20.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "user-getById",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 200.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "user-create",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 50.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "role-getById",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 200.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "role-create",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 30.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  }
+]

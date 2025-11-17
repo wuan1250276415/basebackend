@@ -1,0 +1,312 @@
+# SkyWalking Agent 配置
+# Java 应用程序的 APM 代理配置
+
+# SkyWalking 服务配置
+agent:
+  # 服务名称
+  service_name: ${SW_AGENT_SERVICE_NAME:basebackend-service}
+  # 服务实例名称
+  instance_name: ${SW_AGENT_INSTANCE_NAME:${HOSTNAME:""}}
+  # 命名空间
+  namespace: ${SW_AGENT_NAMESPACE:basebackend}
+
+  # 后端服务配置
+  backend:
+    # OAP 服务器地址
+    oap:
+      server_address: ${SW_AGENT_OAP_SERVER_ADDRESS:skywalking-oap.observability.svc.cluster.local:11800}
+      # OAP 服务器地址 (REST)
+      rest_address: ${SW_AGENT_OAP_SERVER_REST_ADDRESS:skywalking-oap.observability.svc.cluster.local:12800}
+      # 超时时间
+      timeout: ${SW_AGENT_OAP_TIMEOUT:30} # 30 秒
+
+  # 采样率配置 (0-10000，表示 0%-100%)
+  sampling:
+    # 采样率 (10000 = 100%)
+    rate: ${SW_AGENT_SAMPLING_RATE:10000}
+
+  # 插件配置
+  plugin:
+    # 排除的插件 (逗号分隔)
+    exclude_plugins: ${SW_AGENT_EXCLUDE_PLUGINS:}
+
+    # HTTP 插件配置
+    http:
+      # 启用 HTTP 追踪
+      trace_http_request: ${SW_AGENT_HTTP_TRACE_HTTP_REQUEST:true}
+      # HTTP 请求参数长度限制
+      http_request_length_limit: ${SW_AGENT_HTTP_HTTP_REQUEST_LENGTH_LIMIT:2048}
+      # HTTP 请求体大小限制
+      http_body_size_limit: ${SW_AGENT_HTTP_HTTP_BODY_SIZE_LIMIT:10240}
+
+    # 数据库插件配置
+    database:
+      # 启用 SQL 追踪
+      trace_sql_parameters: ${SW_AGENT_DATABASE_TRACE_SQL_PARAMETERS:true}
+      # SQL 参数长度限制
+      sql_parameters_max_length: ${SW_AGENT_DATABASE_SQL_PARAMETERS_MAX_LENGTH:512}
+      # 支持的数据库类型
+      supported_types: ${SW_AGENT_DATABASE_SUPPORTED_TYPES:H2,MySQL,Oracle,PostgreSQL,MSSQL,DB2,TiDB}
+
+    # Redis 插件配置
+    redis:
+      # 启用 Redis 追踪
+      trace_redis_parameters: ${SW_AGENT_DATABASE_TRACE_REDIS_PARAMETERS:false}
+      # Redis 参数长度限制
+      redis_parameters_max_length: ${SW_AGENT_DATABASE_REDIS_PARAMETERS_MAX_LENGTH:128}
+
+    # 安全插件配置
+    security:
+      # 启用 JWT 追踪
+      trace_kerberos: ${SW_AGENT_SECURITY_TRACE_KERBEROS:false}
+
+    # 消息队列插件配置
+    mq:
+      # Kafka 插件配置
+      kafka:
+        # 启用 Kafka 追踪
+        trace_kafka_produce: ${SW_AGENT_MQ_KAFKA_TRACE_PRODUCE:true}
+        # Kafka 消费者追踪
+        trace_kafka_consume: ${SW_AGENT_MQ_KAFKA_TRACE_CONSUME:false}
+        # Kafka 生产参数长度限制
+        kafka_produce_parameter_length_limit: ${SW_AGENT_MQ_KAFKA_PRODUCE_PARAMETER_LENGTH_LIMIT:1024}
+
+      # RocketMQ 插件配置
+      rocketmq:
+        # 启用 RocketMQ 追踪
+        trace_rocketmq_produce: ${SW_AGENT_MQ_ROCKETMQ_TRACE_PRODUCE:true}
+        # RocketMQ 消费者追踪
+        trace_rocketmq_consume: ${SW_AGENT_MQ_ROCKETMQ_TRACE_CONSUME:false}
+        # RocketMQ 生产参数长度限制
+        rocketmq_produce_parameter_length_limit: ${SW_AGENT_MQ_ROCKETMQ_PRODUCE_PARAMETER_LENGTH_LIMIT:1024}
+
+    # Spring 插件配置
+    spring:
+      # 启用 Spring 核心组件追踪
+      trace_spring_core: ${SW_AGENT_SPRING_TRACE_SPRING_CORE:true}
+      # 启用 Spring Cloud Gateway 追踪
+      trace_spring_cloud_gateway: ${SW_AGENT_SPRING_TRACE_SPRING_CLOUD_GATEWAY:true}
+      # 启用 Spring WebClient 追踪
+      trace_spring_webclient: ${SW_AGENT_SPRING_TRACE_SPRING_WEBCLIENT:true}
+      # 启用 Spring WebFlux 追踪
+      trace_spring_webflux: ${SW_AGENT_SPRING_TRACE_SPRING_WEBFLUX:true}
+      # 启用 Spring RestTemplate 追踪
+      trace_spring_resttemplate: ${SW_AGENT_SPRING_TRACE_SPRING_RESTTEMPLATE:true}
+      # 启用 Spring Web MVC 追踪
+      trace_spring_mvc: ${SW_AGENT_SPRING_TRACE_SPRING_MVC:true}
+
+    # Web 框架插件配置
+    webframework:
+      # 启用 Vert.x 追踪
+      trace_vertx: ${SW_AGENT_WEBFRAMEWORK_TRACE_VERTX:true}
+      # 启用 Undertow 追踪
+      trace_undertow: ${SW_AGENT_WEBFRAMEWORK_TRACE_UNDERTOW:false}
+
+    # 工具类插件配置
+    tool:
+      # 启用 Log4j 追踪
+      trace_log4j: ${SW_AGENT_TOOL_TRACE_LOG4J:false}
+      # 启用 Log4j2 追踪
+      trace_log4j2: ${SW_AGENT_TOOL_TRACE_LOG4J2:true}
+      # 启用 Logback 追踪
+      trace_logback: ${SW_AGENT_TOOL_TRACE_LOGBACK:true}
+
+  # 代理配置
+  agent:
+    # 是否启用缓存增强
+    cache_enhance: ${SW_AGENT_AGENT_CACHE_ENHANCE:false}
+    # 缓存类型 (memory, local)
+    cache_type: ${SW_AGENT_AGENT_CACHE_TYPE:memory}
+    # 缓存目录
+    cache_dir: ${SW_AGENT_AGENT_CACHE_DIR:""}
+
+  # 追踪配置
+  trace:
+    # 忽略的 URL 路径
+    ignore_path: ${SW_AGENT_TRACE_IGNORE_PATH:"",/health,/actuator/health,/metrics}
+    # 忽略的路径前缀
+    ignore_path_prefix: ${SW_AGENT_TRACE_IGNORE_PATH_PREFIX:"/static,/public,/assets"}
+
+  # 异常追踪配置
+  error_ignore:
+    # 忽略的异常类型
+    ignore_classes: ${SW_AGENT_ERROR_IGNORE_CLASSES:""}
+
+# 追踪配置
+trace:
+  # 段最大长度 (字符数)
+  segment_max_limit: ${SW_TRACE_SEGMENT_MAX_LIMIT:500}
+  # 段最大持续时间 (秒)
+  segment_duration_limit: ${SW_TRACE_SEGMENT_DURATION_LIMIT:30}
+
+# 采样配置
+sample:
+  # Per-span 采样配置
+  per_tenant_sampling_config:
+    # 默认采样率
+    default_rate: ${SW_SAMPLE_DEFAULT_RATE:10000} # 100%
+    # 限速配置
+    rate_limiting:
+      # 每秒最大采样数
+      max_rps: ${SW_SAMPLE_RATE_LIMITING_MAX_RPS:100}
+
+# 性能配置
+performance:
+  # 堆内存限制
+  max_direct_memory_size: ${SW_PERFORMANCE_MAX_DIRECT_MEMORY_SIZE:0}
+  # 运行器配置
+  runner:
+    # 是否设置运行器线程
+    is_set_run_thread_name: ${SW_PERFORMANCE_RUNNER_IS_SET_RUN_THREAD_NAME:true}
+
+# 工具配置
+tool:
+  # 忽略的异常配置
+  ignore_exception: ${SW_TOOL_IGNORE_EXCEPTION:false}
+
+# 插件配置
+plugin:
+  # 不推荐的插件
+  deprecated_plugin:
+    # Redis 4.x 插件 (使用数据库插件替代)
+    use_redis_4_x_plugin: ${SW_PLUGIN_DEPRECATED_USE_REDIS_4_X_PLUGIN:false}
+
+  # 工具配置
+  tool:
+    # Jar Collector 配置
+    jar_collector:
+      # 配置目录
+      config_dir: ${SW_PLUGIN_TOOL_JAR_COLLECTOR_CONFIG_DIR:"/plugin"}
+
+# 安全配置
+security:
+  # JWT 配置
+  jwt:
+    # 启用 JWT 认证
+    enable_jwt: ${SW_SECURITY_JWT_ENABLE_JWT:false}
+    # JWT 密钥
+    secret: ${SW_SECURITY_JWT_SECRET:""}
+    # JWT 过期时间
+    expire_time: ${SW_SECURITY_JWT_EXPIRE_TIME:900} # 15 分钟
+    # JWT 会话超时时间
+    session_timeout: ${SW_SECURITY_JWT_SESSION_TIMEOUT:1800} # 30 分钟
+
+# 分发配置
+exporter:
+  # 启用导出器
+  enable: ${SW_EXPORTER_ENABLE:false}
+  # 导出目标
+  target: ${SW_EXPORTER_TARGET:prometheus}
+
+# 配置管理配置
+configuration:
+  # 启用动态配置
+  enable: ${SW_CONFIGURATION_ENABLE:false}
+  # 动态配置组
+  group: ${SW_CONFIGURATION_GROUP:basebackend}
+
+# 地理信息配置
+geo:
+  # IP 地理信息数据库路径
+  ip2host_database_path: ${SW_GEO_IP2HOST_DATABASE_PATH:"skywalking-geoip2host-db"}
+
+# 集群配置
+cluster:
+  # 集群模式
+  mode: ${SW_CLUSTER_MODE:standalone}
+  # Zookeeper 配置
+  zookeeper:
+    # Zookeeper 主机
+    host_port: ${SW_CLUSTER_ZOOKEEPER_HOST_PORT:localhost:2181}
+    # 命名空间
+    namespace: ${SW_CLUSTER_ZOOKEEPER_NAMESPACE:/skywalking}
+
+# 健康检查配置
+health_checker:
+  # 检查周期
+  check_interval: ${SW_HEALTH_CHECKER_CHECK_INTERVAL:10} # 10 秒
+
+# 事件配置
+event:
+  # 事件发布间隔
+  publish_interval: ${SW_EVENT_PUBLISH_INTERVAL:1} # 1 秒
+  # 事件缓冲大小
+  buffer_size: ${SW_EVENT_BUFFER_SIZE:10000}
+  # 事件类型
+  event_types: ${SW_EVENT_EVENT_TYPES:"Info,Warning,Error"}
+
+# 日志配置
+logging:
+  # 日志级别
+  level: ${SW_LOGGING_LEVEL:INFO}
+  # 输出格式
+  pattern: ${SW_LOGGING_PATTERN:"%d{yyyy-MM-dd HH:mm:ss.SSS} [%trace_id] [%span_id] [%thread] %-5level %logger{36} - %msg%n"}
+  # 文件输出配置
+  file:
+    # 是否启用文件输出
+    enabled: ${SW_LOGGING_FILE_ENABLED:true}
+    # 日志文件路径
+    path: ${SW_LOGGING_FILE_PATH:""}
+    # 文件名模式
+    pattern: ${SW_LOGGING_FILE_PATTERN:"skywalking-agent.%d{yyyyMMdd}.%i.log"}
+    # 文件大小限制 (MB)
+    max_size: ${SW_LOGGING_FILE_MAX_SIZE:300}
+    # 保留文件数量
+    max_history: ${SW_LOGGING_FILE_MAX_HISTORY:10}
+
+# 自定义配置
+customize:
+  # 自定义标签
+  labels:
+    # 服务标签
+    service_tag: ${SW_CUSTOMIZE_SERVICE_TAG:basebackend}
+    # 环境标签
+    environment_tag: ${SW_CUSTOMIZE_ENVIRONMENT_TAG:production}
+    # 版本标签
+    version_tag: ${SW_CUSTOMIZE_VERSION_TAG:1.0.0}
+    # 团队标签
+    team_tag: ${SW_CUSTOMIZE_TEAM_TAG:backend}
+
+# JDK 代理配置
+jdk:
+  # JFR 配置 (Java Flight Recorder)
+  jfr:
+    # 启用 JFR
+    enable: ${SW_JDK_JFR_ENABLE:false}
+    # JFR 配置
+    config: ${SW_JDK_JFR_CONFIG:""}
+
+# 调试配置
+debugging:
+  # 启用调试日志
+  enable_logging: ${SW_DEBUGGING_ENABLE_LOGGING:false}
+  # 调试级别
+  logging_level: ${SW_DEBUGGING_LOGGING_LEVEL:DEBUG}
+
+# 配置文件路径
+config:
+  # 配置文件名称
+  file_name: ${SW_CONFIG_FILE_NAME:agent.config}
+
+# 可选配置
+optional:
+  # 可选插件配置
+  plugins:
+    # Groovy 插件
+    groovy: ${SW_OPTIONAL_PLUGINS_GROOVY:false}
+    # MySQL 插件
+    mysql: ${SW_OPTIONAL_PLUGINS_MYSQL:false}
+    # PostgreSQL 插件
+    postgres: ${SW_OPTIONAL_PLUGINS_POSTGRES:false}
+    # Oracle 插件
+    oracle: ${SW_OPTIONAL_PLUGINS_ORACLE:false}
+    # MSSQL 插件
+    mssql: ${SW_OPTIONAL_PLUGINS_MSSQL:false}
+    # ClickHouse 插件
+    clickhouse: ${SW_OPTIONAL_PLUGINS_CLICKHOUSE:false}
+    # Elasticsearch 插件
+    elasticsearch: ${SW_OPTIONAL_PLUGINS_ELASTICSEARCH:false}
+    # Solr 插件
+    solr: ${SW_OPTIONAL_PLUGINS_SOLR:false}
+    # Elasticsearch 客户端插件
+    elasticsearch_client: ${SW_OPTIONAL_PLUGINS_ELASTICSEARCH_CLIENT:false}

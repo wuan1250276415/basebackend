@@ -13,10 +13,10 @@ spring:
   # Redis配置
   data:
     redis:
-      host: localhost
+      host: 1.117.67.222
       port: 6379
       database: 0
-      password: redis_ZJGE42
+      password: redis_ycecQi
 
 # RocketMQ配置
 rocketmq:

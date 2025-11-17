@@ -2,11 +2,14 @@ package com.basebackend.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.admin.dto.RoleDTO;
 import com.basebackend.admin.entity.*;
 import com.basebackend.admin.mapper.*;
+import com.basebackend.admin.sentinel.SentinelBlockHandler;
+import com.basebackend.admin.sentinel.SentinelFallbackHandler;
 import com.basebackend.admin.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +73,13 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @SentinelResource(
+            value = "role-getById",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleRoleQueryBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleRoleQueryFallback"
+    )
     public RoleDTO getById(Long id) {
         log.info("根据ID查询角色: {}", id);
         SysRole role = roleMapper.selectById(id);
@@ -81,6 +91,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    @SentinelResource(
+            value = "role-create",
+            blockHandlerClass = SentinelBlockHandler.class,
+            blockHandler = "handleBlock",
+            fallbackClass = SentinelFallbackHandler.class,
+            fallback = "handleFallback"
+    )
     public void create(RoleDTO roleDTO) {
         log.info("创建角色: {}", roleDTO.getRoleName());
 

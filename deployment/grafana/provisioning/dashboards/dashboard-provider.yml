@@ -1,0 +1,21 @@
+# ================================================================================================
+# Grafana 仪表板自动加载配置
+# ================================================================================================
+#
+# 用途：自动加载 /etc/grafana/provisioning/dashboards/ 目录下的仪表板 JSON 文件
+#
+# ================================================================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'BaseBackend Dashboards'
+    orgId: 1
+    folder: 'BaseBackend'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

@@ -1,0 +1,357 @@
+# AI驱动的智能告警管理器配置
+# 实现告警聚合、降噪、关联分析和自动响应
+
+global:
+  # 全局配置
+  resolve_timeout: 10m
+  http_config:
+    proxy_url: 'http://proxy.company.com:8080'
+
+# 告警路由配置
+route:
+  group_by: ['alertname', 'service', 'cluster', 'namespace']
+  group_wait: 30s  # 告警分组等待时间
+  group_interval: 5m  # 告警组间隔
+  repeat_interval: 12h  # 告警重复间隔
+  receiver: 'default'
+  routes:
+    # 高优先级告警 - 立即处理
+    - matchers:
+        - severity="critical"
+        - priority="high"
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+
+    # FinOps 成本告警
+    - matchers:
+        - team="finops"
+      receiver: 'finops-alerts'
+      group_wait: 1m
+      routes:
+        - matchers:
+            - severity="critical"
+          receiver: 'finops-critical'
+
+    # 平台告警
+    - matchers:
+        - team="platform"
+      receiver: 'platform-alerts'
+      group_wait: 30s
+
+    # 安全告警
+    - matchers:
+        - category="security"
+      receiver: 'security-alerts'
+      group_wait: 15s
+
+    # 业务告警
+    - matchers:
+        - category="business"
+      receiver: 'business-alerts'
+      group_wait: 1m
+
+# 接收器配置
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts-general'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  # 关键告警接收器
+  - name: 'critical-alerts'
+    slack_configs:
+      - channel: '#alerts-critical'
+        title: '🚨 CRITICAL ALERT'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          {{ end }}
+        color: 'danger'
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_INTEGRATION_KEY}'
+        description: '{{ .GroupLabels.alertname }}'
+        severity: 'critical'
+    email_configs:
+      - to: 'ops-team@company.com'
+        subject: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+  # FinOps告警接收器
+  - name: 'finops-alerts'
+    slack_configs:
+      - channel: '#finops-alerts'
+        title: '💰 FinOps Alert'
+        text: |
+          {{ range .Alerts }}
+          *Cost Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Estimated Impact:* {{ .Annotations.estimated_impact }}
+          {{ end }}
+
+  # 平台告警接收器
+  - name: 'platform-alerts'
+    slack_configs:
+      - channel: '#platform-alerts'
+        title: '⚙️ Platform Alert'
+        text: |
+          {{ range .Alerts }}
+          *Platform Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Node:* {{ .Labels.instance }}
+          {{ end }}
+
+  # 安全告警接收器
+  - name: 'security-alerts'
+    slack_configs:
+      - channel: '#security-alerts'
+        title: '🔒 Security Alert'
+        text: |
+          {{ range .Alerts }}
+          *Security Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Source:* {{ .Labels.source_ip }}
+          {{ end }}
+        color: 'warning'
+    email_configs:
+      - to: 'security-team@company.com'
+        subject: 'SECURITY: {{ .GroupLabels.alertname }}'
+
+# 抑制规则 - 智能告警降噪
+inhibit_rules:
+  # 抑制原因：如果服务不可用，则抑制所有相关的详细告警
+  - source_matchers:
+      - alertname="ServiceDown"
+    target_matchers:
+      - alertname=~"HighLatency|HighErrorRate|HighResourceUsage"
+    equal: ['service', 'namespace']
+
+  # 抑制原因：如果整个节点宕机，则抑制该节点上所有服务的告警
+  - source_matchers:
+      - alertname="NodeDown"
+    target_matchers:
+      - alertname=~"PodDown|PodRestarting|HighCpuUsage|HighMemoryUsage"
+    equal: ['instance']
+
+  # 抑制原因：如果数据库不可用，则抑制所有数据库相关告警
+  - source_matchers:
+      - alertname="DatabaseDown"
+    target_matchers:
+      - alertname=~"DatabaseConnectionHigh|SlowQueries|ReplicationLag"
+    equal: ['database']
+
+  # 抑制原因：如果集群不可用，则抑制所有单服务告警
+  - source_matchers:
+      - alertname="ClusterDown"
+    target_matchers:
+      - alertname!="ClusterDown"
+    equal: ['cluster']
+
+# 智能告警聚合配置
+alert_relabel_configs:
+  # 添加智能标签
+  - source_labels: ['alertname', 'severity']
+    target_label: 'priority'
+    # 根据告警名称和严重性计算优先级
+    regex: '(.*Critical.*|.*Down.*),(critical)'
+    replacement: 'high'
+
+  - source_labels: ['alertname']
+    target_label: 'category'
+    regex: '(Auth|Login|Token)'
+    replacement: 'security'
+
+  - source_labels: ['alertname']
+    target_label: 'category'
+    regex: '(Cost|Budget|Resource)'
+    replacement: 'finops'
+
+  - source_labels: ['alertname']
+    target_label: 'category'
+    regex: '(CPU|Memory|Disk|Network)'
+    replacement: 'platform'
+
+  - source_labels: ['alertname']
+    target_label: 'category'
+    regex: '(Business|User|Order)'
+    replacement: 'business'
+
+  # 添加自动修复标签
+  - source_labels: ['alertname', 'severity']
+    target_label: 'auto_fixable'
+    regex: '(PodRestarting),warning'
+    replacement: 'true'
+
+  # 添加严重级别映射
+  - source_labels: ['severity']
+    target_label: 'escalation_level'
+    regex: 'critical'
+    replacement: 'immediate'
+
+  - source_labels: ['severity']
+    target_label: 'escalation_level'
+    regex: 'warning'
+    replacement: '1_hour'
+
+  - source_labels: ['severity']
+    target_label: 'escalation_level'
+    regex: 'info'
+    replacement: 'next_business_day'
+
+# 静默规则 - 智能静默
+time_intervals:
+  - name: 'maintenance_window'
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+        weekdays: ['saturday']
+        location: 'UTC'
+
+  - name: 'business_hours'
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        location: 'UTC'
+
+  - name: 'non_business_hours'
+    time_intervals:
+      - times:
+          - start_time: '18:00'
+            end_time: '09:00'
+        weekdays: ['monday:friday']
+        location: 'UTC'
+
+# 智能告警关联规则
+alert_correlation_rules:
+  # 数据库告警关联
+  - alert_pattern: 'Database.*'
+    correlation_window: 5m
+    linked_alerts:
+      - pattern: 'Service.*Error'
+        correlation_score: 0.9
+        description: 'Database issues likely causing service errors'
+
+  # 网络告警关联
+  - alert_pattern: 'Network.*'
+    correlation_window: 2m
+    linked_alerts:
+      - pattern: 'HighLatency'
+        correlation_score: 0.8
+        description: 'Network issues causing latency spikes'
+
+  # 资源告警关联
+  - alert_pattern: 'High(CPU|Memory).*'
+    correlation_window: 1m
+    linked_alerts:
+      - pattern: 'HighLatency'
+        correlation_score: 0.7
+        description: 'Resource exhaustion causing performance degradation'
+
+# 智能响应规则
+auto_response_rules:
+  # Pod重启告警 - 尝试自动重启
+  - alert_name: 'PodRestarting'
+    action: 'restart_pod'
+    conditions:
+      - severity: 'warning'
+      - occurrence_count: 3
+      - time_window: '5m'
+    cooldown: '10m'
+
+  # 高CPU使用率 - 尝试HPA扩容
+  - alert_name: 'HighCPUUsage'
+    action: 'scale_up'
+    conditions:
+      - severity: 'warning'
+      - cpu_usage: '>80%'
+      - duration: '5m'
+    cooldown: '5m'
+
+  # 高内存使用率 - 尝试扩容
+  - alert_name: 'HighMemoryUsage'
+    action: 'scale_up'
+    conditions:
+      - severity: 'warning'
+      - memory_usage: '>85%'
+      - duration: '5m'
+    cooldown: '5m'
+
+  # 数据库连接高 - 尝试增加连接池
+  - alert_name: 'DatabaseConnectionsHigh'
+    action: 'scale_up_db'
+    conditions:
+      - severity: 'warning'
+      - connection_usage: '>80%'
+      - duration: '3m'
+    cooldown: '10m'
+
+# 告警路由树优化
+route_templates:
+  critical_alert:
+    title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+    description: |
+      Service: {{ .GroupLabels.service }}
+      Severity: {{ .GroupLabels.severity }}
+      Count: {{ .GroupLabels.alert_count }}
+      Time: {{ .CommonAnnotations.timestamp }}
+
+  warning_alert:
+    title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+    description: |
+      Service: {{ .GroupLabels.service }}
+      Description: {{ .CommonAnnotations.description }}
+
+  info_alert:
+    title: 'ℹ️ INFO: {{ .GroupLabels.alertname }}'
+    description: |
+      {{ .CommonAnnotations.description }}
+
+# 告警降噪算法配置
+noise_reduction:
+  # 告警风暴检测
+  storm_detection:
+    threshold: 10  # 10个告警/分钟
+    window: '5m'
+    action: 'aggregate_and_deduplicate'
+
+  # 告警合并
+  alert_aggregation:
+    time_window: '5m'
+    max_alerts: 50
+    group_by: ['service', 'alertname']
+
+  # 告警去重
+  alert_deduplication:
+    similarity_threshold: 0.8
+    message_similarity: true
+    label_similarity: true
+
+# 智能升级规则
+escalation_rules:
+  # 如果告警在5分钟内未解决，自动升级
+  - condition: 'not_resolved'
+    time_threshold: '5m'
+    escalation_to: 'on_call_manager'
+
+  # 如果告警严重性为critical且影响多个服务，升级到CTO
+  - condition: 'multiple_services_affected'
+    severity: 'critical'
+    escalation_to: 'cto'
+
+  # 重复告警3次后升级
+  - condition: 'repeated_alerts'
+    count: 3
+    time_window: '1h'
+    escalation_to: 'team_lead'

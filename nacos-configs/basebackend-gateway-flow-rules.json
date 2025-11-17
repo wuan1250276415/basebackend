@@ -1,0 +1,20 @@
+[
+  {
+    "resource": "admin-api",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 100.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "demo-api",
+    "limitApp": "default",
+    "grade": 1,
+    "count": 200.0,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  }
+]

@@ -1,0 +1,222 @@
+# Nacos配置 - 权限服务
+# 创建时间: 2025-11-15
+# 命名空间: basebackend
+# 分组: DEFAULT_GROUP
+# 数据ID: basebackend-auth-service.yml
+
+server:
+  port: 8082
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: basebackend-auth-service
+
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:basebackend_auth}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    druid:
+      initial-size: ${DRUID_INITIAL_SIZE:5}
+      min-idle: ${DRUID_MIN_IDLE:5}
+      max-active: ${DRUID_MAX_ACTIVE:20}
+      max-wait: ${DRUID_MAX_WAIT:60000}
+      time-between-eviction-runs-millis: ${DRUID_TIME_BETWEEN_EVICTION_RUNS:60000}
+      min-evictable-idle-time-millis: ${DRUID_MIN_EVICTABLE_IDLE_TIME:300000}
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: ${DRUID_MAX_POOL_PREPARED_STATEMENT_SIZE:20}
+      stat-view-servlet:
+        enabled: ${DRUID_STAT_VIEW_ENABLED:true}
+        url-pattern: /druid/*
+        login-username: ${DRUID_LOGIN_USERNAME:admin}
+        login-password: ${DRUID_LOGIN_PASSWORD:admin123}
+      filter:
+        stat:
+          enabled: ${DRUID_STAT_FILTER_ENABLED:true}
+          log-slow-sql: ${DRUID_LOG_SLOW_SQL:true}
+          slow-sql-millis: ${DRUID_SLOW_SQL_MILLIS:2000}
+        wall:
+          enabled: ${DRUID_WALL_FILTER_ENABLED:true}
+          config:
+            multi-statement-allow: true
+
+  # Redis配置
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DB:0}
+    timeout: ${REDIS_TIMEOUT:5000ms}
+    lettuce:
+      pool:
+        max-active: ${REDIS_POOL_MAX_ACTIVE:20}
+        max-wait: ${REDIS_POOL_MAX_WAIT:-1}
+        max-idle: ${REDIS_POOL_MAX_IDLE:10}
+        min-idle: ${REDIS_POOL_MIN_IDLE:5}
+
+  # Nacos服务发现
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:basebackend}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        metadata:
+          version: ${SERVICE_VERSION:1.0.0}
+          zone: ${SERVICE_ZONE:zone-1}
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: ${MYBATIS_CACHE_ENABLED:false}
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.stdout.StdOutImpl}
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: is_deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: NOT_NULL
+      update-strategy: NOT_NULL
+      select-strategy: NOT_EMPTY
+  mapper-locations: ${MYBATIS_MAPPER_LOCATIONS:classpath*:mapper/**/*.xml}
+
+# Swagger配置
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+  info:
+    title: ${SWAGGER_TITLE:权限服务 API}
+    description: ${SWAGGER_DESCRIPTION:认证授权、角色权限管理服务}
+    version: ${SWAGGER_VERSION:1.0.0}
+
+# 日志配置
+logging:
+  level:
+    com.basebackend.auth: ${LOG_LEVEL_AUTH:debug}
+    com.basebackend.auth.mapper: ${LOG_LEVEL_AUTH_MAPPER:debug}
+  pattern:
+    console: "${LOG_PATTERN_CONSOLE:%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n}"
+    file: "${LOG_PATTERN_FILE:%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n}"
+  file:
+    name: ${LOG_FILE_NAME:logs/auth-service.log}
+    max-size: ${LOG_FILE_MAX_SIZE:100MB}
+    max-history: ${LOG_FILE_MAX_HISTORY:30}
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      show-details: ${ACTUATOR_HEALTH_DETAILS:when-authorized}
+  metrics:
+    export:
+      prometheus:
+        enabled: ${METRICS_PROMETHEUS_ENABLED:true}
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:BaseBackendSecretKey2023ForAuthService}
+  expiration: ${JWT_EXPIRATION:86400}  # 24小时
+  header: ${JWT_HEADER:Authorization}
+  prefix: ${JWT_PREFIX:Bearer }
+
+# 权限服务特有配置
+auth:
+  # 密码加密配置
+  password:
+    encoder: ${PASSWORD_ENCODER:BCrypt}
+    strength: ${PASSWORD_STRENGTH:10}
+
+  # 登录安全配置
+  login:
+    max-retry-times: ${LOGIN_MAX_RETRY_TIMES:5}
+    lock-duration: ${LOGIN_LOCK_DURATION:300}  # 5分钟
+    captcha-enabled: ${LOGIN_CAPTCHA_ENABLED:false}
+
+  # 权限验证配置
+  permission:
+    check-enabled: ${PERMISSION_CHECK_ENABLED:true}
+    cache-enabled: ${PERMISSION_CACHE_ENABLED:true}
+    cache-expire-time: ${PERMISSION_CACHE_EXPIRE:1800}  # 30分钟
+
+  # Token配置
+  token:
+    refresh-enabled: ${TOKEN_REFRESH_ENABLED:true}
+    refresh-threshold: ${TOKEN_REFRESH_THRESHOLD:3600}  # 1小时
+
+  # 审计配置
+  audit:
+    enabled: ${AUDIT_ENABLED:true}
+    log-level: ${AUDIT_LOG_LEVEL:INFO}
+
+# Sentinel流量控制配置
+sentinel:
+  transport:
+    dashboard: ${SENTINEL_DASHBOARD:localhost:8080}
+    port: ${SENTINEL_PORT:8719}
+  datasource:
+    flow:
+      nacos:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        dataId: ${SENTINEL_FLOW_DATAID:basebackend-auth-service-flow-rules}
+        groupId: ${SENTINEL_GROUP:DEFAULT_GROUP}
+        ruleType: flow
+    degrade:
+      nacos:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        dataId: ${SENTINEL_DEGRADE_DATAID:basebackend-auth-service-degrade-rules}
+        groupId: ${SENTINEL_GROUP:DEFAULT_GROUP}
+        ruleType: degrade
+    system:
+      nacos:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        dataId: ${SENTINEL_SYSTEM_DATAID:basebackend-auth-service-system-rules}
+        groupId: ${SENTINEL_GROUP:DEFAULT_GROUP}
+        ruleType: system
+
+# 监控配置
+monitoring:
+  # Prometheus指标
+  prometheus:
+    enabled: ${MONITORING_PROMETHEUS_ENABLED:true}
+    metrics-name: ${MONITORING_METRICS_NAME:auth_service_metrics}
+
+  # 健康检查
+  health:
+    detailed: ${MONITORING_HEALTH_DETAILED:true}
+    checks:
+      database: ${MONITORING_HEALTH_DB:true}
+      redis: ${MONITORING_HEALTH_REDIS:true}
+      nacos: ${MONITORING_HEALTH_NACOS:true}
+
+  # 自定义指标
+  custom:
+    enabled: ${MONITORING_CUSTOM_ENABLED:true}
+    metrics:
+      - name: auth_login_total
+        description: 登录尝试总次数
+        type: counter
+      - name: auth_login_success_total
+        description: 登录成功次数
+        type: counter
+      - name: auth_permission_check_total
+        description: 权限检查次数
+        type: counter

@@ -3,7 +3,7 @@ nacos:
   enabled: true
   discovery:
     enabled: true
-    server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
+    server-addr: ${NACOS_SERVER_ADDR:192.168.66.126:8848}
     namespace: ${NACOS_NAMESPACE:public}
     group: ${NACOS_GROUP:DEFAULT_GROUP}
     username: ${NACOS_USERNAME:nacos}
@@ -12,7 +12,7 @@ nacos:
 
   config:
     enabled: true
-    server-addr: ${NACOS_SERVER_ADDR:141.98.196.113:8848}
+    server-addr: ${NACOS_SERVER_ADDR:192.168.66.126:8848}
     namespace: ${NACOS_NAMESPACE:public}
     group: ${NACOS_GROUP:DEFAULT_GROUP}
     file-extension: yml

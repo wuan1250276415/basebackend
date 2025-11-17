@@ -1,0 +1,67 @@
+# basebackend-user-service Seata 配置
+
+seata:
+  # 事务群组
+  tx-service-group: basebackend_user_tx_group
+
+  # Seata Server 配置
+  service:
+    vgroup-mapping:
+      # 事务群组到虚拟群组的映射
+      basebackend_user_tx_group: default
+    grouplist:
+      default: seata-server:8091
+
+  # 数据源代理模式
+  data-source-proxy-mode: AT
+
+  # 客户端配置
+  client:
+    rm:
+      # 异步提交缓存队列大小
+      async-commit-buffer-limit: 10000
+      # 事务重试次数
+      report-retry-count: 5
+      # 表全量检测
+      table-meta-check-enable: true
+      # 分支会话大小
+      branch-session-size-limit: 16384
+      # 分支表名大小
+      branch-table-name-size-limit: 64
+      # DB 锁保持
+      db-lock-keep-alive: true
+      # DB 锁重试间隔
+      db-lock-retry-interval: 60000
+      # DB 锁重试超时
+      db-lock-retry-timeout: 30000
+      # DB 锁重试次数
+      db-lock-retry-times: 3
+    tm:
+      # 提交重试次数
+      commit-retry-count: 3
+      # 回滚重试次数
+      rollback-retry-count: 3
+      # 默认全局事务超时
+      default-global-transaction-timeout: 300000
+      # 噸询超时
+      degrade-check: false
+    undo:
+      # 数据验证
+      data-validation: true
+      # 日志序列化
+      log-serialization: jackson
+      # 日志表名
+      log-table: undo_log
+      # 只关注更新列
+      only-care-update-columns: true
+
+  # 注册中心配置
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: nacos-seata:8848
+      namespace:
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos

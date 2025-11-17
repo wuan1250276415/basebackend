@@ -3,19 +3,139 @@
 spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
+
+    # ======================================
+    # 读写分离配置
+    # ======================================
+    read-write-separation:
+      enabled: true  # ✅ 已启用读写分离（主从库已配置好）
+
+    # 主库配置（Master - 处理写操作）
+    master:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://${MYSQL_HOST:1.117.67.222}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:basebackend_admin}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: ${MYSQL_USERNAME:basebackend_admin}
+      password: ${MYSQL_PASSWORD:5iA7pGWQJnACwXw3}
+
+    # 从库配置（Slave - 处理读操作）
+    # 说明：从库地址需要根据实际环境配置
+    # 如果没有从库，读写分离将自动禁用，所有操作都使用主库
+    slave:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://${MYSQL_SLAVE_HOST:192.168.66.126}:${MYSQL_SLAVE_PORT:3307}/${MYSQL_DATABASE:basebackend_admin}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: ${MYSQL_SLAVE_USERNAME:root}
+      password: ${MYSQL_SLAVE_PASSWORD:root123}
+
+    # Druid 连接池配置（主从共享）
     druid:
       db-type: mysql  # 数据库类型，防止 WallFilter 初始化时 dbType 为 null
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
-      max-wait: 60000
-      test-on-borrow: false
-      test-on-return: false
-      test-while-idle: true
-      validation-query: SELECT 1
-      time-between-eviction-runs-millis: 60000
-      min-evictable-idle-time-millis: 300000
+
+      # ======================================
+      # 连接池核心参数（优化后）
+      # ======================================
+      initial-size: 20              # 初始连接数（优化：10 → 20，减少冷启动时间）
+      min-idle: 15                  # 最小空闲连接（优化：10 → 15，保持足够的空闲连接）
+      max-active: 200               # 最大活跃连接（优化：100 → 200，提升并发能力）
+      max-wait: 30000               # 获取连接最大等待时间 ms（优化：60000 → 30000，快速失败）
+
+      # ======================================
+      # 连接检测配置（性能优化）
+      # ======================================
+      test-on-borrow: false         # 借用连接时不检测（提升性能）
+      test-on-return: false         # 归还连接时不检测（提升性能）
+      test-while-idle: true         # 空闲时检测（保证连接可用性）
+      validation-query: SELECT 1    # 连接检测 SQL
+      validation-query-timeout: 3   # 检测超时时间（秒）
+
+      # ======================================
+      # 连接回收配置
+      # ======================================
+      time-between-eviction-runs-millis: 60000      # 检测间隔 60 秒
+      min-evictable-idle-time-millis: 300000        # 连接最小空闲时间 5 分钟
+      max-evictable-idle-time-millis: 900000        # 连接最大空闲时间 15 分钟（新增：防止连接过久）
+
+      # ======================================
+      # PreparedStatement 缓存（性能优化）
+      # ======================================
+      pool-prepared-statements: true                        # 启用 PS 缓存
+      max-pool-prepared-statement-per-connection-size: 20   # 每个连接最多缓存 20 个 PS
+
+      # ======================================
+      # 连接泄漏检测（防止资源泄漏）
+      # ======================================
+      remove-abandoned: true        # 启用连接泄漏检测
+      remove-abandoned-timeout: 180 # 连接超过 3 分钟未归还视为泄漏
+      log-abandoned: true           # 记录泄漏连接的堆栈信息
+
+      # ======================================
+      # 监控过滤器
+      # ======================================
       filters: stat,wall,log4j2
+
+      # ======================================
+      # Druid 监控配置
+      # ======================================
+      stat-view-servlet:
+        enabled: true                      # 启用监控页面
+        url-pattern: /druid/*              # 访问路径：http://host:port/druid
+        login-username: admin              # 登录用户名
+        login-password: admin123           # 登录密码
+        reset-enable: false                # 禁用重置按钮（生产环境建议关闭）
+        allow:                             # 白名单（留空表示允许所有）
+        deny:                              # 黑名单
+
+      # Web 监控配置
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*"  # 排除静态资源和监控端点
+        session-stat-enable: true          # 启用 Session 统计
+        profile-enable: true               # 启用 URL 性能分析
+
+      # ======================================
+      # 慢 SQL 监控配置（优化后）
+      # ======================================
+      filter:
+        stat:
+          enabled: true                    # 启用 SQL 统计
+          log-slow-sql: true               # 记录慢 SQL
+          slow-sql-millis: 1000            # 慢 SQL 阈值：1 秒
+          merge-sql: true                  # 合并相同 SQL（不同参数）
+          db-type: mysql                   # 数据库类型
+
+        # ======================================
+        # SQL 防火墙配置（安全加固）
+        # ======================================
+        wall:
+          enabled: true
+          db-type: mysql
+          config:
+            # SQL 语法控制
+            multi-statement-allow: true    # 允许多语句执行（根据实际需求调整）
+            none-base-statement-allow: true # 允许非基本语句
+
+            # 安全防护
+            select-allow: true             # 允许 SELECT
+            select-into-allow: false       # 禁止 SELECT INTO（防止数据导出）
+            delete-allow: true             # 允许 DELETE
+            update-allow: true             # 允许 UPDATE
+            insert-allow: true             # 允许 INSERT
+            replace-allow: true            # 允许 REPLACE
+            merge-allow: true              # 允许 MERGE
+            truncate-allow: false          # 禁止 TRUNCATE（高危操作）
+            drop-table-allow: false        # 禁止 DROP TABLE（高危操作）
+
+            # 函数控制
+            select-into-outfile-allow: false  # 禁止导出文件
+            select-union-check: true          # 检查 UNION 注入
+
+            # 其他安全选项
+            comment-allow: true            # 允许 SQL 注释
+            strict-syntax-check: false     # 严格语法检查（可能影响性能）
+
+          # 日志配置
+          log-violation: true              # 记录违规 SQL
+          throw-exception: false           # 不抛出异常（记录日志即可）
 
 # Redis 配置
   data:
@@ -39,6 +159,13 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# MyBatis 慢查询监控配置
+mybatis:
+  slow-sql-monitor:
+    enabled: true              # 启用慢查询监控（默认：true）
+    log-all-sql: false         # 是否记录所有 SQL（默认：false，仅记录慢查询）
+  slow-sql-threshold: 1000     # 慢查询阈值（毫秒，默认：1000ms）
 
 # JWT 配置
 jwt:

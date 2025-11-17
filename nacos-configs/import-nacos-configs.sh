@@ -52,6 +52,8 @@ fi
 # 导入配置文件的函数
 import_config() {
     local data_id=$1
+    local config_type=${2:-yaml}
+    local config_group=${3:-$GROUP}
     local config_file="${CONFIG_DIR}/${data_id}"
 
     if [ ! -f "$config_file" ]; then
@@ -73,9 +75,54 @@ import_config() {
     local response=$(curl -s -w "\n%{http_code}" -X POST \
         "http://${NACOS_SERVER}/nacos/v1/cs/configs" \
         -d "dataId=${data_id}" \
-        -d "group=${GROUP}" \
+        -d "group=${config_group}" \
         -d "content=${content}" \
-        -d "type=yaml" \
+        -d "type=${config_type}" \
+        -d "tenant=${NAMESPACE}" \
+        -d "username=${USERNAME}" \
+        -d "password=${PASSWORD}")
+
+    local http_code=$(echo "$response" | tail -n1)
+    local body=$(echo "$response" | head -n-1)
+
+    if [ "$http_code" = "200" ] && [ "$body" = "true" ]; then
+        echo -e "${GREEN}✓ 成功${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ 失败 (HTTP ${http_code})${NC}"
+        echo "  响应: $body"
+        return 1
+    fi
+}
+
+# 导入 Sentinel 规则的函数
+import_sentinel_rule() {
+    local data_id=$1
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local config_file="${script_dir}/${data_id}"
+
+    if [ ! -f "$config_file" ]; then
+        echo -e "${RED}✗ 跳过（文件不存在）: ${data_id}${NC}"
+        return 1
+    fi
+
+    echo -n "导入 Sentinel 规则: ${data_id} ... "
+
+    # URL 编码内容
+    local content=$(cat "$config_file" | python3 -c "import sys; import urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2>/dev/null || cat "$config_file" | perl -MURI::Escape -e 'print uri_escape(<STDIN>);' 2>/dev/null)
+
+    if [ -z "$content" ]; then
+        echo -e "${RED}失败（无法编码内容）${NC}"
+        return 1
+    fi
+
+    # 发送请求到 Nacos
+    local response=$(curl -s -w "\n%{http_code}" -X POST \
+        "http://${NACOS_SERVER}/nacos/v1/cs/configs" \
+        -d "dataId=${data_id}" \
+        -d "group=SENTINEL_GROUP" \
+        -d "content=${content}" \
+        -d "type=json" \
         -d "tenant=${NAMESPACE}" \
         -d "username=${USERNAME}" \
         -d "password=${PASSWORD}")
@@ -114,6 +161,32 @@ configs=(
 for config in "${configs[@]}"; do
     total=$((total + 1))
     if import_config "$config"; then
+        success=$((success + 1))
+    else
+        failed=$((failed + 1))
+    fi
+done
+
+echo ""
+echo "------------------------------------------------------------------------------------------------"
+echo " 导入 Sentinel 规则"
+echo "------------------------------------------------------------------------------------------------"
+echo ""
+
+sentinel_rules=(
+    "basebackend-gateway-flow-rules.json"
+    "basebackend-gateway-degrade-rules.json"
+    "basebackend-gateway-gw-flow-rules.json"
+    "admin-api-flow-rules.json"
+    "admin-api-degrade-rules.json"
+    "admin-api-param-flow-rules.json"
+    "admin-api-system-rules.json"
+    "admin-api-authority-rules.json"
+)
+
+for rule in "${sentinel_rules[@]}"; do
+    total=$((total + 1))
+    if import_sentinel_rule "$rule"; then
         success=$((success + 1))
     else
         failed=$((failed + 1))

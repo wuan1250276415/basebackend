@@ -1,0 +1,123 @@
+server:
+  port: 8089
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+spring:
+  application:
+    name: basebackend-monitor-service
+
+  # Redis 配置（用于在线用户管理）
+  data:
+    redis:
+      host: ${REDIS_HOST:1.117.67.222}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_ycecQi}
+      database: ${REDIS_DATABASE:0}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+
+  # Nacos 配置中心
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:1.117.67.222:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        enabled: true
+        service: ${spring.application.name}
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
+        ip: ${NACOS_IP:}
+        port: ${server.port}
+        weight: 1
+        cluster-name: DEFAULT
+        metadata:
+          version: 1.0.0
+          region: default
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:1.117.67.222:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+        enabled: true
+        refresh-enabled: true
+
+# Redisson 配置
+redisson:
+  single-server-config:
+    address: redis://${spring.data.redis.host}:${spring.data.redis.port}
+    password: ${spring.data.redis.password}
+    database: ${spring.data.redis.database}
+    connection-pool-size: 8
+    connection-minimum-idle-size: 2
+    timeout: 3000
+    retry-attempts: 3
+    retry-interval: 1500
+
+# JWT 配置（用于解析用户信息）
+jwt:
+  secret: ${JWT_SECRET:basebackend_jwt_secret_key_2024}
+  expiration: ${JWT_EXPIRATION:86400}
+
+# Logging 配置
+logging:
+  level:
+    root: INFO
+    com.basebackend.monitor: DEBUG
+    com.basebackend.cache: DEBUG
+    com.basebackend.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management 端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Swagger/OpenAPI 配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  packages-to-scan: com.basebackend.monitor.controller
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# OpenFeign 配置
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+  compression:
+    request:
+      enabled: true
+      mime-types: application/json,application/xml,text/xml
+      min-request-size: 2048
+    response:
+      enabled: true

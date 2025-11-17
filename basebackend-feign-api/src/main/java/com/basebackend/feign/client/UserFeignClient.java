@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -94,8 +96,8 @@ public interface UserFeignClient {
      * @return 角色ID列表
      */
     @GetMapping("/{id}/roles")
-    @Operation(summary = "获取用户角色", description = "获取用户角色ID列表")
-    Result<List<Long>> getUserRoles(@Parameter(description = "用户ID") @PathVariable("id") Long userId);
+    @Operation(summary = "获取用户角色ID", description = "获取用户角色ID列表")
+    Result<List<Long>> getUserRoleIds(@Parameter(description = "用户ID") @PathVariable("id") Long userId);
 
     /**
      * 检查用户名是否唯一
@@ -137,5 +139,94 @@ public interface UserFeignClient {
     Result<Boolean> checkPhoneUnique(
             @Parameter(description = "手机号") @RequestParam("phone") String phone,
             @Parameter(description = "用户ID") @RequestParam(value = "userId", required = false) Long userId
+    );
+
+    // ==================== 新增：用户档案服务需要的接口 ====================
+
+    /**
+     * 更新用户基本信息
+     * 用于 profile-service 更新用户个人资料
+     *
+     * @param userId 用户ID
+     * @param userDTO 用户信息
+     * @return 更新结果
+     */
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "用户信息")
+    @org.springframework.web.bind.annotation.PutMapping("/{id}/profile")
+    @Operation(summary = "更新用户个人资料", description = "更新用户基本信息（昵称、邮箱、手机号、头像、性别、生日）")
+    Result<Void> updateUserProfile(
+            @Parameter(description = "用户ID") @PathVariable("id") Long userId,
+            @org.springframework.web.bind.annotation.RequestBody UserBasicDTO userDTO
+    );
+
+    /**
+     * 修改用户密码
+     * 用于 profile-service 修改用户密码
+     *
+     * @param userId 用户ID
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     * @return 更新结果
+     */
+    @org.springframework.web.bind.annotation.PutMapping("/{id}/password")
+    @Operation(summary = "修改用户密码", description = "修改用户登录密码")
+    Result<Void> changePassword(
+            @Parameter(description = "用户ID") @PathVariable("id") Long userId,
+            @Parameter(description = "旧密码") @RequestParam("oldPassword") String oldPassword,
+            @Parameter(description = "新密码") @RequestParam("newPassword") String newPassword
+    );
+
+    /**
+     * 获取用户权限列表（权限字符串列表）
+     * 用于 auth-service 获取用户权限
+     *
+     * @param userId 用户ID
+     * @return 权限字符串列表
+     */
+    @GetMapping("/{id}/permissions")
+    @Operation(summary = "获取用户权限", description = "获取用户权限字符串列表")
+    Result<List<String>> getUserPermissions(@Parameter(description = "用户ID") @PathVariable("id") Long userId);
+
+    /**
+     * 获取用户角色列表（角色名称列表）
+     * 用于 auth-service 获取用户角色
+     *
+     * @param userId 用户ID
+     * @return 角色名称列表
+     */
+    @GetMapping("/{id}/role-names")
+    @Operation(summary = "获取用户角色名称", description = "获取用户角色名称列表")
+    Result<List<String>> getUserRoleNames(@Parameter(description = "用户ID") @PathVariable("id") Long userId);
+
+    /**
+     * 更新用户登录信息
+     * 用于 auth-service 更新用户登录IP和时间
+     *
+     * @param userId 用户ID
+     * @param loginIp 登录IP
+     * @param loginTime 登录时间
+     * @return 更新结果
+     */
+    @PutMapping("/{id}/login-info")
+    @Operation(summary = "更新登录信息", description = "更新用户登录IP和登录时间")
+    Result<Void> updateLoginInfo(
+            @Parameter(description = "用户ID") @PathVariable("id") Long userId,
+            @Parameter(description = "登录IP") @RequestParam("loginIp") String loginIp,
+            @Parameter(description = "登录时间") @RequestParam("loginTime") String loginTime
+    );
+
+    /**
+     * 重置用户密码
+     * 用于 auth-service 管理员重置用户密码
+     *
+     * @param userId 用户ID
+     * @param newPassword 新密码
+     * @return 重置结果
+     */
+    @PutMapping("/{id}/reset-password")
+    @Operation(summary = "重置用户密码", description = "管理员重置用户密码")
+    Result<Void> resetPassword(
+            @Parameter(description = "用户ID") @PathVariable("id") Long userId,
+            @Parameter(description = "新密码") @RequestParam("newPassword") String newPassword
     );
 }

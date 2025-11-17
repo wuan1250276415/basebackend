@@ -1,0 +1,406 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis
+  labels:
+    name: redis
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: redis
+data:
+  redis.conf: |
+    # 网络配置
+    bind 0.0.0.0
+    port 6379
+    timeout 0
+    tcp-keepalive 300
+
+    # 常规配置
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    databases 16
+
+    # 持久化配置
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+
+    # AOF配置
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # 内存配置
+    maxmemory 2gb
+    maxmemory-policy allkeys-lru
+
+    # 安全配置
+    requirepass ${REDIS_PASSWORD}
+
+    # 慢查询
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # 监控
+    latency-monitor-threshold 100
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secrets
+  namespace: redis
+type: Opaque
+data:
+  redis-password: cmVkaXNwYXNzd29yZA==  # redispassword
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: redis-storage
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  encrypted: "true"
+  iops: "3000"
+  throughput: "125"
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Redis Master Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-master
+  namespace: redis
+  labels:
+    app: redis
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+    spec:
+      serviceAccountName: redis
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+      - name: redis
+        image: redis:7.0-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - /bin/sh
+        - -c
+        - |
+          exec redis-server /etc/redis/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secrets
+              key: redis-password
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: 2Gi
+            cpu: 500m
+          limits:
+            memory: 4Gi
+            cpu: 1000m
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: redis
+  labels:
+    app: redis
+    role: master
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis
+    role: master
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: redis-storage
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: redis
+  namespace: redis
+
+---
+# Redis备份
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: redis
+spec:
+  schedule: "0 */6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: redis-backup
+          containers:
+          - name: backup
+            image: redis:7.0-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Starting Redis backup..."
+
+              # 等待Redis服务就绪
+              sleep 10
+
+              # 创建备份目录
+              BACKUP_DIR="/backup/$(date +%Y%m%d_%H%M%S)"
+              mkdir -p $BACKUP_DIR
+
+              # 备份RDB文件
+              redis-cli -h redis-master -a ${REDIS_PASSWORD} --rdb $BACKUP_DIR/dump.rdb
+
+              # 备份AOF文件
+              redis-cli -h redis-master -a ${REDIS_PASSWORD} BGSAVE
+              sleep 5
+              redis-cli -h redis-master -a ${REDIS_PASSWORD} --aof $BACKUP_DIR/appendonly.aof
+
+              # 压缩备份
+              tar -czf $BACKUP_DIR.tar.gz -C /backup $(basename $BACKUP_DIR)
+              rm -rf $BACKUP_DIR
+
+              # 清理7天前的备份
+              find /backup -name "*.tar.gz" -type f -mtime +7 -delete
+
+              echo "Backup completed"
+            env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: redis-password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            resources:
+              requests:
+                memory: 256Mi
+                cpu: 100m
+              limits:
+                memory: 512Mi
+                cpu: 500m
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: redis-backup-pvc
+          restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-backup-pvc
+  namespace: redis
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: redis-storage
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Redis集群配置
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+  namespace: redis
+  labels:
+    app: redis-cluster
+spec:
+  serviceName: redis-cluster
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+    spec:
+      serviceAccountName: redis
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+      - name: redis-cluster
+        image: redis:7.0-alpine
+        ports:
+        - containerPort: 6379
+          name: client
+        - containerPort: 16379
+          name: gossip
+        command:
+        - /bin/sh
+        - -c
+        - |
+          exec redis-server /etc/redis/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secrets
+              key: redis-password
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 250m
+          limits:
+            memory: 2Gi
+            cpu: 500m
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: redis-storage
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: redis
+  labels:
+    app: redis-cluster
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  - port: 16379
+    targetPort: 16379
+    name: gossip
+  selector:
+    app: redis-cluster
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster-access
+  namespace: redis
+  labels:
+    app: redis-cluster-access
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  selector:
+    app: redis-cluster

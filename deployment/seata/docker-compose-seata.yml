@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  seata-server:
+    image: seataio/seata-server:2.0.0
+    container_name: seata-server
+    ports:
+      - "7091:7091"
+      - "8091:8091"
+    environment:
+      - SEATA_PORT=8091
+      - STORE_MODE=db
+      - SERVER_MODE=standalone
+    volumes:
+      - ./config:/seata-server/resources
+    networks:
+      - seata-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mysql-seata:
+    image: mysql:8.0
+    container_name: mysql-seata
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: seata
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-seata-data:/var/lib/mysql
+    networks:
+      - seata-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nacos-seata:
+    image: nacos/nacos-server:v2.3.2
+    container_name: nacos-seata
+    ports:
+      - "8888:8848"
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql-seata
+      MYSQL_SERVICE_DB_NAME: seata
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: 123456
+      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
+    volumes:
+      - nacos-seata-data:/home/nacos/data
+      - nacos-seata-logs:/home/nacos/logs
+    networks:
+      - seata-network
+    restart: unless-stopped
+    depends_on:
+      mysql-seata:
+        condition: service_healthy
+
+  # Prometheus 监控
+  prometheus-seata:
+    image: prom/prometheus:latest
+    container_name: prometheus-seata
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-seata-data:/prometheus
+    networks:
+      - seata-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Grafana 可视化
+  grafana-seata:
+    image: grafana/grafana:latest
+    container_name: grafana-seata
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-seata-data:/var/lib/grafana
+    networks:
+      - seata-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus-seata
+
+networks:
+  seata-network:
+    driver: bridge
+
+volumes:
+  mysql-seata-data:
+    driver: local
+  nacos-seata-data:
+    driver: local
+  nacos-seata-logs:
+    driver: local
+  prometheus-seata-data:
+    driver: local
+  grafana-seata-data:
+    driver: local

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.application.mapper.SysApplicationMapper">
+
+    <!-- 查询所有启用的应用 -->
+    <select id="selectEnabledApplications" resultType="com.basebackend.application.entity.SysApplication">
+        SELECT *
+        FROM sys_application
+        WHERE status = 1
+          AND deleted = 0
+        ORDER BY order_num ASC, create_time ASC
+    </select>
+
+    <!-- 根据应用编码查询应用 -->
+    <select id="selectByAppCode" resultType="com.basebackend.application.entity.SysApplication">
+        SELECT *
+        FROM sys_application
+        WHERE app_code = #{appCode}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+</mapper>

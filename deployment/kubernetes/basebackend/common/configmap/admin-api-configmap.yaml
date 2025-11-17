@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-api-config
+  namespace: basebackend
+  labels:
+    app: basebackend-admin-api
+data:
+  application.yml: |
+    spring:
+      application:
+        name: basebackend-admin-api
+      profiles:
+        active: kubernetes
+      cloud:
+        nacos:
+          discovery:
+            server-addr: nacos-server:8848
+            namespace: basebackend
+          config:
+            server-addr: nacos-server:8848
+            namespace: basebackend
+            file-extension: yml
+      datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        type: com.alibaba.druid.pool.DruidDataSource
+        druid:
+          initial-size: 5
+          min-idle: 5
+          max-active: 20
+          max-wait: 60000
+          time-between-eviction-runs-millis: 60000
+          min-evictable-idle-time-millis: 300000
+          validation-query: SELECT 1
+          test-while-idle: true
+          test-on-borrow: false
+          test-on-return: false
+          pool-prepared-statements: true
+          max-pool-prepared-statement-per-connection-size: 20
+          stat-view-servlet:
+            enabled: true
+            url-pattern: /druid/*
+          filter:
+            stat:
+              enabled: true
+              log-slow-sql: true
+              slow-sql-millis: 2000
+            wall:
+              enabled: true
+              config:
+                multi-statement-allow: true
+
+    # Redis配置
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+    # Kafka配置
+    kafka:
+      bootstrap-servers: kafka:9092
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        acks: 1
+        retries: 3
+        batch-size: 16384
+        linger-ms: 10
+      consumer:
+        group-id: basebackend-admin-api
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        enable-auto-commit: false
+        auto-offset-reset: earliest
+        max-poll-records: 500
+
+    # MyBatis配置
+    mybatis:
+      mapper-locations: classpath*:/mapper/**/*.xml
+      type-aliases-package: com.basebackend.admin.entity
+      configuration:
+        map-underscore-to-camel-case: true
+        cache-enabled: true
+        lazy-loading-enabled: true
+        aggressive-lazy-loading: false
+
+    # JWT配置
+    jwt:
+      secret: ${JWT_SECRET:BaseBackendSecretKey2025}
+      expiration: 86400
+
+    # 安全配置
+    security:
+      oauth2:
+        resourceserver:
+          jwt:
+            issuer-uri: ${OAUTH2_ISSUER_URI:http://oauth2-server:9000}
+      rbac:
+        enabled: true
+        cache:
+          timeout: 60
+          preload-enabled: true
+
+    # 管理端点配置
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus,env,configprops
+      endpoint:
+        health:
+          show-details: when-authorized
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+
+    # 日志配置
+    logging:
+      level:
+        com.basebackend.admin: INFO
+        org.springframework.security: DEBUG
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+      file:
+        name: /app/logs/basebackend-admin-api.log
+        max-size: 100MB
+        max-history: 30

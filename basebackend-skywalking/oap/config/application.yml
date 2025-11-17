@@ -1,0 +1,140 @@
+# =====================================================================
+# SkyWalking OAP Server 配置
+# 创建时间: 2025-11-15
+# 描述: SkyWalking 后端分析系统配置
+# =====================================================================
+
+# SkyWalking OAP Server 配置
+cluster:
+  selector: ${SW_CLUSTER:nacos}
+  nacos:
+    serviceName: ${SW_SERVICE_NAME:"SkyWalking"}
+    hostPort: ${SW_CLUSTER_NACOS_HOST_PORT:localhost:8848}
+    namespace: ${SW_CLUSTER_NACOS_NAMESPACE:"basebackend"}
+    username: ${SW_CLUSTER_NACOS_USERNAME:"nacos"}
+    password: ${SW_CLUSTER_NACOS_PASSWORD:"nacos"}
+    # 设置获取和更新配置的时间间隔（秒）
+    commandCheckDelay: ${SW_CLUSTER_NACOS_COMMAND_CHECK_DELAY:20}
+    # 设置健康检查时间间隔（秒）
+    healthCheck: ${SW_CLUSTER_NACOS_HEALTH_CHECK:false}
+    # 设置实例属性
+    instanceProperties:
+      # 集群节点命名空间
+      namespace: ${SW_CLUSTER_NACOS_NAMESPACE:"basebackend"}
+      # 集群节点分组
+      group: ${SW_CLUSTER_NACOS_GROUP_NAME:"DEFAULT_GROUP"}
+
+# 超时设置
+core:
+  selector: ${SW_CORE:slow}
+  slow:
+    # 设置默认的追踪采样率 (0-100%)
+    # 100 表示所有追踪都被采样
+    # 0 表示不采样任何追踪
+    # 推荐设置为 100 以便获得完整的追踪信息
+    defaultSamplingRate: ${SW_CORE_DEFAULT_SAMPLING_RATE:100}
+    # 设置追踪持久化方式
+    # 默认使用 ElasticSearch
+    # 可选: elasticsearch, mysql
+    storage:
+      selector: ${SW_STORAGE:elasticsearch}
+      elasticsearch:
+        # ElasticSearch 地址
+        servers: ${SW_STORAGE_ES_SERVERS:127.0.0.1:9200}
+        # 协议
+        protocol: ${SW_STORAGE_ES_PROTOCOL:http}
+        # 连接超时时间（毫秒）
+        connectTimeout: ${SW_STORAGE_ES_CONNECT_TIMEOUT:3000}
+        # 读取超时时间（毫秒）
+        readTimeout: ${SW_STORAGE_ES_READ_TIMEOUT:20000}
+        # 请求超时时间（毫秒）
+        userTimeout: ${SW_STORAGE_ES_USER_TIMEOUT:30}
+        # 索引名称前缀
+        indexPrefix: ${SW_STORAGE_ES_INDEX_PREFIX:sw}
+        # 设置每天的索引计数
+        dayStep: ${SW_STORAGE_ES_DAY_STEP:1}
+        # 设置索引的生命周期（天）
+        ttl: ${SW_STORAGE_ES_TTL:7}
+        # 设置索引副本数量
+        indexReplicasNumber: ${SW_STORAGE_ES_INDEX_REPLICAS_NUMBER:0}
+        # 设置索引分片数量
+        indexShardsNumber: ${SW_STORAGE_ES_INDEX_SHARDS_NUMBER:2}
+        # 设置高性能分析器
+        # 可选: analyzer, standard, keyword, simple, stop, whitespace, custom
+        advanced: ${SW_STORAGE_ES_ADVANCED:""}
+
+# 配置查询和查询路径
+query:
+  selector: ${SW_QUERY:graphql}
+  graphql:
+    # GraphQL 路径
+    path: ${SW_QUERY_GRAPHQL_PATH:/graphql}
+
+# 告警配置
+alarm:
+  selector: ${SW_ALARM:nacos}
+  nacos:
+    # 设置告警规则命名空间
+    namespace: ${SW_ALARM_NACOS_NAMESPACE:"basebackend"}
+    # 设置告警规则分组
+    group: ${SW_ALARM_NACOS_GROUP_NAME:"skywalking-alarm"}
+    # 设置告警规则服务器地址
+    serverAddr: ${SW_ALARM_NACOS_SERVER_ADDR:"localhost:8848"}
+    # 设置告警规则用户名
+    username: ${SW_ALARM_NACOS_USERNAME:"nacos"}
+    # 设置告警规则密码
+    password: ${SW_ALARM_NACOS_PASSWORD:"nacos"}
+
+# 存储优化配置
+storageOptimization:
+  # 设置索引刷新间隔（秒）
+  indexRefreshInterval: ${SW_STORAGE_OPTIMIZATION_INDEX_REFRESH_INTERVAL:5}
+  # 设置索引缓存大小
+  indexCacheSize: ${SW_STORAGE_OPTIMIZATION_INDEX_CACHE_SIZE:20000}
+
+# 性能调优配置
+performance:
+  # 设置分析服务的并发数
+  analysisConcurrency: ${SW_PERFORMANCE_ANALYSIS_CONCURRENCY:5}
+  # 设置批量处理大小
+  batchSize: ${SW_PERFORMANCE_BATCH_SIZE:2000}
+  # 设置缓冲队列大小
+  bufferChannelSize: ${SW_PERFORMANCE_BUFFER_CHANNEL_SIZE:5000}
+
+# 日志配置
+logging:
+  # 设置日志级别
+  level: ${SW_LOGGING_LEVEL:INFO}
+  # 设置日志文件路径
+  file: ${SW_LOGGING_FILE:/opt/basebackend/logs/skywalking/oap.log}
+  # 设置日志文件最大大小
+  maxFileSize: ${SW_LOGGING_MAX_FILE_SIZE:300}
+  # 设置日志文件保留天数
+  maxHistoryFiles: ${SW_LOGGING_MAX_HISTORY_FILES:30}
+
+# Telemetry 配置
+telemetry:
+  selector: ${SW_TELEMETRY:none}
+  none:
+
+# 可观测性配置
+observability:
+  # 设置追踪日志
+  tracingLog:
+    # 设置追踪日志级别
+    level: ${SW_OBSERVABILITY_TRACING_LOG_LEVEL:DEBUG}
+    # 设置追踪日志文件路径
+    file: ${SW_OBSERVABILITY_TRACING_LOG_FILE:/opt/basebackend/logs/skywalking/tracing.log}
+
+# Agent 分析配置
+agent_analyzer:
+  # 设置 Java 代理分析
+  java:
+    # 设置默认的 Agent 分析器
+    default:
+      # 设置追踪采样率
+      samplingRate: ${SW_AGENT_ANALYZER_JAVA_DEFAULT_SAMPLING_RATE:100}
+      # 设置慢查询阈值（毫秒）
+      slowDatasourceThreshold: ${SW_AGENT_ANALYZER_JAVA_DEFAULT_SLOW_DATASOURCE_THRESHOLD:100}
+      # 设置慢 SQL 阈值（毫秒）
+      slowSQLThreshold: ${SW_AGENT_ANALYZER_JAVA_DEFAULT_SLOW_SQL_THRESHOLD:100}

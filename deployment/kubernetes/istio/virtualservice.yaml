@@ -1,0 +1,178 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: basebackend-vs
+  namespace: basebackend
+  labels:
+    app: basebackend
+spec:
+  hosts:
+  - api.basebackend.com
+  - admin.basebackend.com
+  gateways:
+  - basebackend-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /admin
+    route:
+    - destination:
+        host: basebackend-admin-api
+        port:
+          number: 80
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 10s
+    corsPolicy:
+      allowOrigins:
+      - exact: "https://admin.basebackend.com"
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      allowHeaders:
+      - Authorization
+      - Content-Type
+      - X-Requested-With
+      exposeHeaders:
+      - X-Total-Count
+      maxAge: 3600s
+  - match:
+    - uri:
+        prefix: /auth
+    route:
+    - destination:
+        host: basebackend-auth-service
+        port:
+          number: 80
+    timeout: 5s
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: /user
+    route:
+    - destination:
+        host: basebackend-user-service
+        port:
+          number: 80
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+  - match:
+    - uri:
+        prefix: /gateway
+    route:
+    - destination:
+        host: basebackend-gateway
+        port:
+          number: 80
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 5s
+  - match:
+    - uri:
+        prefix: /actuator
+    route:
+    - destination:
+        host: basebackend-admin-api
+        port:
+          number: 80
+    timeout: 10s
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: basebackend-auth-vs
+  namespace: basebackend
+  labels:
+    app: basebackend-auth
+spec:
+  hosts:
+  - auth.basebackend.com
+  gateways:
+  - basebackend-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: basebackend-auth-service
+        port:
+          number: 80
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: basebackend-user-vs
+  namespace: basebackend
+  labels:
+    app: basebackend-user
+spec:
+  hosts:
+  - user.basebackend.com
+  gateways:
+  - basebackend-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: basebackend-user-service
+        port:
+          number: 80
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+
+---
+# 内部服务通信
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: basebackend-internal-vs
+  namespace: basebackend
+  labels:
+    app: basebackend-internal
+spec:
+  hosts:
+  - basebackend-admin-api
+  - basebackend-auth-service
+  - basebackend-user-service
+  - basebackend-gateway
+  gateways:
+  - basebackend-internal-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: host.metadata
+        port:
+          number: 80
+    timeout: 15s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s

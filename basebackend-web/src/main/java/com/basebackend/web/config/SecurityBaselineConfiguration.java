@@ -2,14 +2,18 @@ package com.basebackend.web.config;
 
 import com.basebackend.web.filter.CsrfCookieFilter;
 import com.basebackend.web.filter.OriginValidationFilter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import jakarta.servlet.Filter;
 
 /**
  * 安全基线相关 Bean 配置
  */
 @Configuration
+@ConditionalOnClass(Filter.class)
 @EnableConfigurationProperties(SecurityBaselineProperties.class)
 public class SecurityBaselineConfiguration {
 

@@ -1,0 +1,295 @@
+# Resource Quota & LimitRange 配置
+# 限制命名空间资源使用，防止资源过度消耗
+
+# ==================== Resource Quota ====================
+# 限制命名空间总资源使用量
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: basebackend-compute-quota
+  namespace: basebackend
+spec:
+  hard:
+    # 计算资源
+    requests.cpu: "50"        # 总 CPU 请求量: 50 cores
+    requests.memory: 100Gi    # 总内存请求量: 100 GB
+    limits.cpu: "100"         # 总 CPU 限制量: 100 cores
+    limits.memory: 200Gi      # 总内存限制量: 200 GB
+
+    # 存储资源
+    requests.storage: 500Gi   # 总存储请求量: 500 GB
+    persistentvolumeclaims: "50"  # PVC 数量限制: 50个
+
+    # 对象数量
+    pods: "50"                # Pod 数量限制: 50个
+    services: "20"            # Service 数量限制: 20个
+    secrets: "20"             # Secret 数量限制: 20个
+    configmaps: "20"          # ConfigMap 数量限制: 20个
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: basebackend-count-quota
+  namespace: basebackend
+spec:
+  hard:
+    # 副本数量
+    replicationcontrollers: "10"
+    replicasets.apps: "10"
+    statefulsets.apps: "10"
+    daemonsets.apps: "10"
+    deployments.apps: "20"
+
+    # 服务资源
+    services.loadbalancers: "5"
+    services.nodeports: "5"
+
+    # 网络策略
+    networkpolicies: "20"
+
+---
+# ==================== LimitRange ====================
+# 限制 Pod 和 Container 的资源使用
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: basebackend-compute-limits
+  namespace: basebackend
+spec:
+  limits:
+    # 默认 Container 资源限制
+    - type: Container
+      default:
+        cpu: "1"
+        memory: 2Gi
+      defaultRequest:
+        cpu: 500m
+        memory: 1Gi
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+
+    # 默认 Pod 资源限制
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 16Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+
+---
+# ==================== Service 特定 LimitRange ====================
+
+# Admin API 资源限制
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: basebackend-admin-api-limits
+  namespace: basebackend
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: "2"
+        memory: 4Gi
+      min:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 500m
+        memory: 1Gi
+      default:
+        cpu: 1
+        memory: 2Gi
+
+---
+# User Service 资源限制
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: basebackend-user-service-limits
+  namespace: basebackend
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: "2"
+        memory: 4Gi
+      min:
+        cpu: 200m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 200m
+        memory: 512Mi
+      default:
+        cpu: 1
+        memory: 1Gi
+
+---
+# Auth Service 资源限制 (高优先级)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: basebackend-auth-service-limits
+  namespace: basebackend
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 500m
+        memory: 1Gi
+      defaultRequest:
+        cpu: 500m
+        memory: 1Gi
+      default:
+        cpu: 1
+        memory: 2Gi
+
+---
+# Gateway 资源限制
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: basebackend-gateway-limits
+  namespace: basebackend
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: "2"
+        memory: 4Gi
+      min:
+        cpu: 200m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 200m
+        memory: 512Mi
+      default:
+        cpu: 1
+        memory: 1Gi
+
+---
+# ==================== PriorityClass ====================
+# 定义 Pod 优先级，确保关键服务资源分配
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: basebackend-critical
+value: 1000
+globalDefault: false
+description: "Critical priority class for BaseBackend core services"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: basebackend-high
+value: 800
+globalDefault: false
+description: "High priority class for BaseBackend important services"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: basebackend-medium
+value: 500
+globalDefault: true
+description: "Medium priority class for BaseBackend normal services"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: basebackend-low
+value: 100
+globalDefault: false
+description: "Low priority class for BaseBackend background jobs"
+
+---
+# ==================== PodDisruptionBudget ====================
+# 保证最小可用实例数
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: basebackend-admin-api-pdb
+  namespace: basebackend
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: basebackend-admin-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: basebackend-auth-service-pdb
+  namespace: basebackend
+spec:
+  minAvailable: 3  # 认证服务需要更多实例
+  selector:
+    matchLabels:
+      app: basebackend-auth-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: basebackend-user-service-pdb
+  namespace: basebackend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: basebackend-user-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: basebackend-gateway-pdb
+  namespace: basebackend
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: basebackend-gateway
+
+---
+# ==================== 资源优化建议 ====================
+# 基于实际使用情况调整
+#
+# 1. 初始资源分配:
+#    - CPU Request: 500m - 1 core
+#    - Memory Request: 1Gi - 2Gi
+#    - CPU Limit: 1 - 2 cores
+#    - Memory Limit: 2Gi - 4Gi
+#
+# 2. 监控指标:
+#    - CPU/内存使用率 > 80%: 增加资源
+#    - CPU/内存使用率 < 30%: 减少资源
+#    - HPA 频繁伸缩: 调整 HPA 参数
+#
+# 3. 成本优化策略:
+#    - 使用 Spot 实例处理低优先级服务
+#    - 合理设置资源限制，避免过度分配
+#    - 定期审核资源使用情况
+#
+# 4. 优先级策略:
+#    - Critical: Auth Service, Gateway
+#    - High: Admin API, User Service
+#    - Medium: Database, Redis
+#    - Low: Background Jobs, Batch Processing

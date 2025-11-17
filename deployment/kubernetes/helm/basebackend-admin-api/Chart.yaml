@@ -1,0 +1,16 @@
+apiVersion: v2
+name: basebackend-admin-api
+description: BaseBackend Admin API Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - basebackend
+  - admin-api
+  - spring-boot
+home: https://github.com/basebackend
+sources:
+  - https://github.com/basebackend/basebackend-admin-api
+maintainers:
+  - name: BaseBackend Team
+    email: team@basebackend.com

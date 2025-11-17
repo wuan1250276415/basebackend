@@ -1,0 +1,91 @@
+# 业务服务网关路由配置
+# 创建时间: 2025-11-15
+# 描述: 配置所有业务服务的网关路由
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # 字典服务路由
+        - id: dict-service
+          uri: lb://basebackend-dict-service
+          predicates:
+            - Path=/api/dict/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 部门服务路由
+        - id: dept-service
+          uri: lb://basebackend-dept-service
+          predicates:
+            - Path=/api/dept/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 日志服务路由
+        - id: log-service
+          uri: lb://basebackend-log-service
+          predicates:
+            - Path=/api/log/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 菜单服务路由
+        - id: menu-service
+          uri: lb://basebackend-menu-service
+          predicates:
+            - Path=/api/menu/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 监控服务路由
+        - id: monitor-service
+          uri: lb://basebackend-monitor-service
+          predicates:
+            - Path=/api/monitor/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 通知服务路由
+        - id: notification-service
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/api/notification/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # 个人配置服务路由
+        - id: profile-service
+          uri: lb://basebackend-profile-service
+          predicates:
+            - Path=/api/profile/**
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"

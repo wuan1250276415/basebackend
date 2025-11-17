@@ -9,6 +9,7 @@
         <groupId>com.basebackend</groupId>
         <artifactId>basebackend-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+            <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>basebackend-feign-api</artifactId>
@@ -42,6 +43,12 @@
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-admin-api</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 

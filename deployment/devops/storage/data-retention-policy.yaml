@@ -1,0 +1,381 @@
+# 数据生命周期管理策略
+# 定义数据保留、归档和删除策略
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-retention-policy
+  namespace: basebackend
+data:
+  # ==================== 应用数据保留策略 ====================
+  application_data: |
+    # 应用程序数据保留期限
+    user_data:
+      hot_data_retention: "90d"     # 90天内为热数据
+      warm_data_retention: "180d"   # 180天内为温数据
+      cold_data_retention: "730d"   # 2年内为冷数据
+      archive_data_retention: "2555d"  # 7年内归档
+      delete_after_retention: "true"
+
+    order_data:
+      hot_data_retention: "30d"
+      warm_data_retention: "180d"
+      cold_data_retention: "1095d"  # 3年
+      archive_data_retention: "2555d"  # 7年
+      delete_after_retention: "true"
+
+    session_data:
+      hot_data_retention: "7d"
+      warm_data_retention: "30d"
+      cold_data_retention: "90d"
+      archive_data_retention: "365d"
+      delete_after_retention: "true"
+
+  # ==================== 日志数据保留策略 ====================
+  log_data: |
+    # 日志数据保留期限
+    application_logs:
+      hot_data_retention: "7d"       # 应用日志热数据保留7天
+      warm_data_retention: "30d"     # 应用日志温数据保留30天
+      cold_data_retention: "90d"     # 应用日志冷数据保留90天
+      archive_data_retention: "365d" # 应用日志归档保留1年
+      delete_after_retention: "true"
+
+    access_logs:
+      hot_data_retention: "7d"
+      warm_data_retention: "30d"
+      cold_data_retention: "90d"
+      archive_data_retention: "365d"
+      delete_after_retention: "true"
+
+    audit_logs:
+      hot_data_retention: "30d"
+      warm_data_retention: "180d"
+      cold_data_retention: "1095d"   # 3年
+      archive_data_retention: "2555d"  # 7年 (法规要求)
+      delete_after_retention: "false"  # 审计日志不删除
+
+    error_logs:
+      hot_data_retention: "14d"
+      warm_data_retention: "60d"
+      cold_data_retention: "180d"
+      archive_data_retention: "365d"
+      delete_after_retention: "true"
+
+  # ==================== 监控数据保留策略 ====================
+  monitoring_data: |
+    # 监控数据保留期限
+    metrics:
+      raw_metrics_retention: "7d"      # 原始指标保留7天
+      aggregated_metrics_retention: "30d"  # 聚合指标保留30天
+      hourly_metrics_retention: "90d"  # 每小时指标保留90天
+      daily_metrics_retention: "365d"  # 每日指标保留1年
+      weekly_metrics_retention: "1095d" # 每周指标保留3年
+      monthly_metrics_retention: "2555d" # 每月指标保留7年
+      delete_after_retention: "true"
+
+    traces:
+      full_traces_retention: "3d"      # 完整链路保留3天
+      summarized_traces_retention: "30d"  # 摘要链路保留30天
+      critical_traces_retention: "90d" # 关键链路保留90天
+      delete_after_retention: "true"
+
+    profiles:
+      heap_dumps_retention: "7d"       # 堆转储保留7天
+      thread_dumps_retention: "14d"    # 线程转储保留14天
+      gc_logs_retention: "30d"         # GC日志保留30天
+      cpu_profiles_retention: "7d"     # CPU性能分析保留7天
+      delete_after_retention: "true"
+
+  # ==================== 备份数据保留策略 ====================
+  backup_data: |
+    # 备份数据保留策略
+    database_backups:
+      daily_backups_retention: "7d"       # 日备份保留7天
+      weekly_backups_retention: "4w"      # 周备份保留4周
+      monthly_backups_retention: "12m"    # 月备份保留12个月
+      quarterly_backups_retention: "4q"   # 季度备份保留4个季度
+      yearly_backups_retention: "7y"      # 年备份保留7年
+      delete_after_retention: "false"     # 备份数据不删除
+
+    application_backups:
+      full_backups_retention: "30d"       # 全量备份保留30天
+      incremental_backups_retention: "90d"  # 增量备份保留90天
+      config_backups_retention: "180d"    # 配置备份保留180天
+      delete_after_retention: "true"
+
+  # ==================== 临时数据保留策略 ====================
+  temp_data: |
+    # 临时数据保留策略
+    cache_data:
+      redis_cache_retention: "24h"       # Redis缓存保留24小时
+      application_cache_retention: "1h"  # 应用缓存保留1小时
+      file_cache_retention: "7d"         # 文件缓存保留7天
+      delete_after_retention: "true"
+
+    temporary_files:
+      upload_temp_retention: "24h"       # 上传临时文件保留24小时
+      processing_temp_retention: "7d"    # 处理临时文件保留7天
+      build_artifacts_retention: "30d"   # 构建产物保留30天
+      log_temp_retention: "7d"           # 日志临时文件保留7天
+      delete_after_retention: "true"
+
+---
+# 数据生命周期管理作业
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-lifecycle-manager
+  namespace: basebackend
+spec:
+  schedule: "0 2 * * *"  # 每天凌晨2点执行
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: data-lifecycle-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: data-lifecycle-manager
+            image: basebackend/data-lifecycle:1.0
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/sh
+              - -c
+              - |
+                # 数据生命周期管理脚本
+                echo "Starting data lifecycle management..."
+
+                # 1. 日志数据清理
+                echo "Cleaning up old log data..."
+                kubectl exec -n basebackend deployment/elasticsearch -- \
+                  curl -X DELETE "localhost:9200/logs-$(date -d '90 days ago' +%Y.%m.%d)?pretty"
+
+                # 2. 指标数据清理
+                echo "Cleaning up old metrics..."
+                # 清理7天前的原始指标
+                kubectl exec -n observability deployment/prometheus -- \
+                  promtool query delete 'http_requests_total{job="basebackend"}[7d]'
+
+                # 3. 清理临时文件
+                echo "Cleaning up temporary files..."
+                kubectl exec -n basebackend deployment/redis -- \
+                  redis-cli FLUSHDB
+
+                # 4. 清理无用的PV
+                echo "Cleaning up unused PVs..."
+                kubectl get pv -o json | jq -r '.items[] | select(.status.phase == "Released") | .metadata.name' | \
+                  while read pv; do
+                    echo "Deleting PV: $pv"
+                    kubectl delete pv $pv
+                  done
+
+                # 5. 压缩旧数据
+                echo "Compressing old data..."
+                kubectl exec -n basebackend deployment/minio -- \
+                  mc mb alias/myminio/my-bucket/archive 2>/dev/null || true
+                kubectl exec -n basebackend deployment/minio -- \
+                  mc mirror myminio/my-bucket/logs myminio/my-bucket/archive/$(date -d '30 days ago' +%Y-%m-%d) --overwrite
+
+                echo "Data lifecycle management completed"
+            volumeMounts:
+              - name: kubeconfig
+                mountPath: /root/.kube
+                readOnly: true
+          volumes:
+          - name: kubeconfig
+            configMap:
+              name: kubeconfig
+
+---
+# 服务账号
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: data-lifecycle-sa
+  namespace: basebackend
+
+---
+# RBAC 权限
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: data-lifecycle-role
+  namespace: basebackend
+rules:
+- apiGroups: [""]
+  resources: ["pods", "persistentvolumes"]
+  verbs: ["get", "list", "delete"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["exec"]
+- apiGroups: ["batch"]
+  resources: ["cronjobs"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: data-lifecycle-rolebinding
+  namespace: basebackend
+subjects:
+- kind: ServiceAccount
+  name: data-lifecycle-sa
+  namespace: basebackend
+roleRef:
+  kind: Role
+  name: data-lifecycle-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# 数据压缩作业
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-compression
+  namespace: basebackend
+spec:
+  schedule: "0 3 * * 0"  # 每周日凌晨3点执行
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: data-lifecycle-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: data-compression
+            image: alpine:latest
+            command:
+              - /bin/sh
+              - -c
+              - |
+                # 数据压缩脚本
+                echo "Starting data compression..."
+
+                # 压缩归档日志
+                echo "Compressing archived logs..."
+                kubectl exec -n basebackend deployment/minio -- \
+                  find /data/archive -type f -name "*.log" -mtime +7 -exec gzip {} \;
+
+                # 压缩旧备份文件
+                echo "Compressing old backups..."
+                kubectl exec -n basebackend deployment/minio -- \
+                  find /data/backups -type f -name "*.sql" -mtime +30 -exec gzip {} \;
+
+                echo "Data compression completed"
+            volumeMounts:
+              - name: data-volume
+                mountPath: /data
+          volumes:
+          - name: data-volume
+            persistentVolumeClaim:
+              claimName: data-lifecycle-pvc
+
+---
+# 存储配额策略
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storage-quota-policy
+  namespace: basebackend
+data:
+  # 应用数据配额
+  application_quotas: |
+    # 按命名空间设置存储配额
+    basebackend-production:
+      hard_requests_storage: "500Gi"
+      hard_limits_storage: "1000Gi"
+      hard_persistentvolumeclaims: "20"
+
+    basebackend-staging:
+      hard_requests_storage: "200Gi"
+      hard_limits_storage: "500Gi"
+      hard_persistentvolumeclaims: "10"
+
+    basebackend-dev:
+      hard_requests_storage: "100Gi"
+      hard_limits_storage: "200Gi"
+      hard_persistentvolumeclaims: "5"
+
+  # 存储成本预算
+  storage_budgets: |
+    # 月度存储成本预算 (美元)
+    storage_budgets:
+      basebackend-production: 500
+      basebackend-staging: 200
+      basebackend-dev: 100
+
+    # 存储成本阈值
+    cost_thresholds:
+      warning_threshold: 0.8   # 80%
+      critical_threshold: 0.95  # 95%
+
+  # 自动清理策略
+  auto_cleanup: |
+    # 自动清理配置
+    auto_cleanup_enabled: true
+
+    # 清理频率
+    cleanup_schedule: "0 2 * * *"  # 每天凌晨2点
+
+    # 清理条件
+    cleanup_conditions:
+      - storage_usage_percent > 85
+      - days_since_last_cleanup > 7
+      - old_data_retention_period_exceeded
+
+    # 清理优先级 (从低到高)
+    cleanup_priorities:
+      - temp_files
+      - cache_data
+      - old_logs
+      - old_backups
+      - archived_data
+
+---
+# 存储监控作业
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: storage-usage-monitor
+  namespace: basebackend
+spec:
+  schedule: "0 */6 * * *"  # 每6小时执行一次
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: data-lifecycle-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: storage-monitor
+            image: prom/prometheus:latest
+            command:
+              - /bin/sh
+              - -c
+              - |
+                # 存储使用监控
+                echo "Monitoring storage usage..."
+
+                # 获取每个PVC的使用率
+                for pvc in $(kubectl get pvc -n basebackend -o name); do
+                  echo "Checking PVC: $pvc"
+                  kubectl get $pvc -n basebackend -o json | jq -r '
+                    {
+                      name: .metadata.name,
+                      namespace: .metadata.namespace,
+                      capacity: .spec.resources.requests.storage,
+                      used: .status.capacity.storage
+                    }
+                  '
+                done
+
+                # 发送告警 (如果需要)
+                total_usage=$(kubectl get pvc -n basebackend -o json | jq -r '.items | map(.status.capacity.storage) | add')
+                if (( $(echo "$total_usage > 800Gi" | bc -l) )); then
+                  echo "ALERT: Storage usage exceeded 80%"
+                  # 发送告警到监控系统
+                fi
+
+                echo "Storage monitoring completed"

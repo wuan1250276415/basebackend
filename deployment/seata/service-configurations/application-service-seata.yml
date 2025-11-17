@@ -1,0 +1,44 @@
+# basebackend-application-service Seata 配置
+
+seata:
+  tx-service-group: basebackend_application_tx_group
+
+  service:
+    vgroup-mapping:
+      basebackend_application_tx_group: default
+    grouplist:
+      default: seata-server:8091
+
+  data-source-proxy-mode: AT
+
+  client:
+    rm:
+      async-commit-buffer-limit: 10000
+      report-retry-count: 5
+      table-meta-check-enable: true
+      branch-session-size-limit: 16384
+      branch-table-name-size-limit: 64
+      db-lock-keep-alive: true
+      db-lock-retry-interval: 60000
+      db-lock-retry-timeout: 30000
+      db-lock-retry-times: 3
+    tm:
+      commit-retry-count: 3
+      rollback-retry-count: 3
+      default-global-transaction-timeout: 300000
+      degrade-check: false
+    undo:
+      data-validation: true
+      log-serialization: jackson
+      log-table: undo_log
+      only-care-update-columns: true
+
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: nacos-seata:8848
+      namespace:
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos

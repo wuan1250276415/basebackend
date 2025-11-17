@@ -1,0 +1,181 @@
+# Default values for basebackend-admin-api
+# This is a YAML-formatted file.
+
+replicaCount: 3
+
+image:
+  repository: basebackend/admin-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/actuator/prometheus"
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.basebackend.com
+      paths:
+        - path: /admin
+          pathType: Prefix
+  tls:
+    - secretName: basebackend-tls
+      hosts:
+        - api.basebackend.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 1024Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+vpa:
+  enabled: true
+  updateMode: "Auto"
+
+nodeSelector:
+  kubernetes.io/arch: amd64
+
+tolerations:
+- key: "workload"
+  operator: "Equal"
+  value: "general"
+  effect: "NoSchedule"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - basebackend-admin-api
+        topologyKey: kubernetes.io/hostname
+
+# 环境配置
+environment: production
+
+# 数据库配置
+database:
+  enabled: true
+  host: mysql
+  port: 3306
+  name: basebackend
+  username: admin
+  existingSecret: admin-api-secrets
+  existingSecretKey: database-password
+
+# Redis配置
+redis:
+  enabled: true
+  host: redis
+  port: 6379
+  existingSecret: admin-api-secrets
+  existingSecretKey: redis-password
+
+# Kafka配置
+kafka:
+  enabled: true
+  host: kafka
+  port: 9092
+
+# OAuth2配置
+oauth2:
+  enabled: true
+  issuerUri: "http://oauth2-server:9000"
+  existingSecret: admin-api-secrets
+  existingSecretKey: oauth2-client-secret
+
+# 监控配置
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    path: /actuator/prometheus
+
+# 日志配置
+logging:
+  level: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 健康检查配置
+healthCheck:
+  enabled: true
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 30
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+  startupProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# 权限配置
+rbac:
+  enabled: true
+  cache:
+    timeout: 60
+    preloadEnabled: true
+
+# 安全配置
+security:
+  jwt:
+    secret: ""
+    expiration: 86400
+
+# 初始化配置
+initContainers:
+  waitForDatabase:
+    enabled: true
+  waitForRedis:
+    enabled: true
