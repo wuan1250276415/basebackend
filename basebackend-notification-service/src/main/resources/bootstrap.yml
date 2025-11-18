@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: basebackend-notification-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            refresh: true
