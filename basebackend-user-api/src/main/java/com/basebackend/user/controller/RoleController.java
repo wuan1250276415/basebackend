@@ -1,10 +1,10 @@
 package com.basebackend.user.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.basebackend.admin.dto.RoleDTO;
-import com.basebackend.admin.entity.SysRole;
-import com.basebackend.admin.entity.SysUser;
-import com.basebackend.admin.service.RoleService;
+import com.basebackend.user.dto.RoleDTO;
+import com.basebackend.user.entity.SysRole;
+import com.basebackend.user.entity.SysUser;
+import com.basebackend.user.service.RoleService;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,7 +22,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/roles")
+@RequestMapping("/api/user/roles")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "角色管理", description = "角色管理相关接口")

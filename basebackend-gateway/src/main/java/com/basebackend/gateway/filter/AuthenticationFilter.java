@@ -43,12 +43,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 白名单路径
      */
     private static final List<String> WHITELIST = Arrays.asList(
-            "/admin-api/api/admin/auth/**",
-            "/admin-api/swagger-ui/**",
-            "/admin-api/v3/api-docs/**",
-            "/admin-api/doc.html",
-            "/admin-api/webjars/**",
-            "/admin-api/favicon.ico",
+            "/basebackend-user-api/api/user/auth/**",
+            "/basebackend-user-api/swagger-ui/**",
+            "/basebackend-user-api/v3/api-docs/**",
+            "/basebackend-user-api/doc.html",
+            "/basebackend-user-api/webjars/**",
+            "/basebackend-user-api/favicon.ico",
             "/api/public/**",
             "/actuator/**"
     );

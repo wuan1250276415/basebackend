@@ -2,14 +2,16 @@ package com.basebackend.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.basebackend.admin.dto.profile.ChangePasswordDTO;
-import com.basebackend.admin.dto.profile.ProfileDetailDTO;
-import com.basebackend.admin.dto.profile.UpdateProfileDTO;
-import com.basebackend.admin.entity.SysDept;
-import com.basebackend.admin.entity.SysUser;
-import com.basebackend.admin.mapper.SysDeptMapper;
-import com.basebackend.admin.mapper.SysUserMapper;
-import com.basebackend.admin.service.ProfileService;
+import com.basebackend.common.model.Result;
+import com.basebackend.feign.client.DeptFeignClient;
+import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.user.dto.profile.ChangePasswordDTO;
+import com.basebackend.user.dto.profile.ProfileDetailDTO;
+import com.basebackend.user.dto.profile.UpdateProfileDTO;
+import com.basebackend.user.entity.SysDept;
+import com.basebackend.user.entity.SysUser;
+import com.basebackend.user.mapper.SysUserMapper;
+import com.basebackend.user.service.ProfileService;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProfileServiceImpl implements ProfileService {
 
     private final SysUserMapper userMapper;
-    private final SysDeptMapper deptMapper;
+    private final DeptFeignClient deptFeignClient;
     private final PasswordEncoder passwordEncoder;
     private final CustomMetrics customMetrics;
 
@@ -52,9 +54,9 @@ public class ProfileServiceImpl implements ProfileService {
 
         // 获取部门名称
         if (user.getDeptId() != null) {
-            SysDept dept = deptMapper.selectById(user.getDeptId());
+            Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
             if (dept != null) {
-                dto.setDeptName(dept.getDeptName());
+                dto.setDeptName(dept.getData().getDeptName());
             }
         }
 

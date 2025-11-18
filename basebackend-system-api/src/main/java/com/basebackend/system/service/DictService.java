@@ -1,8 +1,8 @@
 package com.basebackend.system.service;
 
-import com.basebackend.common.model.PageResult;
 import com.basebackend.system.dto.DictDTO;
 import com.basebackend.system.dto.DictDataDTO;
+import com.basebackend.common.model.PageResult;
 
 import java.util.List;
 
@@ -37,12 +37,7 @@ public interface DictService {
     void deleteDict(Long id);
 
     /**
-     * 批量删除字典
-     */
-    void deleteDictBatch(List<Long> ids);
-
-    /**
-     * 根据字典类型查询字典数据
+     * 根据字典类型查询字典数据列表
      */
     List<DictDataDTO> getDictDataByType(String dictType);
 
@@ -72,7 +67,12 @@ public interface DictService {
     void deleteDictData(Long id);
 
     /**
-     * 批量删除字典数据
+     * 刷新字典缓存
      */
-    void deleteDictDataBatch(List<Long> ids);
+    void refreshCache();
+
+    /**
+     * 加载所有字典到缓存
+     */
+    void loadDictCache();
 }

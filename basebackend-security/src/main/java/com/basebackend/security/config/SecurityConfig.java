@@ -56,7 +56,7 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
                                 "/api/auth/**",
-                                "/api/admin/auth/**",
+                                "/api/user/auth/**",
                                 "/api/public/**",
                                 "/actuator/**",
                                 "/v3/api-docs/**",
@@ -85,7 +85,7 @@ public class SecurityConfig {
                         // 公开接口
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/admin/auth/**",
+                                "/api/user/auth/**",
                                 "/api/public/**",
                                 "/actuator/**",
                                 "/swagger-ui/**",

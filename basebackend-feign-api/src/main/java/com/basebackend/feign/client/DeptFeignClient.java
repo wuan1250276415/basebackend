@@ -20,9 +20,9 @@ import java.util.List;
  * @since 2025-11-08
  */
 @FeignClient(
-        name = FeignServiceConstants.ADMIN_SERVICE,
+        name = FeignServiceConstants.SYS_SERVICE,
         contextId = "deptFeignClient",
-        path = "/api/admin/depts",
+        path = "/api/system/depts",
         fallbackFactory = DeptFeignFallbackFactory.class
 )
 public interface DeptFeignClient {

@@ -7,11 +7,11 @@ import com.basebackend.common.model.PageResult;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 /**
@@ -113,17 +113,10 @@ public class DictController {
         return Result.success("删除成功");
     }
 
-    @Operation(summary = "批量删除字典")
-    @DeleteMapping("/batch")
-    public Result<String> deleteDictBatch(@RequestBody List<Long> ids) {
-        dictService.deleteDictBatch(ids);
-        return Result.success("批量删除成功");
-    }
-
-    @Operation(summary = "批量删除字典数据")
-    @DeleteMapping("/data/batch")
-    public Result<String> deleteDictDataBatch(@RequestBody List<Long> ids) {
-        dictService.deleteDictDataBatch(ids);
-        return Result.success("批量删除成功");
+    @Operation(summary = "刷新字典缓存")
+    @PostMapping("/refresh-cache")
+    public Result<String> refreshCache() {
+        dictService.refreshCache();
+        return Result.success("缓存刷新成功");
     }
 }

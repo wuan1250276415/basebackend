@@ -1,9 +1,9 @@
 package com.basebackend.user.controller;
 
-import com.basebackend.admin.dto.profile.ChangePasswordDTO;
-import com.basebackend.admin.dto.profile.ProfileDetailDTO;
-import com.basebackend.admin.dto.profile.UpdateProfileDTO;
-import com.basebackend.admin.service.ProfileService;
+import com.basebackend.user.dto.profile.ChangePasswordDTO;
+import com.basebackend.user.dto.profile.ProfileDetailDTO;
+import com.basebackend.user.dto.profile.UpdateProfileDTO;
+import com.basebackend.user.service.ProfileService;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "个人中心", description = "个人资料管理相关接口")
 @RestController
-@RequestMapping("/api/admin/profile")
+@RequestMapping("/api/user/profile")
 @RequiredArgsConstructor
 public class ProfileController {
 

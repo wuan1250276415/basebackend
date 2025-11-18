@@ -1,10 +1,10 @@
 package com.basebackend.user.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.basebackend.admin.dto.UserCreateDTO;
-import com.basebackend.admin.dto.UserDTO;
-import com.basebackend.admin.dto.UserQueryDTO;
-import com.basebackend.admin.service.UserService;
+import com.basebackend.user.dto.UserCreateDTO;
+import com.basebackend.user.dto.UserDTO;
+import com.basebackend.user.dto.UserQueryDTO;
+import com.basebackend.user.service.UserService;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/users")
+@RequestMapping("/api/user/users")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "用户管理", description = "用户管理相关接口")

@@ -15,7 +15,8 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
     "com.basebackend.database",
     "com.basebackend.cache",
     "com.basebackend.web",
-    "com.basebackend.logging"
+    "com.basebackend.logging",
+    "com.basebackend.jwt"
 })
 @EnableDiscoveryClient
 public class SystemApiApplication {

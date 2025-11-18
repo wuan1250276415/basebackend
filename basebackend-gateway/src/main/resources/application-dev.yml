@@ -1,42 +1,38 @@
 spring:
   cloud:
-    nacos:
-      discovery:
-        server-addr: ${NACOS_SERVER:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:dev}
     gateway:
-      routes:
-        # 用户服务路由
-        - id: user-api
-          uri: lb://basebackend-user-api
-          predicates:
-            - Path=/api/user/**
-          filters:
-            - StripPrefix=0
-
-        # 系统服务路由
-        - id: system-api
-          uri: lb://basebackend-system-api
-          predicates:
-            - Path=/api/system/**
-          filters:
-            - StripPrefix=0
-
-        # 认证服务路由
-        - id: auth-api
-          uri: lb://basebackend-auth-api
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=0
-
-        # 管理服务路由（兼容旧API）
-        - id: admin-api
-          uri: lb://basebackend-admin-api
-          predicates:
-            - Path=/api/admin/**
-          filters:
-            - StripPrefix=0
+#      routes:
+#        # 用户服务路由
+#        - id: user-api
+#          uri: lb://basebackend-user-api
+#          predicates:
+#            - Path=/api/user/**
+#          filters:
+#            - StripPrefix=0
+#
+#        # 系统服务路由
+#        - id: system-api
+#          uri: lb://basebackend-system-api
+#          predicates:
+#            - Path=/api/system/**
+#          filters:
+#            - StripPrefix=0
+#
+#        # 认证服务路由
+#        - id: auth-api
+#          uri: lb://basebackend-auth-api
+#          predicates:
+#            - Path=/api/auth/**
+#          filters:
+#            - StripPrefix=0
+#
+#        # 管理服务路由（兼容旧API）
+#        - id: admin-api
+#          uri: lb://basebackend-admin-api
+#          predicates:
+#            - Path=/api/admin/**
+#          filters:
+#            - StripPrefix=0
 
       # 全局CORS配置
       globalcors:

@@ -4,17 +4,19 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.basebackend.admin.dto.UserCreateDTO;
-import com.basebackend.admin.dto.UserDTO;
-import com.basebackend.admin.dto.UserQueryDTO;
-import com.basebackend.admin.entity.SysDept;
-import com.basebackend.admin.entity.SysUser;
-import com.basebackend.admin.entity.SysUserRole;
-import com.basebackend.admin.mapper.SysDeptMapper;
-import com.basebackend.admin.mapper.SysRoleMapper;
-import com.basebackend.admin.mapper.SysUserMapper;
-import com.basebackend.admin.mapper.SysUserRoleMapper;
-import com.basebackend.admin.service.UserService;
+import com.basebackend.common.model.Result;
+import com.basebackend.feign.client.DeptFeignClient;
+import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.user.dto.UserCreateDTO;
+import com.basebackend.user.dto.UserDTO;
+import com.basebackend.user.dto.UserQueryDTO;
+import com.basebackend.user.entity.SysDept;
+import com.basebackend.user.entity.SysUser;
+import com.basebackend.user.entity.SysUserRole;
+import com.basebackend.user.mapper.SysRoleMapper;
+import com.basebackend.user.mapper.SysUserMapper;
+import com.basebackend.user.mapper.SysUserRoleMapper;
+import com.basebackend.user.service.UserService;
 import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +37,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final SysUserMapper userMapper;
-    private final SysDeptMapper deptMapper;
+    private final DeptFeignClient deptFeignClient;
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
@@ -418,9 +420,9 @@ public class UserServiceImpl implements UserService {
 
         // 设置部门名称
         if (user.getDeptId() != null) {
-            SysDept dept = deptMapper.selectById(user.getDeptId());
+            Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
             if (dept != null) {
-                dto.setDeptName(dept.getDeptName());
+                dto.setDeptName(dept.getData().getDeptName());
             }
         }
 

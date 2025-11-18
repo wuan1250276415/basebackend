@@ -11,7 +11,7 @@ public class FeignServiceConstants {
     /**
      * 管理后台服务
      */
-    public static final String ADMIN_SERVICE = "admin-api";
+    public static final String SYS_SERVICE = "basebackend-system-api";
 
     /**
      * 文件服务

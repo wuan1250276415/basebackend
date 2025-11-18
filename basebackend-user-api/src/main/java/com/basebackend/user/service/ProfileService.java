@@ -1,8 +1,8 @@
 package com.basebackend.user.service;
 
-import com.basebackend.admin.dto.profile.ChangePasswordDTO;
-import com.basebackend.admin.dto.profile.ProfileDetailDTO;
-import com.basebackend.admin.dto.profile.UpdateProfileDTO;
+import com.basebackend.user.dto.profile.ChangePasswordDTO;
+import com.basebackend.user.dto.profile.ProfileDetailDTO;
+import com.basebackend.user.dto.profile.UpdateProfileDTO;
 
 /**
  * 个人资料服务接口

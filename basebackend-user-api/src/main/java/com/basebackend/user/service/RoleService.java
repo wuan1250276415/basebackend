@@ -1,9 +1,9 @@
 package com.basebackend.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.basebackend.admin.dto.RoleDTO;
-import com.basebackend.admin.entity.SysRole;
-import com.basebackend.admin.entity.SysUser;
+import com.basebackend.user.dto.RoleDTO;
+import com.basebackend.user.entity.SysRole;
+import com.basebackend.user.entity.SysUser;
 
 import java.util.List;
 

@@ -1,10 +1,10 @@
 package com.basebackend.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.basebackend.admin.dto.UserCreateDTO;
-import com.basebackend.admin.dto.UserDTO;
-import com.basebackend.admin.dto.UserQueryDTO;
-import com.basebackend.admin.entity.SysUser;
+import com.basebackend.user.dto.UserCreateDTO;
+import com.basebackend.user.dto.UserDTO;
+import com.basebackend.user.dto.UserQueryDTO;
+import com.basebackend.user.entity.SysUser;
 
 import java.util.List;
 

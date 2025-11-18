@@ -38,12 +38,15 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Security Module - 提供SecretManager -->
+        <!-- Security Module - 移除，Gateway使用响应式安全，不需要Servlet安全组件 -->
+        <!-- SecretManager已经在common模块中 -->
+        <!--
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-security</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>com.basebackend</groupId>

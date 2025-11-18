@@ -3,45 +3,12 @@ spring:
     name: basebackend-auth-api
   profiles:
     active: dev
-  cloud:
-    nacos:
-      discovery:
-        server-addr: ${NACOS_SERVER:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:dev}
-      config:
-        server-addr: ${NACOS_SERVER:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-config.yml
-            refresh: true
-          - data-id: redis-config.yml
-            refresh: true
-          - data-id: security-config.yml
-            refresh: true
 
 server:
   port: 8083
   servlet:
     context-path: /
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-
-# API Documentation
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
 
 # JWT Configuration
 jwt:
@@ -60,12 +27,17 @@ security:
     allow-credentials: true
     max-age: 3600
 
-# Logging
-logging:
-  level:
-    com.basebackend.auth: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Security Configuration
+security:
+  baseline:
+    # 允许的请求来源（用于开发和测试）
+    allowed-origins:
+      - http://localhost:8083
+      - http://localhost:8080
+      - http://localhost:3000
+      - http://127.0.0.1:8083
+      - http://127.0.0.1:8080
+      - http://127.0.0.1:3000
+    # 是否强制校验Referer
+    enforce-referer: false

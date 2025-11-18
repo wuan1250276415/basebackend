@@ -39,7 +39,7 @@ public class SentinelGatewayRuleConfig {
         ApiDefinition authApi = new ApiDefinition("auth_api")
                 .setPredicateItems(new HashSet<ApiPredicateItem>() {{
                     add(new ApiPathPredicateItem()
-                            .setPattern("/admin-api/api/admin/auth/**")
+                            .setPattern("/basebackend-user-api/auth/**")
                             .setMatchStrategy(SentinelGatewayConstants.URL_MATCH_STRATEGY_PREFIX));
                 }});
         definitions.add(authApi);

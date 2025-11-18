@@ -20,7 +20,7 @@ import java.util.List;
  * @since 2025-11-08
  */
 @FeignClient(
-        name = FeignServiceConstants.ADMIN_SERVICE,
+        name = FeignServiceConstants.SYS_SERVICE,
         contextId = "userFeignClient",
         path = "/api/admin/users",
         fallbackFactory = UserFeignFallbackFactory.class

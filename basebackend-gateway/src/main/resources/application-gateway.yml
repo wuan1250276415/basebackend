@@ -119,12 +119,6 @@ gateway:
         headerName: X-Gray-Flag
         headerValue: "true"
 
-
-# JWT配置
-jwt:
-  secret: basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required
-  expiration: 86400000
-
 # 日志配置
 logging:
   level:

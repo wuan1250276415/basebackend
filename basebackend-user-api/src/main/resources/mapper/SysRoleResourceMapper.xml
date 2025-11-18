@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.user.mapper.SysRoleResourceMapper">
+
+    <!-- 批量插入角色资源关联 -->
+    <insert id="batchInsert">
+        INSERT INTO sys_role_resource (role_id, resource_id)
+        VALUES
+        <foreach collection="resourceIds" item="resourceId" separator=",">
+            (#{roleId}, #{resourceId})
+        </foreach>
+    </insert>
+
+    <!-- 删除角色的所有资源关联 -->
+    <delete id="deleteByRoleId">
+        DELETE FROM sys_role_resource WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 根据资源ID删除关联 -->
+    <delete id="deleteByResourceId">
+        DELETE FROM sys_role_resource WHERE resource_id = #{resourceId}
+    </delete>
+
+</mapper>

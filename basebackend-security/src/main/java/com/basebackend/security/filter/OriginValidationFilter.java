@@ -65,7 +65,7 @@ public class OriginValidationFilter extends OncePerRequestFilter {
     }
 
     private boolean requiresValidation(HttpServletRequest request) {
-        HttpMethod method = HttpMethod.resolve(request.getMethod());
+        HttpMethod method = HttpMethod.valueOf(request.getMethod());
         if (method == null) {
             return false;
         }

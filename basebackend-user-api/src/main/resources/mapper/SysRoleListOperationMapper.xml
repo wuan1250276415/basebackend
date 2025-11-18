@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.user.mapper.SysRoleListOperationMapper">
+
+    <!-- 根据角色ID和资源类型查询列表操作ID列表 -->
+    <select id="selectOperationIdsByRoleIdAndResourceType" resultType="java.lang.Long">
+        SELECT operation_id FROM sys_role_list_operation
+        WHERE role_id = #{roleId}
+        AND resource_type = #{resourceType}
+    </select>
+
+</mapper>

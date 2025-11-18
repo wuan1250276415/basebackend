@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.user.mapper.SysRoleMapper">
+
+    <!-- 根据角色标识查询角色 -->
+    <select id="selectByRoleKey" resultType="com.basebackend.user.entity.SysRole">
+        SELECT * FROM sys_role
+        WHERE role_key = #{roleKey}
+        AND deleted = 0
+    </select>
+
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="selectRolesByUserId" resultType="com.basebackend.user.entity.SysRole">
+        SELECT r.* FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND r.deleted = 0
+        ORDER BY r.role_sort ASC
+    </select>
+
+    <!-- 根据应用ID查询角色列表（用于构建角色树） -->
+    <select id="selectRolesByAppId" resultType="com.basebackend.user.entity.SysRole">
+        SELECT * FROM sys_role
+        WHERE deleted = 0
+        <choose>
+            <when test="appId != null">
+                AND app_id = #{appId}
+            </when>
+            <otherwise>
+                AND app_id IS NULL
+            </otherwise>
+        </choose>
+        ORDER BY role_sort ASC, create_time ASC
+    </select>
+
+    <!-- 根据角色ID查询用户列表 -->
+    <select id="selectUsersByRoleId" resultType="com.basebackend.user.entity.SysUser">
+        SELECT u.* FROM sys_user u
+        INNER JOIN sys_user_role ur ON u.id = ur.user_id
+        WHERE ur.role_id = #{roleId}
+        AND u.deleted = 0
+        <if test="username != null and username != ''">
+            AND u.username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 根据角色ID查询菜单ID列表 -->
+    <select id="selectMenuIdsByRoleId" resultType="java.lang.Long">
+        SELECT menu_id FROM sys_role_menu
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据角色ID查询权限ID列表 -->
+    <select id="selectPermissionIdsByRoleId" resultType="java.lang.Long">
+        SELECT permission_id FROM sys_role_permission
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据角色ID查询资源ID列表 -->
+    <select id="selectResourceIdsByRoleId" resultType="java.lang.Long">
+        SELECT resource_id FROM sys_role_resource
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据角色ID查询用户ID列表 -->
+    <select id="selectUserIdsByRoleId" resultType="java.lang.Long">
+        SELECT user_id FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 检查角色名称是否唯一 -->
+    <select id="checkRoleNameUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_role
+        WHERE role_name = #{roleName}
+        AND deleted = 0
+        <if test="roleId != null">
+            AND id != #{roleId}
+        </if>
+    </select>
+
+    <!-- 检查角色标识是否唯一 -->
+    <select id="checkRoleKeyUnique" resultType="int">
+        SELECT COUNT(1) FROM sys_role
+        WHERE role_key = #{roleKey}
+        AND deleted = 0
+        <if test="roleId != null">
+            AND id != #{roleId}
+        </if>
+    </select>
+
+</mapper>

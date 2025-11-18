@@ -2,6 +2,10 @@
 
 一个基于 Java 和 Spring Boot 的企业级微服务基础架构项目，采用 Maven 多模块管理，提供了完整的基础组件和服务模块。
 
+> **✅ 最新更新 (2025-11-17)**: 微服务核心功能优化已完成！  
+> 三个核心微服务（user-api、system-api、auth-api）的Service层已完整实现，包括JWT认证、Redis缓存、树形结构构建等功能。  
+> 📖 查看 [优化完成报告](docs/OPTIMIZATION_COMPLETION_REPORT.md) | [快速启动指南](docs/QUICK_START_AFTER_OPTIMIZATION.md)
+
 ## 🚀 快速开始
 
 **5 分钟启动开发环境**: 查看 [快速开始指南](QUICKSTART.md)

@@ -4,18 +4,24 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:dev}
+        server-addr: ${NACOS_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
       config:
-        server-addr: ${NACOS_SERVER:localhost:8848}
-        namespace: ${NACOS_NAMESPACE:dev}
+        server-addr: ${NACOS_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
         file-extension: yml
         shared-configs:
           - data-id: common-config.yml
             refresh: true
+          - data-id: database-config.yml
+            refresh: true
           - data-id: cache-config.yml
             refresh: true
-          - data-id: security-config.yml
+          - data-id: redis-config.yml
             refresh: true
