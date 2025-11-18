@@ -1,0 +1,175 @@
+# 网关路由配置
+spring:
+  cloud:
+    gateway:
+      routes:
+        # ==================== 用户服务路由 ====================
+        - id: user-api
+          uri: lb://basebackend-user-api
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: userServiceCircuitBreaker
+                fallbackUri: forward:/fallback/user
+
+        # ==================== 系统服务路由 ====================
+        - id: system-api
+          uri: lb://basebackend-system-api
+          predicates:
+            - Path=/api/system/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: systemServiceCircuitBreaker
+                fallbackUri: forward:/fallback/system
+
+        # ==================== 认证服务路由 ====================
+        - id: auth-api
+          uri: lb://basebackend-auth-api
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+
+        # ==================== 通知服务路由 ====================
+        - id: notification-service
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+
+        # 通知服务 - SSE连接（需要特殊处理）
+        - id: notification-sse
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/api/notifications/stream
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+
+        # ==================== 可观测性服务路由 ====================
+        - id: observability-metrics
+          uri: lb://basebackend-observability-service
+          predicates:
+            - Path=/api/metrics/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: observabilityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/observability
+
+        - id: observability-traces
+          uri: lb://basebackend-observability-service
+          predicates:
+            - Path=/api/traces/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: observabilityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/observability
+
+        - id: observability-logs
+          uri: lb://basebackend-observability-service
+          predicates:
+            - Path=/api/logs/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: observabilityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/observability
+
+        - id: observability-alerts
+          uri: lb://basebackend-observability-service
+          predicates:
+            - Path=/api/alerts/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: observabilityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/observability
+
+        # ==================== 文件服务路由 ====================
+        - id: file-service
+          uri: lb://basebackend-file-service
+          predicates:
+            - Path=/api/files/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: fileServiceCircuitBreaker
+                fallbackUri: forward:/fallback/file
+
+        # ==================== Admin API路由（保留用于兼容）====================
+        - id: admin-api
+          uri: lb://basebackend-admin-api
+          predicates:
+            - Path=/api/admin/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: adminServiceCircuitBreaker
+                fallbackUri: forward:/fallback/admin
+
+# 熔断器配置
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      systemServiceCircuitBreaker:
+        baseConfig: default
+      authServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
+      observabilityServiceCircuitBreaker:
+        baseConfig: default
+      fileServiceCircuitBreaker:
+        baseConfig: default
+      adminServiceCircuitBreaker:
+        baseConfig: default
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      systemServiceCircuitBreaker:
+        baseConfig: default
+      authServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
+      observabilityServiceCircuitBreaker:
+        baseConfig: default
+      fileServiceCircuitBreaker:
+        baseConfig: default
+      adminServiceCircuitBreaker:
+        baseConfig: default

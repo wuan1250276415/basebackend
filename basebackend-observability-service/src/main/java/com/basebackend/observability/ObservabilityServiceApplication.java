@@ -22,7 +22,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     "com.basebackend.database",
     "com.basebackend.cache",
     "com.basebackend.logging",
-    "com.basebackend.security"
+    "com.basebackend.security",
+        "com.basebackend.jwt"
 })
 public class ObservabilityServiceApplication {
 
