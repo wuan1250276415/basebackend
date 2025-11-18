@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Prometheus - 指标收集
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: basebackend-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - basebackend-network
+    restart: unless-stopped
+
+  # Grafana - 可视化
+  grafana:
+    image: grafana/grafana:latest
+    container_name: basebackend-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../../basebackend-observability-service/src/main/resources/grafana/provisioning:/etc/grafana/provisioning
+      - ../../../basebackend-observability-service/src/main/resources/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - basebackend-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Jaeger - 分布式追踪
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: basebackend-jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - basebackend-network
+    restart: unless-stopped
+
+  # Loki - 日志聚合（可选）
+  loki:
+    image: grafana/loki:latest
+    container_name: basebackend-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki-data:/loki
+    networks:
+      - basebackend-network
+    restart: unless-stopped
+
+  # Promtail - 日志收集（可选）
+  promtail:
+    image: grafana/promtail:latest
+    container_name: basebackend-promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - basebackend-network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+
+networks:
+  basebackend-network:
+    external: true

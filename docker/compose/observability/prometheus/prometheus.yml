@@ -1,0 +1,60 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'basebackend'
+    environment: 'dev'
+
+# 告警规则文件
+rule_files:
+  - 'alert_rules.yml'
+
+# 抓取配置
+scrape_configs:
+  # Prometheus自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # BaseBackend微服务
+  - job_name: 'basebackend-services'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'basebackend-user-api:8081'
+          - 'basebackend-system-api:8082'
+          - 'basebackend-auth-api:8083'
+          - 'basebackend-notification-service:8086'
+          - 'basebackend-observability-service:8087'
+        labels:
+          group: 'basebackend'
+
+  # 网关
+  - job_name: 'basebackend-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['basebackend-gateway:8080']
+        labels:
+          group: 'gateway'
+
+  # Nacos
+  - job_name: 'nacos'
+    metrics_path: '/nacos/actuator/prometheus'
+    static_configs:
+      - targets: ['nacos:8848']
+        labels:
+          group: 'infrastructure'
+
+  # MySQL Exporter（可选）
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+        labels:
+          group: 'database'
+
+  # Redis Exporter（可选）
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          group: 'cache'

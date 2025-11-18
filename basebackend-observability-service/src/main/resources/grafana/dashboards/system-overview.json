@@ -1,0 +1,77 @@
+{
+  "dashboard": {
+    "title": "BaseBackend System Overview",
+    "tags": ["basebackend", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "JVM Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{application=\"$application\"}",
+            "legendFormat": "{{area}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "system_cpu_usage{application=\"$application\"}",
+            "legendFormat": "CPU Usage"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "HTTP Requests Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_count{application=\"$application\"}[5m])",
+            "legendFormat": "{{uri}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "HTTP Response Time (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"$application\"}[5m]))",
+            "legendFormat": "{{uri}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "application",
+          "type": "query",
+          "query": "label_values(jvm_memory_used_bytes, application)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s"
+  }
+}
