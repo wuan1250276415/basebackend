@@ -22,10 +22,10 @@ spring:
 
   # 邮件配置
   mail:
-    host: smtp-mail.outlook.com
-    port: 587
-    username: wuan1250276415@outlook.com
-    password: wuanfuck321.
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@example.com}
+    password: ${MAIL_PASSWORD:your-password}
     default-encoding: UTF-8
     properties:
       mail:

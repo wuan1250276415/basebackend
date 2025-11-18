@@ -1,45 +1,76 @@
 #!/bin/bash
+# ============================================================================
+# Nacos配置上传脚本 (Linux/Mac)
+# ============================================================================
+# 功能：将config/nacos目录下的配置文件上传到Nacos配置中心
+# 使用：./upload-nacos-configs.sh [nacos-server-url]
+# ============================================================================
 
-# Nacos 配置上传脚本
+set -e
 
-NACOS_SERVER="localhost:8848"
-NACOS_NAMESPACE="public"
-NACOS_GROUP="DEFAULT_GROUP"
+# 设置Nacos服务器地址
+NACOS_SERVER=${1:-"http://localhost:8848"}
+NACOS_USERNAME="nacos"
+NACOS_PASSWORD="nacos"
+GROUP="DEFAULT_GROUP"
+CONFIG_DIR="config/nacos"
 
-echo "=== 上传 Nacos 配置 ==="
+echo ""
+echo "========================================"
+echo "  Nacos配置上传脚本"
+echo "========================================"
+echo ""
+echo "Nacos服务器: $NACOS_SERVER"
+echo "配置目录: $CONFIG_DIR"
+echo ""
 
-# 检查 Nacos 是否运行
-if ! curl -s http://$NACOS_SERVER/nacos/v1/ns/operator/servers > /dev/null; then
-    echo "❌ Nacos 服务未启动，请先启动 Nacos"
+# 检查配置目录
+if [ ! -d "$CONFIG_DIR" ]; then
+    echo "[错误] 配置目录不存在: $CONFIG_DIR"
     exit 1
 fi
 
-# 上传通用配置
-echo "上传通用配置..."
-curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
-  -d "dataId=common-config.yml" \
-  -d "group=$NACOS_GROUP" \
-  -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat ../../config/nacos-configs/common-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
-  -d "type=yaml"
+# 检查curl是否可用
+if ! command -v curl &> /dev/null; then
+    echo "[错误] curl未安装"
+    exit 1
+fi
 
-# 上传 Gateway 配置
-echo "上传 Gateway 配置..."
-curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
-  -d "dataId=gateway-config.yml" \
-  -d "group=$NACOS_GROUP" \
-  -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat ../../config/nacos-configs/gateway-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
-  -d "type=yaml"
+# 上传配置文件
+count=0
+for file in "$CONFIG_DIR"/*.yml; do
+    if [ -f "$file" ]; then
+        count=$((count + 1))
+        filename=$(basename "$file")
+        echo "[$count] 上传配置: $filename"
+        
+        # 读取文件内容
+        content=$(cat "$file")
+        
+        # 上传到Nacos
+        response=$(curl -s -w "\n%{http_code}" -X POST "$NACOS_SERVER/nacos/v1/cs/configs" \
+            -d "dataId=$filename" \
+            -d "group=$GROUP" \
+            --data-urlencode "content=$content" \
+            -d "type=yaml" \
+            -d "username=$NACOS_USERNAME" \
+            -d "password=$NACOS_PASSWORD")
+        
+        http_code=$(echo "$response" | tail -n1)
+        
+        if [ "$http_code" = "200" ]; then
+            echo "   [✓] 上传成功"
+        else
+            echo "   [✗] 上传失败 (HTTP $http_code)"
+        fi
+    fi
+done
 
-# 上传 Demo-API 配置
-echo "上传 Demo-API 配置..."
-curl -X POST "http://$NACOS_SERVER/nacos/v1/cs/configs" \
-  -d "dataId=demo-api-config.yml" \
-  -d "group=$NACOS_GROUP" \
-  -d "namespaceId=$NACOS_NAMESPACE" \
-  -d "content=$(cat ../../config/nacos-configs/demo-api-config.yml | sed 's/"/\\"/g' | tr '\n' '\\n')" \
-  -d "type=yaml"
-
-echo "✅ 配置上传完成！"
-echo "访问 Nacos 控制台: http://$NACOS_SERVER/nacos"
+echo ""
+echo "========================================"
+echo "  配置上传完成！共上传 $count 个文件"
+echo "========================================"
+echo ""
+echo "访问Nacos控制台查看配置："
+echo "$NACOS_SERVER/nacos"
+echo ""

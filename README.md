@@ -2,24 +2,50 @@
 
 一个基于 Java 和 Spring Boot 的企业级微服务基础架构项目，采用 Maven 多模块管理，提供了完整的基础组件和服务模块。
 
-> **✅ 最新更新 (2025-11-17)**: 微服务核心功能优化已完成！  
-> 三个核心微服务（user-api、system-api、auth-api）的Service层已完整实现，包括JWT认证、Redis缓存、树形结构构建等功能。  
-> 📖 查看 [优化完成报告](docs/OPTIMIZATION_COMPLETION_REPORT.md) | [快速启动指南](docs/QUICK_START_AFTER_OPTIMIZATION.md)
+> **✅ 最新更新 (2025-11-18)**: 微服务架构改造全部完成！  
+> 完成了从单体应用到微服务架构的完整改造，包括7个微服务、完整的可观测性体系、配置中心集成、安全加固和生产环境准备。  
+> 📖 查看 [最终完成总结](docs/FINAL_COMPLETION_SUMMARY.md) | [项目完成报告](docs/PROJECT_COMPLETION_REPORT.md) | [快速启动指南](docs/QUICK_START_AFTER_OPTIMIZATION.md)
 
 ## 🚀 快速开始
 
 **5 分钟启动开发环境**: 查看 [快速开始指南](QUICKSTART.md)
 
+### Linux/Mac
 ```bash
 # 1. 启动基础设施
-cd docker/compose && ./start-all.sh
+docker-compose -f docker/compose/base/docker-compose.base.yml up -d
+docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d nacos
 
-# 2. 导入配置
-cd ../../config/nacos-configs && ./import-nacos-configs.sh
+# 2. 上传配置到Nacos
+./bin/maintenance/upload-nacos-configs.sh
 
-# 3. 启动应用
-mvn clean install -DskipTests
-cd basebackend-gateway && mvn spring-boot:run
+# 3. 编译项目
+mvn clean package -DskipTests
+
+# 4. 启动所有微服务
+./bin/start/start-microservices.sh
+
+# 5. 验证服务
+./bin/test/verify-services.sh
+```
+
+### Windows
+```batch
+REM 1. 启动基础设施
+docker-compose -f docker/compose/base/docker-compose.base.yml up -d
+docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d nacos
+
+REM 2. 上传配置到Nacos
+bin\maintenance\upload-nacos-configs.bat
+
+REM 3. 编译项目
+mvn clean package -DskipTests
+
+REM 4. 启动所有微服务
+bin\start\start-all.bat
+
+REM 5. 验证服务
+bin\test\health-check.bat
 ```
 
 ## 项目概述

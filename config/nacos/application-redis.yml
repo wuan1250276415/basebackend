@@ -1,0 +1,32 @@
+# ============================================================================
+# BaseBackend Redis配置
+# ============================================================================
+# 说明：此配置文件包含Redis连接配置
+# 上传到Nacos：Data ID = application-redis.yml, Group = DEFAULT_GROUP
+# ============================================================================
+
+spring:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 5000ms
+    
+    # Lettuce连接池配置
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
+      shutdown-timeout: 100ms
+
+  # 缓存配置
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000  # 1小时
+      cache-null-values: true
+      key-prefix: "basebackend:"
+      use-key-prefix: true
