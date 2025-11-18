@@ -11,12 +11,12 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     
-    <artifactId>basebackend-notification-service</artifactId>
+    <artifactId>basebackend-observability-service</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     
-    <name>BaseBackend Notification Service</name>
-    <description>通知中心服务 - 处理系统通知、消息推送和Webhook</description>
+    <name>BaseBackend Observability Service</name>
+    <description>可观测性服务 - 提供监控指标、日志查询、追踪和告警管理</description>
     
     <dependencies>
         <!-- Base Backend Common -->
@@ -47,10 +47,10 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Base Backend Messaging -->
+        <!-- Base Backend Observability -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-messaging</artifactId>
+            <artifactId>basebackend-observability</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -68,13 +68,6 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Base Backend Observability -->
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-observability</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
         <!-- Nacos Discovery -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
@@ -85,21 +78,6 @@
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
-        </dependency>
-        
-        <!-- Spring Boot Mail -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
-        <!-- Thymeleaf (for email templates) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
         
         <!-- API Documentation -->
@@ -118,6 +96,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        
+        <!-- Micrometer Prometheus -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
     </dependencies>
     

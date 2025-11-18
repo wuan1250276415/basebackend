@@ -33,7 +33,7 @@ public class UserPermissionServiceImpl implements PermissionService {
 
         // 从Redis缓存获取
         String key = USER_PERMISSIONS_KEY + userId;
-        List<String> permissions = redisService.get(key);
+        List<String> permissions = redisService.getList(key).stream().map(Object::toString).toList();
 
         if (permissions == null) {
             // 从数据库查询
@@ -54,7 +54,7 @@ public class UserPermissionServiceImpl implements PermissionService {
 
         // 从Redis缓存获取
         String key = USER_ROLES_KEY + userId;
-        List<String> roles = redisService.get(key);
+        List<String> roles = redisService.getList(key).stream().map(Object::toString).toList();
 
         if (roles == null) {
             // 从数据库查询

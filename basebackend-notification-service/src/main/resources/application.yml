@@ -4,31 +4,29 @@ server:
 spring:
   application:
     name: basebackend-notification-service
-  
+  profiles:
+    active: observability
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:basebackend}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
-    hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      connection-timeout: 30000
-  
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DATABASE:0}
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
+    druid:
+      url: jdbc:mysql://${spring.datasource.ip}/${spring.datasource.dbNAme}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      username: ${spring.datasource.userName}
+      password: ${spring.datasource.passWord}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall,slf4j
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+
   
   mail:
     host: ${MAIL_HOST:smtp.example.com}
@@ -60,11 +58,20 @@ mybatis-plus:
 
 # RocketMQ配置
 rocketmq:
-  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  name-server: ${ROCKETMQ_NAME_SERVER:192.168.66.126:9876}
   producer:
     group: notification-producer-group
     send-message-timeout: 3000
     retry-times-when-send-failed: 2
+    compress-message-body-threshold: 4096
+    max-message-size: 4194304
+    retry-times-when-send-async-failed: 2
+    retry-next-server: false
+  consumer:
+    group: notification-consumer-group
+        #    consumeThreadMin: 20
+        #    consume-thread-max: 64  # 必须大于 consume-thread-min，RocketMQ 5.x 默认最大值
+    consume-timeout: 15
 
 # 日志配置
 logging:
@@ -81,7 +88,40 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
+messaging:
+  # RocketMQ配置
+  rocketmq:
+    enabled: true
+    default-topic: notification-topic
+    topic-prefix: notification.
+
+  # 重试配置
+  retry:
+    enabled: true
+    max-attempts: 16
+    # RocketMQ延迟级别：1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+
+  # 死信队列配置
+  dead-letter:
+    enabled: true
+    topic: notification-dlq-topic
+    consumer-group: notification-dlq-consumer-group
+
+  # 事务消息配置
+  transaction:
+    enabled: true
+    table-name: sys_message_log
+    check-interval: 60
+    timeout: 30
+
+  # 幂等性配置
+  idempotency:
+    enabled: true
+    expire-time: 3600
+    key-prefix: "msg:idempotent:"
+
+# Spring RocketMQ配置

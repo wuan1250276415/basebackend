@@ -38,6 +38,7 @@
         <module>basebackend-system-api</module>
         <module>basebackend-auth-api</module>
         <module>basebackend-notification-service</module>
+        <module>basebackend-observability-service</module>
     </modules>
 
     <properties>
