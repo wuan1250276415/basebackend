@@ -4,6 +4,7 @@ networks:
   basebackend-network:
     driver: bridge
     name: basebackend-network
+    external: true
 
 volumes:
   mysql-data:
@@ -38,6 +39,8 @@ services:
       retries: 5
     restart: unless-stopped
 
+
+
   redis:
     image: redis:7.2-alpine
     container_name: basebackend-redis
@@ -47,9 +50,9 @@ services:
       - redis-data:/data
     networks:
       - basebackend-network
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes --requirepass redis2025
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redis2025", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -60,25 +60,30 @@ services:
 
   # Loki - 日志聚合（可选）
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.3
     container_name: basebackend-loki
+    user: "0:0"  # 使用root用户运行，解决权限问题
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki-data:/loki
+      - ../../../config/promtail/loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
     networks:
       - basebackend-network
     restart: unless-stopped
 
   # Promtail - 日志收集（可选）
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:2.9.3
     container_name: basebackend-promtail
+    user: "0:0"  # 使用root用户运行，确保可以读取日志文件
     volumes:
-      - /var/log:/var/log
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+      - ../../../logs:/app/logs:ro
+      - ../../../config/promtail/promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-dev}
     networks:
       - basebackend-network
     restart: unless-stopped

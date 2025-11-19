@@ -1,0 +1,177 @@
+{
+  "dashboard": {
+    "title": "BaseBackend日志监控",
+    "tags": ["logs", "loki", "basebackend"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "日志总量趋势",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate({job=~\".+\"}[1m])) by (service)",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "日志/秒"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "错误日志统计",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate({level=\"ERROR\"}[1m])) by (service)",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "错误/秒"},
+          {"format": "short"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [10], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "错误日志告警",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 3,
+        "title": "服务日志分布",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(count_over_time({job=~\".+\"}[5m])) by (service)",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "日志级别分布",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(count_over_time({level=~\".+\"}[5m])) by (level)",
+            "legendFormat": "{{level}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "HTTP状态码分布",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(count_over_time({log_type=\"access\"}[5m])) by (status)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "最近错误日志",
+        "type": "logs",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "{level=\"ERROR\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending"
+        }
+      },
+      {
+        "id": 7,
+        "title": "用户操作日志",
+        "type": "logs",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 26},
+        "targets": [
+          {
+            "expr": "{log_type=\"operation\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending"
+        }
+      },
+      {
+        "id": 8,
+        "title": "慢查询日志",
+        "type": "logs",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "{job=~\".+\"} |~ \"slow query|执行时间.*[5-9]\\\\d{3,}ms\"",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "datasource": "Loki",
+          "query": "label_values(service)",
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "level",
+          "type": "query",
+          "datasource": "Loki",
+          "query": "label_values(level)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

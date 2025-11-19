@@ -56,10 +56,10 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.d
 
 ### 4. 访问服务
 
-| 服务 | 地址 | 默认账号 |
+| 服务 | 地址 | 默认账号/密码 |
 |-----|------|---------|
 | MySQL | localhost:3306 | basebackend/basebackend123 |
-| Redis | localhost:6379 | (无密码) |
+| Redis | localhost:6379 | 密码: redis2025 |
 | Nacos Console | http://localhost:8848/nacos | nacos/nacos |
 | RocketMQ Console | http://localhost:8180 | (无需登录) |
 
@@ -106,7 +106,7 @@ MYSQL_PORT=3306                     # 端口
 
 ```bash
 REDIS_PORT=6379                     # 端口
-REDIS_PASSWORD=                     # 密码（留空表示无密码）
+REDIS_PASSWORD=redis2025            # 密码（默认：redis2025）
 ```
 
 ### Nacos 配置
@@ -225,8 +225,11 @@ docker logs --tail 100 basebackend-mysql
 # 进入 MySQL 容器
 docker exec -it basebackend-mysql mysql -uroot -p
 
-# 进入 Redis 容器
-docker exec -it basebackend-redis redis-cli
+# 进入 Redis 容器（需要密码认证）
+docker exec -it basebackend-redis redis-cli -a redis2025
+
+# 测试 Redis 连接
+docker exec basebackend-redis redis-cli -a redis2025 ping
 
 # 进入 Nacos 容器
 docker exec -it basebackend-nacos bash
@@ -258,6 +261,66 @@ spring:
       server-addr: nacos:8848  # 使用服务名 'nacos'
 ```
 
+## Redis连接说明
+
+### 从宿主机连接
+
+```bash
+# 使用redis-cli连接（需要密码）
+redis-cli -h localhost -p 6379 -a redis2025
+
+# 测试连接
+redis-cli -h localhost -p 6379 -a redis2025 ping
+# 应返回: PONG
+
+# 运行测试脚本
+cd base
+./test-redis-connection.sh  # Linux/Mac
+test-redis-connection.bat   # Windows
+```
+
+### 从应用连接
+
+**Spring Boot配置：**
+
+```yaml
+spring:
+  redis:
+    host: redis  # 容器内使用服务名
+    # host: localhost  # 宿主机使用localhost
+    port: 6379
+    password: redis2025
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+```
+
+### 常见问题
+
+**问题1: 连接被拒绝**
+```bash
+# 检查Redis是否运行
+docker ps | grep redis
+
+# 查看Redis日志
+docker logs basebackend-redis
+```
+
+**问题2: 认证失败**
+```bash
+# 确认密码正确
+docker exec basebackend-redis redis-cli -a redis2025 ping
+
+# 查看Redis配置
+docker exec basebackend-redis redis-cli CONFIG GET requirepass
+```
+
+详细故障排查请参考：[Redis故障排查指南](base/REDIS_TROUBLESHOOTING.md)
+
 ## 更新日志
 
+- 2025-11-19: 修复Redis密码配置错误，添加Redis连接测试脚本
 - 2025-11-17: 初始版本，包含基础设施和中间件配置

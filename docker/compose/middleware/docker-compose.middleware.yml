@@ -10,50 +10,51 @@ volumes:
   rocketmq-broker-data:
 
 services:
-  nacos:
-    image: nacos/nacos-server:v2.2.3
-    container_name: basebackend-nacos
-    environment:
-      MODE: standalone
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos
-      MYSQL_SERVICE_USER: ${MYSQL_USER:-basebackend}
-      MYSQL_SERVICE_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
-      NACOS_AUTH_ENABLE: ${NACOS_AUTH_ENABLE:-true}
-      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-SecretKey012345678901234567890123456789012345678901234567890123456789}
-      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-nacos}
-      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:-nacos}
-      JVM_XMS: 512m
-      JVM_XMX: 512m
-    ports:
-      - "${NACOS_PORT:-8848}:8848"
-      - "${NACOS_GRPC_PORT:-9848}:9848"
-    volumes:
-      - nacos-data:/home/nacos/data
-    networks:
-      - basebackend-network
-    depends_on:
-      - mysql
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
+#  nacos:
+#    image: nacos/nacos-server:v2.2.3
+#    container_name: basebackend-nacos
+#    environment:
+#      MODE: standalone
+#      SPRING_DATASOURCE_PLATFORM: mysql
+#      MYSQL_SERVICE_HOST: 192.168.66.118
+#      MYSQL_SERVICE_PORT: 3306
+#      MYSQL_SERVICE_DB_NAME: nacos
+#      MYSQL_SERVICE_USER: ${MYSQL_USER:-basebackend}
+#      MYSQL_SERVICE_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
+#      NACOS_AUTH_ENABLE: ${NACOS_AUTH_ENABLE:-true}
+#      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-SecretKey012345678901234567890123456789012345678901234567890123456789}
+#      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-nacos}
+#      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:-nacos}
+#      JVM_XMS: 512m
+#      JVM_XMX: 512m
+#    ports:
+#      - "${NACOS_PORT:-8848}:8848"
+#      - "${NACOS_GRPC_PORT:-9848}:9848"
+#    volumes:
+#      - nacos-data:/home/nacos/data
+#    networks:
+#      - basebackend-network
+##    depends_on:
+##      - mysql
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#    restart: unless-stopped
 
   rocketmq-namesrv:
     image: apache/rocketmq:5.2.0
     container_name: basebackend-rocketmq-namesrv
+    user: "0:0"  # 使用root用户运行，避免权限问题
     ports:
       - "${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
     volumes:
-      - rocketmq-namesrv-data:/home/rocketmq/store
+      - rocketmq-namesrv-data:/home/rocketmq/logs
     networks:
       - basebackend-network
     environment:
-      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Duser.home=/home/rocketmq"
     command: sh mqnamesrv
     healthcheck:
       test: ["CMD", "sh", "-c", "netstat -an | grep 9876"]
@@ -65,20 +66,27 @@ services:
   rocketmq-broker:
     image: apache/rocketmq:5.2.0
     container_name: basebackend-rocketmq-broker
+    user: "0:0"  # 使用root用户运行，避免权限问题
     ports:
       - "${ROCKETMQ_BROKER_PORT:-10911}:10911"
       - "${ROCKETMQ_VIP_PORT:-10909}:10909"
     volumes:
       - rocketmq-broker-data:/home/rocketmq/store
-      - ./broker.conf:/home/rocketmq/broker.conf
+      - ./broker.conf:/home/rocketmq/broker.conf:ro
     networks:
       - basebackend-network
     environment:
       NAMESRV_ADDR: rocketmq-namesrv:9876
-      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Duser.home=/home/rocketmq"
     command: sh mqbroker -c /home/rocketmq/broker.conf
-    depends_on:
-      - rocketmq-namesrv
+#    depends_on:
+#      rocketmq-namesrv:
+#        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "netstat -an | grep 10911"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   rocketmq-console:
