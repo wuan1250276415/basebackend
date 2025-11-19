@@ -16,14 +16,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = {
-    "com.basebackend.observability",
-    "com.basebackend.common",
-    "com.basebackend.web",
-    "com.basebackend.database",
-    "com.basebackend.cache",
-    "com.basebackend.logging",
-    "com.basebackend.security",
-        "com.basebackend.jwt"
+        "com.basebackend.common",
+        "com.basebackend.security",
+        "com.basebackend.jwt",
+        "com.basebackend.database",
+        "com.basebackend.cache",
+        "com.basebackend.logging",
+        "com.basebackend.observability"
 })
 public class ObservabilityServiceApplication {
 

@@ -15,6 +15,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @SpringBootApplication(scanBasePackages = {
         "com.basebackend.user",
         "com.basebackend.common",
+        "com.basebackend.security",
         "com.basebackend.jwt",
         "com.basebackend.database",
         "com.basebackend.cache",

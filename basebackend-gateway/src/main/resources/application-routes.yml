@@ -40,6 +40,19 @@ spring:
                 fallbackUri: forward:/fallback/auth
 
         # ==================== 通知服务路由 ====================
+        # 带服务名前缀的路由（兼容旧版本）
+        - id: notification-service-with-prefix
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/basebackend-notification-service/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+        
+        # 标准路由（推荐使用）
         - id: notification-service
           uri: lb://basebackend-notification-service
           predicates:
@@ -61,6 +74,19 @@ spring:
                 name: notificationServiceCircuitBreaker
 
         # ==================== 可观测性服务路由 ====================
+        # 带服务名前缀的路由（兼容旧版本）
+        - id: observability-service-with-prefix
+          uri: lb://basebackend-observability-service
+          predicates:
+            - Path=/basebackend-observability-service/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: observabilityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/observability
+        
+        # 标准路由（推荐使用）
         - id: observability-metrics
           uri: lb://basebackend-observability-service
           predicates:

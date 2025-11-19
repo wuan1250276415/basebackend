@@ -20,6 +20,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
  * Spring Security 配置
@@ -55,13 +56,14 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
-                                "/api/auth/**",
-                                "/api/user/auth/**",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/swagger-ui/**"
+                                new AntPathRequestMatcher("/api/auth/**"),
+                                new AntPathRequestMatcher("/api/user/auth/**"),
+                                new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/actuator/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/doc.html"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/druid/**")
                         )
                 )
                 // 禁用表单登录
@@ -84,15 +86,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/user/auth/**",
-                                "/api/public/**",
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/doc.html",
-                                "/webjars/**",
-                                "/favicon.ico"
+                                new AntPathRequestMatcher("/api/auth/**"),
+                                new AntPathRequestMatcher("/api/user/auth/**"),
+                                new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/actuator/**"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/doc.html"),
+                                new AntPathRequestMatcher("/webjars/**"),
+                                new AntPathRequestMatcher("/favicon.ico"),
+                                new AntPathRequestMatcher("/druid/**")
                         ).permitAll()
                         // 其他所有请求需要认证
                         .anyRequest().authenticated()

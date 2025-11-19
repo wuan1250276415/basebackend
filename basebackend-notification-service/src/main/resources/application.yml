@@ -124,4 +124,15 @@ messaging:
     expire-time: 3600
     key-prefix: "msg:idempotent:"
 
+# 安全配置
+security:
+  baseline:
+    # 允许的请求来源
+    allowed-origins:
+      - http://localhost:3000      # 前端开发环境
+      - http://localhost:8080      # 网关地址
+      - http://localhost:8086      # 本服务地址
+    # 是否强制校验Referer
+    enforce-referer: false
+
 # Spring RocketMQ配置

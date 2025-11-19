@@ -5,6 +5,9 @@ import com.basebackend.user.dto.profile.ProfileDetailDTO;
 import com.basebackend.user.dto.profile.UpdateProfileDTO;
 import com.basebackend.user.service.ProfileService;
 import com.basebackend.common.model.Result;
+import com.basebackend.logging.annotation.OperationLog;
+import com.basebackend.logging.annotation.OperationLog.BusinessType;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,12 +32,14 @@ public class ProfileController {
 
     @Operation(summary = "获取个人资料", description = "获取当前登录用户的详细资料")
     @GetMapping("/info")
+    @OperationLog(operation="获取个人资料", businessType = BusinessType.SELECT)
     public Result<ProfileDetailDTO> getProfile() {
         ProfileDetailDTO profile = profileService.getCurrentUserProfile();
         return Result.success(profile);
     }
 
     @Operation(summary = "更新个人资料", description = "更新当前用户的个人资料信息")
+    @OperationLog(operation="更新个人资料", businessType = BusinessType.UPDATE)
     @PutMapping("/info")
     public Result<Void> updateProfile(@Valid @RequestBody UpdateProfileDTO dto) {
         profileService.updateProfile(dto);
@@ -42,6 +47,7 @@ public class ProfileController {
     }
 
     @Operation(summary = "修改密码", description = "修改当前用户的登录密码")
+    @OperationLog(operation="修改密码", businessType = BusinessType.UPDATE)
     @PutMapping("/password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto) {
         profileService.changePassword(dto);

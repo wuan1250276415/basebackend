@@ -21,14 +21,15 @@ spring:
         shared-configs:
           - data-id: common-config.yml
             refresh: true
-          - data-id: database-config.yml
+          - data-id: mysql-config.yml
             refresh: true
-          - data-id: cache-config.yml
+          - data-id: observability-config.yml
             refresh: true
           - data-id: redis-config.yml
             refresh: true
-          - data-id: application-observability.yml
+          - data-id: rocketmq-config.yml
             refresh: true
           - data-id: seata-config.yml
-            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: security-config.yml
             refresh: true

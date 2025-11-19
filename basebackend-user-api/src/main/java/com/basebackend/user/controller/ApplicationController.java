@@ -3,6 +3,9 @@ package com.basebackend.user.controller;
 import com.basebackend.user.dto.ApplicationDTO;
 import com.basebackend.user.service.ApplicationService;
 import com.basebackend.common.model.Result;
+import com.basebackend.logging.annotation.OperationLog;
+import com.basebackend.logging.annotation.OperationLog.BusinessType;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class ApplicationController {
 
     @GetMapping("/list")
     @Operation(summary = "查询应用列表")
+    @OperationLog(operation = "查询应用列表",businessType = BusinessType.SELECT)
     public Result<List<ApplicationDTO>> listApplications() {
         List<ApplicationDTO> list = applicationService.listApplications();
         return Result.success(list);
@@ -34,6 +38,7 @@ public class ApplicationController {
 
     @GetMapping("/enabled")
     @Operation(summary = "查询启用的应用列表")
+    @OperationLog(operation = "查询启用的应用列表", businessType = BusinessType.SELECT)
     public Result<List<ApplicationDTO>> listEnabledApplications() {
         List<ApplicationDTO> list = applicationService.listEnabledApplications();
         return Result.success(list);
@@ -41,6 +46,7 @@ public class ApplicationController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询应用")
+    @OperationLog(operation = "根据ID查询应用", businessType = BusinessType.SELECT)
     public Result<ApplicationDTO> getApplicationById(@PathVariable Long id) {
         ApplicationDTO dto = applicationService.getApplicationById(id);
         if (dto == null) {
@@ -51,6 +57,7 @@ public class ApplicationController {
 
     @GetMapping("/code/{appCode}")
     @Operation(summary = "根据编码查询应用")
+    @OperationLog(operation = "根据编码查询应用", businessType = BusinessType.SELECT)
     public Result<ApplicationDTO> getApplicationByCode(@PathVariable String appCode) {
         ApplicationDTO dto = applicationService.getApplicationByCode(appCode);
         if (dto == null) {
@@ -61,6 +68,7 @@ public class ApplicationController {
 
     @PostMapping
     @Operation(summary = "创建应用")
+    @OperationLog(operation = "创建应用", businessType = BusinessType.INSERT)
     public Result<Void> createApplication(@Validated @RequestBody ApplicationDTO dto) {
         log.info("创建应用: {}", dto.getAppName());
         boolean success = applicationService.createApplication(dto);
@@ -69,6 +77,7 @@ public class ApplicationController {
 
     @PutMapping
     @Operation(summary = "更新应用")
+    @OperationLog(operation = "更新应用", businessType = BusinessType.UPDATE)
     public Result<Void> updateApplication(@Validated @RequestBody ApplicationDTO dto) {
         log.info("更新应用: {}", dto.getId());
         boolean success = applicationService.updateApplication(dto);
@@ -77,6 +86,7 @@ public class ApplicationController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除应用")
+    @OperationLog(operation = "删除应用", businessType = BusinessType.DELETE)
     public Result<Void> deleteApplication(@PathVariable Long id) {
         log.info("删除应用: {}", id);
         boolean success = applicationService.deleteApplication(id);
@@ -85,6 +95,7 @@ public class ApplicationController {
 
     @PutMapping("/{id}/status/{status}")
     @Operation(summary = "启用/禁用应用")
+    @OperationLog(operation = "启用/禁用应用", businessType = BusinessType.UPDATE)
     public Result<Void> updateStatus(@PathVariable Long id, @PathVariable Integer status) {
         log.info("修改应用状态: id={}, status={}", id, status);
         boolean success = applicationService.updateStatus(id, status);

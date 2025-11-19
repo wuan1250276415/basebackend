@@ -5,6 +5,9 @@ import com.basebackend.user.service.ApplicationResourceService;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUtil;
+import com.basebackend.logging.annotation.OperationLog;
+import com.basebackend.logging.annotation.OperationLog.BusinessType;
+
 import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +35,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/tree/{appId}")
     @Operation(summary = "查询应用的资源树")
+    @OperationLog(operation="查询应用的资源树",businessType = BusinessType.SELECT)
     public Result<List<ApplicationResourceDTO>> getResourceTree(@PathVariable Long appId) {
         List<ApplicationResourceDTO> tree = resourceService.getResourceTree(appId);
         return Result.success(tree);
@@ -39,6 +43,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/user/tree/{appId}")
     @Operation(summary = "查询用户的资源树")
+    @OperationLog(operation="查询用户的资源树", businessType = BusinessType.SELECT)
     public Result<List<ApplicationResourceDTO>> getUserResourceTree(
             @PathVariable Long appId,
             HttpServletRequest request) {
@@ -57,6 +62,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询资源")
+    @OperationLog(operation="根据ID查询资源", businessType = BusinessType.SELECT)
     public Result<ApplicationResourceDTO> getResourceById(@PathVariable Long id) {
         ApplicationResourceDTO dto = resourceService.getResourceById(id);
         if (dto == null) {
@@ -67,6 +73,7 @@ public class ApplicationResourceController {
 
     @PostMapping
     @Operation(summary = "创建资源")
+    @OperationLog(operation="创建资源", businessType = BusinessType.INSERT)
     public Result<Void> createResource(@Validated @RequestBody ApplicationResourceDTO dto) {
         log.info("创建资源: {}", dto.getResourceName());
         boolean success = resourceService.createResource(dto);
@@ -75,6 +82,7 @@ public class ApplicationResourceController {
 
     @PutMapping
     @Operation(summary = "更新资源")
+    @OperationLog(operation="更新资源", businessType = BusinessType.UPDATE)
     public Result<Void> updateResource(@Validated @RequestBody ApplicationResourceDTO dto) {
         log.info("更新资源: {}", dto.getId());
         boolean success = resourceService.updateResource(dto);
@@ -83,6 +91,7 @@ public class ApplicationResourceController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除资源")
+    @OperationLog(operation="删除资源", businessType = BusinessType.DELETE)
     public Result<Void> deleteResource(@PathVariable Long id) {
         log.info("删除资源: {}", id);
         boolean success = resourceService.deleteResource(id);
@@ -91,6 +100,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/role/{roleId}")
     @Operation(summary = "查询角色的资源ID列表")
+    @OperationLog(operation="查询角色的资源ID列表", businessType = BusinessType.SELECT)
     public Result<List<Long>> getResourceIdsByRoleId(@PathVariable Long roleId) {
         List<Long> resourceIds = resourceService.getResourceIdsByRoleId(roleId);
         return Result.success(resourceIds);
@@ -98,6 +108,7 @@ public class ApplicationResourceController {
 
     @PostMapping("/role/{roleId}/assign")
     @Operation(summary = "分配角色资源")
+    @OperationLog(operation="分配角色资源", businessType = BusinessType.UPDATE)
     public Result<Void> assignRoleResources(
             @PathVariable Long roleId,
             @RequestBody List<Long> resourceIds) {

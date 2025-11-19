@@ -25,7 +25,7 @@ public class StructuredLogConfig {
     /**
      * Loki 服务地址
      */
-    private String lokiUrl = "http://localhost:3100/loki/api/v1/push";
+    private String lokiUrl = "http://192.168.66.126:3400/loki/api/v1/push";
 
     /**
      * 日志批量发送大小

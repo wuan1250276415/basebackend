@@ -5,6 +5,9 @@ import com.basebackend.user.dto.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.service.AuthService;
 import com.basebackend.common.model.Result;
+import com.basebackend.logging.annotation.OperationLog;
+import com.basebackend.logging.annotation.OperationLog.BusinessType;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "用户登录接口")
+    @OperationLog(operation="用户登录", businessType = BusinessType.SELECT)
     public Result<LoginResponse> login(@Validated @RequestBody LoginRequest loginRequest) {
         log.info("用户登录请求: {}", loginRequest.getUsername());
         try {
@@ -46,6 +50,7 @@ public class AuthController {
      */
     @PostMapping("/logout")
     @Operation(summary = "用户登出", description = "用户登出接口")
+    @OperationLog(operation="用户登出", businessType = BusinessType.SELECT)
     public Result<String> logout() {
         log.info("用户登出请求");
         try {
@@ -62,6 +67,7 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     @Operation(summary = "刷新Token", description = "刷新访问令牌")
+    @OperationLog(operation="刷新Token", businessType = BusinessType.SELECT)
     public Result<LoginResponse> refreshToken(@RequestParam String refreshToken) {
         log.info("刷新Token请求");
         try {
@@ -78,6 +84,7 @@ public class AuthController {
      */
     @GetMapping("/info")
     @Operation(summary = "获取用户信息", description = "获取当前登录用户信息")
+    @OperationLog(operation="获取用户信息", businessType = BusinessType.SELECT)
     public Result<LoginResponse.UserInfo> getCurrentUserInfo() {
         log.info("获取当前用户信息请求");
         try {
@@ -94,6 +101,7 @@ public class AuthController {
      */
     @PutMapping("/password")
     @Operation(summary = "修改密码", description = "修改当前用户密码")
+    @OperationLog(operation="修改密码", businessType = BusinessType.UPDATE)
     public Result<String> changePassword(@Validated @RequestBody PasswordChangeDTO passwordChangeDTO) {
         log.info("修改密码请求");
         try {
