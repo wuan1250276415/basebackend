@@ -1,11 +1,9 @@
 package com.basebackend.user.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-// import com.basebackend.common.model.Result;
-// import com.basebackend.feign.client.DeptFeignClient;
-// import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.common.context.UserContext;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.DeptFeignClient;
 import com.basebackend.feign.dto.dept.DeptBasicDTO;
 import com.basebackend.user.dto.LoginLogDTO;
 import com.basebackend.user.dto.LoginRequest;
@@ -22,7 +20,7 @@ import com.basebackend.web.util.UserAgentUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -42,7 +40,7 @@ import java.util.Map;
 public class AuthServiceImpl implements AuthService {
 
     private final SysUserMapper userMapper;
-     private final DeptFeignClient deptFeignClient;
+    private final ObjectProvider<com.basebackend.feign.client.DeptFeignClient> deptFeignClientProvider;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisService redisService;
@@ -81,7 +79,6 @@ public class AuthServiceImpl implements AuthService {
                 recordLoginLog(loginLog);
                 throw new RuntimeException("用户不存在");
             }
-
             // 验证密码
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 loginLog.setUserId(user.getId());
@@ -119,8 +116,8 @@ public class AuthServiceImpl implements AuthService {
 
             String token = jwtUtil.generateToken(user.getUsername(), claims);
 
-            // 缓存用户信息
-            String userKey = LOGIN_TOKEN_KEY + user.getUsername();
+            // 缓存用户信息 - 统一使用userId作为缓存键，保持与refreshToken一致性
+            String userKey = LOGIN_TOKEN_KEY + user.getId();
             redisService.set(userKey, token, 24 * 60 * 60); // 24小时
 
             // 保存在线用户信息
@@ -146,10 +143,27 @@ public class AuthServiceImpl implements AuthService {
             userInfo.setDeptId(user.getDeptId());
             userInfo.setUserType(user.getUserType());
             userInfo.setStatus(user.getStatus());
-             Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
-             if (dept != null) {
-                 userInfo.setDeptName(dept.getData().getDeptName());
-             }
+            
+            // 安全调用部门服务，失败不影响登录
+            if (user.getDeptId() != null) {
+                var deptFeignClient = deptFeignClientProvider.getIfAvailable();
+                if (deptFeignClient != null) {
+                    try {
+                        Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
+                        if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                            userInfo.setDeptName(deptResult.getData().getDeptName());
+                        } else {
+                            log.warn("获取部门信息失败或返回空: deptId={}, message={}", 
+                                    user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
+                            userInfo.setDeptName(""); // 设置默认值
+                        }
+                    } catch (Exception e) {
+                        log.error("调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
+                        userInfo.setDeptName(""); // 设置默认值，不影响登录流程
+                    }
+                }
+            }
+
 
             // 构建响应
             LoginResponse response = new LoginResponse();
@@ -206,7 +220,7 @@ public class AuthServiceImpl implements AuthService {
 
         String newToken = jwtUtil.generateToken(user.getUsername(), claims);
 
-        // 更新缓存
+        // 更新缓存 - 与登录保持一致，使用userId作为缓存键
         String userKey = LOGIN_TOKEN_KEY + user.getId();
         redisService.set(userKey, newToken, 24 * 60 * 60);
 
@@ -226,10 +240,27 @@ public class AuthServiceImpl implements AuthService {
         userInfo.setDeptId(user.getDeptId());
         userInfo.setUserType(user.getUserType());
         userInfo.setStatus(user.getStatus());
-         Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
-         if (dept != null) {
-             userInfo.setDeptName(dept.getData().getDeptName());
-         }
+        
+        // 安全调用部门服务，失败不影响刷新token
+        if (user.getDeptId() != null) {
+            var deptFeignClient = deptFeignClientProvider.getIfAvailable();
+            if (deptFeignClient != null) {
+                try {
+                    Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
+                    if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                        userInfo.setDeptName(deptResult.getData().getDeptName());
+                    } else {
+                        log.warn("刷新token时获取部门信息失败: deptId={}, message={}", 
+                                user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
+                        userInfo.setDeptName("");
+                    }
+                } catch (Exception e) {
+                    log.error("刷新token时调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
+                    userInfo.setDeptName("");
+                }
+            }
+        }
+        
         // 构建响应
         LoginResponse response = new LoginResponse();
         response.setAccessToken(newToken);
@@ -242,10 +273,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponse.UserInfo getCurrentUserInfo() {
+    public UserContext getCurrentUserInfo() {
         // 从请求上下文获取当前用户ID
-        // 这里简化处理，实际应该从SecurityContext或ThreadLocal获取
-        throw new UnsupportedOperationException("需要实现获取当前用户信息");
+        UserContext userContext = UserContextHolder.get();
+        return userContext;
     }
 
     @Override
@@ -255,9 +286,11 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("新密码和确认密码不一致");
         }
 
-        // 从请求上下文获取当前用户ID
-        // 这里简化处理，实际应该从SecurityContext或ThreadLocal获取
-        Long userId = 1L; // 临时硬编码
+        // 从用户上下文获取当前用户ID - 修复硬编码用户ID安全问题
+        Long userId = UserContextHolder.getUserId();
+        if (userId == null) {
+            throw new IllegalStateException("用户未登录，无法修改密码");
+        }
 
         // 查询用户
         SysUser user = userMapper.selectById(userId);
@@ -322,13 +355,23 @@ public class AuthServiceImpl implements AuthService {
             onlineUser.put("nickname", user.getNickname());
             onlineUser.put("deptId", user.getDeptId());
 
+            // 安全调用部门服务获取部门名称
             if (user.getDeptId() != null) {
-                // TODO: 通过Feign调用获取部门名称
-                // Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
-                // if (dept != null) {
-                //     onlineUser.put("deptName", dept.getData().getDeptName());
-                // }
-                onlineUser.put("deptName", ""); // 临时设置为空
+                var deptFeignClient = deptFeignClientProvider.getIfAvailable();
+                if (deptFeignClient != null) {
+                    try {
+                        Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
+                        if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                            onlineUser.put("deptName", deptResult.getData().getDeptName());
+                        } else {
+                            onlineUser.put("deptName", "");
+                        }
+                    } catch (Exception e) {
+                        log.error("保存在线用户时获取部门名称失败: deptId={}, error={}", 
+                                user.getDeptId(), e.getMessage());
+                        onlineUser.put("deptName", "");
+                    }
+                }
             }
             onlineUser.put("loginIp", ipAddress);
             onlineUser.put("loginLocation", location);

@@ -1,202 +1,124 @@
 package com.basebackend.scheduler.camunda.service;
 
+import com.basebackend.common.dto.PageResult;
+import com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceDTO;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceDTO;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.camunda.bpm.engine.HistoryService;
-import org.camunda.bpm.engine.RuntimeService;
-import org.camunda.bpm.engine.history.HistoricProcessInstance;
-import org.camunda.bpm.engine.runtime.ProcessInstance;
-import org.springframework.stereotype.Service;
+import com.basebackend.scheduler.camunda.dto.ProcessInstanceDeleteRequest;
+import com.basebackend.scheduler.camunda.dto.ProcessInstanceDetailDTO;
+import com.basebackend.scheduler.camunda.dto.ProcessInstanceHistoryQuery;
+import com.basebackend.scheduler.camunda.dto.ProcessInstanceMigrationRequest;
+import com.basebackend.scheduler.camunda.dto.ProcessInstancePageQuery;
+import com.basebackend.scheduler.camunda.dto.ProcessInstanceVariablesRequest;
+import com.basebackend.scheduler.camunda.dto.ProcessVariableDTO;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * 流程实例管理服务
+ * 流程实例业务逻辑接口
+ *
+ * <p>提供流程实例相关的业务逻辑封装，包括：
+ * <ul>
+ *   <li>流程实例查询（分页、详情）</li>
+ *   <li>流程实例操作（挂起、激活、删除）</li>
+ *   <li>流程实例变量管理（获取、设置、删除）</li>
+ *   <li>流程实例迁移</li>
+ *   <li>历史流程实例查询</li>
+ * </ul>
+ *
+ * @author BaseBackend Team
+ * @version 1.0.0
+ * @since 2025-01-01
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class ProcessInstanceService {
-
-    private final RuntimeService runtimeService;
-    private final HistoryService historyService;
+public interface ProcessInstanceService {
 
     /**
-     * 启动流程实例
+     * 分页查询流程实例
+     *
+     * @param query 分页查询参数
+     * @return 分页结果
      */
-    public ProcessInstanceDTO startProcessInstance(String processDefinitionKey, String businessKey, Map<String, Object> variables) {
-        try {
-            ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
-                    processDefinitionKey,
-                    businessKey,
-                    variables
-            );
-
-            log.info("流程实例启动成功: processInstanceId={}, businessKey={}",
-                    processInstance.getId(), businessKey);
-
-            return convertToDTO(processInstance, variables);
-        } catch (Exception e) {
-            log.error("流程实例启动失败: key={}, businessKey={}", processDefinitionKey, businessKey, e);
-            throw new RuntimeException("流程实例启动失败: " + e.getMessage(), e);
-        }
-    }
+    PageResult<ProcessInstanceDTO> page(ProcessInstancePageQuery query);
 
     /**
-     * 查询运行中的流程实例
+     * 获取流程实例详情
+     *
+     * @param instanceId 流程实例 ID
+     * @param withVariables 是否包含变量
+     * @return 流程实例详情
      */
-    public List<ProcessInstanceDTO> listRunningProcessInstances() {
-        return runtimeService.createProcessInstanceQuery()
-                .active()
-                .orderByProcessInstanceId()
-                .desc()
-                .list()
-                .stream()
-                .map(pi -> convertToDTO(pi, null))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据流程定义Key查询运行中的流程实例
-     */
-    public List<ProcessInstanceDTO> listRunningProcessInstancesByKey(String processDefinitionKey) {
-        return runtimeService.createProcessInstanceQuery()
-                .processDefinitionKey(processDefinitionKey)
-                .active()
-                .orderByProcessInstanceId()
-                .desc()
-                .list()
-                .stream()
-                .map(pi -> convertToDTO(pi, null))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据业务键查询流程实例
-     */
-    public ProcessInstanceDTO getProcessInstanceByBusinessKey(String businessKey) {
-        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
-                .processInstanceBusinessKey(businessKey)
-                .singleResult();
-
-        if (processInstance == null) {
-            throw new RuntimeException("流程实例不存在: businessKey=" + businessKey);
-        }
-
-        Map<String, Object> variables = runtimeService.getVariables(processInstance.getId());
-        return convertToDTO(processInstance, variables);
-    }
-
-    /**
-     * 根据ID查询流程实例
-     */
-    public ProcessInstanceDTO getProcessInstanceById(String processInstanceId) {
-        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
-                .processInstanceId(processInstanceId)
-                .singleResult();
-
-        if (processInstance == null) {
-            // 尝试查询历史实例
-            return getHistoricProcessInstanceById(processInstanceId);
-        }
-
-        Map<String, Object> variables = runtimeService.getVariables(processInstanceId);
-        return convertToDTO(processInstance, variables);
-    }
-
-    /**
-     * 查询历史流程实例
-     */
-    public ProcessInstanceDTO getHistoricProcessInstanceById(String processInstanceId) {
-        HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
-                .processInstanceId(processInstanceId)
-                .singleResult();
-
-        if (historicProcessInstance == null) {
-            throw new RuntimeException("流程实例不存在: id=" + processInstanceId);
-        }
-
-        return convertToHistoricDTO(historicProcessInstance);
-    }
+    ProcessInstanceDetailDTO detail(String instanceId, boolean withVariables);
 
     /**
      * 挂起流程实例
+     *
+     * @param instanceId 流程实例 ID
      */
-    public void suspendProcessInstance(String processInstanceId) {
-        runtimeService.suspendProcessInstanceById(processInstanceId);
-        log.info("流程实例已挂起: id={}", processInstanceId);
-    }
+    void suspend(String instanceId);
 
     /**
      * 激活流程实例
+     *
+     * @param instanceId 流程实例 ID
      */
-    public void activateProcessInstance(String processInstanceId) {
-        runtimeService.activateProcessInstanceById(processInstanceId);
-        log.info("流程实例已激活: id={}", processInstanceId);
-    }
+    void activate(String instanceId);
 
     /**
      * 删除流程实例
+     *
+     * @param instanceId 流程实例 ID
+     * @param request 删除请求参数
      */
-    public void deleteProcessInstance(String processInstanceId, String deleteReason) {
-        runtimeService.deleteProcessInstance(processInstanceId, deleteReason);
-        log.info("流程实例已删除: id={}, reason={}", processInstanceId, deleteReason);
-    }
-
-    /**
-     * 设置流程变量
-     */
-    public void setVariables(String processInstanceId, Map<String, Object> variables) {
-        runtimeService.setVariables(processInstanceId, variables);
-        log.info("流程变量已设置: processInstanceId={}, variables={}", processInstanceId, variables.keySet());
-    }
+    void delete(String instanceId, ProcessInstanceDeleteRequest request);
 
     /**
      * 获取流程变量
+     *
+     * @param instanceId 流程实例 ID
+     * @param local 是否本地变量
+     * @return 变量列表
      */
-    public Map<String, Object> getVariables(String processInstanceId) {
-        return runtimeService.getVariables(processInstanceId);
-    }
+    List<ProcessVariableDTO> variables(String instanceId, boolean local);
 
     /**
-     * 转换为DTO
+     * 获取单个流程变量
+     *
+     * @param instanceId 流程实例 ID
+     * @param variableName 变量名
+     * @param local 是否本地变量
+     * @return 流程变量
      */
-    private ProcessInstanceDTO convertToDTO(ProcessInstance pi, Map<String, Object> variables) {
-        return ProcessInstanceDTO.builder()
-                .id(pi.getId())
-                .businessKey(pi.getBusinessKey())
-                .processDefinitionId(pi.getProcessDefinitionId())
-                .suspended(pi.isSuspended())
-                .ended(pi.isEnded())
-                .tenantId(pi.getTenantId())
-                .variables(variables != null ? variables : new HashMap<>())
-                .build();
-    }
+    ProcessVariableDTO variable(String instanceId, String variableName, boolean local);
 
     /**
-     * 转换历史实例为DTO
+     * 设置流程变量
+     *
+     * @param instanceId 流程实例 ID
+     * @param request 变量设置请求
      */
-    private ProcessInstanceDTO convertToHistoricDTO(HistoricProcessInstance hpi) {
-        Long duration = null;
-        if (hpi.getStartTime() != null && hpi.getEndTime() != null) {
-            duration = hpi.getEndTime().getTime() - hpi.getStartTime().getTime();
-        }
+    void setVariables(String instanceId, ProcessInstanceVariablesRequest request);
 
-        return ProcessInstanceDTO.builder()
-                .id(hpi.getId())
-                .businessKey(hpi.getBusinessKey())
-                .processDefinitionId(hpi.getProcessDefinitionId())
-                .processDefinitionKey(hpi.getProcessDefinitionKey())
-                .processDefinitionName(hpi.getProcessDefinitionName())
-                .ended(hpi.getEndTime() != null)
-                .startTime(hpi.getStartTime())
-                .endTime(hpi.getEndTime())
-                .durationInMillis(duration)
-                .tenantId(hpi.getTenantId())
-                .build();
-    }
+    /**
+     * 删除流程变量
+     *
+     * @param instanceId 流程实例 ID
+     * @param variableName 变量名
+     * @param local 是否本地变量
+     */
+    void deleteVariable(String instanceId, String variableName, boolean local);
+
+    /**
+     * 迁移流程实例
+     *
+     * @param instanceId 流程实例 ID
+     * @param request 迁移请求参数
+     */
+    void migrate(String instanceId, ProcessInstanceMigrationRequest request);
+
+    /**
+     * 查询历史流程实例
+     *
+     * @param query 查询参数
+     * @return 分页结果
+     */
+    PageResult<HistoricProcessInstanceDTO> history(ProcessInstanceHistoryQuery query);
 }

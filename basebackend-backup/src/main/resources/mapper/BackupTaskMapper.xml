@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.backup.domain.mapper.BackupTaskMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.basebackend.backup.domain.entity.BackupTask">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="datasource_type" property="datasourceType" jdbcType="VARCHAR"/>
+        <result column="backup_type" property="backupType" jdbcType="VARCHAR"/>
+        <result column="schedule_cron" property="scheduleCron" jdbcType="VARCHAR"/>
+        <result column="strategy_json" property="strategyJson" jdbcType="VARCHAR"/>
+        <result column="retention_policy_json" property="retentionPolicyJson" jdbcType="VARCHAR"/>
+        <result column="storage_policy_json" property="storagePolicyJson" jdbcType="VARCHAR"/>
+        <result column="notify_policy_json" property="notifyPolicyJson" jdbcType="VARCHAR"/>
+        <result column="enabled" property="enabled" jdbcType="BOOLEAN"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 通用字段 -->
+    <sql id="Base_Column_List">
+        id, name, datasource_type, backup_type, schedule_cron, strategy_json,
+        retention_policy_json, storage_policy_json, notify_policy_json, enabled,
+        created_at, updated_at
+    </sql>
+
+    <!-- 查询启用的任务列表 -->
+    <select id="selectEnabledTasks" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM backup_task
+        WHERE enabled = TRUE
+        ORDER BY id ASC
+    </select>
+
+    <!-- 根据数据源类型查询任务 -->
+    <select id="selectByDatasourceType" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM backup_task
+        WHERE datasource_type = #{datasourceType}
+        AND enabled = TRUE
+        ORDER BY id ASC
+    </select>
+
+    <!-- 查询需要执行的任务（基于CRON调度） -->
+    <select id="selectTasksToExecute" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM backup_task
+        WHERE enabled = TRUE
+        AND schedule_cron IS NOT NULL
+        <!-- 这里可以通过更复杂的CRON表达式解析来筛选 -->
+        ORDER BY id ASC
+    </select>
+
+</mapper>

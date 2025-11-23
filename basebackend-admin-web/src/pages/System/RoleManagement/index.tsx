@@ -19,7 +19,7 @@ const RoleManagement: React.FC = () => {
   // 加载应用列表
   const loadApplications = async () => {
     try {
-      const res = await request.get('/admin/application/enabled')
+      const res = await request.get('/basebackend-system-api/api/system/application/enabled')
       if (res.code === 200) {
         const apps = res.data || []
         setApplications(apps)

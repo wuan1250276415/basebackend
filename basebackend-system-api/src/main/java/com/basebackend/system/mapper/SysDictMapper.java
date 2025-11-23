@@ -1,6 +1,7 @@
 package com.basebackend.system.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.basebackend.database.dynamic.annotation.DS;
 import com.basebackend.system.entity.SysDict;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;

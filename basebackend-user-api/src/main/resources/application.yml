@@ -1,6 +1,30 @@
+spring:
+  application:
+    name: basebackend-user-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - com.basebackend.observability.otel.config.OtelAutoConfiguration
+      - com.basebackend.observability.otel.config.BridgeConfiguration
+
 server:
   port: 8081
 
+
+
+# Database enhanced features configuration
+database:
+  enhanced:
+    # Disable multi-tenancy to avoid circular dependency
+    multi-tenancy:
+      enabled: false
+    # Disable SQL statistics to avoid circular dependency
+    sql-statistics:
+      enabled: false
 
 # Knife4j配置
 knife4j:

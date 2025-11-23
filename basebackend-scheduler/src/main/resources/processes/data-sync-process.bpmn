@@ -1,80 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
-                  id="Definitions_2"
-                  targetNamespace="http://bpmn.io/schema/bpmn">
+                 xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                 xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                 xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                 id="Definitions_DataSync"
+                 targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="dataSyncProcess" name="数据同步流程" isExecutable="true">
+    <bpmn:documentation>
+      数据同步工作流程
+      支持多种数据源（数据库/API/文件）的同步操作
+      具有重试机制和失败处理
+    </bpmn:documentation>
 
-  <bpmn:process id="data-sync-process" name="数据同步流程" isExecutable="true" camunda:historyTimeToLive="180">
-
-    <bpmn:startEvent id="StartEvent_1" name="开始同步">
-      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    <bpmn:startEvent id="StartEvent_DataSync" name="开始数据同步">
+      <bpmn:outgoing>Flow_DataSync_Start</bpmn:outgoing>
     </bpmn:startEvent>
 
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ExtractData" />
+    <bpmn:serviceTask id="Task_DataSync_Execute" name="执行数据同步"
+                     camunda:delegateExpression="${dataSyncDelegate}">
+      <bpmn:documentation>
+        使用DataSyncDelegate执行数据同步操作
+        输入变量：
+        - syncSourceType: 数据源类型（database/api/file）
+        - syncPayload: 同步数据负载
+        - syncMaxRetries: 最大重试次数（可选，默认3）
+        - syncRetryDelaySeconds: 重试延迟秒数（可选，默认5）
 
-    <!-- 提取数据 -->
-    <bpmn:serviceTask id="Task_ExtractData" name="提取数据"
-                      camunda:delegateExpression="${dataSyncDelegate}">
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+        输出变量：
+        - syncStatus: 同步状态 SUCCESS/FAILED
+        - syncResult: 同步结果数据
+        - syncErrorMessage: 错误消息（失败时）
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_DataSync_Start</bpmn:incoming>
+      <bpmn:outgoing>Flow_DataSync_CheckResult</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ExtractData" targetRef="Task_TransformData" />
+    <bpmn:exclusiveGateway id="Gateway_DataSync_Result" name="同步结果判断"/>
+    <bpmn:incoming>Flow_DataSync_CheckResult</bpmn:incoming>
 
-    <!-- 转换数据 -->
-    <bpmn:serviceTask id="Task_TransformData" name="转换数据"
-                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataTransformDelegate">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
-      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    <bpmn:sequenceFlow id="Flow_DataSync_Start" sourceRef="StartEvent_DataSync"
+                      targetRef="Task_DataSync_Execute"/>
+    <bpmn:sequenceFlow id="Flow_DataSync_CheckResult" sourceRef="Task_DataSync_Execute"
+                      targetRef="Gateway_DataSync_Result"/>
+
+    <bpmn:sequenceFlow id="Flow_DataSync_Success" name="同步成功"
+                      sourceRef="Gateway_DataSync_Result" targetRef="Task_DataSync_Notify">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${syncStatus == 'SUCCESS'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_DataSync_Failed" name="同步失败"
+                      sourceRef="Gateway_DataSync_Result" targetRef="Task_DataSync_ErrorHandle">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${syncStatus == 'FAILED'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_DataSync_Notify" name="发送成功通知"
+                     camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:documentation>
+        发送数据同步成功通知邮件
+        输入变量：
+        - emailTo: 收件人邮箱
+        - emailSubject: 邮件主题
+        - emailContent: 邮件内容
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_DataSync_Success</bpmn:incoming>
+      <bpmn:outgoing>Flow_DataSync_End</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_TransformData" targetRef="Task_LoadData" />
-
-    <!-- 加载数据 -->
-    <bpmn:serviceTask id="Task_LoadData" name="加载数据"
-                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataLoadDelegate">
-      <bpmn:incoming>Flow_3</bpmn:incoming>
-      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    <bpmn:serviceTask id="Task_DataSync_ErrorHandle" name="处理同步错误"
+                     camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:documentation>
+        发送数据同步失败通知
+        输入变量：
+        - emailTo: 收件人邮箱
+        - emailSubject: 邮件主题（包含错误信息）
+        - emailContent: 邮件内容（包含错误详情）
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_DataSync_Failed</bpmn:incoming>
+      <bpmn:outgoing>Flow_DataSync_End</bpmn:outgoing>
     </bpmn:serviceTask>
 
-    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_LoadData" targetRef="Task_Verify" />
-
-    <!-- 验证同步结果 -->
-    <bpmn:serviceTask id="Task_Verify" name="验证结果"
-                      camunda:class="com.basebackend.scheduler.camunda.delegate.DataVerifyDelegate">
-      <bpmn:incoming>Flow_4</bpmn:incoming>
-      <bpmn:outgoing>Flow_5</bpmn:outgoing>
-    </bpmn:serviceTask>
-
-    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Verify" targetRef="EndEvent_1" />
-
-    <bpmn:endEvent id="EndEvent_1" name="同步完成">
-      <bpmn:incoming>Flow_5</bpmn:incoming>
+    <bpmn:endEvent id="EndEvent_DataSync_Success" name="同步完成">
+      <bpmn:incoming>Flow_DataSync_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <!-- 错误边界事件 -->
-    <bpmn:boundaryEvent id="BoundaryEvent_Error" name="同步失败" attachedToRef="Task_ExtractData">
-      <bpmn:outgoing>Flow_Error</bpmn:outgoing>
-      <bpmn:errorEventDefinition errorRef="Error_SyncFailed" />
-    </bpmn:boundaryEvent>
-
-    <bpmn:sequenceFlow id="Flow_Error" sourceRef="BoundaryEvent_Error" targetRef="Task_HandleError" />
-
-    <!-- 错误处理 -->
-    <bpmn:serviceTask id="Task_HandleError" name="处理错误"
-                      camunda:class="com.basebackend.scheduler.camunda.delegate.ErrorHandlerDelegate">
-      <bpmn:incoming>Flow_Error</bpmn:incoming>
-      <bpmn:outgoing>Flow_End_Error</bpmn:outgoing>
-    </bpmn:serviceTask>
-
-    <bpmn:sequenceFlow id="Flow_End_Error" sourceRef="Task_HandleError" targetRef="EndEvent_Error" />
-
-    <bpmn:endEvent id="EndEvent_Error" name="同步失败">
-      <bpmn:incoming>Flow_End_Error</bpmn:incoming>
-    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_DataSync_End" sourceRef="Task_DataSync_Notify"
+                      targetRef="EndEvent_DataSync_Success"/>
+    <bpmn:sequenceFlow id="Flow_DataSync_End_Error" sourceRef="Task_DataSync_ErrorHandle"
+                      targetRef="EndEvent_DataSync_Success"/>
 
   </bpmn:process>
 
-  <bpmn:error id="Error_SyncFailed" name="SyncFailed" errorCode="SYNC_ERROR" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_DataSync">
+    <bpmndi:BPMNPlane id="BPMNPlane_DataSync" bpmnElement="dataSyncProcess">
+      <!-- 可视化元素定义 -->
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 
 </bpmn:definitions>

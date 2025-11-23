@@ -21,7 +21,21 @@
         <!-- Common Module (核心依赖) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-starter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Cache Module (缓存支持) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Observability Module (可观测性) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-observability</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -29,6 +43,37 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter AOP (切面支持) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Actuator (监控端点) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Sentinel -->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-core</artifactId>
+            <version>1.8.8</version>
+        </dependency>
+
+        <!-- Micrometer for metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
+        <!-- OpenTelemetry (链路追踪) -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
         </dependency>
 
         <!-- Lombok -->

@@ -2,6 +2,7 @@ package com.basebackend.notification.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.common.model.Result;
+import com.basebackend.jwt.JwtUtil;
 import com.basebackend.notification.dto.CreateNotificationDTO;
 import com.basebackend.notification.dto.NotificationQueryDTO;
 import com.basebackend.notification.dto.UserNotificationDTO;
@@ -22,8 +23,8 @@ import java.util.Map;
 /**
  * 通知管理控制器
  *
- * @author BaseBackend Team
- * @since 2025-11-18
+ * @author Claude Code
+ * @since 2025-10-30
  */
 @Slf4j
 @Tag(name = "通知管理", description = "用户通知相关接口")
@@ -32,6 +33,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NotificationController {
 
+    private final JwtUtil jwtUtil;
     private final NotificationService notificationService;
     private final SSENotificationService sseNotificationService;
 
@@ -102,12 +104,12 @@ public class NotificationController {
     @Operation(summary = "SSE 连接", description = "建立 SSE 连接以接收实时通知推送")
     @GetMapping("/stream")
     public SseEmitter stream(@RequestParam String token) {
-        // TODO: 从 token 中获取用户信息并验证
-        // 这里简化处理，实际应该验证 token
-        Long userId = 1L; // 临时方案
+
+        Long userId = jwtUtil.getUserIdFromToken(token);
 
         log.info("[SSE] 用户请求建立连接: userId={}", userId);
 
         return sseNotificationService.createConnection(userId);
     }
+
 }

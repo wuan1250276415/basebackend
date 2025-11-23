@@ -13,7 +13,6 @@ import com.basebackend.cache.service.RedisService;
 import com.basebackend.common.model.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -26,28 +25,36 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class DictServiceImpl implements DictService, CommandLineRunner {
+public class DictServiceImpl implements DictService {
 
     private static final String DICT_CACHE_PREFIX = "sys:dict:";
     private static final long DICT_CACHE_EXPIRE = 7 * 24 * 60 * 60; // 7天
 
     private final SysDictMapper sysDictMapper;
     private final SysDictDataMapper sysDictDataMapper;
-    private final RedisService redisService;
+    private RedisService redisService;
 
     public DictServiceImpl(SysDictMapper sysDictMapper, 
-                          SysDictDataMapper sysDictDataMapper,
-                          RedisService redisService) {
+                          SysDictDataMapper sysDictDataMapper) {
         this.sysDictMapper = sysDictMapper;
         this.sysDictDataMapper = sysDictDataMapper;
-        this.redisService = redisService;
     }
 
-    @Override
-    public void run(String... args) {
-        log.info("开始加载字典数据到缓存...");
-        loadDictCache();
-        log.info("字典数据加载完成");
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setRedisService(RedisService redisService) {
+        this.redisService = redisService;
+        // Redis 可用时，异步加载字典缓存
+        if (this.redisService != null) {
+            try {
+                log.info("Redis服务可用，开始加载字典数据到缓存...");
+                loadDictCache();
+                log.info("字典数据加载完成");
+            } catch (Exception e) {
+                log.warn("加载字典缓存失败，将使用数据库查询: {}", e.getMessage());
+            }
+        } else {
+            log.info("Redis服务不可用，字典数据将直接从数据库查询");
+        }
     }
 
     @Override
@@ -115,14 +122,16 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
 
     @Override
     public List<DictDataDTO> getDictDataByType(String dictType) {
-        // 先从缓存获取
-        String cacheKey = DICT_CACHE_PREFIX + dictType;
-        List<DictDataDTO> cachedData =  (List<DictDataDTO>) redisService.get(cacheKey);
-        if (cachedData != null) {
-            return cachedData;
+        // 先从缓存获取（如果Redis可用）
+        if (redisService != null) {
+            String cacheKey = DICT_CACHE_PREFIX + dictType;
+            List<DictDataDTO> cachedData = (List<DictDataDTO>) redisService.get(cacheKey);
+            if (cachedData != null) {
+                return cachedData;
+            }
         }
 
-        // 缓存未命中，从数据库查询
+        // 缓存未命中或Redis不可用，从数据库查询
         LambdaQueryWrapper<SysDictData> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysDictData::getDictType, dictType)
                 .eq(SysDictData::getStatus, 1)
@@ -133,8 +142,11 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
                 .map(this::convertToDataDTO)
                 .collect(Collectors.toList());
 
-        // 存入缓存
-        redisService.set(cacheKey, result, DICT_CACHE_EXPIRE);
+        // 存入缓存（如果Redis可用）
+        if (redisService != null) {
+            String cacheKey = DICT_CACHE_PREFIX + dictType;
+            redisService.set(cacheKey, result, DICT_CACHE_EXPIRE);
+        }
         
         return result;
     }
@@ -221,6 +233,11 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
      * 刷新指定字典类型的缓存
      */
     private void refreshDictTypeCache(String dictType) {
+        if (redisService == null) {
+            log.debug("Redis服务不可用，跳过缓存刷新");
+            return;
+        }
+        
         String cacheKey = DICT_CACHE_PREFIX + dictType;
         
         // 查询该类型的所有字典数据

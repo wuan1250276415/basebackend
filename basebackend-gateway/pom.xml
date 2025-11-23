@@ -21,7 +21,13 @@
         <!-- Common Module - 现在已经不包含 Web 和 Security 依赖了 -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-core</artifactId>
+            <version>${project.version}</version>
+            <!-- 不再需要排除，common 模块已经清理干净 -->
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-common-util</artifactId>
             <version>${project.version}</version>
             <!-- 不再需要排除，common 模块已经清理干净 -->
         </dependency>
@@ -48,15 +54,21 @@
         </dependency>
         -->
 
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-observability</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.basebackend</groupId>-->
+<!--            <artifactId>basebackend-observability</artifactId>-->
+<!--            <version>${project.version}</version>-->
+<!--        </dependency>-->
         <!-- Spring Cloud Gateway -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>spring-web</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Spring Cloud LoadBalancer -->

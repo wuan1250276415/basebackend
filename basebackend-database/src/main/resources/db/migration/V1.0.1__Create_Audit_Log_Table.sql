@@ -1,0 +1,24 @@
+-- Create audit log table
+CREATE TABLE IF NOT EXISTS sys_audit_log (
+    id BIGINT NOT NULL PRIMARY KEY COMMENT '主键ID',
+    operation_type VARCHAR(20) NOT NULL COMMENT '操作类型 (INSERT/UPDATE/DELETE)',
+    table_name VARCHAR(100) NOT NULL COMMENT '表名',
+    primary_key VARCHAR(100) COMMENT '主键值',
+    before_data TEXT COMMENT '变更前数据 (JSON)',
+    after_data TEXT COMMENT '变更后数据 (JSON)',
+    changed_fields VARCHAR(500) COMMENT '变更字段',
+    operator_id BIGINT COMMENT '操作人 ID',
+    operator_name VARCHAR(100) COMMENT '操作人姓名',
+    operator_ip VARCHAR(50) COMMENT '操作 IP',
+    operate_time DATETIME NOT NULL COMMENT '操作时间',
+    tenant_id VARCHAR(50) COMMENT '租户 ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by BIGINT COMMENT '创建人',
+    update_by BIGINT COMMENT '更新人',
+    deleted INT DEFAULT 0 COMMENT '逻辑删除标记（0：未删除，1：已删除）',
+    INDEX idx_table_name (table_name),
+    INDEX idx_operator_id (operator_id),
+    INDEX idx_operate_time (operate_time),
+    INDEX idx_tenant_id (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';

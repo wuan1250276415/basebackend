@@ -1,0 +1,109 @@
+# ========================================
+# 本地开发环境独立配置
+# ========================================
+# 此配置文件不依赖 Nacos，包含所有必要的配置
+# 激活方式: SPRING_PROFILES_ACTIVE=local
+
+spring:
+  profiles:
+    group: local
+
+  # ========== 数据库配置 ==========
+  datasource:
+    primary:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.66.126:3306/basebackend_scheduler?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: basebackend_scheduler
+      password: wk5KknQxrFcD64ZS
+      hikari:
+        minimum-idle: 5
+        maximum-pool-size: 20
+        idle-timeout: 300000
+        max-lifetime: 900000
+        connection-timeout: 30000
+        pool-name: HikariCP-Primary
+
+    powerjob:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.66.126:3306/powerjob-product?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: powerjob-product
+      password: 5kGYaE3adhQKzjRC
+      hikari:
+        minimum-idle: 5
+        maximum-pool-size: 10
+        idle-timeout: 300000
+        max-lifetime: 900000
+        connection-timeout: 30000
+        pool-name: HikariCP-PowerJob
+
+  # ========== Flyway 配置 ==========
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 1
+    table: flyway_schema_history
+    encoding: UTF-8
+    validate-on-migrate: false  # 本地开发环境关闭验证
+    clean-disabled: false
+
+  # ========== MyBatis Plus 配置 ==========
+  mybatis-plus:
+    mapper-locations: classpath*:/mapper/**/*.xml
+    type-aliases-package: com.basebackend.scheduler.**.entity
+    configuration:
+      map-underscore-to-camel-case: true
+      cache-enabled: false
+      call-setters-on-nulls: true
+      jdbc-type-for-null: 'null'
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    global-config:
+      db-config:
+        id-type: auto
+        logic-delete-field: deleted
+        logic-delete-value: 1
+        logic-not-delete-value: 0
+
+# ========== 服务器配置 ==========
+server:
+  port: 8085
+  servlet:
+    context-path: /
+
+# ========== 日志配置 ==========
+logging:
+  level:
+    root: INFO
+    com.basebackend.scheduler: DEBUG
+    org.camunda: INFO
+    tech.powerjob: INFO
+    org.springframework: WARN
+
+# ========== Scheduler 配置 ==========
+scheduler:
+  powerjob:
+    enabled: false  # 本地开发环境禁用 PowerJob
+    app-name: basebackend-scheduler
+    server-address: 192.168.66.126:7700
+    token: dev-token
+    worker-core-pool-size: 2
+    worker-max-pool-size: 4
+    heartbeat-interval-millis: 10000
+
+# ========== Management 配置 ==========
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ========== 数据库增强配置 ==========
+database:
+  enhanced:
+    multi-tenancy:
+      enabled: false
+    sql-statistics:
+      enabled: false

@@ -6,7 +6,11 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.exception.BusinessException;
+import com.basebackend.common.model.Result;
+import com.basebackend.feign.client.UserFeignClient;
+import com.basebackend.observability.metrics.CustomMetrics;
 import com.basebackend.notification.constants.NotificationConstants;
 import com.basebackend.notification.dto.CreateNotificationDTO;
 import com.basebackend.notification.dto.NotificationMessageDTO;
@@ -20,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.messaging.support.MessageBuilder;
@@ -36,8 +41,8 @@ import java.util.stream.Collectors;
 /**
  * 通知服务实现类
  *
- * @author BaseBackend Team
- * @since 2025-11-18
+ * @author Claude Code
+ * @since 2025-10-30
  */
 @Slf4j
 @Service
@@ -45,8 +50,11 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private final UserNotificationMapper notificationMapper;
+    @Lazy
+    private final UserFeignClient userFeignClient;
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final CustomMetrics customMetrics;
     private final RocketMQTemplate rocketMQTemplate;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -54,6 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void sendEmailNotification(String to, String subject, String content) {
         log.info("发送邮件通知: to={}, subject={}", to, subject);
+        customMetrics.recordBusinessOperation("notification", "send_email");
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -83,7 +92,7 @@ public class NotificationServiceImpl implements NotificationService {
             // 渲染模板
             String content = templateEngine.process("email/" + templateCode, context);
 
-            // 获取主题
+            // 获取主题（这里简化处理，实际应该从数据库模板表获取）
             String subject = getSubjectByTemplateCode(templateCode);
 
             sendEmailNotification(to, subject, content);
@@ -97,16 +106,19 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void createSystemNotification(CreateNotificationDTO dto) {
         log.info("创建系统通知: {}", dto);
+        customMetrics.recordBusinessOperation("notification", "create_system");
 
+        // 如果未指定用户ID，则发送给所有活跃用户
+        if (dto.getUserId() == null) {
+            createBroadcastNotification(dto);
+            return;
+        }
+
+        // 单用户通知
         UserNotification notification = new UserNotification();
         BeanUtil.copyProperties(dto, notification);
         notification.setIsRead(0);
         notification.setCreateTime(LocalDateTime.now());
-
-        // 如果未指定用户ID，则发送给所有用户（这里简化处理）
-        if (dto.getUserId() == null) {
-            throw new BusinessException("暂不支持群发通知");
-        }
 
         int result = notificationMapper.insert(notification);
         if (result <= 0) {
@@ -119,11 +131,81 @@ public class NotificationServiceImpl implements NotificationService {
         sendNotificationToMQ(notification);
     }
 
+    /**
+     * 创建群发通知（发送给所有活跃用户）
+     *
+     * @param dto 通知创建DTO
+     */
+    private void createBroadcastNotification(CreateNotificationDTO dto) {
+        log.info("创建群发通知: title={}", dto.getTitle());
+        customMetrics.recordBusinessOperation("notification", "broadcast");
+
+        // 获取所有活跃用户ID
+        Result<List<Long>> result = userFeignClient.getAllActiveUserIds();
+        if (result == null || result.getCode() != 200 || result.getData() == null) {
+            log.error("获取活跃用户列表失败: {}", result != null ? result.getMessage() : "null");
+            throw new BusinessException("获取用户列表失败，无法发送群发通知");
+        }
+
+        List<Long> userIds = result.getData();
+        if (userIds.isEmpty()) {
+            log.warn("没有活跃用户，跳过群发通知");
+            return;
+        }
+
+        log.info("群发通知目标用户数: {}", userIds.size());
+
+        // 批量创建通知
+        LocalDateTime now = LocalDateTime.now();
+        int batchSize = 500;  // 每批处理500条
+        int totalInserted = 0;
+
+        for (int i = 0; i < userIds.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, userIds.size());
+            List<Long> batchUserIds = userIds.subList(i, endIndex);
+
+            List<UserNotification> notifications = batchUserIds.stream()
+                    .map(userId -> {
+                        UserNotification notification = new UserNotification();
+                        notification.setUserId(userId);
+                        notification.setTitle(dto.getTitle());
+                        notification.setContent(dto.getContent());
+                        notification.setType(dto.getType() != null ? dto.getType() : "announcement");
+                        notification.setLevel(dto.getLevel() != null ? dto.getLevel() : "info");
+                        notification.setLinkUrl(dto.getLinkUrl());
+                        notification.setIsRead(0);
+                        notification.setCreateTime(now);
+                        return notification;
+                    })
+                    .collect(Collectors.toList());
+
+            // 批量插入
+            for (UserNotification notification : notifications) {
+                notificationMapper.insert(notification);
+                totalInserted++;
+
+                // 发送MQ消息（异步推送实时通知）
+                try {
+                    sendNotificationToMQ(notification);
+                } catch (Exception e) {
+                    // MQ发送失败不影响主流程
+                    log.warn("群发通知MQ消息发送失败: userId={}, error={}", notification.getUserId(), e.getMessage());
+                }
+            }
+
+            log.debug("群发通知批次完成: batch={}/{}, inserted={}", 
+                    (i / batchSize) + 1, (userIds.size() + batchSize - 1) / batchSize, notifications.size());
+        }
+
+        log.info("群发通知创建完成: 总用户数={}, 成功插入={}", userIds.size(), totalInserted);
+    }
+
     @Override
     public List<UserNotificationDTO> getCurrentUserNotifications(Integer limit) {
         log.info("获取当前用户通知列表: limit={}", limit);
+        customMetrics.recordBusinessOperation("notification", "get_list");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserNotification::getUserId, currentUserId)
@@ -140,7 +222,7 @@ public class NotificationServiceImpl implements NotificationService {
     public Long getUnreadCount() {
         log.debug("获取当前用户未读通知数量");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserNotification::getUserId, currentUserId)
@@ -153,8 +235,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void markAsRead(Long notificationId) {
         log.info("标记通知为已读: notificationId={}", notificationId);
+        customMetrics.recordBusinessOperation("notification", "mark_read");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         // 验证通知归属
         UserNotification notification = notificationMapper.selectById(notificationId);
@@ -180,8 +263,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void markAllAsRead(List<Long> notificationIds) {
         log.info("批量标记已读: count={}", notificationIds.size());
+        customMetrics.recordBusinessOperation("notification", "mark_all_read");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         LambdaUpdateWrapper<UserNotification> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(UserNotification::getUserId, currentUserId)
@@ -196,8 +280,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteNotification(Long notificationId) {
         log.info("删除通知: notificationId={}", notificationId);
+        customMetrics.recordBusinessOperation("notification", "delete");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         // 验证通知归属
         UserNotification notification = notificationMapper.selectById(notificationId);
@@ -214,11 +299,30 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+
+    /**
+     * 根据模板编码获取邮件主题
+     */
+    private String getSubjectByTemplateCode(String templateCode) {
+        // 简化处理，实际应该从数据库查询
+        switch (templateCode) {
+            case "welcome":
+                return "欢迎加入系统";
+            case "password_changed":
+                return "您的密码已修改";
+            case "profile_updated":
+                return "资料更新通知";
+            default:
+                return "系统通知";
+        }
+    }
+
     @Override
     public Page<UserNotificationDTO> getNotificationPage(NotificationQueryDTO queryDTO) {
         log.info("分页查询通知列表: {}", queryDTO);
+        customMetrics.recordBusinessOperation("notification", "page_query");
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         // 构建分页对象
         Page<UserNotification> page = new Page<>(queryDTO.getPage(), queryDTO.getPageSize());
@@ -269,12 +373,13 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void batchDeleteNotifications(List<Long> notificationIds) {
         log.info("批量删除通知: count={}", notificationIds.size());
+        customMetrics.recordBusinessOperation("notification", "batch_delete");
 
         if (notificationIds == null || notificationIds.isEmpty()) {
             throw new BusinessException("通知ID列表不能为空");
         }
 
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = UserContextHolder.getUserId();
 
         // 验证所有通知归属
         LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
@@ -292,33 +397,9 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * 获取当前登录用户ID
-     * TODO: 从JWT或请求头获取用户ID
-     */
-    private Long getCurrentUserId() {
-        // 简化处理，实际应该从JWT token或请求头获取
-        // 这里暂时返回模拟的用户ID
-        return 1L;
-    }
-
-    /**
-     * 根据模板编码获取邮件主题
-     */
-    private String getSubjectByTemplateCode(String templateCode) {
-        switch (templateCode) {
-            case "welcome":
-                return "欢迎加入系统";
-            case "password_changed":
-                return "您的密码已修改";
-            case "profile_updated":
-                return "资料更新通知";
-            default:
-                return "系统通知";
-        }
-    }
-
-    /**
      * 发送通知消息到 RocketMQ
+     *
+     * @param notification 通知实体
      */
     private void sendNotificationToMQ(UserNotification notification) {
         try {
@@ -358,11 +439,16 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("通知消息发送失败: notificationId={}, error={}",
                     notification.getId(), e.getMessage(), e);
+            // 这里不抛异常，避免影响主流程
+            // 即使 MQ 发送失败，数据库已保存，用户仍然可以通过轮询获取通知
         }
     }
 
     /**
      * 根据通知类型获取 RocketMQ Tag
+     *
+     * @param type 通知类型
+     * @return Tag
      */
     private String getTagByType(String type) {
         if (type == null) {

@@ -1,0 +1,191 @@
+# AlertManager 告警管理配置
+# 用于处理 Prometheus 告警并发送通知
+
+global:
+  # 默认 SMTP 服务器配置（可根据需要修改）
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@basebackend.com'
+  smtp_auth_username: 'alertmanager@basebackend.com'
+  smtp_auth_password: 'your-password'
+
+# 路由配置
+route:
+  group_by: ['alertname', 'severity', 'component']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default-receiver'
+
+  # 根据严重性分级路由
+  routes:
+    # 严重告警
+    - matchers:
+        - severity="critical"
+      group_wait: 10s
+      repeat_interval: 1h
+      receiver: 'critical-alerts'
+
+    # 警告级别告警
+    - matchers:
+        - severity="warning"
+      receiver: 'warning-alerts'
+
+    # 按组件路由
+    - matchers:
+        - component="dag-engine"
+      receiver: 'dag-engine-team'
+
+    - matchers:
+        - component="retry"
+      receiver: 'retry-team'
+
+    - matchers:
+        - component="workflow"
+      receiver: 'workflow-team'
+
+    - matchers:
+        - component="system"
+      receiver: 'system-team'
+
+# 接收器配置
+receivers:
+  # 默认接收器
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'admin@basebackend.com'
+        subject: '[BaseBackend] 告警通知'
+        body: |
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          组件: {{ .Labels.component }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+  # 严重告警接收器（立即发送）
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@basebackend.com'
+        subject: '【紧急】BaseBackend 严重告警'
+        body: |
+          ⚠️ 严重告警通知 ⚠️
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          组件: {{ .Labels.component }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+    # Webhook 配置（可接入企业微信、钉钉等）
+    webhook_configs:
+      - url: 'http://your-webhook-endpoint.com/alerts'
+        send_resolved: true
+
+  # 警告级别告警接收器
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'admin@basebackend.com'
+        subject: '[BaseBackend] 警告告警'
+        body: |
+          ⚠️ 警告告警通知
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          组件: {{ .Labels.component }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+  # DAG 引擎团队
+  - name: 'dag-engine-team'
+    email_configs:
+      - to: 'dag-engine@basebackend.com'
+        subject: '[BaseBackend DAG] 告警通知'
+        body: |
+          DAG 引擎告警通知
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+  # 重试机制团队
+  - name: 'retry-team'
+    email_configs:
+      - to: 'retry-team@basebackend.com'
+        subject: '[BaseBackend Retry] 告警通知'
+        body: |
+          重试机制告警通知
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+  # 工作流团队
+  - name: 'workflow-team'
+    email_configs:
+      - to: 'workflow@basebackend.com'
+        subject: '[BaseBackend Workflow] 告警通知'
+        body: |
+          工作流执行告警通知
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+  # 系统团队
+  - name: 'system-team'
+    email_configs:
+      - to: 'system@basebackend.com'
+        subject: '[BaseBackend System] 告警通知'
+        body: |
+          系统资源告警通知
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警级别: {{ .Labels.severity }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          详情: {{ .Annotations.description }}
+          {{ end }}
+
+# 告警抑制规则
+inhibit_rules:
+  # 当应用不可用时，抑制其他相关告警
+  - source_matchers:
+      - severity="critical"
+      - component="application"
+    target_matchers:
+      - component="dag-engine"
+      - component="retry"
+      - component="workflow"
+    equal: ['instance']
+
+  # 内存使用率严重过高时，抑制警告级别
+  - source_matchers:
+      - severity="critical"
+      - alertname="MemoryUsageCritical"
+    target_matchers:
+      - severity="warning"
+      - alertname="MemoryUsageHigh"
+    equal: ['instance']
+
+  # DAG 拓扑排序严重过慢时，抑制警告级别
+  - source_matchers:
+      - severity="critical"
+      - alertname="DAGTopologicalSortCriticalSlow"
+    target_matchers:
+      - severity="warning"
+      - alertname="DAGTopologicalSortSlow"
+    equal: ['instance']

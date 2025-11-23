@@ -1,5 +1,6 @@
 package com.basebackend.user.service;
 
+import com.basebackend.common.context.UserContext;
 import com.basebackend.user.dto.LoginRequest;
 import com.basebackend.user.dto.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
@@ -27,7 +28,7 @@ public interface AuthService {
     /**
      * 获取当前用户信息
      */
-    LoginResponse.UserInfo getCurrentUserInfo();
+    UserContext getCurrentUserInfo();
 
     /**
      * 修改密码

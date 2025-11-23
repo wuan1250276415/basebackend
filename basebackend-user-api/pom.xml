@@ -22,7 +22,7 @@
         <!-- 基础依赖 -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -32,12 +32,22 @@
         </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-messaging</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
             <artifactId>basebackend-cache</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-backup</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -62,12 +72,9 @@
 
         <!-- Nacos -->
         <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba.cloud</groupId>
-            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-nacos</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

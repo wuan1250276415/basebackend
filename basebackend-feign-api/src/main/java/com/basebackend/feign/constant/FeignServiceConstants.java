@@ -14,6 +14,11 @@ public class FeignServiceConstants {
     public static final String SYS_SERVICE = "basebackend-system-api";
 
     /**
+     * 用户服务
+     */
+    public static final String USER_SERVICE = "basebackend-user-api";
+
+    /**
      * 文件服务
      */
     public static final String FILE_SERVICE = "file-service";

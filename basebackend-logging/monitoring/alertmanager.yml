@@ -1,0 +1,215 @@
+# AlertManager 全局配置
+global:
+  # SMTP 服务器配置
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alerts@basebackend.com'
+  smtp_auth_username: 'alerts@basebackend.com'
+  smtp_auth_password: 'REPLACE_ME'
+  smtp_require_tls: true
+
+  # Slack 配置 (可选)
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# 告警路由配置
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+  routes:
+    # 严重告警路由
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      group_interval: 5s
+      repeat_interval: 30m
+
+    # 平台团队告警
+    - match:
+        team: platform
+      receiver: 'platform-alerts'
+      group_wait: 30s
+      group_interval: 1m
+      repeat_interval: 2h
+
+    # 安全团队告警
+    - match:
+        team: security
+      receiver: 'security-alerts'
+      group_wait: 30s
+      group_interval: 1m
+      repeat_interval: 2h
+
+    # SRE 团队告警
+    - match:
+        team: sre
+      receiver: 'sre-alerts'
+      group_wait: 30s
+      group_interval: 1m
+      repeat_interval: 2h
+
+# 接收者配置
+receivers:
+  # 默认接收者
+  - name: 'default'
+    email_configs:
+      - to: 'devops@basebackend.com'
+        subject: 'BaseBackend Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          告警: {{ .Annotations.summary }}
+          描述: {{ .Annotations.description }}
+          实例: {{ .Labels.instance }}
+          时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          严重级别: {{ .Labels.severity }}
+          {{ end }}
+
+  # 严重告警接收者
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'devops@basebackend.com,management@basebackend.com'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 严重告警 🚨
+
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          详细描述: {{ .Annotations.description }}
+          实例: {{ .Labels.instance }}
+          严重级别: {{ .Labels.severity }}
+          触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          持续时间: {{ .EndsAt.Sub .StartsAt }}
+
+          操作手册: {{ .Annotations.runbook_url }}
+          {{ end }}
+
+          请立即处理！
+    slack_configs:
+      - channel: '#alerts-critical'
+        title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Severity:* {{ .Labels.severity }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+    webhook_configs:
+      - url: 'https://hooks.pagerduty.com/integration/YOUR_PD_KEY/enqueue'
+        send_resolved: true
+
+  # 平台团队告警
+  - name: 'platform-alerts'
+    email_configs:
+      - to: 'platform@basebackend.com'
+        subject: 'Platform Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          平台团队告警:
+
+          {{ range .Alerts }}
+          告警: {{ .Annotations.summary }}
+          实例: {{ .Labels.instance }}
+          组件: {{ .Labels.component }}
+          描述: {{ .Annotations.description }}
+          触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          严重级别: {{ .Labels.severity }}
+
+          操作手册: {{ .Annotations.runbook_url }}
+          {{ end }}
+    slack_configs:
+      - channel: '#platform-alerts'
+        title: 'Platform Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Instance:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+  # 安全团队告警
+  - name: 'security-alerts'
+    email_configs:
+      - to: 'security@basebackend.com'
+        subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          安全团队告警:
+
+          {{ range .Alerts }}
+          告警: {{ .Annotations.summary }}
+          实例: {{ .Labels.instance }}
+          组件: {{ .Labels.component }}
+          描述: {{ .Annotations.description }}
+          触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          严重级别: {{ .Labels.severity }}
+
+          操作手册: {{ .Annotations.runbook_url }}
+          {{ end }}
+    slack_configs:
+      - channel: '#security-alerts'
+        title: 'Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Instance:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+  # SRE 团队告警
+  - name: 'sre-alerts'
+    email_configs:
+      - to: 'sre@basebackend.com'
+        subject: 'SRE Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          SRE 团队告警:
+
+          {{ range .Alerts }}
+          告警: {{ .Annotations.summary }}
+          实例: {{ .Labels.instance }}
+          组件: {{ .Labels.component }}
+          描述: {{ .Annotations.description }}
+          触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          严重级别: {{ .Labels.severity }}
+
+          操作手册: {{ .Annotations.runbook_url }}
+          {{ end }}
+    slack_configs:
+      - channel: '#sre-alerts'
+        title: 'SRE Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Instance:* {{ .Labels.instance }}
+          *Component:* {{ .Labels.component }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+# 告警抑制规则
+inhibit_rules:
+  # 抑制低级别告警
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'instance']
+
+  # 抑制相同服务的重复告警
+  - source_match:
+      team: 'platform'
+    target_match:
+      team: 'platform'
+    equal: ['service', 'alertname']
+
+  # 抑制实例级别的详细告警（当整个实例离线时）
+  - source_match:
+      alertname: 'InstanceDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['instance']

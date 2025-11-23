@@ -16,7 +16,6 @@ import java.util.Map;
 
 /**
  * JWT 工具类 - 统一的JWT生成和验证
- *
  * 此工具类被Gateway和各个微服务共享使用，确保Token的生成和验证逻辑完全一致
  * 不依赖Spring Security，可以在WebFlux和Spring MVC环境中使用
  */
@@ -78,6 +77,37 @@ public class JwtUtil {
     public String getSubjectFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims != null ? claims.getSubject() : null;
+    }
+
+    /**
+     * 从Token中获取用户ID
+     */
+    public Long getUserIdFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        // 尝试从userId claim获取
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+
+        // 如果subject是数字，也尝试解析
+        String subject = claims.getSubject();
+        if (subject != null && subject.matches("\\d+")) {
+            try {
+                return Long.parseLong(subject);
+            } catch (NumberFormatException e) {
+                log.warn("无法解析用户ID: subject={}", subject);
+            }
+        }
+
+        log.warn("Token中未找到有效的用户ID");
+        return null;
     }
 
     /**

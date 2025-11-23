@@ -5,85 +5,69 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Camunda配置属性
+ * Camunda 工作流引擎自定义配置属性
+ *
+ * <p>用于扩展 Camunda 默认配置，提供缓存、监控、审计等企业级特性的开关。
+ * 配置前缀：{@code camunda.custom}
+ *
+ * <p>配置示例：
+ * <pre>
+ * camunda:
+ *   custom:
+ *     cache-enabled: true
+ *     max-cache-size: 1000
+ *     monitoring-enabled: true
+ *     audit-enabled: true
+ * </pre>
+ *
+ * @author BaseBackend Team
+ * @version 1.0.0
+ * @since 2025-01-01
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "camunda.bpm")
+@ConfigurationProperties(prefix = "camunda.custom")
 public class CamundaProperties {
 
     /**
-     * 是否启用Camunda
+     * 是否启用工作流定义/部署缓存
+     *
+     * <p>启用后将使用 Caffeine 缓存流程定义、部署信息等，提升查询性能。
+     * 默认值：{@code true}
      */
-    private Boolean enabled = true;
+    private boolean cacheEnabled = true;
 
     /**
-     * 管理员用户信息
+     * 工作流缓存最大数量
+     *
+     * <p>限制缓存中流程定义、部署、表单等工作流构件的总数量。
+     * 超过此数量后，将按 LRU 策略淘汰旧数据。
+     * 默认值：{@code 1000}
      */
-    private Admin admin = new Admin();
+    private int maxCacheSize = 1000;
 
     /**
-     * 历史级别
+     * 是否启用工作流监控
+     *
+     * <p>启用后将暴露 Micrometer 指标、健康检查端点等监控特性。
+     * 默认值：{@code true}
      */
-    private String historyLevel = "full";
+    private boolean monitoringEnabled = true;
 
     /**
-     * 自动部署
+     * 是否启用审计日志
+     *
+     * <p>启用后将记录流程启动、审批、完成等关键操作的审计日志。
+     * 审计日志将发送到统一的审计系统（如 ELK、OTel 等）。
+     * 默认值：{@code true}
      */
-    private AutoDeploy autoDeploy = new AutoDeploy();
+    private boolean auditEnabled = true;
 
     /**
-     * 作业执行配置
+     * 缓存过期时间（分钟）
+     *
+     * <p>流程定义缓存的过期时间，超过此时间后缓存将失效。
+     * 默认值：{@code 30} 分钟
      */
-    private JobExecution jobExecution = new JobExecution();
-
-    @Data
-    public static class Admin {
-        private String id = "admin";
-        private String password = "admin";
-        private String firstName = "Admin";
-        private String lastName = "User";
-        private String email = "admin@basebackend.com";
-    }
-
-    @Data
-    public static class AutoDeploy {
-        /**
-         * 是否启用自动部署
-         */
-        private Boolean enabled = true;
-
-        /**
-         * 流程文件路径
-         */
-        private String resourcePattern = "classpath*:processes/**/*.bpmn";
-    }
-
-    @Data
-    public static class JobExecution {
-        /**
-         * 是否启用作业执行
-         */
-        private Boolean enabled = true;
-
-        /**
-         * 核心线程数
-         */
-        private Integer corePoolSize = 5;
-
-        /**
-         * 最大线程数
-         */
-        private Integer maxPoolSize = 20;
-
-        /**
-         * 队列容量
-         */
-        private Integer queueCapacity = 100;
-
-        /**
-         * 锁定时间（毫秒）
-         */
-        private Integer lockTimeInMillis = 300000;
-    }
+    private int cacheExpireMinutes = 30;
 }

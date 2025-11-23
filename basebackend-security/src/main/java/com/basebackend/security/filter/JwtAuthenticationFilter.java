@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUtil;
+import com.basebackend.security.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,7 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,19 +40,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 获取Token
             String token = getTokenFromRequest(request);
 
+            // 检查Token是否在黑名单中
+            if (StringUtils.hasText(token) && tokenBlacklistService.isBlacklisted(token)) {
+                log.warn("Token已在黑名单中，已拒绝访问: token={}", token);
+                handleAuthenticationError(response, "Token已失效");
+                return;
+            }
+
             // 验证Token
             if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
-                String subject = jwtUtil.getSubjectFromToken(token);
+                // 优先使用userId作为principal，确保PermissionService能正确获取
+                Long userId = jwtUtil.getUserIdFromToken(token);
+                String username = jwtUtil.getSubjectFromToken(token);
+
+                // 如果能获取到userId，使用userId作为principal；否则使用username
+                Object principal = userId != null ? userId : username;
 
                 // 创建认证对象
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(subject, null, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // 设置到安全上下文
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("设置用户认证信息到SecurityContext: {}", subject);
+                log.debug("设置用户认证信息到SecurityContext: userId={}, username={}", userId, username);
             }
 
             filterChain.doFilter(request, response);

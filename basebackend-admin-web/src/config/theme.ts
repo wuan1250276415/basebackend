@@ -12,75 +12,105 @@ export type LayoutMode = 'side' | 'top' | 'mix';
 
 /**
  * 预设主题色
+ * Fluent 2 palettes
  */
 export const presetColors = [
-  { name: '拂晓蓝', value: '#1890ff' },
-  { name: '薄暮红', value: '#f5222d' },
-  { name: '火山橙', value: '#fa541c' },
-  { name: '日暮黄', value: '#faad14' },
-  { name: '极光绿', value: '#52c41a' },
-  { name: '明青', value: '#13c2c2' },
-  { name: '极客蓝', value: '#2f54eb' },
-  { name: '酱紫', value: '#722ed1' },
+  { name: 'Fluent Blue', value: '#0078D4' },
+  { name: 'Teal', value: '#008272' },
+  { name: 'Green', value: '#107C10' },
+  { name: 'Purple', value: '#5C2D91' },
+  { name: 'Magenta', value: '#B4009E' },
+  { name: 'Red', value: '#D13438' },
+  { name: 'Orange', value: '#D83B01' },
 ];
 
 /**
- * 浅色主题配置
+ * 浅色主题配置 - Fluent Style
  */
 export const lightTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#1890ff',
-    borderRadius: 6,
+    colorPrimary: '#0078D4', // Microsoft Blue
+    borderRadius: 8,         // Medium radius
+    borderRadiusSM: 4,       // Small radius
+    borderRadiusLG: 12,      // Large radius
     colorBgContainer: '#ffffff',
     colorBgElevated: '#ffffff',
-    colorBgLayout: '#f5f5f5',
-    colorText: '#000000d9',
-    colorTextSecondary: '#00000073',
-    colorBorder: '#d9d9d9',
+    colorBgLayout: '#f3f3f3', // Mica light
+    colorText: '#242424',
+    colorTextSecondary: '#424242',
+    colorBorder: '#e1e1e1',
+    fontFamily: "'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif",
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.04)', // Soft shadow
   },
   components: {
     Layout: {
-      headerBg: '#001529',
-      headerHeight: 64,
-      siderBg: '#001529',
-      bodyBg: '#f0f2f5',
+      headerBg: 'rgba(255, 255, 255, 0.8)', // Acrylic fallback
+      headerHeight: 60,
+      siderBg: 'rgba(255, 255, 255, 0.8)',   // Acrylic fallback
+      bodyBg: 'transparent', // Let Mica background show through
     },
     Menu: {
-      darkItemBg: '#001529',
-      darkItemSelectedBg: '#1890ff',
-      darkItemColor: 'rgba(255, 255, 255, 0.65)',
-      darkItemSelectedColor: '#fff',
+      itemBorderRadius: 6,
+      itemHeight: 40,
+      colorItemBg: 'transparent',
+      itemSelectedColor: '#0078D4',
+      itemSelectedBg: '#EFF6FC', // Light blue highlight
+      activeBarBorderWidth: 3,
     },
+    Button: {
+      borderRadius: 4,
+      controlHeight: 32,
+      defaultShadow: '0px 1px 1px rgba(0, 0, 0, 0.05)', // Subtle shadow
+      primaryShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    },
+    Card: {
+      borderRadiusLG: 12,
+      boxShadowTertiary: '0px 2px 4px rgba(0, 0, 0, 0.04)',
+    },
+    Input: {
+      borderRadius: 4,
+      activeBorderColor: '#0078D4',
+      hoverBorderColor: '#005A9E',
+    }
   },
 };
 
 /**
- * 深色主题配置
+ * 深色主题配置 - Fluent Style
  */
 export const darkTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#1890ff',
-    borderRadius: 6,
-    colorBgContainer: '#141414',
-    colorBgElevated: '#1f1f1f',
-    colorBgLayout: '#000000',
-    colorText: '#ffffffd9',
-    colorTextSecondary: '#ffffff73',
-    colorBorder: '#434343',
+    colorPrimary: '#479EF5', // Lighter blue for dark mode
+    borderRadius: 8,
+    colorBgContainer: '#292929',
+    colorBgElevated: '#333333',
+    colorBgLayout: '#202020', // Mica dark
+    colorText: '#ffffff',
+    colorTextSecondary: '#d1d1d1',
+    colorBorder: '#424242',
+    fontFamily: "'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif",
   },
   components: {
     Layout: {
-      headerBg: '#141414',
-      headerHeight: 64,
-      siderBg: '#141414',
-      bodyBg: '#000000',
+      headerBg: 'rgba(32, 32, 32, 0.8)',
+      headerHeight: 60,
+      siderBg: 'rgba(32, 32, 32, 0.8)',
+      bodyBg: 'transparent',
     },
     Menu: {
-      darkItemBg: '#141414',
-      darkItemSelectedBg: '#1890ff',
-      darkItemColor: 'rgba(255, 255, 255, 0.65)',
-      darkItemSelectedColor: '#fff',
+      itemBorderRadius: 6,
+      itemHeight: 40,
+      colorItemBg: 'transparent',
+      itemSelectedColor: '#ffffff',
+      itemSelectedBg: 'rgba(255, 255, 255, 0.1)',
+      activeBarBorderWidth: 3,
     },
+    Button: {
+      borderRadius: 4,
+    },
+    Card: {
+      borderRadiusLG: 12,
+    }
   },
 };
 
@@ -93,6 +123,11 @@ export const getThemeConfig = (mode: ThemeMode, primaryColor?: string): ThemeCon
   const isDark = mode === 'dark' || (mode === 'auto' && systemDark);
 
   const baseTheme = isDark ? darkTheme : lightTheme;
+
+  // 更新 data-theme 属性以便 CSS 变量生效
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }
 
   // 如果指定了主题色，覆盖默认主题色
   if (primaryColor) {

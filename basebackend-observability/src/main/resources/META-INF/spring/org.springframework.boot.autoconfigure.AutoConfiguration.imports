@@ -1,0 +1,5 @@
+com.basebackend.observability.otel.config.OtelAutoConfiguration
+com.basebackend.observability.otel.config.BridgeConfiguration
+com.basebackend.observability.slo.config.SloConfiguration
+com.basebackend.observability.tracing.config.TracingAutoConfiguration
+com.basebackend.observability.logging.config.LoggingAutoConfiguration

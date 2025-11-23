@@ -1,0 +1,117 @@
+# ========================================
+# Development Environment Configuration
+# ========================================
+# 开发环境专用配置,覆盖application.yml中的默认配置。
+# 激活方式: SPRING_PROFILES_ACTIVE=dev
+#
+# 特点:
+# - 更详细的日志输出(DEBUG级别)
+# - 更友好的时区(Asia/Shanghai)
+# - 更易读的JSON输出(美化)
+# - 禁用生产环境特性(如缓存、限流等)
+# ========================================
+
+# ========== Spring核心配置覆盖 ==========
+spring:
+  # Jackson配置覆盖
+  jackson:
+    # 开发环境使用东八区时间,方便调试
+    time-zone: Asia/Shanghai
+
+    # 日期格式: 不带时区标识的格式(开发环境更直观)
+    date-format: yyyy-MM-dd HH:mm:ss
+
+    serialization:
+      # 美化JSON输出,便于阅读和调试
+      indent-output: true
+
+      # 开发环境显示所有字段(包括null),便于发现问题
+      default-property-inclusion: ALWAYS
+
+  # ========== MyBatis Plus配置 ==========
+  # 开发环境显示SQL和参数
+  mybatis-plus:
+    configuration:
+      # 打印SQL语句
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ========== 日志配置覆盖 ==========
+logging:
+  level:
+    # 开发环境使用DEBUG级别,输出更详细的日志
+    root: DEBUG
+
+    # 模块日志级别 - DEBUG
+    com.basebackend.scheduler: DEBUG
+
+    # Camunda日志级别 - INFO(开发环境需要看到流程执行细节)
+    org.camunda.bpm: INFO
+
+    # PowerJob日志级别 - DEBUG
+    tech.powerjob: DEBUG
+
+    # Spring框架日志级别 - INFO
+    org.springframework: INFO
+
+    # MyBatis日志级别 - DEBUG(显示SQL)
+    com.basebackend.scheduler.mapper: DEBUG
+
+    # SQL语句日志 - DEBUG
+    com.basebackend.scheduler.dal: DEBUG
+
+  # 日志输出格式 - 开发环境使用彩色输出
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+
+# ========== Scheduler配置覆盖 ==========
+scheduler:
+  # 开发环境使用东八区时间
+  time-zone: Asia/Shanghai
+
+  # 开发环境降低并发数,方便调试
+  max-concurrent-workflows: 2
+
+  # ========== 分页配置 ==========
+  page:
+    # 开发环境允许查询所有数据(方便调试)
+    allow-query-all: true
+
+    # 开发环境减小默认页面大小(快速加载)
+    default-page-size: 10
+
+  # ========== PowerJob配置覆盖 ==========
+  powerjob:
+    # 开发环境使用远程PowerJob服务器
+    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
+
+    # 开发环境使用简单Token(生产环境应使用加密Token)
+    token: ${POWERJOB_TOKEN:dev-token}
+
+    # 开发环境减少线程池大小
+    worker-core-pool-size: 2
+    worker-max-pool-size: 4
+
+    # 开发环境增加心跳间隔(减少网络开销)
+    heartbeat-interval-millis: 10000
+
+# ========== Management配置覆盖 ==========
+management:
+  # 开发环境暴露所有端点,方便调试
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  # 开发环境总是显示健康检查详情
+  health:
+    show-details: always
+
+# ========================================
+# 开发环境注意事项
+# ========================================
+# 1. 时区设置为Asia/Shanghai,与生产环境(UTC)不同,注意时间转换
+# 2. 日志级别为DEBUG,会产生大量日志,仅适用于开发环境
+# 3. 允许查询所有数据(allow-query-all: true),生产环境禁止开启
+# 4. 暴露所有Actuator端点,生产环境必须限制
+# 5. PowerJob使用本地服务器和简单Token,生产环境必须配置正式地址和加密Token
+# ========================================

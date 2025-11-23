@@ -1,0 +1,37 @@
+spring:
+  data:
+    redis:
+      # Redis configuration will be provided by Testcontainers
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+basebackend:
+  cache:
+    enabled: true
+    multi-level:
+      enabled: false
+      local-max-size: 100
+      local-ttl: 5m
+      eviction-policy: LRU
+    metrics:
+      enabled: true
+      low-hit-rate-threshold: 0.5
+    warming:
+      enabled: true
+      timeout: 5m
+      async: false
+    serialization:
+      type: json
+    resilience:
+      fallback-enabled: true
+      timeout: 3s
+      circuit-breaker-threshold: 5
+
+logging:
+  level:
+    com.basebackend.cache: DEBUG
+    org.testcontainers: INFO

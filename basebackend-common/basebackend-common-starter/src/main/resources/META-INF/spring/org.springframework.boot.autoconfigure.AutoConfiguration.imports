@@ -1,0 +1,2 @@
+com.basebackend.common.starter.CommonAutoConfiguration
+com.basebackend.common.starter.config.UserContextAutoConfiguration

@@ -1,0 +1,18 @@
+# Spring Boot 2.x 自动配置支持
+# Nacos 自动配置
+
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.basebackend.nacos.config.NacosAutoConfiguration,\
+com.basebackend.nacos.config.NacosConfigConfiguration,\
+com.basebackend.nacos.config.NacosDiscoveryConfiguration
+
+# 说明：
+# - NacosAutoConfiguration: 聚合配置入口，负责聚合子配置类
+# - NacosConfigConfiguration: 配置中心子配置，负责ConfigService创建
+# - NacosDiscoveryConfiguration: 服务发现子配置，负责NamingService创建
+#
+# 注意：
+# 1. Spring Boot 2.x需要在此文件中配置所有自动配置类
+# 2. Spring Boot 2.7+则使用META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+# 3. 保持向后兼容，同时支持Spring Boot 2.x和2.7+
+# 4. 实际加载时还会根据@ConditionalOnProperty等条件注解进行判断

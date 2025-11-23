@@ -1,0 +1,312 @@
+# ============================================================================
+# Base Backend Observability - 生产环境配置示例
+# ============================================================================
+# 本配置文件包含所有可观测性功能的推荐生产环境配置
+# 请根据实际环境调整参数
+# ============================================================================
+
+observability:
+  # --------------------------------------------------------------------------
+  # Phase 1: OpenTelemetry 基础设施配置
+  # --------------------------------------------------------------------------
+  otel:
+    enabled: true
+    service-name: ${spring.application.name:base-backend}
+    service-version: ${app.version:1.0.0}
+
+    # OTLP 导出配置（推荐使用 OTLP 协议）
+    exporter:
+      type: otlp                          # otlp/jaeger/zipkin/logging
+      endpoint: http://otel-collector:4317  # OTLP gRPC endpoint
+      timeout: 10s
+      compression: gzip
+      headers:
+        authorization: "Bearer ${OTEL_API_KEY:}"
+
+    # 资源属性（帮助在可观测性平台中标识服务）
+    resource:
+      attributes:
+        deployment.environment: production
+        service.namespace: basebackend
+        service.instance.id: ${HOSTNAME:unknown}
+        host.name: ${HOSTNAME:unknown}
+
+    # 批处理配置（优化性能）
+    batch:
+      schedule-delay: 5s
+      max-queue-size: 2048
+      max-export-batch-size: 512
+      export-timeout: 30s
+
+  # --------------------------------------------------------------------------
+  # Phase 2: SLO 监控配置
+  # --------------------------------------------------------------------------
+  slo:
+    enabled: true
+
+    slos:
+      # 用户 API 可用性 SLO
+      - name: user-api-availability
+        type: AVAILABILITY
+        target: 0.995                     # 99.5% 可用性目标
+        window: 30d                       # 30 天滚动窗口
+        service: user-service
+        method: UserController.*
+        burn-rate-windows:
+          - 1h                            # 1小时窗口（快速检测）
+          - 6h                            # 6小时窗口（中期检测）
+          - 24h                           # 24小时窗口（长期检测）
+
+      # 用户 API 延迟 SLO (P95)
+      - name: user-api-latency-p95
+        type: LATENCY
+        target: 0.95                      # 95% 请求低于阈值
+        window: 30d
+        service: user-service
+        method: UserController.*
+        latency-threshold-ms: 500         # 500ms 延迟阈值
+        percentile: 0.95
+        burn-rate-windows:
+          - 1h
+          - 6h
+
+      # 系统 API 可用性 SLO
+      - name: system-api-availability
+        type: AVAILABILITY
+        target: 0.99                      # 99% 可用性目标
+        window: 30d
+        service: system-service
+        method: SystemController.*
+        burn-rate-windows:
+          - 1h
+          - 6h
+          - 24h
+
+      # 错误率 SLO
+      - name: user-api-error-rate
+        type: ERROR_RATE
+        target: 0.99                      # 99% 成功率
+        window: 7d
+        service: user-service
+        method: UserController.*
+        burn-rate-windows:
+          - 1h
+          - 6h
+
+  # --------------------------------------------------------------------------
+  # Phase 3: 分布式追踪配置
+  # --------------------------------------------------------------------------
+  tracing:
+    enabled: true
+
+    # 上下文传播配置
+    propagation:
+      enabled: true
+      business-keys:
+        - X-Tenant-Id
+        - X-User-Id
+        - X-Request-Id
+        - X-Channel-Id
+
+    # HTTP 追踪配置
+    http:
+      server:
+        enabled: true
+        url-patterns:
+          - /api/**
+        exclude-patterns:
+          - /actuator/**
+          - /health
+          - /metrics
+      client:
+        enabled: true
+        capture-request-headers: true
+        capture-response-headers: false
+
+    # 采样策略配置
+    sampler:
+      enabled: true
+      default-rate: 0.1                   # 默认 10% 采样率
+      always-sample-errors: true          # 始终采样错误请求
+      always-sample-slow: true            # 始终采样慢请求
+      latency-threshold-ms: 1000          # 1秒视为慢请求
+
+      # 规则采样（优先级高）
+      rules:
+        # 管理 API 100% 采样
+        - url-pattern: "/api/admin/.*"
+          rate: 1.0
+        # 认证 API 100% 采样
+        - url-pattern: "/api/auth/.*"
+          rate: 1.0
+        # 用户 API 20% 采样
+        - url-pattern: "/api/user/.*"
+          rate: 0.2
+
+      # 动态采样（生产环境建议禁用）
+      dynamic:
+        enabled: false
+        initial-rate: 0.1
+        min-rate: 0.01
+        max-rate: 0.5
+        target-spans-per-minute: 1000
+        adjust-interval: 30s
+
+  # --------------------------------------------------------------------------
+  # Phase 4: 日志系统增强配置
+  # --------------------------------------------------------------------------
+  logging:
+    enabled: true
+
+    # 日志格式配置
+    format:
+      type: json                          # 生产环境推荐 JSON
+      include-trace-context: true
+      include-business-context: true
+      timestamp-format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+      custom-fields:
+        app: ${spring.application.name}
+        env: production
+
+    # 敏感信息脱敏
+    masking:
+      enabled: true
+      rules:
+        # 银行卡号
+        - field-pattern: "creditCard|cardNumber|bankCard"
+          strategy: PARTIAL
+          partial-pattern: "4-4"
+        # 身份证号
+        - field-pattern: "idCard|idNumber"
+          strategy: PARTIAL
+          partial-pattern: "6-4"
+        # 手机号
+        - field-pattern: "mobile|phone"
+          strategy: PARTIAL
+          partial-pattern: "3-4"
+        # 密码/密钥
+        - field-pattern: "password|pwd|secret|apiKey|accessKey"
+          strategy: HIDE
+        # 邮箱
+        - field-pattern: "email"
+          strategy: PARTIAL
+          partial-pattern: "1-0"
+        # 敏感业务数据
+        - field-pattern: "ssn|socialSecurity|taxId"
+          strategy: HASH
+
+    # 日志采样（减少日志量）
+    sampling:
+      enabled: true
+      rules:
+        # ERROR/WARN 100% 采样
+        - level: ERROR
+          rate: 1.0
+        - level: WARN
+          rate: 1.0
+        # INFO 根据包名分级采样
+        - level: INFO
+          rate: 1.0
+          package-name: com.basebackend.user.controller  # 核心 API 全量
+        - level: INFO
+          rate: 0.2
+          package-name: com.basebackend.user.service     # 业务逻辑 20%
+        - level: INFO
+          rate: 0.1                                      # 其他 INFO 10%
+        # DEBUG 低采样率
+        - level: DEBUG
+          rate: 0.01                                     # DEBUG 1%
+
+    # 日志路由（多目标输出）
+    routing:
+      enabled: true
+      destinations:
+        # 控制台（所有 INFO 及以上）
+        - name: console
+          type: console
+          enabled: true
+          level: INFO
+
+        # 错误日志文件
+        - name: error-file
+          type: file
+          enabled: true
+          level: ERROR
+          path: /var/log/basebackend/error.log
+
+        # 审计日志文件（仅审计类别）
+        - name: audit-file
+          type: file
+          enabled: true
+          level: INFO
+          category: AUDIT
+          path: /var/log/basebackend/audit.log
+
+        # Loki 远程日志（推荐用于生产）
+        - name: loki
+          type: loki
+          enabled: true
+          level: INFO
+          url: http://loki:3100
+          batch-size: 100
+          batch-timeout: 1s
+
+# ============================================================================
+# Spring Boot Actuator 集成（暴露 Metrics 和健康检查）
+# ============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true                     # 启用 K8s 就绪/存活探针
+    prometheus:
+      enabled: true
+
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: production
+
+  # OpenTelemetry Metrics 集成
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: http://otel-collector:4317
+        step: 30s                         # 30秒推送一次
+
+# ============================================================================
+# 日志框架配置（Logback）
+# ============================================================================
+logging:
+  level:
+    root: INFO
+    com.basebackend: INFO
+    org.springframework: WARN
+    io.opentelemetry: WARN
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] - %msg%n"
+
+  file:
+    name: /var/log/basebackend/application.log
+    max-size: 100MB
+    max-history: 30
+
+# ============================================================================
+# 环境变量占位符说明
+# ============================================================================
+# ${OTEL_API_KEY}      - OpenTelemetry 后端 API 密钥
+# ${HOSTNAME}          - 容器/主机名（K8s 自动注入）
+# ${spring.application.name} - 应用名称
+# ${app.version}       - 应用版本号

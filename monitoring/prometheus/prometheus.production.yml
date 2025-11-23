@@ -1,0 +1,117 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'basebackend-production'
+    replica: 'prometheus-prod-1'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus 自监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # BaseBackend Scheduler Service
+  - job_name: 'basebackend-scheduler'
+    static_configs:
+      - targets: ['scheduler:8080', 'scheduler-secondary:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - replacement: scheduler-metrics
+        target_label: job
+
+  # BaseBackend Gateway
+  - job_name: 'basebackend-gateway'
+    static_configs:
+      - targets: ['gateway:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+
+  # BaseBackend Admin API
+  - job_name: 'basebackend-admin-api'
+    static_configs:
+      - targets: ['admin-api:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+
+  # PostgreSQL 数据库监控
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis 监控
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Docker 容器监控
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Node Exporter (系统指标)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Nginx 监控
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Camunda 引擎指标
+  - job_name: 'camunda'
+    static_configs:
+      - targets: ['scheduler:8080']
+    scrape_interval: 15s
+    metrics_path: /camunda/metrics
+    scrape_timeout: 5s
+
+  # PowerJob Worker 指标
+  - job_name: 'powerjob-worker'
+    static_configs:
+      - targets: ['scheduler:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 5s
+
+# 远程存储配置（可选）
+# remote_write:
+#   - url: "https://your-remote-storage-endpoint/api/v1/write"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# 远程读取配置（可选）
+# remote_read:
+#   - url: "https://your-remote-storage-endpoint/api/v1/read"

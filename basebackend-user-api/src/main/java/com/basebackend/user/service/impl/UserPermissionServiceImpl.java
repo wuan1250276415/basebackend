@@ -1,13 +1,15 @@
 package com.basebackend.user.service.impl;
 
 import com.basebackend.cache.service.RedisService;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.security.service.PermissionService;
-import com.basebackend.user.context.UserContextHolder;
 import com.basebackend.user.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,11 +33,14 @@ public class UserPermissionServiceImpl implements PermissionService {
             return List.of();
         }
 
-        // 从Redis缓存获取
+        // 从Redis缓存获取 - 添加空检查避免NPE
         String key = USER_PERMISSIONS_KEY + userId;
-        List<String> permissions = redisService.getList(key).stream().map(Object::toString).toList();
+        List<Object> cached = redisService.getList(key);
+        List<String> permissions = CollectionUtils.isEmpty(cached)
+                ? Collections.emptyList()
+                : cached.stream().map(Object::toString).toList();
 
-        if (permissions == null) {
+        if (permissions.isEmpty()) {
             // 从数据库查询
             permissions = userMapper.selectUserPermissions(userId);
             // 缓存30分钟
@@ -52,11 +57,14 @@ public class UserPermissionServiceImpl implements PermissionService {
             return List.of();
         }
 
-        // 从Redis缓存获取
+        // 从Redis缓存获取 - 添加空检查避免NPE
         String key = USER_ROLES_KEY + userId;
-        List<String> roles = redisService.getList(key).stream().map(Object::toString).toList();
+        List<Object> cached = redisService.getList(key);
+        List<String> roles = CollectionUtils.isEmpty(cached)
+                ? Collections.emptyList()
+                : cached.stream().map(Object::toString).toList();
 
-        if (roles == null) {
+        if (roles.isEmpty()) {
             // 从数据库查询
             roles = userMapper.selectUserRoles(userId);
             // 缓存30分钟

@@ -1,24 +1,19 @@
 package com.basebackend.scheduler.camunda.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
  * 任务DTO
+ *
+ * @author BaseBackend Team
+ * @version 1.0.0
+ * @since 2025-01-01
  */
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskDTO implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class TaskDTO {
 
     /**
      * 任务ID
@@ -31,9 +26,14 @@ public class TaskDTO implements Serializable {
     private String name;
 
     /**
-     * 任务定义Key
+     * 任务描述
      */
-    private String taskDefinitionKey;
+    private String description;
+
+    /**
+     * 任务Key
+     */
+    private String key;
 
     /**
      * 流程实例ID
@@ -51,44 +51,74 @@ public class TaskDTO implements Serializable {
     private String executionId;
 
     /**
-     * 办理人
+     * 任务创建时间
      */
-    private String assignee;
+    private LocalDateTime createTime;
 
     /**
-     * 候选用户列表
+     * 任务认领时间
      */
-    private String candidateUsers;
+    private LocalDateTime claimTime;
 
     /**
-     * 候选组列表
+     * 截止日期
      */
-    private String candidateGroups;
+    private LocalDateTime dueDate;
 
     /**
-     * 创建时间
+     * 跟进日期
      */
-    private Date createTime;
+    private LocalDateTime followUpDate;
 
     /**
-     * 到期时间
-     */
-    private Date dueDate;
-
-    /**
-     * 跟进时间
-     */
-    private Date followUpDate;
-
-    /**
-     * 优先级
+     * 任务优先级
      */
     private Integer priority;
 
     /**
-     * 描述
+     * 任务所属者
      */
-    private String description;
+    private String owner;
+
+    /**
+     * 任务受理人
+     */
+    private String assignee;
+
+    /**
+     * 任务类别
+     */
+    private String category;
+
+    /**
+     * 表单Key
+     */
+    private String formKey;
+
+    /**
+     * 任务状态
+     */
+    private String status;
+
+    /**
+     * 是否已挂起
+     */
+    private Boolean suspended;
+
+    /**
+     * 任务变量
+     */
+    private Map<String, Object> variables;
+
+    /**
+     * 任务活动ID
+     */
+    private String activityId;
+
+    /**
+     * 任务活动实例ID
+     */
+    private String activityInstanceId;
 
     /**
      * 租户ID
@@ -96,7 +126,13 @@ public class TaskDTO implements Serializable {
     private String tenantId;
 
     /**
-     * 任务变量
+     * 任务状态枚举
      */
-    private Map<String, Object> variables;
+    public enum Status {
+        CREATED,     // 已创建
+        ASSIGNED,    // 已分配
+        COMPLETED,   // 已完成
+        CANCELLED,   // 已取消
+        SUSPENDED    // 已挂起
+    }
 }

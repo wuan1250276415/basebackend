@@ -1,0 +1,27 @@
+-- Create SQL statistics table
+CREATE TABLE IF NOT EXISTS sys_sql_statistics (
+    id BIGINT NOT NULL PRIMARY KEY COMMENT '主键ID',
+    sql_md5 VARCHAR(32) NOT NULL COMMENT 'SQL语句的MD5值',
+    sql_template TEXT NOT NULL COMMENT 'SQL模板（参数化后的SQL语句）',
+    execute_count BIGINT NOT NULL DEFAULT 0 COMMENT '执行次数',
+    total_time BIGINT NOT NULL DEFAULT 0 COMMENT '总执行时间（毫秒）',
+    avg_time BIGINT NOT NULL DEFAULT 0 COMMENT '平均执行时间（毫秒）',
+    max_time BIGINT NOT NULL DEFAULT 0 COMMENT '最大执行时间（毫秒）',
+    min_time BIGINT NOT NULL DEFAULT 0 COMMENT '最小执行时间（毫秒）',
+    fail_count BIGINT NOT NULL DEFAULT 0 COMMENT '失败次数',
+    last_execute_time DATETIME COMMENT '最后执行时间',
+    data_source_name VARCHAR(100) COMMENT '数据源名称',
+    tenant_id VARCHAR(64) COMMENT '租户ID',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by BIGINT COMMENT '创建人',
+    update_by BIGINT COMMENT '更新人',
+    deleted INT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记（0：未删除，1：已删除）',
+    INDEX idx_sql_md5 (sql_md5),
+    INDEX idx_execute_count (execute_count),
+    INDEX idx_avg_time (avg_time),
+    INDEX idx_fail_count (fail_count),
+    INDEX idx_last_execute_time (last_execute_time),
+    INDEX idx_data_source (data_source_name),
+    INDEX idx_tenant (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SQL统计表';

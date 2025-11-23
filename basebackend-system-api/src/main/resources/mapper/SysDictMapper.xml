@@ -10,15 +10,5 @@
         AND deleted = 0
     </select>
 
-    <!-- 检查字典类型是否唯一 -->
-    <select id="checkDictTypeUnique" resultType="int">
-        SELECT COUNT(1)
-        FROM sys_dict
-        WHERE dict_type = #{dictType}
-        AND deleted = 0
-        <if test="dictId != null">
-            AND id != #{dictId}
-        </if>
-    </select>
 
 </mapper>

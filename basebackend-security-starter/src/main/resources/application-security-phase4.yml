@@ -1,0 +1,328 @@
+# BaseBackend Security Phase 4 - OAuth2 & mTLS & Zero Trust 配置示例
+# 用于开发和测试环境
+
+# ==============================
+# OAuth2 资源服务器配置
+# ==============================
+basebackend:
+  security:
+    oauth2:
+      enabled: true
+      jwt:
+        # JWK Set URI - 授权服务器提供的公钥获取地址
+        jwk-set-uri: ${JWT_JWK_SET_URI:https://auth.example.com/oauth2/jwks}
+        # Token签发者URI
+        issuer-uri: ${JWT_ISSUER_URI:https://auth.example.com}
+        # Token受众
+        audience: ${JWT_AUDIENCE:basebackend-api}
+        # 时间偏差容忍（秒）
+        clock-skew: 300
+        # 是否缓存JWK Set
+        cache-jwk-set: true
+        # JWK Set缓存时间（秒）
+        jwk-set-cache-ttl: 3600
+        # JWK Set缓存大小
+        jwk-set-cache-size: 5
+      authorization-server:
+        # 授权服务器URL
+        url: ${OAUTH2_AUTH_SERVER:https://auth.example.com}
+        # 客户端ID
+        client-id: ${OAUTH2_CLIENT_ID:basebackend-client}
+        # 客户端密钥
+        client-secret: ${OAUTH2_CLIENT_SECRET:your-client-secret}
+        # 授权服务器元数据URI
+        metadata-uri: ${OAUTH2_METADATA_URI:https://auth.example.com/oauth2/.well-known/openid-configuration}
+        # Token URI
+        token-uri: ${OAUTH2_TOKEN_URI:https://auth.example.com/oauth2/token}
+        # 用户信息URI
+        user-info-uri: ${OAUTH2_USER_INFO_URI:https://auth.example.com/oauth2/userinfo}
+        # 是否启用PKCE
+        enable-pkce: true
+        refresh-token:
+          enabled: true
+          refresh-threshold: 300
+          timeout: 10000
+          retry-count: 3
+          retry-interval: 1000
+      resource-server:
+        # 资源ID列表
+        resource-ids:
+          - "api://scheduler"
+          - "api://system"
+          - "api://user"
+        permission-strategy:
+          # 权限字段优先级
+          fields-priority:
+            - "permissions"
+            - "roles"
+            - "scopes"
+            - "authorities"
+          # 是否启用通配符权限匹配
+          enable-wildcard-match: true
+          # 通配符分隔符
+          wildcard-separator: ":"
+          # 是否启用角色权限继承
+          enable-role-inheritance: true
+          # 超级管理员角色
+          super-admin-roles:
+            - "admin"
+            - "super_admin"
+        token-validation:
+          # 是否验证Token时效性
+          enable-expiration-check: true
+          # 是否验证Token签发者
+          enable-issuer-check: true
+          # 是否验证Token受众
+          enable-audience-check: true
+          # 是否验证Token用途
+          enable-scope-check: true
+          # 是否启用Token吊销检查
+          enable-revocation-check: false
+          # 时间偏差容忍（秒）
+          clock-skew: 300
+        cache:
+          enabled: true
+          expire-time: 1800
+          max-size: 10000
+          key-prefix: "oauth2:permission:"
+          use-user-id-as-key: true
+
+# ==============================
+# mTLS 双向TLS认证配置
+# ==============================
+  mtls:
+    enabled: true
+    client:
+      # 客户端证书路径
+      key-store-path: ${MTLS_CLIENT_KEYSTORE:/etc/ssl/mtls/client.jks}
+      # 客户端KeyStore密码
+      key-store-password: ${MTLS_CLIENT_KEYSTORE_PASSWORD:changeit}
+      # 客户端私钥密码
+      key-password: ${MTLS_CLIENT_KEY_PASSWORD:changeit}
+      # KeyStore类型
+      key-store-type: "JKS"
+      # 客户端信任库路径
+      trust-store-path: ${MTLS_CLIENT_TRUSTSTORE:/etc/ssl/mtls/client-trust.jks}
+      # 客户端信任库密码
+      trust-store-password: ${MTLS_CLIENT_TRUSTSTORE_PASSWORD:changeit}
+      # 连接超时时间（毫秒）
+      connect-timeout: 10000
+      # 读取超时时间（毫秒）
+      read-timeout: 30000
+      # 是否自动生成自签名证书（仅限开发环境）
+      generate-self-signed: true
+      # 客户端通用名称
+      common-name: "BaseBackend Client"
+      # 是否启用证书吊销检查
+      enable-revocation-check: false
+      # 是否启用证书有效性检查
+      enable-validity-check: true
+      # 证书有效期检查提前天数
+      expiry-warning-days: 30
+    server:
+      # 是否启用服务端mTLS
+      enabled: true
+      # 服务端证书路径
+      key-store-path: ${MTLS_SERVER_KEYSTORE:/etc/ssl/mtls/server.jks}
+      # 服务端KeyStore密码
+      key-store-password: ${MTLS_SERVER_KEYSTORE_PASSWORD:changeit}
+      # 服务端私钥密码
+      key-password: ${MTLS_SERVER_KEY_PASSWORD:changeit}
+      # KeyStore类型
+      key-store-type: "JKS"
+      # 服务端信任库路径（用于验证客户端证书）
+      trust-store-path: ${MTLS_SERVER_TRUSTSTORE:/etc/ssl/mtls/server-trust.jks}
+      # 服务端信任库密码
+      trust-store-password: ${MTLS_SERVER_TRUSTSTORE_PASSWORD:changeit}
+      # 服务端通用名称
+      common-name: "BaseBackend Server"
+      # 客户端认证策略
+      client-auth: "REQUIRED"
+      # 是否要求客户端证书链完整
+      require-full-chain: true
+      # 允许的客户端证书主题过滤器
+      allowed-subject-pattern: ".*"
+      # 允许的客户端证书颁发者过滤器
+      allowed-issuer-pattern: ".*"
+      # TLS协议版本
+      enabled-protocols:
+        - "TLSv1.2"
+        - "TLSv1.3"
+      # 启用的加密套件
+      enabled-cipher-suites:
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_RSA_WITH_AES_128_GCM_SHA256"
+      # 是否启用客户端证书缓存
+      enable-client-cert-cache: true
+      # 客户端证书缓存大小
+      client-cert-cache-size: 1000
+      # 客户端证书缓存超时（秒）
+      client-cert-cache-timeout: 3600
+    global:
+      # 是否启用调试模式
+      debug-enabled: false
+      # 证书监控周期（分钟）
+      monitoring-interval-minutes: 60
+      # 证书过期告警阈值（天）
+      expiry-alert-days: 30
+      # 是否启用证书自动轮换
+      enable-auto-renewal: false
+      # 证书轮换提前天数
+      renewal-days-before-expiry: 7
+      # 是否启用证书健康检查
+      enable-health-check: true
+      # 健康检查超时时间（秒）
+      health-check-timeout: 30
+      # 证书加载策略
+      load-strategy: "EAGER"
+      # 是否启用SSL Session缓存
+      enable-session-cache: true
+      # SSL Session缓存大小
+      session-cache-size: 100
+      # SSL Session超时时间（秒）
+      session-timeout: 300
+
+# ==============================
+# 零信任安全配置
+# ==============================
+  zerotrust:
+    enabled: true
+    device:
+      # 是否启用设备指纹收集
+      enabled: true
+      # 指纹收集超时时间（毫秒）
+      timeout: 30000
+      # 设备指纹缓存过期时间（分钟）
+      cache-expire-minutes: 60
+      # 是否启用设备指纹哈希验证
+      enable-hash-verification: true
+      # 是否启用设备指纹持久化存储
+      enable-persistence: false
+      # 设备指纹数据库表名
+      table-name: "device_fingerprints"
+    risk:
+      # 风险阈值（0-100）
+      threshold: 60
+      # 高风险阈值（0-100）
+      high-threshold: 80
+      # 最大登录尝试次数
+      max-login-attempts: 5
+      # 账户锁定时长（分钟）
+      account-lock-duration: 30
+      # 是否启用实时分析
+      real-time-analysis-enabled: true
+      # 是否启用行为分析
+      behavior-analysis-enabled: true
+      # 是否启用网络分析
+      network-analysis-enabled: true
+      # 风险分析更新间隔（秒）
+      analysis-update-interval: 60
+      # 风险历史保存天数
+      history-retention-days: 30
+      # 是否启用机器学习风险预测
+      enable-ml-prediction: false
+    policy:
+      # 信任分数阈值
+      trust-score-threshold: 70
+      # 最大并发会话数
+      max-concurrent-sessions: 3
+      # 会话超时时间（分钟）
+      session-timeout: 30
+      # 是否启用实时监控
+      real-time-monitoring-enabled: true
+      # 是否启用策略缓存
+      cache-enabled: true
+      # 策略缓存TTL（秒）
+      cache-ttl: 300
+      # 是否启用强制模式
+      enforce-mode: true
+      # 是否启用审计日志
+      audit-enabled: true
+      # 策略更新检查间隔（秒）
+      policy-update-interval: 300
+      # 最小访问时间（小时）
+      minimum-access-time: 1
+    monitoring:
+      # 是否启用监控
+      enabled: true
+      # 监控间隔（分钟）
+      interval-minutes: 15
+      # 是否启用实时威胁检测
+      real-time-threat-detection: true
+      # 是否启用行为基线监控
+      behavior-baseline-monitoring: true
+      # 监控数据保存天数
+      data-retention-days: 90
+      # 是否启用监控告警
+      enable-alerts: true
+      # 告警通知间隔（分钟）
+      alert-interval-minutes: 60
+      # 监控指标收集间隔（秒）
+      metrics-collection-interval: 30
+    async:
+      # 核心线程池大小
+      core-pool-size: 5
+      # 最大线程池大小
+      max-pool-size: 20
+      # 队列容量
+      queue-capacity: 100
+      # 线程名称前缀
+      thread-name-prefix: "zerotrust-async-"
+      # 任务执行超时时间（秒）
+      task-timeout-seconds: 300
+      # 是否启用任务日志
+      enable-task-logging: true
+
+# ==============================
+# Spring Security 配置
+# ==============================
+spring:
+  security:
+    # OAuth2资源服务器配置
+    oauth2:
+      resourceserver:
+        jwt:
+          # JWK Set URI配置
+          jwk-set-uri: ${JWT_JWK_SET_URI:https://auth.example.com/oauth2/jwks}
+          issuer-uri: ${JWT_ISSUER_URI:https://auth.example.com}
+          # JWT自定义器
+          jwt-authentication-converter: # 通过代码配置
+
+# ==============================
+# 日志配置
+# ==============================
+logging:
+  level:
+    # 安全相关日志级别
+    com.basebackend.security.oauth2: DEBUG
+    com.basebackend.security.mtls: DEBUG
+    com.basebackend.security.zerotrust: DEBUG
+    # JWT日志
+    org.springframework.security.oauth2: DEBUG
+    # TLS/SSL日志
+    javax.net.ssl: DEBUG
+  pattern:
+    # 添加安全相关的日志格式
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} [%X{userId},%X{sessionId},%X{deviceId}] - %msg%n"
+
+# ==============================
+# Actuator 健康检查配置
+# ==============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    # 启用安全相关指标
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: "basebackend-security"
+      version: "4.0.0"

@@ -1,61 +1,72 @@
 package com.basebackend.nacos.config;
 
-import com.alibaba.nacos.api.NacosFactory;
-import com.alibaba.nacos.api.config.ConfigService;
-import com.alibaba.nacos.api.naming.NamingService;
+import com.basebackend.nacos.repository.GrayReleaseHistoryRepository;
+import com.basebackend.nacos.repository.InMemoryGrayReleaseHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import java.util.Properties;
-
 /**
- * Nacos 自动配置类
+ * Nacos 自动配置聚合类
+ * <p>
+ * 负责聚合配置中心和配置中心子配置类，
+ * 提供统一的配置入口和基础Bean。
+ * </p>
  */
 @Slf4j
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(NacosConfigProperties.class)
-@ConditionalOnProperty(prefix = "nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
-@Import({NacosDiscoveryConfiguration.class, NacosConfigConfiguration.class})
-@ComponentScan("com.basebackend.nacos")
+@ConditionalOnProperty(
+    prefix = "nacos",
+    name = "enabled",
+    havingValue = "true",
+    matchIfMissing = true
+)
+@Import({
+    NacosConfigConfiguration.class,
+    NacosDiscoveryConfiguration.class
+})
+@RequiredArgsConstructor
 public class NacosAutoConfiguration {
 
     private final NacosConfigProperties nacosConfigProperties;
 
-    public NacosAutoConfiguration(NacosConfigProperties nacosConfigProperties) {
-        this.nacosConfigProperties = nacosConfigProperties;
+    /**
+     * 配置验证Bean
+     * 确保关键配置正确性
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public NacosConfigValidator nacosConfigValidator() {
+        return new NacosConfigValidator(nacosConfigProperties);
     }
 
+    /**
+     * Nacos配置管理器
+     */
     @Bean
+    @ConditionalOnMissingBean
     public NacosConfigManager customNacosConfigManager() {
         log.info("初始化自定义 Nacos 配置管理器");
         return new NacosConfigManager(nacosConfigProperties);
     }
 
+    /**
+     * 灰度发布历史仓储
+     * <p>
+     * 默认使用内存实现，生产环境可通过自定义Bean覆盖为数据库实现
+     * </p>
+     */
     @Bean
-    public ConfigService configService() throws Exception {
-        Properties properties = new Properties();
-        properties.put("serverAddr", nacosConfigProperties.getConfig().getServerAddr());
-        properties.put("namespace", nacosConfigProperties.getConfig().getNamespace());
-        properties.put("group", nacosConfigProperties.getConfig().getGroup());
-        properties.put("username", nacosConfigProperties.getConfig().getUsername());
-        properties.put("password", nacosConfigProperties.getConfig().getPassword());
-        log.info("初始化 Nacos ConfigService: {}", properties);
-        return NacosFactory.createConfigService(properties);
-    }
-
-    @Bean
-    public NamingService namingService() throws Exception {
-        Properties properties = new Properties();
-        properties.put("serverAddr", nacosConfigProperties.getDiscovery().getServerAddr());
-        properties.put("namespace", nacosConfigProperties.getDiscovery().getNamespace());
-        log.info("初始化 Nacos NamingService: {}", properties);
-        return NacosFactory.createNamingService(properties);
+    @ConditionalOnMissingBean(GrayReleaseHistoryRepository.class)
+    public GrayReleaseHistoryRepository grayReleaseHistoryRepository() {
+        log.info("初始化内存版灰度发布历史仓储");
+        return new InMemoryGrayReleaseHistoryRepository();
     }
 
 }

@@ -14,6 +14,82 @@ observability:
     endpoint: http://192.168.66.126:9411/api/v2/spans
     query-url: http://192.168.66.126:3200
 
+  # OpenTelemetry 配置（双栈支持）
+  otel:
+    enabled: true  # 启用 OpenTelemetry
+    service:
+      name: ${spring.application.name}
+      version: ${project.version:1.0.0}
+      environment: ${spring.profiles.active:dev}
+    otlp:
+      # OTLP 端点（支持 gRPC 和 HTTP）
+      endpoint: http://192.168.66.126:4317
+      metrics:
+        enabled: true  # 启用指标导出
+      traces:
+        enabled: true  # 启用追踪导出
+      logs:
+        enabled: true  # 启用日志导出
+    bridge:
+      micrometer: true  # 启用 Micrometer 桥接
+      brave: true       # 启用 Brave 桥接
+    sampling-ratio: 1.0  # 采样率（0.0-1.0），开发环境100%，生产环境建议0.01-0.1
+
+  # SLI/SLO/SLA 指标体系配置
+  slo:
+    enabled: true  # 启用 SLO 监控
+    slos:
+      # 可用性 SLO 示例
+      - name: availability
+        type: AVAILABILITY
+        target: 0.995  # 99.5% 可用性目标
+        window: 30d    # 30天滚动窗口
+        burn-rate-windows:  # 多窗口 Burn Rate 监控
+          - 1h
+          - 6h
+          - 24h
+        # 可选：指定监控的服务和方法
+        # 如果不指定，默认使用应用名和 SLO 名称
+        # service: ${spring.application.name}  # 默认值
+        # method: availability  # 默认使用 SLO 名称
+
+      # 延迟 SLO (P95) 示例 - 监控特定方法
+      - name: latency-p95
+        type: LATENCY
+        target: 100.0  # 100ms P95 延迟目标
+        percentile: 0.95
+        window: 30d
+        burn-rate-windows:
+          - 1h
+          - 6h
+        # 重要：如果 @SloMonitored 注解使用了自定义的 sloName，
+        # 这里必须指定实际的 service 和 method，以便正确匹配指标
+        # 例如：@SloMonitored(sloName = "latency-p95") 标记在 UserController.getUser 上
+        # service: user-service
+        # method: UserController.getUser
+
+      # 错误率 SLO 示例
+      - name: error-rate
+        type: ERROR_RATE
+        target: 0.001  # 0.1% 错误率目标
+        window: 30d
+        burn-rate-windows:
+          - 1h
+          - 6h
+          - 24h
+
+      # 完整配置示例：监控特定服务的特定方法
+      # - name: payment-api-availability
+      #   type: AVAILABILITY
+      #   target: 0.999  # 99.9% 可用性目标
+      #   window: 7d
+      #   service: payment-service
+      #   method: PaymentController.processPayment
+      #   burn-rate-windows:
+      #     - 1h
+      #     - 3h
+      #     - 6h
+
   # 告警配置
   alert:
     # 邮件告警

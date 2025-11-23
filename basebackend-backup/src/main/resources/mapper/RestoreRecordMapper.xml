@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.backup.domain.mapper.RestoreRecordMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.basebackend.backup.domain.entity.RestoreRecord">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="task_id" property="taskId" jdbcType="BIGINT"/>
+        <result column="history_id" property="historyId" jdbcType="BIGINT"/>
+        <result column="target_point" property="targetPoint" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="started_at" property="startedAt" jdbcType="TIMESTAMP"/>
+        <result column="finished_at" property="finishedAt" jdbcType="TIMESTAMP"/>
+        <result column="duration_seconds" property="durationSeconds" jdbcType="INTEGER"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="operator" property="operator" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="started_at_ms" property="startedAtMs" jdbcType="BIGINT"/>
+        <result column="finished_at_ms" property="finishedAtMs" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <!-- 通用字段 -->
+    <sql id="Base_Column_List">
+        id, task_id, history_id, target_point, status,
+        started_at, finished_at, duration_seconds, error_message,
+        operator, remark, started_at_ms, finished_at_ms
+    </sql>
+
+    <!-- 查询任务的恢复记录（分页） -->
+    <select id="selectByTaskIdPage" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        ORDER BY started_at DESC
+    </select>
+
+    <!-- 查询最近的恢复记录 -->
+    <select id="selectRecentByTaskId" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        ORDER BY started_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询成功的恢复记录 -->
+    <select id="selectSuccessByTaskId" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        AND status = 'SUCCESS'
+        ORDER BY started_at DESC
+    </select>
+
+    <!-- 查询指定备份的恢复记录 -->
+    <select id="selectByHistoryId" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE history_id = #{historyId}
+        ORDER BY started_at DESC
+    </select>
+
+    <!-- 查询指定时间范围内的恢复记录 -->
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        AND started_at >= #{startTime}
+        AND #{endTime} > started_at
+        ORDER BY started_at ASC
+    </select>
+
+    <!-- 统计指定时间范围内的恢复情况 -->
+    <select id="countByTimeRangeAndStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        AND started_at >= #{startTime}
+        AND #{endTime} > started_at
+        AND status = #{status}
+    </select>
+
+    <!-- 查询最近的PITR恢复记录 -->
+    <select id="selectLatestPITR" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM restore_record
+        WHERE task_id = #{taskId}
+        AND target_point IS NOT NULL
+        AND target_point != ''
+        ORDER BY started_at DESC
+        LIMIT 1
+    </select>
+
+</mapper>

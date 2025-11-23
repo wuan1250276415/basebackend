@@ -65,7 +65,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setMenuLoading(true)
     try {
       // 获取应用资源树
-      const resourceRes = await request.get('/admin/application/resource/tree/'+appId)
+      const resourceRes = await request.get('/basebackend-system-api/api/system/application/resource/tree/'+appId)
 
       if (resourceRes.code === 200) {
         const resources = resourceRes.data || []
@@ -102,7 +102,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setButtonLoading(true)
     try {
       // 获取所有按钮权限
-      const permRes = await request.get('/admin/permissions', {
+      const permRes = await request.get('/basebackend-system-api/api/system/permissions', {
         params: { permissionType: 3 }, // 3-API权限
       })
 
@@ -130,7 +130,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setOperationLoading(true)
     try {
       // 获取所有列表操作
-      const opRes = await request.get('/admin/list-operations')
+      const opRes = await request.get('/basebackend-system-api/api/admin/list-operations')
       if (opRes.code === 200) {
         setOperationList(opRes.data || [])
       }

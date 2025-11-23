@@ -29,6 +29,11 @@ public class GrayReleaseConfig implements Serializable {
     private Long configId;
 
     /**
+     * 配置Data ID
+     */
+    private String dataId;
+
+    /**
      * 灰度策略类型（ip/percentage/label）
      */
     private String strategyType;
@@ -62,6 +67,16 @@ public class GrayReleaseConfig implements Serializable {
      * 灰度结束时间
      */
     private LocalDateTime endTime;
+
+    /**
+     * 灰度全量发布时间
+     */
+    private LocalDateTime promoteTime;
+
+    /**
+     * 灰度回滚时间
+     */
+    private LocalDateTime rollbackTime;
 
     /**
      * 灰度配置内容

@@ -1,0 +1,55 @@
+# BaseBackend Security 开发环境配置
+# 部署在 Nacos 配置中心
+
+basebackend:
+  security:
+    # 是否启用安全控制
+    enabled: true
+
+    # 权限控制配置
+    permission:
+      enabled: true
+      # 当未实现 PermissionService 时是否失败
+      fail-when-missing: true
+      # 默认权限列表
+      defaults:
+        - system:dept:view
+        - system:dict:view
+
+    # JWT 配置
+    jwt:
+      enabled: true
+      # Token 头部名称
+      header-name: "Authorization"
+      # Token 前缀
+      prefix: "Bearer "
+      # 是否从请求参数中获取 Token
+      allow-from-request-parameter: false
+
+    # 数据权限配置
+    data-scope:
+      enabled: true
+      # 默认数据权限类型
+      default-type: "ALL"
+
+    # 审计配置
+    audit:
+      enabled: true
+      # 是否记录成功操作
+      log-success: false
+      # 是否记录失败操作
+      log-failure: true
+
+# JWT Secret 配置（通过环境变量注入）
+# jwt:
+#   secret: ${JWT_SECRET:basebackend-secret-key-for-jwt-token-generation-minimum-256-bits}
+#   expiration: ${JWT_EXPIRATION:86400000}  # 24小时
+
+# 数据库安全增强配置
+database:
+  enhanced:
+    # 安全增强配置
+    security:
+      # 数据权限拦截器
+      data-scope:
+        enabled: true

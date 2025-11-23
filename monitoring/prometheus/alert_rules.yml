@@ -1,0 +1,205 @@
+# Prometheus 告警规则配置
+# 用于监控 BaseBackend DAG 引擎关键指标
+
+groups:
+  # DAG 引擎性能告警
+  - name: dag_engine_performance
+    rules:
+      # DAG 拓扑排序耗时过长
+      - alert: DAGTopologicalSortSlow
+        expr: dag_topological_sort_duration_seconds > 0.05  # 50ms
+        for: 2m
+        labels:
+          severity: warning
+          component: dag-engine
+        annotations:
+          summary: "DAG 拓扑排序性能告警"
+          description: "DAG 拓扑排序耗时 {{ $value }}s，超过阈值 0.05s"
+
+      # DAG 拓扑排序耗时严重过长
+      - alert: DAGTopologicalSortCriticalSlow
+        expr: dag_topological_sort_duration_seconds > 0.1  # 100ms
+        for: 1m
+        labels:
+          severity: critical
+          component: dag-engine
+        annotations:
+          summary: "DAG 拓扑排序性能严重告警"
+          description: "DAG 拓扑排序耗时 {{ $value }}s，严重超过阈值 0.1s"
+
+      # 大规模 DAG 处理告警
+      - alert: LargeDAGProcessingSlow
+        expr: dag_large_scale_processing_duration_seconds > 5  # 5秒
+        for: 2m
+        labels:
+          severity: warning
+          component: dag-engine
+        annotations:
+          summary: "大规模 DAG 处理性能告警"
+          description: "处理大规模 DAG（1000+节点）耗时 {{ $value }}s，超过阈值 5s"
+
+      # 并发 DAG 执行告警
+      - alert: ConcurrentDAGExecutionFailure
+        expr: increase(dag_concurrent_execution_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          component: dag-engine
+        annotations:
+          summary: "并发 DAG 执行失败告警"
+          description: "过去5分钟内并发 DAG 执行失败次数：{{ $value }}"
+
+  # 重试机制告警
+  - name: retry_mechanism
+    rules:
+      # 重试成功率过低
+      - alert: RetrySuccessRateLow
+        expr: retry_success_rate < 0.8  # 成功率低于80%
+        for: 3m
+        labels:
+          severity: warning
+          component: retry
+        annotations:
+          summary: "重试机制成功率告警"
+          description: "重试成功率：{{ $value }}，低于阈值 80%"
+
+      # 重试次数过多
+      - alert: RetryAttemptsHigh
+        expr: avg_over_time(retry_attempts_per_task[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: retry
+        annotations:
+          summary: "重试次数过多告警"
+          description: "平均重试次数：{{ $value }}，高于阈值 5次"
+
+      # 重试延迟异常
+      - alert: RetryDelayAbnormal
+        expr: abs(retry_delay_milliseconds - 100) / 100 > 0.3  # 延迟偏差超过30%
+        for: 2m
+        labels:
+          severity: warning
+          component: retry
+        annotations:
+          summary: "重试延迟异常告警"
+          description: "重试延迟偏差超过30%，当前偏差：{{ $value | humanizePercentage }}"
+
+  # 系统资源告警
+  - name: system_resources
+    rules:
+      # CPU 使用率过高
+      - alert: CPUUsageHigh
+        expr: cpu_usage_percent > 80
+        for: 3m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "CPU 使用率过高告警"
+          description: "CPU 使用率：{{ $value }}%，高于阈值 80%"
+
+      # 内存使用率过高
+      - alert: MemoryUsageHigh
+        expr: memory_usage_percent > 85
+        for: 3m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "内存使用率过高告警"
+          description: "内存使用率：{{ $value }}%，高于阈值 85%"
+
+      # 内存使用率严重过高
+      - alert: MemoryUsageCritical
+        expr: memory_usage_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "内存使用率严重过高告警"
+          description: "内存使用率：{{ $value }}%，严重高于阈值 95%"
+
+      # 线程池耗尽
+      - alert: ThreadPoolExhausted
+        expr: thread_pool_active_threads / thread_pool_max_threads > 0.9
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "线程池耗尽告警"
+          description: "线程池使用率：{{ $value | humanizePercentage }}，接近耗尽"
+
+  # 工作流执行告警
+  - name: workflow_execution
+    rules:
+      # 工作流执行失败率过高
+      - alert: WorkflowFailureRateHigh
+        expr: workflow_failure_rate > 0.1  # 失败率超过10%
+        for: 5m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "工作流执行失败率告警"
+          description: "工作流失败率：{{ $value | humanizePercentage }}，高于阈值 10%"
+
+      # 工作流超时
+      - alert: WorkflowTimeout
+        expr: increase(workflow_timeout_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "工作流超时告警"
+          description: "过去5分钟内工作流超时次数：{{ $value }}"
+
+      # 活跃工作流数量异常
+      - alert: ActiveWorkflowsAbnormal
+        expr: active_workflow_instances < 5
+        for: 5m
+        labels:
+          severity: info
+          component: workflow
+        annotations:
+          summary: "活跃工作流数量异常"
+          description: "活跃工作流实例数：{{ $value }}，可能表示系统负载较低"
+
+  # 应用健康告警
+  - name: application_health
+    rules:
+      # 应用不可用
+      - alert: ApplicationDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "应用不可用告警"
+          description: "应用 {{ $labels.instance }} 不可用"
+
+      # 应用响应时间过长
+      - alert: ApplicationResponseTimeSlow
+        expr: http_request_duration_seconds{quantile="0.95"} > 1
+        for: 3m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "应用响应时间过长告警"
+          description: "应用 95% 响应时间：{{ $value }}s，超过阈值 1s"
+
+      # HTTP 5xx 错误率过高
+      - alert: HTTP5xxErrorsHigh
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "HTTP 5xx 错误率过高告警"
+          description: "HTTP 5xx 错误率：{{ $value | humanizePercentage }}，高于阈值 5%"

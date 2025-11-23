@@ -3,10 +3,14 @@ package com.basebackend.system.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.basebackend.database.entity.BaseEntity;
+import com.basebackend.database.security.annotation.Sensitive;
+import com.basebackend.database.security.annotation.SensitiveType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+
+import static com.basebackend.database.security.context.PermissionContext.VIEW_PHONE;
 
 /**
  * 系统部门实体
@@ -44,6 +48,7 @@ public class SysDept extends BaseEntity {
      * 联系电话
      */
     @TableField("phone")
+    @Sensitive(type = SensitiveType.PHONE,requiredPermission = VIEW_PHONE)
     private String phone;
 
     /**

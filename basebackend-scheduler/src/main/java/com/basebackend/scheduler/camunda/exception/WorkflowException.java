@@ -1,42 +1,80 @@
 package com.basebackend.scheduler.camunda.exception;
 
 /**
- * 工作流统一异常
+ * 工作流通用异常
+ *
+ * @author BaseBackend Team
+ * @version 1.0.0
+ * @since 2025-01-01
  */
 public class WorkflowException extends RuntimeException {
 
-    private final int errorCode;
-    private final String errorMessage;
+    private static final long serialVersionUID = 1L;
 
-    public WorkflowException(WorkflowErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode.getCode();
-        this.errorMessage = errorCode.getMessage();
+    /**
+     * 错误代码
+     */
+    private String errorCode;
+
+    /**
+     * 构造函数
+     *
+     * @param message 错误消息
+     */
+    public WorkflowException(String message) {
+        super(message);
+        this.errorCode = "WORKFLOW_ERROR";
     }
 
-    public WorkflowException(WorkflowErrorCode errorCode, String detailMessage) {
-        super(errorCode.getMessage() + ": " + detailMessage);
-        this.errorCode = errorCode.getCode();
-        this.errorMessage = errorCode.getMessage() + ": " + detailMessage;
+    /**
+     * 构造函数
+     *
+     * @param message 错误消息
+     * @param cause   原因
+     */
+    public WorkflowException(String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = "WORKFLOW_ERROR";
     }
 
-    public WorkflowException(WorkflowErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
-        this.errorCode = errorCode.getCode();
-        this.errorMessage = errorCode.getMessage();
+    /**
+     * 构造函数
+     *
+     * @param errorCode 错误代码
+     * @param message   错误消息
+     */
+    public WorkflowException(String errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
     }
 
-    public WorkflowException(WorkflowErrorCode errorCode, String detailMessage, Throwable cause) {
-        super(errorCode.getMessage() + ": " + detailMessage, cause);
-        this.errorCode = errorCode.getCode();
-        this.errorMessage = errorCode.getMessage() + ": " + detailMessage;
+    /**
+     * 构造函数
+     *
+     * @param errorCode 错误代码
+     * @param message   错误消息
+     * @param cause     原因
+     */
+    public WorkflowException(String errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
     }
 
-    public int getErrorCode() {
+    /**
+     * 获取错误代码
+     *
+     * @return 错误代码
+     */
+    public String getErrorCode() {
         return errorCode;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    /**
+     * 设置错误代码
+     *
+     * @param errorCode 错误代码
+     */
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
     }
 }

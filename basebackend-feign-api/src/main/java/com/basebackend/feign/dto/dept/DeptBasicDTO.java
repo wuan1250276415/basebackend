@@ -1,5 +1,6 @@
 package com.basebackend.feign.dto.dept;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "部门基础信息")
 public class DeptBasicDTO implements Serializable {
 
@@ -51,6 +53,9 @@ public class DeptBasicDTO implements Serializable {
 
     @Schema(description = "排序号")
     private Integer sort;
+
+    @Schema(description = "显示顺序（兼容orderNum字段）")
+    private Integer orderNum;
 
     @Schema(description = "状态：0-禁用，1-启用")
     private Integer status;

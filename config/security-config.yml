@@ -1,0 +1,9 @@
+# Web安全基线配置（供 user-api、system-api 复用）
+security:
+  baseline:
+    # 允许的请求来源（Origin/Referer 前缀），请根据前端域名调整
+    allowed-origins:
+      - http://localhost:5173
+      - https://admin.example.com
+    # 当 Origin 缺失时是否强制校验 Referer
+    enforce-referer: true

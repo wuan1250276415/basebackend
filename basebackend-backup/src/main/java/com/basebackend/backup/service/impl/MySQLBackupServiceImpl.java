@@ -41,6 +41,29 @@ public class MySQLBackupServiceImpl implements MySQLBackupService {
      */
     private final ConcurrentMap<String, BackupRecord> backupCache = new ConcurrentHashMap<>();
 
+    /**
+     * 安全地记录命令（隐藏敏感信息）
+     */
+    private void logCommand(List<String> command) {
+        if (command == null || command.isEmpty()) {
+            log.warn("命令为空，无法记录");
+            return;
+        }
+
+        // 复制列表并隐藏密码
+        List<String> safeCommand = command.stream()
+            .map(arg -> {
+                // 如果是密码参数（以 -p 开头），则隐藏
+                if (arg.startsWith("-p") && arg.length() > 2) {
+                    return arg.substring(0, 2) + "******";
+                }
+                return arg;
+            })
+            .collect(Collectors.toList());
+
+        log.info("执行命令: {}", String.join(" ", safeCommand));
+    }
+
     @Override
     public BackupRecord fullBackup() {
         log.info("开始执行全量备份...");
@@ -70,7 +93,7 @@ public class MySQLBackupServiceImpl implements MySQLBackupService {
             // 构建mysqldump命令
             List<String> command = buildMysqldumpCommand(backupFile);
 
-            log.info("执行备份命令: {}", String.join(" ", command));
+            logCommand(command);
 
             // 执行备份
             ProcessBuilder pb = new ProcessBuilder(command);
@@ -185,7 +208,7 @@ public class MySQLBackupServiceImpl implements MySQLBackupService {
             // 构建mysql恢复命令
             List<String> command = buildMysqlRestoreCommand(record.getFilePath());
 
-            log.info("执行恢复命令: {}", String.join(" ", command));
+            logCommand(command);
 
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);

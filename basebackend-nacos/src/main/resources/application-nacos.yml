@@ -1,25 +1,91 @@
-# Nacos 统一配置
+# Nacos 统一配置模板
+# 适用于 basebackend-nacos 模块
+# 版本: 1.0
+# 更新时间: 2025-11-25
+
+# ========== 核心配置 ==========
 nacos:
+  # 模块启用开关（智能启用：检测到nacos配置时才启用）
   enabled: true
-  discovery:
-    enabled: true
-    server-addr: ${NACOS_SERVER_ADDR:192.168.66.126:8848}
-    namespace: ${NACOS_NAMESPACE:public}
-    group: ${NACOS_GROUP:DEFAULT_GROUP}
-    username: ${NACOS_USERNAME:nacos}
-    password: ${NACOS_PASSWORD:nacos}
-    weight: 1.0
 
+  # 环境名称（用于环境隔离）
+  environment: dev
+
+  # 租户ID（用于租户隔离）
+  tenant-id: public
+
+  # 应用ID（用于应用隔离）
+  app-id: 10001
+
+  # ========== 配置中心配置 ==========
   config:
-    enabled: true
-    server-addr: ${NACOS_SERVER_ADDR:192.168.66.126:8848}
-    namespace: ${NACOS_NAMESPACE:public}
-    group: ${NACOS_GROUP:DEFAULT_GROUP}
-    file-extension: yml
-    import-check:
-      enabled: true
+    enabled: true  # 是否启用配置中心
 
-# Spring Cloud 配置
+    # Nacos 服务地址（关键配置，启动时必验证）
+    server-addr: ${NACOS_CONFIG_SERVER:127.0.0.1:8848}
+    namespace: ${NACOS_CONFIG_NAMESPACE:public}
+    group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+    file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+
+    # 用户名密码
+    username: ${NACOS_CONFIG_USERNAME:nacos}
+    password: ${NACOS_CONFIG_PASSWORD:nacos}
+
+    # 是否启用导入检查
+    import-check-enabled: true
+
+    # 动态刷新配置（自动检测是否启用）
+    # 如果配置了shared-configs或extension-configs，将自动启用
+    refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+
+    # 共享配置（所有服务共享）
+    # 这些配置会统一在所有服务中加载
+    shared-configs:
+      - data-id: common-config.yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        refresh: true
+      - data-id: mysql-config.yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        refresh: true
+      - data-id: redis-config.yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        refresh: true
+      - data-id: observability-config.yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        refresh: true
+
+    # 扩展配置（服务特定配置）
+    # 每个服务可以配置自己的扩展配置
+    extension-configs:
+      - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        refresh: true
+
+  # ========== 服务发现配置 ==========
+  discovery:
+    enabled: true  # 是否启用服务发现
+
+    # Nacos 服务地址（关键配置，启动时必验证）
+    server-addr: ${NACOS_DISCOVERY_SERVER:127.0.0.1:8848}
+    namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+    group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+    weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+    cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+
+    # 服务名（可选，如果不配置则使用spring.application.name）
+    service-name: ${spring.application.name}
+
+    # 用户名密码
+    username: ${NACOS_DISCOVERY_USERNAME:nacos}
+    password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+
+    # 实例元数据（用于灰度发布）
+    metadata:
+      version: ${APP_VERSION:1.0.0}
+      region: ${APP_REGION:beijing}
+      zone: ${APP_ZONE:zone-a}
+
+# ========== Spring Cloud 集成配置 ==========
 spring:
   cloud:
     nacos:
@@ -28,26 +94,81 @@ spring:
         namespace: ${nacos.discovery.namespace}
         group: ${nacos.discovery.group}
         metadata:
-          version: 1.0.0
-          region: beijing
+          # 传递实例元数据
+          version: ${nacos.discovery.metadata.version}
+          region: ${nacos.discovery.metadata.region}
+          zone: ${nacos.discovery.metadata.zone}
           weight: ${nacos.discovery.weight}
       config:
         server-addr: ${nacos.config.server-addr}
         namespace: ${nacos.config.namespace}
         group: ${nacos.config.group}
         file-extension: ${nacos.config.file-extension}
-        import-check:
-          enabled: ${nacos.config.import-check.enabled}
+        # 共享配置
         shared-configs:
+          # 配置与nacos.config.shared-configs保持同步
           - data-id: common-config.yml
-            group: ${nacos.discovery.group}
+            group: ${nacos.config.group}
             refresh: true
-          - data-id: ${spring.application.name}-config.yml
-            group: ${nacos.discovery.group}
+          - data-id: mysql-config.yml
+            group: ${nacos.config.group}
+            refresh: true
+          - data-id: redis-config.yml
+            group: ${nacos.config.group}
+            refresh: true
+          - data-id: observability-config.yml
+            group: ${nacos.config.group}
+            refresh: true
+        # 扩展配置
+        extension-configs:
+          - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+            group: ${nacos.config.group}
             refresh: true
 
-# 日志配置
+# ========== 多环境配置示例 ==========
+
+# 开发环境示例
+# nacos:
+#   environment: dev
+#   config:
+#     namespace: dev
+#     shared-configs:
+#       - data-id: common-dev.yml
+#         refresh: true
+#   discovery:
+#     namespace: dev
+
+# 测试环境示例
+# nacos:
+#   environment: test
+#   config:
+#     namespace: test
+#     shared-configs:
+#       - data-id: common-test.yml
+#         refresh: true
+#   discovery:
+#     namespace: test
+
+# 生产环境示例
+# nacos:
+#   environment: prod
+#   config:
+#     namespace: prod
+#     shared-configs:
+#       - data-id: common-prod.yml
+#         refresh: true
+#   discovery:
+#     namespace: prod
+
+# ========== 日志配置 ==========
 logging:
   level:
-    com.alibaba.cloud.nacos: DEBUG
-    com.basebackend.nacos: DEBUG
+    # Nacos 客户端日志
+    com.alibaba.cloud.nacos: INFO
+    com.alibaba.nacos: INFO
+
+    # BaseBackend Nacos 模块日志
+    com.basebackend.nacos: INFO
+
+    # 调试级别（用于排错）
+    # com.basebackend.nacos: DEBUG

@@ -5,6 +5,7 @@ import com.basebackend.admin.dto.MenuDTO;
 import com.basebackend.admin.service.ApplicationResourceService;
 import com.basebackend.admin.service.MenuService;
 import com.basebackend.common.constant.CommonConstants;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -197,7 +198,7 @@ public class MenuController {
         log.info("获取当前用户菜单树");
         try {
             // 从SecurityContext获取当前用户ID
-            Long currentUserId = getCurrentUserId();
+            Long currentUserId = UserContextHolder.getUserId();
 
             // 从sys_application_resource表中获取用户的资源树
             List<ApplicationResourceDTO> resourceTree = applicationResourceService.getUserResourceTreeByUserId(currentUserId);

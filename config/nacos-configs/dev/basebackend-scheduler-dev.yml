@@ -1,0 +1,50 @@
+# ================================================================================================
+# BaseBackend Scheduler 服务配置
+# ================================================================================================
+# Data ID: basebackend-scheduler-dev.yml
+# Group: DEFAULT_GROUP
+# ================================================================================================
+
+spring:
+  # 数据源配置 - Scheduler 专用数据库
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.66.126:3306/basebackend_scheduler?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: basebackend_scheduler
+    password: wk5KknQxrFcD64ZS
+    hikari:
+      pool-name: scheduler-hikari-pool
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+# Camunda 配置
+camunda:
+  bpm:
+    database:
+      type: mysql
+      schema-update: true
+    admin-user:
+      id: admin
+      password: admin123
+    history-level: full
+    auto-deployment-enabled: true
+
+# PowerJob Worker 配置
+powerjob:
+  worker:
+    enabled: true
+    app-name: basebackend-scheduler
+    server-address: 192.168.66.126:7700
+    protocol: HTTP
+    port: 27777
+    store-strategy: DISK
+
+# 日志级别
+logging:
+  level:
+    com.basebackend.scheduler: DEBUG
+    org.camunda.bpm: INFO
+    tech.powerjob: INFO

@@ -1,8 +1,11 @@
 package com.basebackend.system.controller;
 
+import com.basebackend.security.enums.DataScopeType;
 import com.basebackend.system.dto.DeptDTO;
 import com.basebackend.system.service.DeptService;
 import com.basebackend.common.model.Result;
+import com.basebackend.security.annotation.RequiresPermission;
+import com.basebackend.security.annotation.DataScope;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,18 +30,26 @@ public class DeptController {
     private final DeptService deptService;
 
     /**
+     * 统一处理控制器异常，避免向客户端泄露敏感信息
+     */
+    private <T> Result<T> handleControllerError(String action, Exception e) {
+        log.error("{}失败", action, e);
+        return Result.error("系统繁忙，请稍后再试");
+    }
+
+    /**
      * 获取部门树
      */
     @GetMapping("/tree")
     @Operation(summary = "获取部门树", description = "获取部门树形结构")
+    @DataScope(DataScopeType.DEPT_AND_CHILD)
     public Result<List<DeptDTO>> getDeptTree() {
         log.info("获取部门树");
         try {
             List<DeptDTO> deptTree = deptService.getDeptTree();
             return Result.success("查询成功", deptTree);
         } catch (Exception e) {
-            log.error("获取部门树失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("获取部门树", e);
         }
     }
 
@@ -47,14 +58,14 @@ public class DeptController {
      */
     @GetMapping
     @Operation(summary = "获取部门列表", description = "获取部门列表")
+    @DataScope(DataScopeType.DEPT_AND_CHILD)
     public Result<List<DeptDTO>> getDeptList() {
         log.info("获取部门列表");
         try {
             List<DeptDTO> deptList = deptService.getDeptList();
             return Result.success("查询成功", deptList);
         } catch (Exception e) {
-            log.error("获取部门列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("获取部门列表", e);
         }
     }
 
@@ -69,8 +80,7 @@ public class DeptController {
             DeptDTO dept = deptService.getById(id);
             return Result.success("查询成功", dept);
         } catch (Exception e) {
-            log.error("根据ID查询部门失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("根据ID查询部门", e);
         }
     }
 
@@ -79,14 +89,14 @@ public class DeptController {
      */
     @PostMapping
     @Operation(summary = "创建部门", description = "创建新部门")
+    @RequiresPermission("system:dept:create")
     public Result<String> create(@Validated @RequestBody DeptDTO deptDTO) {
         log.info("创建部门: {}", deptDTO.getDeptName());
         try {
             deptService.create(deptDTO);
             return Result.success("部门创建成功");
         } catch (Exception e) {
-            log.error("创建部门失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("创建部门", e);
         }
     }
 
@@ -95,6 +105,7 @@ public class DeptController {
      */
     @PutMapping("/{id}")
     @Operation(summary = "更新部门", description = "更新部门信息")
+    @RequiresPermission("system:dept:update")
     public Result<String> update(
             @Parameter(description = "部门ID") @PathVariable Long id,
             @Validated @RequestBody DeptDTO deptDTO) {
@@ -104,8 +115,7 @@ public class DeptController {
             deptService.update(deptDTO);
             return Result.success("部门更新成功");
         } catch (Exception e) {
-            log.error("更新部门失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("更新部门", e);
         }
     }
 
@@ -114,14 +124,14 @@ public class DeptController {
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "删除部门", description = "删除部门")
+    @RequiresPermission("system:dept:delete")
     public Result<String> delete(@Parameter(description = "部门ID") @PathVariable Long id) {
         log.info("删除部门: {}", id);
         try {
             deptService.delete(id);
             return Result.success("部门删除成功");
         } catch (Exception e) {
-            log.error("删除部门失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("删除部门", e);
         }
     }
 
@@ -136,8 +146,7 @@ public class DeptController {
             List<DeptDTO> children = deptService.getChildrenByDeptId(id);
             return Result.success("查询成功", children);
         } catch (Exception e) {
-            log.error("根据部门ID获取子部门列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("获取子部门列表", e);
         }
     }
 
@@ -152,8 +161,7 @@ public class DeptController {
             List<Long> childrenIds = deptService.getChildrenDeptIds(id);
             return Result.success("查询成功", childrenIds);
         } catch (Exception e) {
-            log.error("根据部门ID获取所有子部门ID列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("获取子部门ID列表", e);
         }
     }
 
@@ -170,8 +178,7 @@ public class DeptController {
             boolean unique = deptService.checkDeptNameUnique(deptName, parentId, deptId);
             return Result.success("检查完成", unique);
         } catch (Exception e) {
-            log.error("检查部门名称唯一性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("检查部门名称唯一性", e);
         }
     }
 
@@ -186,8 +193,7 @@ public class DeptController {
             DeptDTO dept = deptService.getByDeptName(deptName);
             return Result.success("查询成功", dept);
         } catch (Exception e) {
-            log.error("根据部门名称查询失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("根据部门名称查询", e);
         }
     }
 
@@ -202,8 +208,7 @@ public class DeptController {
             DeptDTO dept = deptService.getByDeptCode(deptCode);
             return Result.success("查询成功", dept);
         } catch (Exception e) {
-            log.error("根据部门编码查询失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("根据部门编码查询", e);
         }
     }
 
@@ -223,8 +228,7 @@ public class DeptController {
             List<DeptDTO> depts = deptService.getBatchByIds(ids);
             return Result.success("查询成功", depts);
         } catch (Exception e) {
-            log.error("批量查询部门失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("批量查询部门", e);
         }
     }
 
@@ -239,8 +243,7 @@ public class DeptController {
             List<DeptDTO> depts = deptService.getByParentId(parentId);
             return Result.success("查询成功", depts);
         } catch (Exception e) {
-            log.error("根据父部门ID查询失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            return handleControllerError("根据父部门ID查询", e);
         }
     }
 }

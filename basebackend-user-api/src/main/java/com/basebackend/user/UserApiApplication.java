@@ -21,9 +21,15 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
         "com.basebackend.cache",
         "com.basebackend.logging",
         "com.basebackend.observability",
-        "com.basebackend.feign"
+        "com.basebackend.backup",
+        "com.basebackend.feign",
+        "com.basebackend.messaging"
 })
-@MapperScan({"com.basebackend.user.mapper"})
+@MapperScan({
+    "com.basebackend.user.mapper",
+    "com.basebackend.database.**.mapper",
+    "com.basebackend.backup.**.mapper",
+})
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = {"com.basebackend.feign.client"})
 @EnableAspectJAutoProxy

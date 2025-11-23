@@ -1,5 +1,29 @@
 spring:
   application:
     name: basebackend-system-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  # 邮件配置
+  mail:
+    host: smtp-mail.outlook.com
+    port: 587
+    username: wuan1250276415@outlook.com
+    password: wuanfuck321.
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          timeout: 5000
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - com.basebackend.observability.otel.config.OtelAutoConfiguration
+      - com.basebackend.observability.otel.config.BridgeConfiguration
 server:
   port: 8082

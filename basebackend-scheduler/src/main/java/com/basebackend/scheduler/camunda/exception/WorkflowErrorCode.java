@@ -2,58 +2,129 @@ package com.basebackend.scheduler.camunda.exception;
 
 /**
  * 工作流错误码枚举
+ *
+ * @author BaseBackend Team
+ * @version 1.0.0
+ * @since 2025-01-01
  */
 public enum WorkflowErrorCode {
 
-    // 流程定义相关错误 (8000-8099)
-    PROCESS_DEFINITION_NOT_FOUND(8000, "流程定义不存在"),
-    PROCESS_DEFINITION_DEPLOYMENT_FAILED(8001, "流程定义部署失败"),
-    PROCESS_DEFINITION_SUSPEND_FAILED(8002, "流程定义挂起失败"),
-    PROCESS_DEFINITION_ACTIVATE_FAILED(8003, "流程定义激活失败"),
-    PROCESS_DEFINITION_DELETE_FAILED(8004, "流程定义删除失败"),
+    /**
+     * 流程定义不存在
+     */
+    PROCESS_DEFINITION_NOT_FOUND("PROCESS_DEFINITION_404", "流程定义不存在"),
 
-    // 流程实例相关错误 (8100-8199)
-    PROCESS_INSTANCE_NOT_FOUND(8100, "流程实例不存在"),
-    PROCESS_INSTANCE_START_FAILED(8101, "流程实例启动失败"),
-    PROCESS_INSTANCE_SUSPEND_FAILED(8102, "流程实例挂起失败"),
-    PROCESS_INSTANCE_ACTIVATE_FAILED(8103, "流程实例激活失败"),
-    PROCESS_INSTANCE_DELETE_FAILED(8104, "流程实例删除失败"),
+    /**
+     * 流程实例不存在
+     */
+    PROCESS_INSTANCE_NOT_FOUND("PROCESS_INSTANCE_404", "流程实例不存在"),
 
-    // 任务相关错误 (8200-8299)
-    TASK_NOT_FOUND(8200, "任务不存在"),
-    TASK_COMPLETE_FAILED(8201, "任务完成失败"),
-    TASK_CLAIM_FAILED(8202, "任务认领失败"),
-    TASK_UNCLAIM_FAILED(8203, "任务取消认领失败"),
-    TASK_DELEGATE_FAILED(8204, "任务委派失败"),
-    TASK_ASSIGN_FAILED(8205, "任务转办失败"),
+    /**
+     * 任务不存在
+     */
+    TASK_NOT_FOUND("TASK_404", "任务不存在"),
 
-    // 表单模板相关错误 (8300-8399)
-    FORM_TEMPLATE_NOT_FOUND(8300, "表单模板不存在"),
-    FORM_TEMPLATE_ALREADY_EXISTS(8301, "表单模板已存在"),
-    FORM_TEMPLATE_CREATE_FAILED(8302, "表单模板创建失败"),
-    FORM_TEMPLATE_UPDATE_FAILED(8303, "表单模板更新失败"),
-    FORM_TEMPLATE_DELETE_FAILED(8304, "表单模板删除失败"),
-    FORM_TEMPLATE_INVALID_SCHEMA(8305, "表单模板Schema无效"),
+    /**
+     * 表单模板不存在
+     */
+    FORM_TEMPLATE_NOT_FOUND("FORM_TEMPLATE_404", "表单模板不存在"),
 
-    // 通用错误 (8900-8999)
-    WORKFLOW_INTERNAL_ERROR(8900, "工作流内部错误"),
-    WORKFLOW_INVALID_PARAMETER(8901, "无效的参数"),
-    WORKFLOW_PERMISSION_DENIED(8902, "权限不足"),
-    WORKFLOW_OPERATION_NOT_ALLOWED(8903, "不允许的操作");
+    /**
+     * 表单模板编码已存在
+     */
+    FORM_TEMPLATE_CODE_EXISTS("FORM_TEMPLATE_409", "表单模板编码已存在"),
 
-    private final int code;
+    /**
+     * 工作流引擎异常
+     */
+    WORKFLOW_ENGINE_ERROR("WORKFLOW_ENGINE_500", "工作流引擎异常"),
+
+    /**
+     * BPMN 部署失败
+     */
+    BPMN_DEPLOYMENT_FAILED("BPMN_DEPLOY_500", "BPMN 部署失败"),
+
+    /**
+     * 参数验证失败
+     */
+    VALIDATION_ERROR("VALIDATION_400", "参数验证失败"),
+
+    /**
+     * 数据库异常
+     */
+    DATABASE_ERROR("DATABASE_500", "数据库操作异常"),
+
+    /**
+     * 网络请求异常
+     */
+    NETWORK_ERROR("NETWORK_500", "网络请求异常"),
+
+    /**
+     * 未授权访问
+     */
+    UNAUTHORIZED("UNAUTHORIZED_401", "未授权访问"),
+
+    /**
+     * 禁止访问
+     */
+    FORBIDDEN("FORBIDDEN_403", "禁止访问"),
+
+    /**
+     * 服务器内部错误
+     */
+    INTERNAL_SERVER_ERROR("INTERNAL_SERVER_500", "服务器内部错误");
+
+    /**
+     * 错误代码
+     */
+    private final String code;
+
+    /**
+     * 错误消息
+     */
     private final String message;
 
-    WorkflowErrorCode(int code, String message) {
+    /**
+     * 构造函数
+     *
+     * @param code    错误代码
+     * @param message 错误消息
+     */
+    WorkflowErrorCode(String code, String message) {
         this.code = code;
         this.message = message;
     }
 
-    public int getCode() {
+    /**
+     * 获取错误代码
+     *
+     * @return 错误代码
+     */
+    public String getCode() {
         return code;
     }
 
+    /**
+     * 获取错误消息
+     *
+     * @return 错误消息
+     */
     public String getMessage() {
         return message;
+    }
+
+    /**
+     * 根据错误代码获取错误消息
+     *
+     * @param code 错误代码
+     * @return 错误消息
+     */
+    public static String getMessageByCode(String code) {
+        for (WorkflowErrorCode errorCode : WorkflowErrorCode.values()) {
+            if (errorCode.getCode().equals(code)) {
+                return errorCode.getMessage();
+            }
+        }
+        return "未知错误";
     }
 }

@@ -8,7 +8,6 @@ import com.basebackend.feign.dto.dept.DeptBasicDTO;
 import com.basebackend.user.dto.profile.ChangePasswordDTO;
 import com.basebackend.user.dto.profile.ProfileDetailDTO;
 import com.basebackend.user.dto.profile.UpdateProfileDTO;
-import com.basebackend.user.entity.SysDept;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.service.ProfileService;
@@ -16,6 +15,7 @@ import com.basebackend.common.exception.BusinessException;
 import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProfileServiceImpl implements ProfileService {
 
     private final SysUserMapper userMapper;
-    private final DeptFeignClient deptFeignClient;
+    private final ObjectProvider<DeptFeignClient> deptFeignClientProvider;
     private final PasswordEncoder passwordEncoder;
     private final CustomMetrics customMetrics;
 
@@ -53,10 +53,23 @@ public class ProfileServiceImpl implements ProfileService {
         dto.setUserId(user.getId());
 
         // 获取部门名称
+        // 安全调用部门服务，失败不影响登录
         if (user.getDeptId() != null) {
-            Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
-            if (dept != null) {
-                dto.setDeptName(dept.getData().getDeptName());
+            var deptFeignClient = deptFeignClientProvider.getIfAvailable();
+            if (deptFeignClient != null) {
+                try {
+                    Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
+                    if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                        dto.setDeptName(deptResult.getData().getDeptName());
+                    } else {
+                        log.warn("获取部门信息失败或返回空: deptId={}, message={}",
+                                user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
+                        dto.setDeptName(""); // 设置默认值
+                    }
+                } catch (Exception e) {
+                    log.error("调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
+                    dto.setDeptName(""); // 设置默认值，不影响登录流程
+                }
             }
         }
 

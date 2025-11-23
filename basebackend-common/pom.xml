@@ -12,66 +12,60 @@
     </parent>
 
     <artifactId>basebackend-common</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
     <name>Base Backend Common</name>
-    <description>公共模块，包含通用实体、工具类、异常处理等</description>
+    <description>公共模块聚合父项目，拆分为 core/dto/util/context/security/starter 六个子模块，提供企业级通用能力</description>
 
-    <dependencies>
-        <!-- Spring Boot Starter (核心) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
+    <!-- 子模块声明 -->
+    <modules>
+        <module>basebackend-common-core</module>
+        <module>basebackend-common-dto</module>
+        <module>basebackend-common-util</module>
+        <module>basebackend-common-context</module>
+        <module>basebackend-common-security</module>
+        <module>basebackend-common-starter</module>
+    </modules>
 
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
+    <!-- 依赖版本管理（供子模块继承） -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- ===== 子模块版本统一管理 ===== -->
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <!-- Hutool -->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-        </dependency>
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-dto</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <!-- Fastjson2 -->
-        <dependency>
-            <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2</artifactId>
-        </dependency>
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-util</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <!-- Commons Lang3 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-context</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <!-- Validation (for SafeString annotation) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
-        <!-- Secret Management (for SecretManager) -->
-        <dependency>
-            <groupId>com.github.ulisesbocchio</groupId>
-            <artifactId>jasypt-spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- XSS Sanitizer (for SanitizationUtils) -->
-        <dependency>
-            <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
-            <artifactId>owasp-java-html-sanitizer</artifactId>
-        </dependency>
-
-        <!-- Test -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

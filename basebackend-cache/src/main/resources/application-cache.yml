@@ -1,36 +1,168 @@
-# Redis 配置
+# Cache Module Configuration Template
+# 缓存模块配置模板
+
+basebackend:
+  cache:
+    # 是否启用缓存模块
+    enabled: true
+    
+    # 多级缓存配置
+    multi-level:
+      # 是否启用多级缓存（本地缓存 + Redis）
+      enabled: false
+      # 本地缓存最大条目数
+      local-max-size: 1000
+      # 本地缓存默认过期时间
+      local-ttl: 5m
+      # 淘汰策略：LRU, LFU, FIFO
+      eviction-policy: LRU
+    
+    # 缓存指标配置
+    metrics:
+      # 是否启用指标收集
+      enabled: true
+      # 低命中率阈值（触发警告日志）
+      low-hit-rate-threshold: 0.5
+      # 指标导出到 Micrometer
+      export-to-micrometer: true
+    
+    # 缓存预热配置
+    warming:
+      # 是否启用缓存预热
+      enabled: false
+      # 预热任务列表（在代码中通过 CacheWarmingManager 注册）
+      tasks: []
+      # 预热超时时间
+      timeout: 5m
+      # 是否异步预热
+      async: true
+    
+    # 序列化配置
+    serialization:
+      # 序列化类型：json, protobuf, kryo
+      type: json
+      # JSON 序列化配置
+      json:
+        # 是否格式化输出
+        pretty-print: false
+        # 是否包含类型信息
+        include-type-info: false
+      # Protobuf 序列化配置（需要 protobuf-java 依赖）
+      protobuf:
+        # 是否启用
+        enabled: false
+      # Kryo 序列化配置（需要 kryo 依赖）
+      kryo:
+        # 是否启用
+        enabled: false
+        # 是否注册所有类
+        register-required: false
+    
+    # 容错和降级配置
+    resilience:
+      # 是否启用降级（Redis 故障时降级到本地缓存或直接访问数据源）
+      fallback-enabled: true
+      # Redis 操作超时时间
+      timeout: 3s
+      # 熔断器配置
+      circuit-breaker:
+        # 是否启用熔断器
+        enabled: false
+        # 连续失败次数阈值
+        failure-threshold: 5
+        # 熔断器打开时长
+        open-duration: 30s
+        # 半开状态允许的请求数
+        half-open-requests: 3
+      # 自动恢复检测
+      auto-recovery:
+        # 是否启用自动恢复检测
+        enabled: true
+        # 检测间隔
+        check-interval: 10s
+    
+    # 缓存键配置
+    key:
+      # 键前缀（用于命名空间隔离）
+      prefix: "basebackend"
+      # 键分隔符
+      separator: ":"
+      # 是否包含应用名
+      include-app-name: true
+    
+    # 缓存模板配置
+    template:
+      # Cache-Aside 模式配置
+      cache-aside:
+        # 默认 TTL
+        default-ttl: 1h
+        # 是否启用布隆过滤器防止缓存穿透
+        bloom-filter-enabled: false
+      # Write-Through 模式配置
+      write-through:
+        # 是否启用
+        enabled: false
+      # Write-Behind 模式配置
+      write-behind:
+        # 是否启用
+        enabled: false
+        # 批量写入大小
+        batch-size: 100
+        # 批量写入间隔
+        batch-interval: 5s
+    
+    # 分布式锁配置
+    lock:
+      # 默认等待时间
+      default-wait-time: 10s
+      # 默认租约时间
+      default-lease-time: 30s
+      # 是否启用公平锁
+      fair-lock-enabled: false
+      # 是否启用红锁
+      red-lock-enabled: false
+
+# Redis 配置（继承自 Spring Boot）
 spring:
   data:
     redis:
-      # Redis服务器地址
+      # Redis 服务器地址
       host: localhost
-      # Redis服务器端口
+      # Redis 服务器端口
       port: 6379
-      # Redis数据库索引（默认为0）
+      # Redis 数据库索引
       database: 0
-      # Redis服务器连接密码（默认为空）
-      password:
+      # Redis 密码
+      password: 
       # 连接超时时间
-      timeout: 3000ms
+      timeout: 3s
+      # Lettuce 连接池配置
       lettuce:
         pool:
-          # 连接池最大连接数
+          # 最大连接数
           max-active: 8
-          # 连接池最大阻塞等待时间（使用负值表示没有限制）
-          max-wait: -1ms
-          # 连接池中的最大空闲连接
+          # 最大空闲连接数
           max-idle: 8
-          # 连接池中的最小空闲连接
+          # 最小空闲连接数
           min-idle: 0
+          # 连接池最大阻塞等待时间
+          max-wait: -1ms
 
 # Redisson 配置
 redisson:
-  # 单机模式
+  # 单机模式配置
   single-server-config:
-    address: "redis://localhost:6379"
-    password: redis_ZJGE42
+    # Redis 服务器地址
+    address: redis://localhost:6379
+    # 数据库索引
     database: 0
-    connection-pool-size: 64
-    connection-minimum-idle-size: 10
-    idle-connection-timeout: 10000
+    # 密码
+    password: 
+    # 连接超时时间
+    connect-timeout: 3000
+    # 命令执行超时时间
     timeout: 3000
+    # 连接池大小
+    connection-pool-size: 64
+    # 最小空闲连接数
+    connection-minimum-idle-size: 10

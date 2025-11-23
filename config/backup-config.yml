@@ -1,0 +1,86 @@
+# 备份与存储通用配置（供 user-api、system-api 复用）
+backup:
+  enabled: true
+  backup-path: ${BACKUP_PATH:/data/backups/mysql}
+  retention-days: ${BACKUP_RETENTION_DAYS:30}
+
+  distributed-lock:
+    type: redisson
+    key-prefix: "backup:lock:"
+    ttl: 5m
+    wait-time: 10s
+
+  retry:
+    max-attempts: 5
+    backoff:
+      initial: 2s
+      multiplier: 2.0
+      max: 1m
+
+  checksum:
+    enabled: true
+    algorithms: [MD5, SHA256]
+
+  storage:
+    local:
+      enabled: true
+      base-path: ${BACKUP_LOCAL_PATH:/data/backups}
+      retention-days: 7
+
+    s3:
+      enabled: ${S3_ENABLED:false}
+      endpoint: ${S3_ENDPOINT:}
+      bucket: ${S3_BUCKET:basebackend-backup}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      region: ${S3_REGION:us-east-1}
+      retention-days: 30
+      multipart-chunk-size: 16MB
+      connection-timeout: 60s
+      read-timeout: 300s
+
+    multi-replica:
+      enabled: ${BACKUP_MULTI_REPLICA_ENABLED:true}
+      replicas:
+        - type: local
+          enabled: true
+          priority: 1
+        - type: s3
+          enabled: ${S3_ENABLED:false}
+          priority: 2
+
+  incremental:
+    mysql:
+      enabled: ${MYSQL_INCREMENTAL_ENABLED:true}
+      binlog-dir: ${MYSQL_BINLOG_DIR:/var/lib/mysql}
+      max-retention: 7d
+
+    postgres:
+      enabled: ${POSTGRES_INCREMENTAL_ENABLED:false}
+      wal-dir: ${PG_WAL_DIR:/var/lib/postgresql/data/pg_wal}
+      max-retention: 7d
+
+  metrics:
+    enabled: ${BACKUP_METRICS_ENABLED:true}
+    prefix: backup
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:basebackend}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2000ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics

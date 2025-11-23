@@ -1,0 +1,317 @@
+package com.basebackend.logging.configcenter;
+
+import com.ctrip.framework.apollo.Config;
+import com.ctrip.framework.apollo.ConfigChangeListener;
+import com.ctrip.framework.apollo.ConfigService;
+import com.ctrip.framework.apollo.model.ConfigChangeEvent;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Apollo 配置管理器
+ *
+ * 提供 Apollo 配置中心支持：
+ * - 配置获取和更新
+ * - 配置变更监听
+ * - 多命名空间支持
+ * - 灰度发布支持
+ *
+ * @author basebackend team
+ * @since 2025-11-22
+ */
+@Slf4j
+@Component
+@ConditionalOnClass(ConfigService.class)
+public class ApolloConfigManager {
+
+    private final ConcurrentHashMap<String, Config> configs = new ConcurrentHashMap<>();
+    private volatile boolean connected = false;
+
+    public ApolloConfigManager() {
+        try {
+            // 初始化默认配置
+            Config defaultConfig = ConfigService.getAppConfig();
+            if (defaultConfig != null) {
+                configs.put("application", defaultConfig);
+                connected = true;
+                log.info("Apollo 配置管理器初始化完成");
+            } else {
+                log.warn("Apollo 配置服务未正常初始化");
+            }
+        } catch (Exception e) {
+            log.error("Apollo 配置管理器初始化失败", e);
+        }
+    }
+
+    /**
+     * 获取配置
+     *
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public String getProperty(String key, String defaultValue) {
+        if (!connected) {
+            log.warn("Apollo 未连接，返回默认值: key={}, default={}", key, defaultValue);
+            return defaultValue;
+        }
+
+        try {
+            Config appConfig = getDefaultConfig();
+            if (appConfig != null) {
+                String value = appConfig.getProperty(key, defaultValue);
+                log.debug("获取配置: key={}, value={}", key, value);
+                return value;
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            log.error("获取配置失败: key={}", key, e);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取配置
+     *
+     * @param namespace 命名空间
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public String getProperty(String namespace, String key, String defaultValue) {
+        if (!connected) {
+            return defaultValue;
+        }
+
+        try {
+            Config config = getConfig(namespace);
+            if (config != null) {
+                return config.getProperty(key, defaultValue);
+            }
+            return defaultValue;
+        } catch (Exception e) {
+            log.error("获取配置失败: namespace={}, key={}", namespace, key, e);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取整数配置
+     *
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public int getIntProperty(String key, int defaultValue) {
+        String value = getProperty(key, String.valueOf(defaultValue));
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            log.warn("配置值格式错误，使用默认值: key={}, value={}, default={}",
+                    key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取长整型配置
+     *
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public long getLongProperty(String key, long defaultValue) {
+        String value = getProperty(key, String.valueOf(defaultValue));
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            log.warn("配置值格式错误，使用默认值: key={}, value={}, default={}",
+                    key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取布尔配置
+     *
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public boolean getBooleanProperty(String key, boolean defaultValue) {
+        String value = getProperty(key, String.valueOf(defaultValue));
+        try {
+            return Boolean.parseBoolean(value);
+        } catch (Exception e) {
+            log.warn("配置值格式错误，使用默认值: key={}, value={}, default={}",
+                    key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 获取双精度浮点配置
+     *
+     * @param key 配置键
+     * @param defaultValue 默认值
+     * @return 配置值
+     */
+    public double getDoubleProperty(String key, double defaultValue) {
+        String value = getProperty(key, String.valueOf(defaultValue));
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            log.warn("配置值格式错误，使用默认值: key={}, value={}, default={}",
+                    key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 添加配置变更监听器
+     *
+     * @param key 配置键
+     * @param listener 监听器
+     */
+    public void addChangeListener(String key, ConfigChangeListener listener) {
+        addChangeListener("application", key, listener);
+    }
+
+    /**
+     * 添加配置变更监听器
+     *
+     * @param namespace 命名空间
+     * @param key 配置键
+     * @param listener 监听器
+     */
+    public void addChangeListener(String namespace, String key, ConfigChangeListener listener) {
+        if (!connected) {
+            log.warn("Apollo 未连接，添加监听器失败: namespace={}, key={}", namespace, key);
+            return;
+        }
+
+        try {
+            Config config = getConfig(namespace);
+            if (config != null) {
+                config.addChangeListener(listener);
+                log.info("添加配置监听器成功: namespace={}, key={}", namespace, key);
+            }
+        } catch (Exception e) {
+            log.error("添加配置监听器失败: namespace={}, key={}", namespace, key, e);
+        }
+    }
+
+    /**
+     * 检查连接状态
+     *
+     * @return 是否连接
+     */
+    public boolean isConnected() {
+        return connected;
+    }
+
+    /**
+     * 获取默认配置
+     *
+     * @return 配置对象
+     */
+    private Config getDefaultConfig() {
+        return configs.get("application");
+    }
+
+    /**
+     * 获取指定命名空间的配置
+     *
+     * @param namespace 命名空间
+     * @return 配置对象
+     */
+    private Config getConfig(String namespace) {
+        return configs.computeIfAbsent(namespace, ns -> {
+            try {
+                Config config = ConfigService.getConfig(ns);
+                log.debug("加载配置命名空间: {}", ns);
+                return config;
+            } catch (Exception e) {
+                log.error("加载配置命名空间失败: {}", ns, e);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * 配置变更事件处理器
+     */
+    public interface ConfigChangeHandler {
+        void handle(ConfigChangeEvent event);
+    }
+
+    /**
+     * 创建配置变更监听器
+     *
+     * @param key 关注的配置键
+     * @param handler 变更处理器
+     * @return 监听器
+     */
+    public static ConfigChangeListener createListener(String key, ConfigChangeHandler handler) {
+        return new ConfigChangeListener() {
+            @Override
+            public void onChange(ConfigChangeEvent changeEvent) {
+                if (changeEvent.isChanged(key)) {
+                    log.info("配置变更: key={}, oldValue={}, newValue={}, changeType={}",
+                            key,
+                            changeEvent.getChange(key).getOldValue(),
+                            changeEvent.getChange(key).getNewValue(),
+                            changeEvent.getChange(key).getChangeType());
+                    handler.handle(changeEvent);
+                }
+            }
+        };
+    }
+
+    /**
+     * 配置监听器构建器
+     */
+    public static class ListenerBuilder {
+        private String namespace = "application";
+        private String key;
+        private ConfigChangeHandler handler;
+
+        public ListenerBuilder namespace(String namespace) {
+            this.namespace = namespace;
+            return this;
+        }
+
+        public ListenerBuilder key(String key) {
+            this.key = key;
+            return this;
+        }
+
+        public ListenerBuilder onChange(ConfigChangeHandler handler) {
+            this.handler = handler;
+            return this;
+        }
+
+        public ConfigChangeListener build() {
+            if (key == null) {
+                throw new IllegalArgumentException("key 不能为 null");
+            }
+            return createListener(key, event -> {
+                if (handler != null) {
+                    handler.handle(event);
+                }
+            });
+        }
+    }
+
+    /**
+     * 创建监听器构建器
+     *
+     * @return 构建器
+     */
+    public static ListenerBuilder newListener() {
+        return new ListenerBuilder();
+    }
+}

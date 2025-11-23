@@ -1,35 +1,198 @@
-# 备份配置
+# ==================================================
+# BaseBackend 统一备份系统配置
+# ==================================================
+
 backup:
-  # 是否启用备份模块
+  # 是否启用备份系统
   enabled: true
 
-  # 备份存储路径
-  backup-path: /data/backup/mysql
+  # 分布式锁配置
+  distributed-lock:
+    type: redisson
+    key-prefix: "backup:lock:"
+    ttl: 5m
+    wait-time: 10s
 
-  # 备份文件保留天数
-  retention-days: 30
+  # 重试配置
+  retry:
+    max-attempts: 5
+    backoff:
+      initial: 2s
+      multiplier: 2.0
+      max: 1m
 
-  # 是否启用自动备份
-  auto-backup-enabled: true
+  # 校验配置
+  checksum:
+    enabled: true
+    algorithms: [MD5, SHA256]
 
-  # 自动备份CRON表达式（默认每天凌晨2点）
-  auto-backup-cron: 0 0 2 * * ?
+  # 存储配置
+  storage:
+    local:
+      enabled: true
+      base-path: ${BACKUP_LOCAL_PATH:/data/backups}
+      retention-days: 7
 
-  # 是否启用增量备份
-  incremental-backup-enabled: true
+    s3:
+      enabled: ${S3_ENABLED:false}
+      endpoint: ${S3_ENDPOINT:}
+      bucket: ${S3_BUCKET:basebackend-backup}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      region: ${S3_REGION:us-east-1}
+      retention-days: 30
+      multipart-chunk-size: 16MB
+      connection-timeout: 60s
+      read-timeout: 300s
 
-  # Binlog路径
-  binlog-path: /var/lib/mysql
+    oss:
+      enabled: ${OSS_ENABLED:false}
+      endpoint: ${OSS_ENDPOINT:}
+      bucket: ${OSS_BUCKET:basebackend-backup}
+      access-key: ${OSS_ACCESS_KEY:}
+      secret-key: ${OSS_SECRET_KEY:}
+      retention-days: 30
 
-  # MySQL命令路径配置
-  mysqldump-path: mysqldump
-  mysql-path: mysql
-  mysqlbinlog-path: mysqlbinlog
+    # 多副本策略
+    multi-replica:
+      enabled: ${BACKUP_MULTI_REPLICA_ENABLED:true}
+      replicas:
+        - type: local
+          enabled: true
+          priority: 1
+        - type: s3
+          enabled: ${S3_ENABLED:false}
+          priority: 2
+
+  # 增量备份配置
+  incremental:
+    mysql:
+      enabled: ${MYSQL_INCREMENTAL_ENABLED:true}
+      binlog-dir: ${MYSQL_BINLOG_DIR:/var/lib/mysql}
+      max-retention: 7d
+
+    postgres:
+      enabled: ${POSTGRES_INCREMENTAL_ENABLED:false}
+      wal-dir: ${PG_WAL_DIR:/var/lib/postgresql/data/pg_wal}
+      max-retention: 7d
+
+  # 监控配置
+  metrics:
+    enabled: ${BACKUP_METRICS_ENABLED:true}
+    prefix: backup
+
+  # 通知配置
+  notify:
+    email:
+      enabled: ${EMAIL_NOTIFY_ENABLED:false}
+      smtp-host: ${SMTP_HOST:}
+      smtp-port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      recipients: ${EMAIL_RECIPIENTS:}
+
+    slack:
+      enabled: ${SLACK_NOTIFY_ENABLED:false}
+      webhook-url: ${SLACK_WEBHOOK_URL:}
+      channel: "#backup-alerts"
+
+    dingtalk:
+      enabled: ${DINGTALK_NOTIFY_ENABLED:false}
+      webhook-url: ${DINGTALK_WEBHOOK_URL:}
+      secret: ${DINGTALK_SECRET:}
+
+# ==================================================
+# MyBatis Plus 配置
+# ==================================================
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.basebackend.backup.domain.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ==================================================
+# Spring 配置（Redis + 数据库）
+# ==================================================
+
+spring:
+  # Redis配置
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
 
   # 数据库配置
-  database:
-    host: localhost
-    port: 3306
-    username: root
-    password: ${MYSQL_PASSWORD:root123}
-    database: basebackend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:basebackend}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+# ==================================================
+# Flyway 配置
+# ==================================================
+
+flyway:
+  enabled: true
+  locations: classpath:db/migration
+  baseline-on-migrate: true
+  baseline-version: 0
+  validate-on-migrate: true
+  clean-disabled: true
+
+# ==================================================
+# 日志配置
+# ==================================================
+
+logging:
+  level:
+    com.basebackend.backup: INFO
+    org.springframework.jdbc.core: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_PATH:/logs}/backup/backup.log
+
+# ==================================================
+# Actuator 配置（用于监控）
+# ==================================================
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ==================================================
+# Knife4j API文档配置
+# ==================================================
+
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN

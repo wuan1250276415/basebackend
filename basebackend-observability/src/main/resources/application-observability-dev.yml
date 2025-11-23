@@ -1,0 +1,174 @@
+# ============================================================================
+# Base Backend Observability - 开发环境配置示例
+# ============================================================================
+# 本配置文件适用于本地开发和测试环境
+# 优化开发体验，增加日志输出，降低采样率限制
+# ============================================================================
+
+observability:
+  # --------------------------------------------------------------------------
+  # Phase 1: OpenTelemetry 基础设施配置
+  # --------------------------------------------------------------------------
+  otel:
+    enabled: true
+    service-name: ${spring.application.name:base-backend}-dev
+    service-version: ${app.version:1.0.0-SNAPSHOT}
+
+    # 开发环境使用 logging exporter（方便调试）
+    exporter:
+      type: logging                       # 输出到日志而非远程
+      endpoint: ""
+      timeout: 5s
+
+    resource:
+      attributes:
+        deployment.environment: development
+        service.namespace: basebackend-dev
+
+    # 开发环境使用较小的批处理（快速看到结果）
+    batch:
+      schedule-delay: 1s
+      max-queue-size: 512
+      max-export-batch-size: 128
+      export-timeout: 10s
+
+  # --------------------------------------------------------------------------
+  # Phase 2: SLO 监控配置
+  # --------------------------------------------------------------------------
+  slo:
+    enabled: true
+
+    slos:
+      # 开发环境 SLO（宽松指标，便于测试）
+      - name: dev-api-availability
+        type: AVAILABILITY
+        target: 0.90                      # 90% 可用性（开发环境）
+        window: 1h                        # 1小时窗口（快速反馈）
+        service: dev-service
+        method: "*Controller.*"
+        burn-rate-windows:
+          - 5m                            # 5分钟快速检测
+
+      - name: dev-api-latency-p95
+        type: LATENCY
+        target: 0.90
+        window: 1h
+        service: dev-service
+        method: "*Controller.*"
+        latency-threshold-ms: 2000        # 2秒阈值（开发环境宽松）
+        percentile: 0.95
+        burn-rate-windows:
+          - 5m
+
+  # --------------------------------------------------------------------------
+  # Phase 3: 分布式追踪配置
+  # --------------------------------------------------------------------------
+  tracing:
+    enabled: true
+
+    propagation:
+      enabled: true
+      business-keys:
+        - X-Tenant-Id
+        - X-User-Id
+        - X-Request-Id
+
+    http:
+      server:
+        enabled: true
+        url-patterns:
+          - /api/**
+        exclude-patterns:
+          - /actuator/health
+      client:
+        enabled: true
+        capture-request-headers: true
+        capture-response-headers: true    # 开发环境捕获响应头
+
+    # 开发环境高采样率（便于调试）
+    sampler:
+      enabled: true
+      default-rate: 1.0                   # 100% 采样
+      always-sample-errors: true
+      always-sample-slow: true
+      latency-threshold-ms: 500           # 500ms 视为慢请求
+
+      rules:
+        - url-pattern: "/api/.*"
+          rate: 1.0                       # 所有 API 100% 采样
+
+      dynamic:
+        enabled: false                    # 开发环境禁用动态采样
+
+  # --------------------------------------------------------------------------
+  # Phase 4: 日志系统增强配置
+  # --------------------------------------------------------------------------
+  logging:
+    enabled: true
+
+    # 开发环境使用 text 格式（方便阅读）
+    format:
+      type: text
+      include-trace-context: true
+      include-business-context: true
+      timestamp-format: "HH:mm:ss.SSS"
+
+    # 开发环境关闭脱敏（方便调试）
+    masking:
+      enabled: false
+      rules: []
+
+    # 开发环境不做采样（全量日志）
+    sampling:
+      enabled: false
+      rules: []
+
+    # 开发环境仅控制台输出
+    routing:
+      enabled: true
+      destinations:
+        - name: console
+          type: console
+          enabled: true
+          level: DEBUG                    # 输出 DEBUG 级别
+
+# ============================================================================
+# Spring Boot Actuator 集成
+# ============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"                      # 开发环境暴露所有端点
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: always                # 始终显示健康检查详情
+
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ============================================================================
+# 日志框架配置（Logback）
+# ============================================================================
+logging:
+  level:
+    root: INFO
+    com.basebackend: DEBUG                # 本项目 DEBUG 级别
+    org.springframework: INFO
+    io.opentelemetry: INFO
+    ch.qos.logback: WARN
+
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %msg [traceId=%X{traceId:-}, spanId=%X{spanId:-}]%n"
+
+# ============================================================================
+# 开发环境提示
+# ============================================================================
+# 1. 本配置适用于本地开发，日志输出详细，性能可能较低
+# 2. 追踪采样率 100%，所有请求都会被追踪
+# 3. 日志不做脱敏和采样，便于调试
+# 4. 使用 logging exporter，无需启动外部 OTLP Collector

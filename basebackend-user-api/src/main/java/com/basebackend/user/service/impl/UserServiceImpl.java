@@ -10,7 +10,6 @@ import com.basebackend.feign.dto.dept.DeptBasicDTO;
 import com.basebackend.user.dto.UserCreateDTO;
 import com.basebackend.user.dto.UserDTO;
 import com.basebackend.user.dto.UserQueryDTO;
-import com.basebackend.user.entity.SysDept;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.entity.SysUserRole;
 import com.basebackend.user.mapper.SysRoleMapper;
@@ -20,12 +19,14 @@ import com.basebackend.user.service.UserService;
 import com.basebackend.observability.metrics.CustomMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +38,8 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final SysUserMapper userMapper;
-    private final DeptFeignClient deptFeignClient;
+    private final ObjectProvider<DeptFeignClient> deptFeignClientProvider;
+
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
@@ -411,6 +413,19 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<Long> getAllActiveUserIds() {
+        log.info("获取所有活跃用户ID列表");
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getStatus, 1)  // 状态为启用
+               .select(SysUser::getId);    // 只查询ID字段
+        
+        List<SysUser> users = userMapper.selectList(wrapper);
+        return users.stream()
+                .map(SysUser::getId)
+                .collect(Collectors.toList());
+    }
+
     /**
      * 转换为DTO
      */
@@ -419,10 +434,23 @@ public class UserServiceImpl implements UserService {
         BeanUtil.copyProperties(user, dto);
 
         // 设置部门名称
+        // 安全调用部门服务，失败不影响登录
         if (user.getDeptId() != null) {
-            Result<DeptBasicDTO> dept = deptFeignClient.getById(user.getDeptId());
-            if (dept != null) {
-                dto.setDeptName(dept.getData().getDeptName());
+            var deptFeignClient = deptFeignClientProvider.getIfAvailable();
+            if (deptFeignClient != null) {
+                try {
+                    Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
+                    if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                        dto.setDeptName(deptResult.getData().getDeptName());
+                    } else {
+                        log.warn("获取部门信息失败或返回空: deptId={}, message={}",
+                                user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
+                        dto.setDeptName(""); // 设置默认值
+                    }
+                } catch (Exception e) {
+                    log.error("调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
+                    dto.setDeptName(""); // 设置默认值，不影响登录流程
+                }
             }
         }
 
@@ -437,7 +465,7 @@ public class UserServiceImpl implements UserService {
                         var role = roleMapper.selectById(roleId);
                         return role != null ? role.getRoleName() : null;
                     })
-                    .filter(name -> name != null)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             dto.setRoleNames(roleNames);
         }

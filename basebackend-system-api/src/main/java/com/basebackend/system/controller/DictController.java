@@ -5,6 +5,7 @@ import com.basebackend.system.dto.DictDataDTO;
 import com.basebackend.system.service.DictService;
 import com.basebackend.common.model.PageResult;
 import com.basebackend.common.model.Result;
+import com.basebackend.security.annotation.RequiresPermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -47,6 +48,7 @@ public class DictController {
 
     @Operation(summary = "创建字典")
     @PostMapping
+    @RequiresPermission("system:dict:create")
     public Result<String> createDict(@Valid @RequestBody DictDTO dictDTO) {
         dictService.createDict(dictDTO);
         return Result.success("创建成功");
@@ -54,6 +56,7 @@ public class DictController {
 
     @Operation(summary = "更新字典")
     @PutMapping("/{id}")
+    @RequiresPermission("system:dict:update")
     public Result<String> updateDict(@PathVariable Long id, @Valid @RequestBody DictDTO dictDTO) {
         dictService.updateDict(id, dictDTO);
         return Result.success("更新成功");
@@ -61,6 +64,7 @@ public class DictController {
 
     @Operation(summary = "删除字典")
     @DeleteMapping("/{id}")
+    @RequiresPermission("system:dict:delete")
     public Result<String> deleteDict(@PathVariable Long id) {
         dictService.deleteDict(id);
         return Result.success("删除成功");
@@ -94,6 +98,7 @@ public class DictController {
 
     @Operation(summary = "创建字典数据")
     @PostMapping("/data")
+    @RequiresPermission("system:dict:create")
     public Result<String> createDictData(@Valid @RequestBody DictDataDTO dictDataDTO) {
         dictService.createDictData(dictDataDTO);
         return Result.success("创建成功");
@@ -101,6 +106,7 @@ public class DictController {
 
     @Operation(summary = "更新字典数据")
     @PutMapping("/data/{id}")
+    @RequiresPermission("system:dict:update")
     public Result<String> updateDictData(@PathVariable Long id, @Valid @RequestBody DictDataDTO dictDataDTO) {
         dictService.updateDictData(id, dictDataDTO);
         return Result.success("更新成功");
@@ -108,6 +114,7 @@ public class DictController {
 
     @Operation(summary = "删除字典数据")
     @DeleteMapping("/data/{id}")
+    @RequiresPermission("system:dict:delete")
     public Result<String> deleteDictData(@PathVariable Long id) {
         dictService.deleteDictData(id);
         return Result.success("删除成功");

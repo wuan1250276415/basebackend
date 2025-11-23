@@ -47,19 +47,19 @@ export interface ChangePasswordRequest {
  * 获取当前用户的个人资料
  */
 export const getProfile = () => {
-  return request.get<Result<ProfileDetail>>('/admin/profile/info')
+  return request.get<Result<ProfileDetail>>('/basebackend-user-api/api/user/profile/info')
 }
 
 /**
  * 更新当前用户的个人资料
  */
 export const updateProfile = (data: UpdateProfileRequest) => {
-  return request.put<Result<void>>('/admin/profile/info', data)
+  return request.put<Result<void>>('/basebackend-user-api/api/user/profile/info', data)
 }
 
 /**
  * 修改当前用户密码
  */
 export const changePassword = (data: ChangePasswordRequest) => {
-  return request.put<Result<void>>('/admin/profile/password', data)
+  return request.put<Result<void>>('/basebackend-user-api/api/user/profile/password', data)
 }

@@ -1,5 +1,6 @@
 package com.basebackend.user.controller;
 
+import com.basebackend.common.context.UserContext;
 import com.basebackend.user.dto.LoginRequest;
 import com.basebackend.user.dto.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
@@ -40,8 +41,8 @@ public class AuthController {
             LoginResponse response = authService.login(loginRequest);
             return Result.success("登录成功", response);
         } catch (Exception e) {
-            log.error("用户登录失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            log.error("用户登录失败，用户名：{}，错误：{}", loginRequest.getUsername(), e.getMessage(), e);
+            return Result.error("登录失败，请稍后重试");
         }
     }
 
@@ -57,8 +58,8 @@ public class AuthController {
             authService.logout();
             return Result.success("登出成功");
         } catch (Exception e) {
-            log.error("用户登出失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            log.error("用户登出失败，错误：{}", e.getMessage(), e);
+            return Result.error("登出失败，请稍后重试");
         }
     }
 
@@ -74,8 +75,8 @@ public class AuthController {
             LoginResponse response = authService.refreshToken(refreshToken);
             return Result.success("Token刷新成功", response);
         } catch (Exception e) {
-            log.error("Token刷新失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            log.error("刷新token失败，错误：{}", e.getMessage(), e);
+            return Result.error("刷新失败，请稍后重试");
         }
     }
 
@@ -85,14 +86,14 @@ public class AuthController {
     @GetMapping("/info")
     @Operation(summary = "获取用户信息", description = "获取当前登录用户信息")
     @OperationLog(operation="获取用户信息", businessType = BusinessType.SELECT)
-    public Result<LoginResponse.UserInfo> getCurrentUserInfo() {
+    public Result<UserContext> getCurrentUserInfo() {
         log.info("获取当前用户信息请求");
         try {
-            LoginResponse.UserInfo userInfo = authService.getCurrentUserInfo();
+            UserContext userInfo = authService.getCurrentUserInfo();
             return Result.success("获取用户信息成功", userInfo);
         } catch (Exception e) {
-            log.error("获取用户信息失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            log.error("获取用户信息失败，错误：{}", e.getMessage(), e);
+            return Result.error("获取用户信息失败，请稍后重试");
         }
     }
 
@@ -108,8 +109,8 @@ public class AuthController {
             authService.changePassword(passwordChangeDTO);
             return Result.success("密码修改成功");
         } catch (Exception e) {
-            log.error("密码修改失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+            log.error("密码修改失败，错误：{}", e.getMessage(), e);
+            return Result.error("密码修改失败，请稍后重试");
         }
     }
 }

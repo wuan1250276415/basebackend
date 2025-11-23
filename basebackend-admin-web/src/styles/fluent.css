@@ -1,0 +1,106 @@
+:root {
+  /* Fluent 2 Color Palette - Light Mode */
+  --fluent-color-brand-foreground-1: #0078D4;
+  --fluent-color-brand-background-1: #0078D4;
+  --fluent-color-brand-background-hover: #106EBE;
+  --fluent-color-brand-background-pressed: #005A9E;
+  
+  --fluent-color-neutral-background-1: #FFFFFF;
+  --fluent-color-neutral-background-2: #FAFAFA;
+  --fluent-color-neutral-background-3: #F5F5F5;
+  --fluent-color-neutral-background-4: #F0F0F0;
+  
+  --fluent-color-neutral-foreground-1: #242424;
+  --fluent-color-neutral-foreground-2: #424242;
+  --fluent-color-neutral-foreground-3: #616161;
+  
+  --fluent-color-stroke-1: #D1D1D1;
+  --fluent-color-stroke-2: #E1E1E1;
+
+  /* Elevation / Shadows */
+  --fluent-shadow-2: 0px 1px 2px rgba(0, 0, 0, 0.04), 0px 2px 4px rgba(0, 0, 0, 0.04);
+  --fluent-shadow-4: 0px 2px 4px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.08);
+  --fluent-shadow-8: 0px 4px 8px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.12);
+  --fluent-shadow-16: 0px 8px 16px rgba(0, 0, 0, 0.14), 0px 16px 32px rgba(0, 0, 0, 0.14);
+
+  /* Radius */
+  --fluent-radius-small: 4px;
+  --fluent-radius-medium: 8px;
+  --fluent-radius-large: 12px;
+  --fluent-radius-circle: 50%;
+
+  /* Acrylic Materials */
+  --fluent-acrylic-background-base: rgba(255, 255, 255, 0.85); /* Fallback */
+  --fluent-acrylic-backdrop-filter: saturate(180%) blur(20px);
+  
+  --fluent-mica-background: #F3F3F3;
+}
+
+[data-theme='dark'] {
+  /* Fluent 2 Color Palette - Dark Mode */
+  --fluent-color-brand-foreground-1: #479EF5;
+  --fluent-color-brand-background-1: #0078D4;
+  --fluent-color-brand-background-hover: #106EBE;
+  
+  --fluent-color-neutral-background-1: #292929;
+  --fluent-color-neutral-background-2: #1F1F1F;
+  --fluent-color-neutral-background-3: #141414;
+  --fluent-color-neutral-background-4: #0F0F0F;
+  
+  --fluent-color-neutral-foreground-1: #FFFFFF;
+  --fluent-color-neutral-foreground-2: #D1D1D1;
+  --fluent-color-neutral-foreground-3: #A1A1A1;
+
+  --fluent-color-stroke-1: #424242;
+  
+  --fluent-acrylic-background-base: rgba(32, 32, 32, 0.85);
+  --fluent-mica-background: #202020;
+}
+
+/* Utility Classes for Acrylic Effects */
+.fluent-acrylic {
+  background-color: var(--fluent-acrylic-background-base);
+  backdrop-filter: var(--fluent-acrylic-backdrop-filter);
+  -webkit-backdrop-filter: var(--fluent-acrylic-backdrop-filter);
+}
+
+.fluent-mica {
+  background-color: var(--fluent-mica-background);
+}
+
+/* Card Style */
+.fluent-card {
+  background: var(--fluent-color-neutral-background-1);
+  border-radius: var(--fluent-radius-medium);
+  box-shadow: var(--fluent-shadow-2);
+  border: 1px solid var(--fluent-color-stroke-2);
+  transition: all 0.2s cubic-bezier(0.33, 0, 0.67, 1); /* Fluent easing */
+}
+
+.fluent-card:hover {
+  box-shadow: var(--fluent-shadow-8);
+  transform: translateY(-1px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}

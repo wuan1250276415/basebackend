@@ -39,7 +39,7 @@
         <!-- Common Module -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 

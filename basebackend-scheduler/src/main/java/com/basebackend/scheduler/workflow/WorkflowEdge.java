@@ -1,36 +1,104 @@
 package com.basebackend.scheduler.workflow;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
+import java.util.Objects;
 
 /**
- * 工作流边（任务依赖关系）
+ * 工作流边定义，描述节点间依赖与条件。
+ * 不可变设计便于安全共享。
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class WorkflowEdge implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public final class WorkflowEdge {
 
     /**
-     * 源节点ID
+     * 节点执行失败后的处理策略。
      */
-    private String fromNodeId;
+    public enum FailureStrategy {
+        CONTINUE,
+        FAIL,
+        STOP
+    }
+
+    private final String from;
+    private final String to;
+    private final String conditionExpression;
+    private final double weight;
+    private final FailureStrategy failureStrategy;
+
+    private WorkflowEdge(Builder builder) {
+        this.from = Objects.requireNonNull(builder.from, "from");
+        this.to = Objects.requireNonNull(builder.to, "to");
+        this.conditionExpression = builder.conditionExpression;
+        this.weight = builder.weight;
+        this.failureStrategy = Objects.requireNonNull(builder.failureStrategy, "failureStrategy");
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public String getConditionExpression() {
+        return conditionExpression;
+    }
+
+    public double getWeight() {
+        return weight;
+    }
+
+    public FailureStrategy getFailureStrategy() {
+        return failureStrategy;
+    }
 
     /**
-     * 目标节点ID
+     * 是否存在条件表达式。
+     *
+     * @return true 表示存在条件，需要外部评估
      */
-    private String toNodeId;
+    public boolean isConditional() {
+        return conditionExpression != null && !conditionExpression.trim().isEmpty();
+    }
+
+    public static Builder builder(String from, String to) {
+        return new Builder(from, to);
+    }
 
     /**
-     * 边的条件（可选）
-     * 仅当源节点满足此条件时，才执行目标节点
+     * 构建器，封装边的校验与默认值。
      */
-    private String condition;
+    public static final class Builder {
+        private final String from;
+        private final String to;
+        private String conditionExpression;
+        private double weight = 1.0d;
+        private FailureStrategy failureStrategy = FailureStrategy.FAIL;
+
+        private Builder(String from, String to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        public Builder conditionExpression(String conditionExpression) {
+            this.conditionExpression = conditionExpression;
+            return this;
+        }
+
+        public Builder weight(double weight) {
+            if (Double.isNaN(weight) || Double.isInfinite(weight) || weight <= 0) {
+                throw new IllegalArgumentException("weight must be positive");
+            }
+            this.weight = weight;
+            return this;
+        }
+
+        public Builder failureStrategy(FailureStrategy failureStrategy) {
+            this.failureStrategy = Objects.requireNonNull(failureStrategy, "failureStrategy");
+            return this;
+        }
+
+        public WorkflowEdge build() {
+            return new WorkflowEdge(this);
+        }
+    }
 }

@@ -17,7 +17,7 @@ import {
 import type { MenuProps } from 'antd'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
-import { getCurrentUserMenuTree } from '@/api/menu'
+import { getCurrentUserMenuTree } from '@/api/application'
 import { Menu as MenuType } from '@/types'
 import { NotificationBell } from '@/components/NotificationCenter'
 import { useNotificationPolling } from '@/hooks/useNotificationPolling'
@@ -164,7 +164,14 @@ const BasicLayout = () => {
 
   return (
     <Layout className="layout-container">
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed} 
+        className="fluent-sider fluent-acrylic"
+        width={260}
+        style={{ background: 'transparent' }}
+      >
         <div className="logo">
           <h1>{collapsed ? 'BB' : 'BaseBackend'}</h1>
         </div>
@@ -174,15 +181,18 @@ const BasicLayout = () => {
           </div>
         ) : (
           <Menu
-            theme="dark"
             mode="inline"
             selectedKeys={selectedKeys}
             items={buildMenuItems(menuList)}
+            style={{ background: 'transparent', borderRight: 0 }}
           />
         )}
       </Sider>
-      <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }}>
+      <Layout style={{ background: 'transparent' }}>
+        <Header 
+          className="fluent-header fluent-acrylic" 
+          style={{ padding: 0, background: 'transparent' }}
+        >
           <div className="header-content">
             <div className="header-left">
               {collapsed ? (
@@ -210,12 +220,13 @@ const BasicLayout = () => {
         </Header>
         <Content
           style={{
-            margin: '24px 16px',
+            margin: '16px',
             padding: 24,
             minHeight: 280,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
             overflow: 'auto',
+            boxShadow: 'var(--fluent-shadow-4)',
           }}
         >
           <Outlet />

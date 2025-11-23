@@ -45,7 +45,7 @@ const Login = () => {
           </div>
           <Form
             name="login"
-            initialValues={{ username: 'admin', password: 'admin123' }}
+            initialValues={{ username: 'admin', password: 'password' }}
             onFinish={onFinish}
             size="large"
           >
@@ -78,7 +78,7 @@ const Login = () => {
             </Form.Item>
           </Form>
           <div className="login-footer">
-            <p>默认账号: admin / admin123</p>
+            <p>默认账号: admin / password</p>
           </div>
         </Card>
       </div>

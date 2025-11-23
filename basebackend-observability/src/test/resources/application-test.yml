@@ -1,0 +1,45 @@
+# Test Configuration for Observability Module
+
+observability:
+  otel:
+    enabled: true
+    service-name: test-service
+    exporter:
+      type: logging
+    resource:
+      attributes:
+        deployment.environment: test
+
+  slo:
+    enabled: true
+    slos:
+      - name: test-availability
+        type: AVAILABILITY
+        target: 0.99
+        window: 1h
+        service: test-service
+
+  tracing:
+    enabled: true
+    propagation:
+      enabled: true
+    http:
+      server:
+        enabled: true
+      client:
+        enabled: true
+    sampler:
+      enabled: true
+      default-rate: 1.0
+
+  logging:
+    enabled: true
+    format:
+      type: text
+      include-trace-context: true
+    masking:
+      enabled: true
+    sampling:
+      enabled: false
+    routing:
+      enabled: false

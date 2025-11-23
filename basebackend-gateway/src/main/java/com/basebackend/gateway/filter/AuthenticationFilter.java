@@ -1,6 +1,5 @@
 package com.basebackend.gateway.filter;
 
-import com.alibaba.fastjson2.JSON;
 import com.basebackend.gateway.constant.GatewayConstants;
 import com.basebackend.gateway.model.GatewayResult;
 import com.basebackend.jwt.JwtUtil;
@@ -49,6 +48,19 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/basebackend-user-api/doc.html",
             "/basebackend-user-api/webjars/**",
             "/basebackend-user-api/favicon.ico",
+            "/basebackend-system-api/api/system/depts/tree",
+            "/basebackend-system-api/api/system/depts/by-name",
+            "/basebackend-system-api/api/system/depts/by-code",
+            "/basebackend-system-api/api/system/depts/batch",
+            "/basebackend-system-api/api/system/depts/by-parent",
+            "/basebackend-system-api/api/system/application/enabled",
+            "/basebackend-system-api/api/system/application/code/**",
+            "/basebackend-system-api/api/system/notifications/stream",
+            "/basebackend-system-api/api/dicts/**",
+            "/basebackend-system-api/swagger-ui/**",
+            "/basebackend-system-api/v3/api-docs/**",
+            "/basebackend-system-api/doc.html",
+            "/basebackend-system-api/webjars/**",
             "/api/public/**",
             "/actuator/**"
     );
@@ -81,15 +93,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         // 从Token中获取用户名
-        String username = jwtUtil.getSubjectFromToken(token);
-        log.debug("Token验证成功，用户名: {}", username);
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        log.debug("Token验证成功，用户id: {}", userId);
 
         // 检查Redis中的Token是否存在（防止强制下线后仍能访问）
-        String redisTokenKey = LOGIN_TOKEN_KEY + username;
+        String redisTokenKey = LOGIN_TOKEN_KEY + userId;
         return reactiveRedisTemplate.hasKey(redisTokenKey)
                 .flatMap(exists -> {
                     if (!exists) {
-                        log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", username);
+                        log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", userId);
                         return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
                     }
 
@@ -97,13 +109,13 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                     return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
                             .flatMap(redisToken -> {
                                 if (!token.equals(redisToken.toString())) {
-                                    log.warn("用户 {} 的Token与Redis中的Token不一致", username);
+                                    log.warn("用户 {} 的Token与Redis中的Token不一致", userId);
                                     return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
                                 }
 
                                 // Token验证通过，添加用户信息到请求头
                                 ServerHttpRequest mutatedRequest = request.mutate()
-                                        .header("X-User-Id", username)
+                                        .header("X-User-Id", String.valueOf(userId))
                                         .build();
 
                                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
@@ -123,12 +135,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * 检查路径是否在白名单中
      */
     private boolean isWhitelist(String path) {
-        boolean result = WHITELIST.stream().anyMatch(pattern -> {
+        return WHITELIST.stream().anyMatch(pattern -> {
             boolean matches = pathMatcher.match(pattern, path);
             log.debug("路径匹配检查: 模式={}, 路径={}, 匹配={}", pattern, path, matches);
             return matches;
         });
-        return result;
     }
 
     /**

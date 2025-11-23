@@ -26,7 +26,6 @@ import java.util.List;
 public class RoleServiceImpl implements RoleService {
 
     private final SysRoleMapper roleMapper;
-    private final SysRoleMenuMapper roleMenuMapper;
     private final SysRolePermissionMapper rolePermissionMapper;
     private final SysRoleResourceMapper roleResourceMapper;
     private final SysUserRoleMapper userRoleMapper;
@@ -169,9 +168,9 @@ public class RoleServiceImpl implements RoleService {
         roleMapper.deleteById(id);
 
         // 删除角色菜单关联
-        LambdaQueryWrapper<SysRoleMenu> menuWrapper = new LambdaQueryWrapper<>();
-        menuWrapper.eq(SysRoleMenu::getRoleId, id);
-        roleMenuMapper.delete(menuWrapper);
+        LambdaQueryWrapper<SysRoleResource> menuWrapper = new LambdaQueryWrapper<>();
+        menuWrapper.eq(SysRoleResource::getRoleId, id);
+        roleResourceMapper.delete(menuWrapper);
 
         // 删除角色权限关联
         LambdaQueryWrapper<SysRolePermission> permissionWrapper = new LambdaQueryWrapper<>();
@@ -187,19 +186,18 @@ public class RoleServiceImpl implements RoleService {
         log.info("分配角色菜单: roleId={}, menuIds={}", roleId, menuIds);
 
         // 删除原有菜单关联
-        LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysRoleMenu::getRoleId, roleId);
-        roleMenuMapper.delete(wrapper);
+        LambdaQueryWrapper<SysRoleResource> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRoleResource::getRoleId, roleId);
+        roleResourceMapper.delete(wrapper);
 
         // 添加新菜单关联
         if (menuIds != null && !menuIds.isEmpty()) {
             for (Long menuId : menuIds) {
-                SysRoleMenu roleMenu = new SysRoleMenu();
+                SysRoleResource roleMenu = new SysRoleResource();
                 roleMenu.setRoleId(roleId);
-                roleMenu.setMenuId(menuId);
+                roleMenu.setResourceId(menuId);
                 roleMenu.setCreateTime(LocalDateTime.now());
-                roleMenu.setCreateBy(1L); // 临时硬编码
-                roleMenuMapper.insert(roleMenu);
+                roleResourceMapper.insert(roleMenu);
             }
         }
 
@@ -233,12 +231,12 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<Long> getRoleMenus(Long roleId) {
-        LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysRoleMenu::getRoleId, roleId);
-        List<SysRoleMenu> roleMenus = roleMenuMapper.selectList(wrapper);
+        LambdaQueryWrapper<SysRoleResource> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRoleResource::getRoleId, roleId);
+        List<SysRoleResource> roleResources = roleResourceMapper.selectList(wrapper);
 
-        return roleMenus.stream()
-                .map(SysRoleMenu::getMenuId)
+        return roleResources.stream()
+                .map(SysRoleResource::getResourceId)
                 .collect(java.util.stream.Collectors.toList());
     }
 

@@ -1,0 +1,197 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "BaseBackend Scheduler 监控仪表板",
+    "description": "BaseBackend Scheduler 工作流与任务调度监控仪表板",
+    "tags": ["workflow", "scheduler", "camunda"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "工作流状态总览",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "workflow_active_process_instances",
+            "legendFormat": "活跃流程实例"
+          },
+          {
+            "expr": "workflow_active_tasks",
+            "legendFormat": "活跃任务"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "流程实例趋势",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(workflow_process_started_total[5m])",
+            "legendFormat": "启动速率"
+          },
+          {
+            "expr": "rate(workflow_process_completed_total[5m])",
+            "legendFormat": "完成速率"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "流程成功率",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(workflow_process_completed_total[5m]) / rate(workflow_process_started_total[5m]) * 100",
+            "legendFormat": "成功率 %"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "任务统计",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "workflow_task_completed_total",
+            "legendFormat": "已完成任务"
+          },
+          {
+            "expr": "workflow_task_cancelled_total",
+            "legendFormat": "已取消任务"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "订单审批统计",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+        "targets": [
+          {
+            "expr": "business_order_approval_total",
+            "legendFormat": "已批准订单"
+          },
+          {
+            "expr": "business_order_rejected_total",
+            "legendFormat": "已拒绝订单"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "系统资源使用",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes",
+            "legendFormat": "内存使用"
+          },
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "CPU使用率"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "JVM堆内存使用",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+            "legendFormat": "已使用堆内存"
+          },
+          {
+            "expr": "jvm_memory_max_bytes{area=\"heap\"}",
+            "legendFormat": "最大堆内存"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "GC统计",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_count[5m])",
+            "legendFormat": "GC暂停次数"
+          },
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum[5m])",
+            "legendFormat": "GC暂停时间"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "HTTP请求延迟",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_server_requests_seconds_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(http_server_requests_seconds_bucket[5m]))",
+            "legendFormat": "P90"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "数据同步统计",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "business_data_sync_total",
+            "legendFormat": "成功同步"
+          },
+          {
+            "expr": "business_data_sync_failed_total",
+            "legendFormat": "失败同步"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "邮件发送统计",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+        "targets": [
+          {
+            "expr": "business_email_sent_total",
+            "legendFormat": "成功发送"
+          },
+          {
+            "expr": "business_email_failed_total",
+            "legendFormat": "发送失败"
+          }
+        ]
+      }
+    ]
+  }
+}

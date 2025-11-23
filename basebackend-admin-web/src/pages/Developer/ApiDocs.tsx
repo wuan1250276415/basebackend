@@ -11,9 +11,9 @@ import 'swagger-ui-react/swagger-ui.css'
 
 const { Title, Paragraph, Text } = Typography
 
-const OPENAPI_JSON_URL = '/api/admin/openapi/spec.json'
-const OPENAPI_YAML_URL = '/api/admin/openapi/spec.yaml'
-const SDK_ZIP_URL = '/api/admin/openapi/sdk/typescript'
+const OPENAPI_JSON_URL = '/basebackend-system-api/api/system/openapi/spec.json'
+const OPENAPI_YAML_URL = '/basebackend-system-api/api/system/openapi/spec.yaml'
+const SDK_ZIP_URL = '/basebackend-system-api/api/system/openapi/sdk/typescript'
 
 type DownloadTarget = 'json' | 'yaml' | 'sdk'
 

@@ -1,21 +1,44 @@
 .layout-container {
   min-height: 100vh;
+  background-image: radial-gradient(circle at 50% 0%, rgba(0, 120, 212, 0.1), transparent 60%); /* Subtle ambient light */
+}
+
+/* Fluent Acrylic Sider & Header */
+.fluent-sider,
+.fluent-header {
+  /* Fallback color is handled by variables if backdrop-filter fails, but mainly relying on the class */
+  background-color: var(--fluent-acrylic-background-base) !important; 
+  backdrop-filter: var(--fluent-acrylic-backdrop-filter);
+  -webkit-backdrop-filter: var(--fluent-acrylic-backdrop-filter);
+  border-right: 1px solid var(--fluent-color-stroke-2);
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.33, 0, 0.67, 1);
+}
+
+.fluent-header {
+  border-bottom: 1px solid var(--fluent-color-stroke-2);
+  border-right: none;
+  position: sticky;
+  top: 0;
+  z-index: 19; /* Above content */
 }
 
 .logo {
-  height: 64px;
+  height: 60px; /* Match header height */
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
   margin-bottom: 8px;
+  transition: all 0.3s;
 }
 
 .logo h1 {
-  color: #fff;
+  color: var(--fluent-color-brand-foreground-1);
   font-size: 20px;
   font-weight: 600;
   margin: 0;
+  font-family: 'Segoe UI Semibold', sans-serif;
 }
 
 .header-content {
@@ -23,7 +46,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
-  height: 64px;
+  height: 60px;
 }
 
 .header-left {
@@ -33,13 +56,16 @@
 
 .trigger {
   font-size: 18px;
-  padding: 0 16px;
+  padding: 8px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: color 0.3s;
+  transition: all 0.2s;
+  color: var(--fluent-color-neutral-foreground-2);
 }
 
 .trigger:hover {
-  color: #1890ff;
+  color: var(--fluent-color-brand-foreground-1);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .header-right {
@@ -53,9 +79,9 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 4px 12px;
+  padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s;
 }
 
 .user-info:hover {
@@ -64,5 +90,6 @@
 
 .user-name {
   font-size: 14px;
-  color: #595959;
+  color: var(--fluent-color-neutral-foreground-1);
+  font-weight: 500;
 }

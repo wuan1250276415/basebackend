@@ -277,7 +277,7 @@ export const useNotificationSSE = () => {
   const baseURL = import.meta.env.VITE_API_BASE_URL || '';
 
   return useSSE({
-    endpoint: `${baseURL}/admin/notifications/stream`,
+    endpoint: `${baseURL}/basebackend-notification-service/api/notifications/stream`,
     autoReconnect: true,
     maxReconnectAttempts: 5,
     baseReconnectDelay: 1000,

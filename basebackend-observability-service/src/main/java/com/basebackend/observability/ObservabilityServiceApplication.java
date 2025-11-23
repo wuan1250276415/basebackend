@@ -1,5 +1,6 @@
 package com.basebackend.observability;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -17,12 +18,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = {
         "com.basebackend.common",
-        "com.basebackend.security",
         "com.basebackend.jwt",
         "com.basebackend.database",
         "com.basebackend.cache",
         "com.basebackend.logging",
-        "com.basebackend.observability"
+        "com.basebackend.observability",
+})
+@MapperScan({
+        "com.basebackend.observability.mapper",
+        "com.basebackend.database.**.mapper",
 })
 public class ObservabilityServiceApplication {
 

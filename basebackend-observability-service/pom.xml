@@ -22,7 +22,7 @@
         <!-- Base Backend Common -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

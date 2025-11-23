@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Base Backend Observability - Logback 配置示例
+
+    本配置文件集成了 Phase 4 日志系统增强的所有功能：
+    1. 脱敏转换器 (MaskingConverter)
+    2. 采样过滤器 (LogSamplingTurboFilter)
+    3. 路由 Appender (LogRoutingAppender)
+
+    使用方式：
+    1. 复制到 src/main/resources/logback-spring.xml
+    2. 根据实际需求调整配置
+    3. 与 application-observability.yml 配合使用
+-->
+<configuration>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="base-backend"/>
+    <springProperty scope="context" name="LOG_PATH" source="logging.file.path" defaultValue="/var/log/basebackend"/>
+
+    <!-- ============================================================ -->
+    <!-- 注册自定义转换器：脱敏转换器                                    -->
+    <!-- ============================================================ -->
+    <conversionRule conversionWord="maskedMsg"
+                    converterClass="com.basebackend.observability.logging.masking.MaskingConverter" />
+
+    <!-- ============================================================ -->
+    <!-- 注册日志采样过滤器（TurboFilter）                               -->
+    <!-- ============================================================ -->
+    <!--
+        注意：TurboFilter 通过 LoggingAutoConfiguration 自动注册
+        此处仅作示例，如需手动配置，取消注释以下代码
+    -->
+    <!--
+    <turboFilter class="com.basebackend.observability.logging.sampling.LogSamplingTurboFilter">
+        <enabled>true</enabled>
+    </turboFilter>
+    -->
+
+    <!-- ============================================================ -->
+    <!-- Appender 定义                                               -->
+    <!-- ============================================================ -->
+
+    <!-- 控制台 Appender（开发环境） -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] - %maskedMsg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- JSON 控制台 Appender（生产环境） -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"${APP_NAME}"}</customFields>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <level>level</level>
+                <thread>thread</thread>
+            </fieldNames>
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+            <includeMdcKeyName>tenantId</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- 文件 Appender（应用日志） -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/application.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] - %maskedMsg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/application.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 文件 Appender（错误日志） -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] - %maskedMsg%n%ex{full}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 文件 Appender（审计日志） -->
+    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/audit.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"${APP_NAME}","category":"AUDIT"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/audit.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ============================================================ -->
+    <!-- 路由 Appender（集成日志路由功能）                               -->
+    <!-- ============================================================ -->
+    <!--
+        LogRoutingAppender 根据配置将日志路由到不同目标
+        配置项在 application-observability.yml 中定义
+    -->
+    <!--
+    <appender name="ROUTING" class="com.basebackend.observability.logging.routing.LogRoutingAppender">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+        <appender-ref ref="AUDIT_FILE"/>
+    </appender>
+    -->
+
+    <!-- ============================================================ -->
+    <!-- 异步 Appender（提升性能）                                     -->
+    <!-- ============================================================ -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <appender name="ASYNC_ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="ERROR_FILE"/>
+    </appender>
+
+    <!-- ============================================================ -->
+    <!-- Logger 配置                                                 -->
+    <!-- ============================================================ -->
+
+    <!-- 项目日志 -->
+    <logger name="com.basebackend" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+
+    <!-- 审计日志 Logger（独立输出到审计文件） -->
+    <logger name="com.basebackend.audit" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT_FILE"/>
+    </logger>
+
+    <!-- Spring Framework -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.web" level="INFO"/>
+
+    <!-- OpenTelemetry -->
+    <logger name="io.opentelemetry" level="WARN"/>
+
+    <!-- Logback 自身 -->
+    <logger name="ch.qos.logback" level="WARN"/>
+
+    <!-- ============================================================ -->
+    <!-- 环境特定配置                                                 -->
+    <!-- ============================================================ -->
+
+    <!-- 开发环境：控制台输出 + DEBUG 级别 -->
+    <springProfile name="dev,default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- 生产环境：JSON 格式 + 文件输出 -->
+    <springProfile name="prod,production">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

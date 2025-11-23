@@ -6,3 +6,10 @@ spring:
     name: basebackend-observability-service
   profiles:
     active: observability
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - com.basebackend.observability.otel.config.OtelAutoConfiguration
+      - com.basebackend.observability.otel.config.BridgeConfiguration

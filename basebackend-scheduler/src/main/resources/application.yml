@@ -1,8 +1,286 @@
+# ========================================
+# Spring Boot Main Application Configuration
+# ========================================
+# 主配置文件,定义应用的核心配置项。
+# 该文件会被Nacos配置中心的配置覆盖(bootstrap.yml中定义的配置优先级更高)。
+#
+# 配置优先级(从高到低):
+# 1. Nacos配置中心(extension-configs)
+# 2. Nacos配置中心(shared-configs)
+# 3. bootstrap.yml
+# 4. application-{profile}.yml
+# 5. application.yml(本文件)
+# ========================================
+
+# ========== 服务器配置 ==========
+server:
+  # 服务端口: 默认8080,生产环境建议通过环境变量指定
+  port: ${SERVER_PORT:8080}
+
+  # Servlet配置
+  servlet:
+    # 上下文路径: 默认根路径
+    context-path: ${SERVER_CONTEXT_PATH:}
+
+    # 会话超时时间: 30分钟
+    session:
+      timeout: 30m
+
+  # Tomcat配置
+  tomcat:
+    # 最大线程数: 处理请求的最大线程数
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:200}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:10}
+
+    # 最大连接数: Tomcat接受的最大连接数
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:10000}
+
+    # 连接超时: 连接建立超时时间
+    connection-timeout: 20s
+
+    # URI编码
+    uri-encoding: UTF-8
+
+# ========== Spring核心配置 ==========
 spring:
+  application:
+    # 应用名称: 必须与bootstrap.yml保持一致
+    name: basebackend-scheduler
+
   profiles:
-    default: scheduler,camunda
-seata:
-  # ============================================================================
-  # 基础配置
-  # ============================================================================
-  enabled: false
+    # 激活的环境: dev(开发)、test(测试)、prod(生产)
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    # 包含 Camunda 配置
+    include:
+      - camunda
+
+  main:
+    # 允许循环依赖: 仅在必要时开启,建议生产环境设为false
+    allow-circular-references: ${SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES:true}
+
+    # 允许Bean定义覆盖: 仅在必要时开启,建议生产环境设为false
+    allow-bean-definition-overriding: ${SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING:true}
+
+    # 懒加载: 生产环境建议开启以减少启动时间
+    lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
+
+  # ========== 自动配置排除 ==========
+  autoconfigure:
+    exclude:
+      # 排除OpenTelemetry自动配置(使用自定义配置)
+      - com.basebackend.observability.otel.config.OtelAutoConfiguration
+      - com.basebackend.observability.otel.config.BridgeConfiguration
+
+  # ========== Jackson JSON配置 ==========
+  jackson:
+    # 时区: UTC标准时间,避免时区混乱
+    time-zone: UTC
+
+    # 日期格式: ISO-8601标准格式
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+
+    # 序列化配置
+    serialization:
+      # 将日期序列化为ISO-8601字符串,而非时间戳
+      write-dates-as-timestamps: false
+
+      # 美化输出JSON(开发环境),生产环境建议关闭以减少传输量
+      indent-output: ${JACKSON_INDENT_OUTPUT:false}
+
+      # 忽略空值字段(减少传输量)
+      # ALWAYS: 总是包含空值
+      # NON_NULL: 忽略null值
+      # NON_EMPTY: 忽略null和空字符串
+      default-property-inclusion: ${JACKSON_DEFAULT_PROPERTY_INCLUSION:NON_NULL}
+
+    # 反序列化配置
+    deserialization:
+      # 遇到未知属性时不抛异常(提高接口兼容性)
+      fail-on-unknown-properties: false
+
+      # 遇到空对象时不抛异常
+      fail-on-empty-beans: false
+
+  # ========== 数据源配置 ==========
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://192.168.66.126:3306/basebackend_scheduler?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:basebackend_scheduler}
+    password: ${MYSQL_PASSWORD:wk5KknQxrFcD64ZS}
+    hikari:
+      pool-name: scheduler-hikari-pool
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  # ========== Nacos配置 ==========
+  cloud:
+    # 显式启用bootstrap.yml加载(Spring Boot 3.1+必需)
+    bootstrap:
+      enabled: ${SPRING_CLOUD_BOOTSTRAP_ENABLED:true}
+
+    nacos:
+      # 服务发现开关
+      discovery:
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
+
+      # 配置中心开关
+      config:
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        refresh-enabled: true
+
+# ========== 日志配置 ==========
+logging:
+  # 日志级别配置
+  level:
+    # 根日志级别: INFO(生产环境) / DEBUG(开发环境)
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+    # 模块日志级别
+    com.basebackend.scheduler: ${LOGGING_LEVEL_SCHEDULER:INFO}
+
+    # Camunda日志级别(默认WARN,减少日志量)
+    org.camunda.bpm: ${LOGGING_LEVEL_CAMUNDA:WARN}
+
+    # PowerJob日志级别(默认INFO)
+    tech.powerjob: ${LOGGING_LEVEL_POWERJOB:INFO}
+
+    # Spring框架日志级别
+    org.springframework: ${LOGGING_LEVEL_SPRING:WARN}
+
+    # MyBatis日志级别
+    com.basebackend.scheduler.mapper: ${LOGGING_LEVEL_MYBATIS:DEBUG}
+
+  # 日志输出格式
+  pattern:
+    # 控制台输出格式: 带颜色的格式化输出
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+
+    # 文件输出格式: 纯文本格式
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+
+  # 日志文件配置
+  file:
+    # 日志文件路径: 默认logs目录
+    path: ${LOGGING_FILE_PATH:logs}
+
+    # 日志文件名: 默认scheduler.log
+    name: ${LOGGING_FILE_NAME:${logging.file.path}/scheduler.log}
+
+    # 单个日志文件最大大小
+    max-size: ${LOGGING_FILE_MAX_SIZE:100MB}
+
+    # 日志文件保留天数
+    max-history: ${LOGGING_FILE_MAX_HISTORY:30}
+
+# ========================================
+# Scheduler Module Configuration
+# ========================================
+# 调度器模块的业务配置,包括全局配置、Camunda、PowerJob、DAG等子模块。
+# 所有配置项都支持通过Nacos动态刷新(@RefreshScope)。
+# ========================================
+
+scheduler:
+  # ========== 全局配置 ==========
+  # 调度器模块总开关
+  enabled: ${SCHEDULER_ENABLED:true}
+
+  # 默认租户ID: 用于多租户隔离
+  default-tenant-id: ${SCHEDULER_DEFAULT_TENANT_ID:default}
+
+  # 时区设置: 影响任务调度时间计算
+  # UTC: 标准时间(推荐)
+  # Asia/Shanghai: 东八区
+  time-zone: ${SCHEDULER_TIME_ZONE:UTC}
+
+  # ========== 并发控制 ==========
+  # 最大并发工作流数: 防止资源耗尽
+  max-concurrent-workflows: ${SCHEDULER_MAX_CONCURRENT_WORKFLOWS:10}
+
+  # 最大任务分发重试次数
+  max-dispatch-retries: ${SCHEDULER_MAX_DISPATCH_RETRIES:3}
+
+  # 任务分发重试退避时间(毫秒)
+  dispatch-retry-backoff-millis: ${SCHEDULER_DISPATCH_RETRY_BACKOFF_MILLIS:500}
+
+  # ========== 幂等性配置 ==========
+  # 幂等性键TTL(秒): 防止重复执行
+  idempotency-key-ttl-seconds: ${SCHEDULER_IDEMPOTENCY_KEY_TTL_SECONDS:900}
+
+  # ========== 分页配置 ==========
+  # 详见PageProperties类
+  page:
+    # 默认页码
+    default-page-no: ${SCHEDULER_PAGE_DEFAULT_PAGE_NO:1}
+
+    # 默认每页大小
+    default-page-size: ${SCHEDULER_PAGE_DEFAULT_PAGE_SIZE:20}
+
+    # 最大每页大小
+    max-page-size: ${SCHEDULER_PAGE_MAX_PAGE_SIZE:200}
+
+    # 最小每页大小
+    min-page-size: ${SCHEDULER_PAGE_MIN_PAGE_SIZE:1}
+
+    # 是否允许查询所有(pageSize=-1)
+    allow-query-all: ${SCHEDULER_PAGE_ALLOW_QUERY_ALL:false}
+
+  # ========== PowerJob分布式调度配置(自定义属性) ==========
+  powerjob:
+    # PowerJob应用名称: 必须与PowerJob服务端注册的应用名一致
+    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
+
+    # PowerJob服务端地址: 多个地址用逗号分隔
+    # 格式: host1:port1,host2:port2
+    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
+
+    # 认证Token: 必须与PowerJob服务端配置一致
+    # 生产环境建议使用Jasypt加密: ENC(加密后的token)
+    token: ${POWERJOB_TOKEN:}
+
+    # Worker线程池配置
+    # 核心线程数: CPU核心数的2倍
+    worker-core-pool-size: ${POWERJOB_WORKER_CORE_POOL_SIZE:4}
+
+    # 最大线程数: CPU核心数的4倍
+    worker-max-pool-size: ${POWERJOB_WORKER_MAX_POOL_SIZE:8}
+
+    # 心跳间隔(毫秒): Worker向Server发送心跳的间隔
+    heartbeat-interval-millis: ${POWERJOB_HEARTBEAT_INTERVAL_MILLIS:5000}
+
+    # 任务执行超时时间(秒): 0表示不限制
+    max-task-execution-timeout-seconds: ${POWERJOB_MAX_TASK_EXECUTION_TIMEOUT_SECONDS:0}
+
+# ========================================
+# PowerJob Worker 官方配置
+# ========================================
+powerjob:
+  worker:
+    enabled: true
+    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
+    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
+    protocol: HTTP
+    port: 27777
+    store-strategy: DISK
+    max-lightweight-task-num: 1024
+    max-heavy-weight-task-num: 64
+    health-report-interval: 10
+
+# ========================================
+# Management & Actuator Configuration
+# ========================================
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
+  health:
+    show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
+  prometheus:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED:true}

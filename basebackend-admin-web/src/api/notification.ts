@@ -67,7 +67,7 @@ export interface NotificationListResponse {
  */
 export const getNotifications = (limit?: number) => {
   return request<UserNotificationDTO[]>({
-    url: '/admin/notifications',
+    url: '/basebackend-notification-service/api/notifications',
     method: 'GET',
     params: { limit },
   });
@@ -78,7 +78,7 @@ export const getNotifications = (limit?: number) => {
  */
 export const getNotificationList = (params: NotificationQueryParams) => {
   return request<NotificationListResponse>({
-    url: '/admin/notifications/list',
+    url: '/basebackend-notification-service/api/notifications/list',
     method: 'GET',
     params,
   });
@@ -89,7 +89,7 @@ export const getNotificationList = (params: NotificationQueryParams) => {
  */
 export const getUnreadCount = () => {
   return request<number>({
-    url: '/admin/notifications/unread-count',
+    url: '/basebackend-notification-service/api/notifications/unread-count',
     method: 'GET',
   });
 };
@@ -99,7 +99,7 @@ export const getUnreadCount = () => {
  */
 export const markAsRead = (id: number) => {
   return request<void>({
-    url: `/admin/notifications/${id}/read`,
+    url: `/basebackend-notification-service/api/notifications/${id}/read`,
     method: 'PUT',
   });
 };
@@ -109,7 +109,7 @@ export const markAsRead = (id: number) => {
  */
 export const markAllAsRead = (ids: number[]) => {
   return request<void>({
-    url: '/admin/notifications/read-all',
+    url: '/basebackend-notification-service/api/notifications/read-all',
     method: 'PUT',
     data: ids,
   });
@@ -120,7 +120,7 @@ export const markAllAsRead = (ids: number[]) => {
  */
 export const deleteNotification = (id: number) => {
   return request<void>({
-    url: `/admin/notifications/${id}`,
+    url: `/basebackend-notification-service/api/notifications/${id}`,
     method: 'DELETE',
   });
 };
@@ -130,7 +130,7 @@ export const deleteNotification = (id: number) => {
  */
 export const batchDeleteNotifications = (ids: number[]) => {
   return request<void>({
-    url: '/admin/notifications/batch-delete',
+    url: '/basebackend-notification-service/api/notifications/batch-delete',
     method: 'DELETE',
     data: ids,
   });
@@ -141,7 +141,7 @@ export const batchDeleteNotifications = (ids: number[]) => {
  */
 export const createNotification = (data: CreateNotificationDTO) => {
   return request<void>({
-    url: '/admin/notifications',
+    url: '/basebackend-notification-service/api/notifications',
     method: 'POST',
     data,
   });

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
 
@@ -90,4 +91,22 @@ public class ConfigInfo implements Serializable {
      * MD5值
      */
     private String md5;
+
+    /**
+     * 获取服务名
+     * 从Data ID中提取服务名，格式：{serviceName}-{env}.yml
+     */
+    public String getServiceName() {
+        if (!StringUtils.hasText(dataId)) {
+            return null;
+        }
+
+        // 如果dataId包含"-"分隔符，取第一部分作为服务名
+        if (dataId.contains("-")) {
+            return dataId.split("-")[0];
+        }
+
+        // 如果dataId是纯文本，直接返回
+        return dataId;
+    }
 }

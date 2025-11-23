@@ -1,0 +1,241 @@
+# BaseBackend 备份系统 Prometheus 告警规则
+# 用于 Prometheus + Alertmanager 监控告警
+
+groups:
+  - name: backup_system_alerts
+    rules:
+      # 1. 备份失败率过高
+      - alert: BackupFailureRateHigh
+        expr: (backup_backup_failure_total / backup_backup_total) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+          service: backup
+        annotations:
+          summary: "备份失败率过高"
+          description: "备份操作失败率超过20%，当前失败率: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.example.com/runbooks/backup-failure"
+
+      # 2. 连续备份失败
+      - alert: BackupConsecutiveFailures
+        expr: increase(backup_backup_failure_total[1h]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          team: backend
+          service: backup
+        annotations:
+          summary: "连续备份失败"
+          description: "过去1小时内连续失败{{ $value }}次备份操作"
+          runbook: "https://docs.example.com/runbooks/backup-failure"
+
+      # 3. 恢复失败率过高
+      - alert: RestoreFailureRateHigh
+        expr: (backup_restore_failure_total / backup_restore_total) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+          service: backup
+        annotations:
+          summary: "恢复失败率过高"
+          description: "恢复操作失败率超过10%，当前失败率: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.example.com/runbooks/restore-failure"
+
+      # 4. 活跃备份任务过多
+      - alert: TooManyActiveBackupTasks
+        expr: backup_active_backup_tasks > 10
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "活跃备份任务过多"
+          description: "当前有{{ $value }}个活跃备份任务，可能存在性能问题"
+          runbook: "https://docs.example.com/runbooks/backup-performance"
+
+      # 5. 备份持续时间过长
+      - alert: BackupDurationTooLong
+        expr: backup_backup_duration_seconds > 3600
+        for: 30m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "备份操作耗时过长"
+          description: "备份操作耗时超过1小时，可能存在性能瓶颈"
+
+      # 6. 重试次数过多
+      - alert: HighRetryRate
+        expr: (backup_retries_total - backup_retries_success_total) / backup_retries_total > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "重试失败率过高"
+          description: "重试失败率超过50%，重试机制可能存在问题"
+          runbook: "https://docs.example.com/runbooks/retry-failure"
+
+      # 7. 存储空间使用率过高
+      - alert: StorageUsageHigh
+        expr: backup_storage_usage_bytes / 1024 / 1024 / 1024 > 1000  # 1TB
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "存储空间使用率过高"
+          description: "备份存储使用量超过1TB: {{ $value }}GB"
+
+      # 8. 无备份记录
+      - alert: NoRecentBackups
+        expr: time() - backup_backup_total > 86400  # 24小时
+        for: 0m
+        labels:
+          severity: critical
+          team: backend
+          service: backup
+        annotations:
+          summary: "长时间无备份记录"
+          description: "过去24小时内没有执行任何备份操作"
+
+  - name: backup_infrastructure_alerts
+    rules:
+      # 9. 本地存储不可用
+      - alert: LocalStorageUnavailable
+        expr: up{job="backup-metrics"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+          service: backup
+        annotations:
+          summary: "备份服务不可用"
+          description: "备份服务监控端点无法访问"
+
+      # 10. 多副本存储成功率低于阈值
+      - alert: MultiReplicaLowSuccessRate
+        expr: (backup_backup_success_total / backup_backup_total) < 0.8
+        for: 10m
+        labels:
+          severity: critical
+          team: backend
+          service: backup
+        annotations:
+          summary: "多副本存储成功率过低"
+          description: "多副本存储成功率低于80%，可能影响数据安全性"
+
+  - name: backup_performance_alerts
+    rules:
+      # 11. 备份速度过慢
+      - alert: BackupSpeedSlow
+        expr: rate(backup_backup_duration_seconds[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "备份速度过慢"
+          description: "备份处理速度低于0.1次/分钟"
+
+      # 12. CPU使用率过高
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "CPU使用率过高"
+          description: "主机 {{ $labels.instance }} CPU使用率超过80%: {{ $value | humanize }}%"
+
+      # 13. 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "内存使用率过高"
+          description: "主机 {{ $labels.instance }} 内存使用率超过85%: {{ $value | humanize }}%"
+
+  - name: backup_business_alerts
+    rules:
+      # 14. 数据增长率异常
+      - alert: AbnormalDataGrowth
+        expr: rate(backup_storage_usage_bytes[1h]) > 10737418240  # 10GB/h
+        for: 30m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "数据增长率异常"
+          description: "过去1小时内数据增长率超过10GB/h，可能存在异常"
+
+      # 15. 备份任务积压
+      - alert: BackupTaskBacklog
+        expr: backup_active_backup_tasks - rate(backup_backup_success_total[5m]) > 5
+        for: 15m
+        labels:
+          severity: warning
+          team: backend
+          service: backup
+        annotations:
+          summary: "备份任务积压"
+          description: "存在{{ $value }}个备份任务积压，系统处理能力不足"
+
+# 告警路由配置
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+
+# 告警接收器配置
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://alertmanager:9093/api/v1/alerts'
+        send_resolved: true
+
+  - name: 'email'
+    email_configs:
+      - to: 'admin@example.com'
+        subject: '[Backup Alert] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}: {{ .Value }}{{ end }}
+          {{ end }}
+
+  - name: 'slack'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#backup-alerts'
+        title: 'Backup Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  - name: 'dingtalk'
+    dingtalk_configs:
+      - url: 'https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN'
+        title: '备份系统告警'
+        message: |
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警描述: {{ .Annotations.description }}
+          {{ end }}

@@ -1,0 +1,130 @@
+{
+  "version": "1.0.0",
+  "type": "form",
+  "displayName": "订单审批表单",
+  "name": "order_approval_form",
+  "description": "用于订单审批的动态表单",
+  "fields": [
+    {
+      "type": "text",
+      "name": "orderId",
+      "label": "订单ID",
+      "required": true,
+      "width": 12
+    },
+    {
+      "type": "text",
+      "name": "customerName",
+      "label": "客户名称",
+      "required": true,
+      "width": 6
+    },
+    {
+      "type": "email",
+      "name": "customerEmail",
+      "label": "客户邮箱",
+      "required": true,
+      "width": 6
+    },
+    {
+      "type": "number",
+      "name": "orderAmount",
+      "label": "订单金额",
+      "required": true,
+      "width": 6,
+      "validations": [
+        {
+          "type": "minLength",
+          "value": 0,
+          "message": "金额必须大于0"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "orderType",
+      "label": "订单类型",
+      "required": true,
+      "width": 6,
+      "options": [
+        {"label": "标准订单", "value": "standard"},
+        {"label": "紧急订单", "value": "urgent"},
+        {"label": "定制订单", "value": "custom"}
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "orderDescription",
+      "label": "订单描述",
+      "placeholder": "请输入订单详细描述",
+      "width": 12
+    },
+    {
+      "type": "date",
+      "name": "deliveryDate",
+      "label": "期望交付日期",
+      "required": true,
+      "width": 6
+    },
+    {
+      "type": "select",
+      "name": "approvalStatus",
+      "label": "审批状态",
+      "required": true,
+      "width": 6,
+      "options": [
+        {"label": "待审批", "value": "pending"},
+        {"label": "已批准", "value": "approved"},
+        {"label": "已拒绝", "value": "rejected"}
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "approvalComment",
+      "label": "审批意见",
+      "placeholder": "请输入审批意见",
+      "width": 12
+    },
+    {
+      "type": "checkbox",
+      "name": "urgentOrder",
+      "label": "紧急订单",
+      "width": 12
+    },
+    {
+      "type": "radio",
+      "name": "paymentMethod",
+      "label": "支付方式",
+      "required": true,
+      "width": 12,
+      "options": [
+        {"label": "支付宝", "value": "alipay"},
+        {"label": "微信支付", "value": "wechat"},
+        {"label": "银行转账", "value": "bank"}
+      ]
+    }
+  ],
+  "layout": {
+    "type": "vertical",
+    "labelWidth": 100,
+    "gutter": 20
+  },
+  "style": {
+    "theme": "default",
+    "showLabel": true,
+    "showRequiredMark": true
+  },
+  "behavior": {
+    "showCancelButton": true,
+    "showResetButton": true,
+    "showSubmitButton": true,
+    "submitText": "提交审批",
+    "cancelText": "取消",
+    "resetText": "重置"
+  },
+  "metadata": {
+    "category": "订单管理",
+    "tags": ["审批", "订单", "业务"],
+    "icon": "file-text"
+  }
+}

@@ -77,7 +77,7 @@ public class NacosGrayReleaseManagementService {
         ConfigInfo configInfo = convertToConfigInfo(config);
         GrayReleaseConfig grayReleaseConfig = convertToGrayReleaseConfig(grayConfig);
 
-        boolean success = grayReleaseService.promoteToFull(configInfo, grayReleaseConfig);
+        boolean success = grayReleaseService.promoteToFull(configInfo, grayReleaseConfig).isSuccess();
 
         if (success) {
             grayConfig.setStatus("completed");
@@ -102,7 +102,7 @@ public class NacosGrayReleaseManagementService {
         ConfigInfo configInfo = convertToConfigInfo(config);
         GrayReleaseConfig grayReleaseConfig = convertToGrayReleaseConfig(grayConfig);
 
-        boolean success = grayReleaseService.rollbackGrayRelease(configInfo, grayReleaseConfig);
+        boolean success = grayReleaseService.rollbackGrayRelease(configInfo, grayReleaseConfig).isSuccess();
 
         if (success) {
             grayConfig.setStatus("rollback");

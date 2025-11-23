@@ -1,0 +1,68 @@
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers,env
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      service-level-objectives:
+        http.server.requests: "P99=500"
+  
+  tracing:
+    sampling:
+      probability: 0.1
+  
+  info:
+    env:
+      enabled: true
+    git:
+      mode: full
+
+# 自定义指标配置
+monitoring:
+  workflow:
+    enabled: true
+    metrics:
+      enabled: true
+  business:
+    enabled: true
+    metrics:
+      enabled: true
+  prometheus:
+    server:
+      port: 9090
+      host: 0.0.0.0
+  
+# 告警配置
+alerting:
+  thresholds:
+    processFailureRate: 5.0
+    taskTimeoutRate: 2.0
+    avgProcessDuration: 300s
+    activeInstanceLimit: 1000
+    memoryUsagePercent: 80.0
+    cpuUsagePercent: 80.0
+
+# 监控标签
+tags:
+  application: basebackend-scheduler
+  environment: ${spring.profiles.active:default}
+  service: workflow
+  version: ${project.version}
