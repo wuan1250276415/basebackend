@@ -43,6 +43,7 @@ export interface ProcessInstance {
   durationInMillis: number | null
   tenantId: string | null
   variables: Record<string, any>
+  startUserId: string | null
 }
 
 export interface StartProcessInstanceParams {

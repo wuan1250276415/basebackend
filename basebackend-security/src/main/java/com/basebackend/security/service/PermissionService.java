@@ -39,21 +39,23 @@ public interface PermissionService {
 
     /**
      * 检查用户是否有指定权限
-     * 
+     *
      * @param permission 权限标识
      * @return 是否有权限
      */
     default boolean hasPermission(String permission) {
-        return getCurrentUserPermissions().contains(permission);
+        List<String> permissions = getCurrentUserPermissions();
+        return permissions != null && permissions.contains(permission);
     }
 
     /**
      * 检查用户是否有指定角色
-     * 
+     *
      * @param role 角色标识
      * @return 是否有角色
      */
     default boolean hasRole(String role) {
-        return getCurrentUserRoles().contains(role);
+        List<String> roles = getCurrentUserRoles();
+        return roles != null && roles.contains(role);
     }
 }

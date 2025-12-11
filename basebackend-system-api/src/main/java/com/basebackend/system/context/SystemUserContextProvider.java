@@ -2,6 +2,7 @@ package com.basebackend.system.context;
 
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.starter.interceptor.UserContextProvider;
+import com.basebackend.jwt.JwtUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -9,8 +10,10 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 /**
- * system-api 的用户上下文提供器：从 SecurityContext 中提取基础用户信息。
- * 避免依赖 Feign/数据库，防止启动时循环依赖。
+ * system-api 的用户上下文提供器
+ * <p>
+ * 从 SecurityContext 中提取用户信息，支持从 JwtUserDetails 获取完整用户信息，
+ * 包括 userId、username、deptId，避免频繁 Feign 调用。
  */
 @Component
 public class SystemUserContextProvider implements UserContextProvider {
@@ -24,9 +27,19 @@ public class SystemUserContextProvider implements UserContextProvider {
 
         Long userId = null;
         String username = null;
+        Long deptId = null;
 
         Object principal = authentication.getPrincipal();
-        if (principal instanceof Long) {
+
+        // 优先从 JwtUserDetails 获取完整用户信息（推荐方式）
+        if (principal instanceof JwtUserDetails) {
+            JwtUserDetails userDetails = (JwtUserDetails) principal;
+            userId = userDetails.getUserId();
+            username = userDetails.getUsername();
+            deptId = userDetails.getDeptId();
+        }
+        // 兼容旧的处理方式
+        else if (principal instanceof Long) {
             userId = (Long) principal;
             username = authentication.getName();
         } else if (principal instanceof String) {
@@ -45,6 +58,7 @@ public class SystemUserContextProvider implements UserContextProvider {
         UserContext context = UserContext.builder()
                 .userId(userId)
                 .username(username)
+                .deptId(deptId)
                 .ipAddress(request.getRemoteAddr())
                 .requestTime(System.currentTimeMillis())
                 .build();

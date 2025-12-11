@@ -3,6 +3,7 @@ package com.basebackend.generator.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.basebackend.database.entity.BaseEntity;
+import com.basebackend.generator.handler.PasswordEncryptTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +12,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("gen_datasource")
+@TableName(value = "gen_datasource", autoResultMap = true)
 public class GenDataSource extends BaseEntity {
 
     /**
@@ -51,9 +52,9 @@ public class GenDataSource extends BaseEntity {
     private String username;
 
     /**
-     * 密码（加密存储）
+     * 密码（自动加密存储，查询时自动解密）
      */
-    @TableField("password")
+    @TableField(value = "password", typeHandler = PasswordEncryptTypeHandler.class)
     private String password;
 
     /**

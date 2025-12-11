@@ -23,16 +23,17 @@ export interface UpdatePreferenceRequest {
   systemNotification?: number
 }
 
+const BASE_URL = '/basebackend-user-api/api/user/preference'
 /**
  * 获取当前用户偏好设置
  */
 export const getPreference = () => {
-  return request.get<Result<UserPreference>>('/admin/preference')
+  return request.get<Result<UserPreference>>(`${BASE_URL}`)
 }
 
 /**
  * 更新当前用户偏好设置
  */
 export const updatePreference = (data: UpdatePreferenceRequest) => {
-  return request.put<Result<void>>('/admin/preference', data)
+  return request.put<Result<void>>(`${BASE_URL}`, data)
 }

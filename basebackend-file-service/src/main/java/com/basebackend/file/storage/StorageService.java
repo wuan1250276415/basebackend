@@ -98,7 +98,8 @@ public interface StorageService {
         LOCAL("本地存储"),
         MINIO("MinIO对象存储"),
         ALIYUN_OSS("阿里云OSS"),
-        AWS_S3("AWS S3");
+        AWS_S3("AWS S3"),
+        DELEGATING("代理存储服务");
 
         private final String description;
 

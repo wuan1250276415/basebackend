@@ -20,6 +20,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
@@ -63,7 +64,8 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/v3/api-docs/**"),
                                 new AntPathRequestMatcher("/doc.html"),
                                 new AntPathRequestMatcher("/swagger-ui/**"),
-                                new AntPathRequestMatcher("/druid/**")
+                                new AntPathRequestMatcher("/druid/**"),
+                                new AntPathRequestMatcher("/api/notifications/stream")
                         )
                 )
                 // 禁用表单登录
@@ -95,8 +97,11 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/doc.html"),
                                 new AntPathRequestMatcher("/webjars/**"),
                                 new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/druid/**")
+                                new AntPathRequestMatcher("/druid/**"),
+                                new AntPathRequestMatcher("/api/notifications/stream")
                         ).permitAll()
+                        // 内部 Feign 调用（由 FeignAuthRequestInterceptor 注入标记）
+                        .requestMatchers(new RequestHeaderRequestMatcher("X-Internal-Call", "true")).permitAll()
                         // 其他所有请求需要认证
                         .anyRequest().authenticated()
                 )

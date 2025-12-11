@@ -10,7 +10,6 @@ import com.basebackend.logging.statistics.report.ReportGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -385,6 +384,8 @@ public class StatisticsService {
 
     /**
      * 实时统计摘要
+     * 
+     * P0优化：添加getter方法以便外部访问
      */
     public static class RealtimeStatisticsSummary {
         private double totalCount;
@@ -393,6 +394,14 @@ public class StatisticsService {
         private long anomalyCount;
         private LogStatisticsEntry.TrendType trendType;
         private Instant timestamp;
+        
+        // P0优化：添加getter方法
+        public double getTotalCount() { return totalCount; }
+        public double getAverageCount() { return averageCount; }
+        public double getGrowthRate() { return growthRate; }
+        public long getAnomalyCount() { return anomalyCount; }
+        public LogStatisticsEntry.TrendType getTrendType() { return trendType; }
+        public Instant getTimestamp() { return timestamp; }
 
         public static Builder builder() {
             return new Builder();

@@ -1,5 +1,6 @@
 package com.basebackend.security.zerotrust.risk;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.Map;
  * @since 2025-11-26
  */
 @Data
+@Builder
 public class RequestContext {
 
     private String userId;

@@ -3,6 +3,7 @@ package com.basebackend.backup.infrastructure.storage.strategy;
 import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.infrastructure.reliability.LockManager;
 import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
+import com.basebackend.backup.infrastructure.storage.StorageProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -22,8 +23,9 @@ public class StorageStrategyConfiguration {
     @ConditionalOnProperty(name = "backup.storage.multi-replica.enabled", havingValue = "true")
     public StorageStrategyExecutor storageStrategyExecutor(BackupProperties backupProperties,
                                                            LockManager lockManager,
-                                                           RetryTemplate retryTemplate) {
+                                                           RetryTemplate retryTemplate,
+                                                           java.util.List<StorageProvider> storageProviders) {
         log.info("配置多副本存储策略执行器");
-        return new StorageStrategyExecutor(backupProperties, lockManager, retryTemplate);
+        return new StorageStrategyExecutor(backupProperties, lockManager, retryTemplate, storageProviders);
     }
 }

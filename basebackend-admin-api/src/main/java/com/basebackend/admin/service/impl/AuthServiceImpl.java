@@ -11,8 +11,8 @@ import com.basebackend.admin.mapper.SysUserMapper;
 import com.basebackend.admin.service.AuthService;
 import com.basebackend.admin.service.LogService;
 import com.basebackend.cache.service.RedisService;
-import com.basebackend.web.util.IpUtil;
-import com.basebackend.web.util.UserAgentUtil;
+import com.basebackend.common.util.IpUtil;
+import com.basebackend.common.util.UserAgentUtil;
 import com.basebackend.jwt.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -317,7 +317,8 @@ public class AuthServiceImpl implements AuthService {
     /**
      * 保存在线用户信息到Redis
      */
-    private void saveOnlineUser(SysUser user, String token, String ipAddress, String location, String browser, String os) {
+    private void saveOnlineUser(SysUser user, String token, String ipAddress, String location, String browser,
+            String os) {
         try {
             Map<String, Object> onlineUser = new HashMap<>();
             onlineUser.put("userId", user.getId());

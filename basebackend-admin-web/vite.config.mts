@@ -24,16 +24,15 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
-      // auth.ts 等已包含完整路径的接口 (admin-api/api/admin/auth/**)
-      '/admin-api': {
+      // notification
+      '/basebackend-notification-service': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
-      // workflow 服务 - 转换为 scheduler-service
-      '/api/workflow': {
+      // workflow 服务 - 转换为 camunda 路径
+      '/basebackend-scheduler': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/workflow/, '/scheduler-service'),
       },
       // user.ts 等简化路径的接口 (/admin/**) - 转换为 admin-api/api/admin/**
       '/admin': {

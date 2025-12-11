@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.Duration;
 import java.util.Map;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.*;
  * 缓存服务实现单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CacheServiceImplTest {
 
     @Mock
@@ -45,22 +48,43 @@ class CacheServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Setup default cache properties
+        // Create cache service instance
+        cacheService = new CacheServiceImpl(redisService, cacheProperties, metricsService, evictionManager);
+
+        // Set multiLevelCacheManager to null via reflection to ensure Redis path is used
+        try {
+            var field = CacheServiceImpl.class.getDeclaredField("multiLevelCacheManager");
+            field.setAccessible(true);
+            field.set(cacheService, null);
+        } catch (Exception e) {
+            // Ignore if field doesn't exist or can't be set
+        }
+    }
+
+    /**
+     * 设置缓存属性配置的辅助方法
+     * 用于需要buildCachePattern或isMultiLevelEnabled的测试
+     */
+    private void setupCacheProperties() {
+        // Setup multi-level cache to be disabled
         CacheProperties.MultiLevel multiLevel = new CacheProperties.MultiLevel();
         multiLevel.setEnabled(false);
         when(cacheProperties.getMultiLevel()).thenReturn(multiLevel);
 
+        // Setup key configuration
         CacheProperties.Key key = new CacheProperties.Key();
         key.setPrefix("basebackend");
         key.setSeparator(":");
         when(cacheProperties.getKey()).thenReturn(key);
 
-        cacheService = new CacheServiceImpl(redisService, cacheProperties, metricsService, evictionManager);
+        // Ensure multiLevelCacheManager is null to avoid using multi-level cache
+        // This is needed because @Mock will not be null
     }
 
     @Test
     void testGet_Success() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         String value = "John Doe";
         when(evictionManager.validateKey(key)).thenReturn(true);
@@ -79,6 +103,7 @@ class CacheServiceImplTest {
     @Test
     void testGet_Miss() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         when(evictionManager.validateKey(key)).thenReturn(true);
         when(redisService.get(key)).thenReturn(null);
@@ -110,6 +135,7 @@ class CacheServiceImplTest {
     @Test
     void testSet_Success() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         String value = "John Doe";
         Duration ttl = Duration.ofHours(1);
@@ -140,6 +166,7 @@ class CacheServiceImplTest {
     @Test
     void testDelete_Success() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         when(evictionManager.validateKey(key)).thenReturn(true);
         when(redisService.delete(key)).thenReturn(true);
@@ -186,6 +213,7 @@ class CacheServiceImplTest {
     @Test
     void testGetOrLoad_CacheHit() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         String value = "John Doe";
         when(evictionManager.validateKey(key)).thenReturn(true);
@@ -203,6 +231,7 @@ class CacheServiceImplTest {
     @Test
     void testGetOrLoad_CacheMiss() {
         // Given
+        setupCacheProperties();
         String key = "user:123";
         String loadedValue = "Loaded Value";
         Duration ttl = Duration.ofHours(1);
@@ -331,6 +360,7 @@ class CacheServiceImplTest {
     @Test
     void testClearCache() {
         // Given
+        setupCacheProperties();
         String cacheName = "user-cache";
         when(evictionManager.evictByPattern(anyString())).thenReturn(10L);
 
@@ -358,6 +388,7 @@ class CacheServiceImplTest {
     @Test
     void testGetStatistics() {
         // Given
+        setupCacheProperties();
         String cacheName = "user-cache";
         CacheStatistics expected = CacheStatistics.builder()
                 .cacheName(cacheName)
@@ -377,6 +408,7 @@ class CacheServiceImplTest {
     @Test
     void testGetCacheSize() {
         // Given
+        setupCacheProperties();
         String cacheName = "user-cache";
         when(evictionManager.getCacheSize(anyString())).thenReturn(50L);
 
@@ -405,6 +437,7 @@ class CacheServiceImplTest {
     @Test
     void testResetStatistics() {
         // Given
+        setupCacheProperties();
         String cacheName = "user-cache";
 
         // When

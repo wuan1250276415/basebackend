@@ -8,6 +8,7 @@ import com.basebackend.user.dto.RoleDTO;
 import com.basebackend.user.entity.*;
 import com.basebackend.user.mapper.*;
 import com.basebackend.user.service.RoleService;
+import com.basebackend.user.util.AuditHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class RoleServiceImpl implements RoleService {
     private final SysUserRoleMapper userRoleMapper;
     private final SysRoleListOperationMapper roleListOperationMapper;
     private final SysRoleDataPermissionMapper roleDataPermissionMapper;
+    private final AuditHelper auditHelper;
 
     @Override
     public Page<RoleDTO> page(String roleName, String roleKey, Integer status, int current, int size) {
@@ -94,10 +96,8 @@ public class RoleServiceImpl implements RoleService {
         // 创建角色
         SysRole role = new SysRole();
         BeanUtil.copyProperties(roleDTO, role);
-        role.setCreateTime(LocalDateTime.now());
-        role.setUpdateTime(LocalDateTime.now());
-        role.setCreateBy(1L); // 临时硬编码
-        role.setUpdateBy(1L); // 临时硬编码
+        // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
+        auditHelper.setCreateAuditFields(role);
 
         roleMapper.insert(role);
 
@@ -136,8 +136,8 @@ public class RoleServiceImpl implements RoleService {
 
         // 更新角色信息
         BeanUtil.copyProperties(roleDTO, role);
-        role.setUpdateTime(LocalDateTime.now());
-        role.setUpdateBy(1L); // 临时硬编码
+        // 使用AuditHelper设置审计字段
+        auditHelper.setUpdateAuditFields(role);
 
         roleMapper.updateById(role);
 
@@ -216,12 +216,13 @@ public class RoleServiceImpl implements RoleService {
 
         // 添加新权限关联
         if (permissionIds != null && !permissionIds.isEmpty()) {
+            Long currentUserId = auditHelper.getCurrentUserId();
             for (Long permissionId : permissionIds) {
                 SysRolePermission rolePermission = new SysRolePermission();
                 rolePermission.setRoleId(roleId);
                 rolePermission.setPermissionId(permissionId);
                 rolePermission.setCreateTime(LocalDateTime.now());
-                rolePermission.setCreateBy(1L); // 临时硬编码
+                rolePermission.setCreateBy(currentUserId);
                 rolePermissionMapper.insert(rolePermission);
             }
         }
@@ -387,7 +388,7 @@ public class RoleServiceImpl implements RoleService {
                 userRole.setUserId(userId);
                 userRole.setRoleId(roleId);
                 userRole.setCreateTime(LocalDateTime.now());
-                userRole.setCreateBy(1L); // 临时硬编码
+                userRole.setCreateBy(auditHelper.getCurrentUserId());
                 userRoleMapper.insert(userRole);
             }
         }

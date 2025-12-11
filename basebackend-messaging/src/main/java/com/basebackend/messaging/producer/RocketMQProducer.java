@@ -14,11 +14,20 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * RocketMQ 消息生产者
+ * <p>
+ * 实现同步、异步、批量、延迟、事务、顺序等多种发送方式。
+ * </p>
  *
- * @author Claude Code
- * @since 2025-10-30
+ * @author BaseBackend Team
+ * @since 1.0.0
  */
 @Slf4j
 @Component
@@ -29,6 +38,15 @@ public class RocketMQProducer implements MessageProducer {
     private final MessagingProperties messagingProperties;
     private final TransactionalMessageService transactionalMessageService;
 
+    /** 异步发送线程池 */
+    private final ExecutorService asyncExecutor = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors() * 2,
+            r -> {
+                Thread t = new Thread(r, "msg-async-sender");
+                t.setDaemon(true);
+                return t;
+            });
+
     @Override
     public <T> String send(Message<T> message) {
         log.info("发送消息: topic={}, tag={}, messageId={}",
@@ -38,11 +56,10 @@ public class RocketMQProducer implements MessageProducer {
             String destination = buildDestination(message.getTopic(), message.getTags());
             String payload = JSON.toJSONString(message);
 
-            org.springframework.messaging.Message<String> springMessage =
-                    MessageBuilder.withPayload(payload)
-                            .setHeader("messageId", message.getMessageId())
-                            .setHeader("messageType", message.getMessageType())
-                            .build();
+            org.springframework.messaging.Message<String> springMessage = MessageBuilder.withPayload(payload)
+                    .setHeader("messageId", message.getMessageId())
+                    .setHeader("messageType", message.getMessageType())
+                    .build();
 
             SendResult sendResult = rocketMQTemplate.syncSend(destination, springMessage);
 
@@ -62,6 +79,61 @@ public class RocketMQProducer implements MessageProducer {
     }
 
     @Override
+    public <T> CompletableFuture<String> sendAsync(Message<T> message) {
+        log.debug("异步发送消息: topic={}, tag={}, messageId={}",
+                message.getTopic(), message.getTags(), message.getMessageId());
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return send(message);
+            } catch (Exception e) {
+                log.error("异步消息发送失败: messageId={}, error={}", message.getMessageId(), e.getMessage());
+                throw new MessageSendException("异步消息发送失败: " + e.getMessage(), e);
+            }
+        }, asyncExecutor);
+    }
+
+    @Override
+    public <T> List<String> sendBatch(List<Message<T>> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        log.info("批量发送消息: count={}", messages.size());
+
+        List<String> results = new ArrayList<>(messages.size());
+        List<String> failedIds = new ArrayList<>();
+
+        for (Message<T> message : messages) {
+            try {
+                String msgId = send(message);
+                results.add(msgId);
+            } catch (Exception e) {
+                log.error("批量发送中单条消息失败: messageId={}, error={}",
+                        message.getMessageId(), e.getMessage());
+                failedIds.add(message.getMessageId());
+                results.add(null);
+            }
+        }
+
+        if (!failedIds.isEmpty()) {
+            log.warn("批量发送完成，部分失败: total={}, success={}, failed={}",
+                    messages.size(), messages.size() - failedIds.size(), failedIds.size());
+        } else {
+            log.info("批量发送完成: total={}", messages.size());
+        }
+
+        return results;
+    }
+
+    @Override
+    public <T> CompletableFuture<List<String>> sendBatchAsync(List<Message<T>> messages) {
+        log.debug("异步批量发送消息: count={}", messages != null ? messages.size() : 0);
+
+        return CompletableFuture.supplyAsync(() -> sendBatch(messages), asyncExecutor);
+    }
+
+    @Override
     public <T> String sendDelay(Message<T> message, long delayMillis) {
         log.info("发送延迟消息: topic={}, tag={}, messageId={}, delay={}ms",
                 message.getTopic(), message.getTags(), message.getMessageId(), delayMillis);
@@ -73,11 +145,10 @@ public class RocketMQProducer implements MessageProducer {
             // 转换延迟时间为RocketMQ延迟级别
             int delayLevel = RocketMQConstants.getDelayLevel(delayMillis);
 
-            org.springframework.messaging.Message<String> springMessage =
-                    MessageBuilder.withPayload(payload)
-                            .setHeader("messageId", message.getMessageId())
-                            .setHeader("messageType", message.getMessageType())
-                            .build();
+            org.springframework.messaging.Message<String> springMessage = MessageBuilder.withPayload(payload)
+                    .setHeader("messageId", message.getMessageId())
+                    .setHeader("messageType", message.getMessageType())
+                    .build();
 
             SendResult sendResult = rocketMQTemplate.syncSend(destination, springMessage, 3000, delayLevel);
 
@@ -133,11 +204,10 @@ public class RocketMQProducer implements MessageProducer {
             String destination = buildDestination(message.getTopic(), message.getTags());
             String payload = JSON.toJSONString(message);
 
-            org.springframework.messaging.Message<String> springMessage =
-                    MessageBuilder.withPayload(payload)
-                            .setHeader("messageId", message.getMessageId())
-                            .setHeader("messageType", message.getMessageType())
-                            .build();
+            org.springframework.messaging.Message<String> springMessage = MessageBuilder.withPayload(payload)
+                    .setHeader("messageId", message.getMessageId())
+                    .setHeader("messageType", message.getMessageType())
+                    .build();
 
             // 使用 partitionKey 作为 hashKey，保证同一 key 的消息发送到同一队列
             SendResult sendResult = rocketMQTemplate.syncSendOrderly(destination, springMessage, partitionKey);

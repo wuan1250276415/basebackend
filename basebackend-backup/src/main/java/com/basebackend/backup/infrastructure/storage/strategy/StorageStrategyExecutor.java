@@ -6,8 +6,9 @@ import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
 import com.basebackend.backup.infrastructure.storage.StorageProvider;
 import com.basebackend.backup.infrastructure.storage.StorageResult;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
-import com.basebackend.backup.infrastructure.storage.impl.LocalStorageProvider;
-import com.basebackend.backup.infrastructure.storage.impl.S3StorageProvider;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -31,14 +32,18 @@ public class StorageStrategyExecutor {
     private final BackupProperties backupProperties;
     private final LockManager lockManager;
     private final RetryTemplate retryTemplate;
-    private ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private final Map<String, StorageProvider> providerMap;
 
     public StorageStrategyExecutor(BackupProperties backupProperties,
                                    LockManager lockManager,
-                                   RetryTemplate retryTemplate) {
+                                   RetryTemplate retryTemplate,
+                                   java.util.List<StorageProvider> storageProviders) {
         this.backupProperties = backupProperties;
         this.lockManager = lockManager;
         this.retryTemplate = retryTemplate;
+        this.providerMap = storageProviders.stream()
+            .collect(Collectors.toMap(p -> p.getStorageType().toLowerCase(), Function.identity(), (a, b) -> a));
     }
 
     /**
@@ -174,17 +179,9 @@ public class StorageStrategyExecutor {
      * 根据配置选择存储提供者
      */
     private StorageProvider chooseStorageProvider(BackupProperties.Storage config) {
-        // 优先使用S3（如果启用）
         if (config.getS3().isEnabled()) {
             return createStorageProvider("s3");
         }
-
-        // 备用OSS
-        if (config.getOss().isEnabled()) {
-            return createStorageProvider("oss");
-        }
-
-        // 默认本地存储
         return createStorageProvider("local");
     }
 
@@ -192,14 +189,11 @@ public class StorageStrategyExecutor {
      * 创建指定类型的存储提供者
      */
     private StorageProvider createStorageProvider(String type) {
-        switch (type.toLowerCase()) {
-            case "s3":
-                return new S3StorageProvider();
-            case "local":
-                return new LocalStorageProvider();
-            default:
-                throw new IllegalArgumentException("不支持的存储类型: " + type);
+        StorageProvider provider = providerMap.get(type.toLowerCase());
+        if (provider == null) {
+            throw new IllegalArgumentException("不支持的存储类型: " + type);
         }
+        return provider;
     }
 
     /**

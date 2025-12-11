@@ -1,6 +1,8 @@
 package com.basebackend.gateway.filter;
 
+import com.basebackend.gateway.config.GatewaySecurityProperties;
 import com.basebackend.gateway.constant.GatewayConstants;
+import com.basebackend.gateway.enums.GatewayErrorCode;
 import com.basebackend.gateway.model.GatewayResult;
 import com.basebackend.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,29 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 /**
  * 认证过滤器
+ * <p>
+ * 实现 JWT Token 验证和 Redis 会话校验的全局认证过滤器。
+ * 支持通过配置文件管理白名单路径，避免硬编码。
+ * </p>
+ * 
+ * <h3>安全特性：</h3>
+ * <ul>
+ * <li>JWT Token 验证</li>
+ * <li>Redis 会话双重校验（防止强制下线后仍能访问）</li>
+ * <li>可配置的白名单路径</li>
+ * <li>Redis 操作超时保护</li>
+ * <li>默认受限的 actuator 端点访问</li>
+ * <li>统一的错误码枚举（{@link GatewayErrorCode}）</li>
+ * </ul>
+ *
+ * @author BaseBackend Team
+ * @since 1.0.0
  */
 @Slf4j
 @Component
@@ -33,48 +53,31 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
     private final ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
+    private final GatewaySecurityProperties securityProperties;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     private static final String LOGIN_TOKEN_KEY = "login_tokens:";
 
     /**
-     * 白名单路径
+     * 默认 Redis 超时时间（当配置未设置时使用）
      */
-    private static final List<String> WHITELIST = Arrays.asList(
-            "/basebackend-user-api/api/user/auth/**",
-            "/basebackend-user-api/swagger-ui/**",
-            "/basebackend-user-api/v3/api-docs/**",
-            "/basebackend-user-api/doc.html",
-            "/basebackend-user-api/webjars/**",
-            "/basebackend-user-api/favicon.ico",
-            "/basebackend-system-api/api/system/depts/tree",
-            "/basebackend-system-api/api/system/depts/by-name",
-            "/basebackend-system-api/api/system/depts/by-code",
-            "/basebackend-system-api/api/system/depts/batch",
-            "/basebackend-system-api/api/system/depts/by-parent",
-            "/basebackend-system-api/api/system/application/enabled",
-            "/basebackend-system-api/api/system/application/code/**",
-            "/basebackend-system-api/api/system/notifications/stream",
-            "/basebackend-system-api/api/dicts/**",
-            "/basebackend-system-api/swagger-ui/**",
-            "/basebackend-system-api/v3/api-docs/**",
-            "/basebackend-system-api/doc.html",
-            "/basebackend-system-api/webjars/**",
-            "/api/public/**",
-            "/actuator/**"
-    );
+    private static final Duration DEFAULT_REDIS_TIMEOUT = Duration.ofSeconds(2);
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().toString();
 
-        log.debug("认证过滤器 - 请求路径: {}, 方法: {}", path, request.getMethod());
+        if (securityProperties.isDebugLogging()) {
+            log.debug("认证过滤器 - 请求路径: {}, 方法: {}", path, request.getMethod());
+        }
 
         // 检查是否在白名单中
         if (isWhitelist(path)) {
-            log.debug("路径 {} 在白名单中，跳过认证", path);
+            if (securityProperties.isDebugLogging()) {
+                log.debug("路径 {} 在白名单中，跳过认证", path);
+            }
             return chain.filter(exchange);
         }
 
@@ -84,60 +87,90 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         // 验证Token
         if (!StringUtils.hasText(token)) {
             log.warn("请求路径 {} 缺少Token", path);
-            return unauthorized(exchange.getResponse(), "认证失败，缺少Token");
+            return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_MISSING);
         }
 
         if (!jwtUtil.validateToken(token)) {
             log.warn("请求路径 {} 的Token无效", path);
-            return unauthorized(exchange.getResponse(), "认证失败，Token无效");
+            return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_INVALID);
         }
 
-        // 从Token中获取用户名
+        // 从Token中获取用户ID
         Long userId = jwtUtil.getUserIdFromToken(token);
-        log.debug("Token验证成功，用户id: {}", userId);
+
+        // 防御性检查：userId不能为null
+        if (userId == null) {
+            log.warn("请求路径 {} 的Token中不包含有效的用户ID", path);
+            return unauthorized(exchange.getResponse(), GatewayErrorCode.USER_ID_INVALID);
+        }
+
+        if (securityProperties.isDebugLogging()) {
+            log.debug("Token验证成功，用户id: {}", userId);
+        }
+
+        // 获取超时时间
+        Duration timeout = securityProperties.getRedisTimeout() != null
+                ? securityProperties.getRedisTimeout()
+                : DEFAULT_REDIS_TIMEOUT;
 
         // 检查Redis中的Token是否存在（防止强制下线后仍能访问）
+        // 添加超时控制，防止 Redis 操作无限等待
         String redisTokenKey = LOGIN_TOKEN_KEY + userId;
-        return reactiveRedisTemplate.hasKey(redisTokenKey)
-                .flatMap(exists -> {
-                    if (!exists) {
+        return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
+                .timeout(timeout)
+                .flatMap(redisToken -> {
+                    // 防止NPE：显式检查null
+                    if (redisToken == null) {
                         log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", userId);
-                        return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
+                        return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
                     }
 
-                    // 验证Redis中的Token是否与当前Token一致
-                    return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
-                            .flatMap(redisToken -> {
-                                if (!token.equals(redisToken.toString())) {
-                                    log.warn("用户 {} 的Token与Redis中的Token不一致", userId);
-                                    return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
-                                }
+                    // 安全地转换为字符串进行比较
+                    String redisTokenStr = String.valueOf(redisToken);
+                    if (!token.equals(redisTokenStr)) {
+                        log.warn("用户 {} 的Token与Redis中的Token不一致", userId);
+                        return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_MISMATCH);
+                    }
 
-                                // Token验证通过，添加用户信息到请求头
-                                ServerHttpRequest mutatedRequest = request.mutate()
-                                        .header("X-User-Id", String.valueOf(userId))
-                                        .build();
+                    // Token验证通过，添加用户信息到请求头
+                    ServerHttpRequest mutatedRequest = request.mutate()
+                            .header("X-User-Id", String.valueOf(userId))
+                            .build();
 
-                                return chain.filter(exchange.mutate().request(mutatedRequest).build());
-                            });
-//                            .switchIfEmpty(Mono.defer(() -> {
-//                                log.warn("用户 {} 的Token在Redis中为空", username);
-//                                return unauthorized(exchange.getResponse(), "认证失败，Token已失效");
-//                            }));
+                    return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                })
+                // 处理Redis返回空值的情况（key不存在时）
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", userId);
+                    return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
+                }))
+                .onErrorResume(TimeoutException.class, e -> {
+                    log.error("Redis验证Token超时，用户ID: {}", userId);
+                    return unauthorized(exchange.getResponse(), GatewayErrorCode.AUTH_SERVICE_BUSY);
                 })
                 .onErrorResume(e -> {
-                    log.error("Redis验证Token失败: {}", e.getMessage());
-                    return unauthorized(exchange.getResponse(), "认证失败，服务异常");
+                    log.error("Redis验证Token失败: {}", e.getMessage(), e);
+                    return unauthorized(exchange.getResponse(), GatewayErrorCode.AUTH_SERVICE_ERROR);
                 });
     }
 
     /**
      * 检查路径是否在白名单中
+     * 使用配置文件中的白名单，支持动态更新
      */
     private boolean isWhitelist(String path) {
-        return WHITELIST.stream().anyMatch(pattern -> {
+        List<String> whitelist = securityProperties.getFullWhitelist();
+
+        // 如果白名单为空且是严格模式，所有路径都需要认证
+        if (whitelist.isEmpty() && securityProperties.isStrictMode()) {
+            return false;
+        }
+
+        return whitelist.stream().anyMatch(pattern -> {
             boolean matches = pathMatcher.match(pattern, path);
-            log.debug("路径匹配检查: 模式={}, 路径={}, 匹配={}", pattern, path, matches);
+            if (securityProperties.isDebugLogging() && matches) {
+                log.debug("路径匹配: 模式={}, 路径={}", pattern, path);
+            }
             return matches;
         });
     }
@@ -154,19 +187,23 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 返回未授权响应
+     * 返回未授权响应（使用错误码枚举）
+     *
+     * @param response  HTTP 响应
+     * @param errorCode 网关错误码
+     * @return Mono<Void>
      */
-    private Mono<Void> unauthorized(ServerHttpResponse response, String message) {
+    private Mono<Void> unauthorized(ServerHttpResponse response, GatewayErrorCode errorCode) {
         // 检查响应是否已经提交
         if (response.isCommitted()) {
             log.warn("Response already committed, cannot send unauthorized response");
             return Mono.empty();
         }
-        
-        response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
 
-        GatewayResult<?> result = GatewayResult.error(HttpStatus.UNAUTHORIZED.value(), message);
+        response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
+        response.setStatusCode(HttpStatus.valueOf(errorCode.getHttpStatus()));
+
+        GatewayResult<?> result = GatewayResult.error(errorCode);
         String body = result.toJsonString();
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 

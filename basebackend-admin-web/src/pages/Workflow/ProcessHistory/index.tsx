@@ -23,15 +23,18 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   HistoryOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 
-import { listHistoricProcessInstances } from '@/api/workflow/processInstance'
-import { listHistoricTasksByProcessInstanceId } from '@/api/workflow/task'
-import type { ProcessInstance } from '@/types/workflow'
+import {
+  listHistoricProcessInstances,
+  listHistoricActivities,
+} from '@/api/workflow/history'
+import type { HistoricProcessInstance } from '@/api/workflow/history'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -44,13 +47,13 @@ const ProcessHistory: React.FC = () => {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
-  const [instances, setInstances] = useState<ProcessInstance[]>([])
-  const [filteredInstances, setFilteredInstances] = useState<ProcessInstance[]>([])
+  const [instances, setInstances] = useState<HistoricProcessInstance[]>([])
+  const [filteredInstances, setFilteredInstances] = useState<HistoricProcessInstance[]>([])
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
   const [historyModalVisible, setHistoryModalVisible] = useState(false)
-  const [currentInstance, setCurrentInstance] = useState<ProcessInstance | null>(null)
+  const [currentInstance, setCurrentInstance] = useState<HistoricProcessInstance | null>(null)
   const [taskHistory, setTaskHistory] = useState<any[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
@@ -58,7 +61,6 @@ const ProcessHistory: React.FC = () => {
   const loadHistoricInstances = async () => {
     setLoading(true)
     try {
-      // 假设有历史流程实例的API，如果没有则使用已完成的流程实例
       const response = await listHistoricProcessInstances({})
       if (response.success) {
         const instanceList = response.data?.list || []
@@ -97,11 +99,11 @@ const ProcessHistory: React.FC = () => {
     // 状态过滤
     if (statusFilter !== 'all') {
       if (statusFilter === 'completed') {
-        filtered = filtered.filter((instance) => instance.ended)
+        filtered = filtered.filter((instance) => instance.state === 'COMPLETED')
       } else if (statusFilter === 'running') {
-        filtered = filtered.filter((instance) => !instance.ended)
+        filtered = filtered.filter((instance) => instance.state === 'ACTIVE')
       } else if (statusFilter === 'terminated') {
-        filtered = filtered.filter((instance) => instance.deleteReason)
+        filtered = filtered.filter((instance) => instance.state === 'EXTERNALLY_TERMINATED' || instance.state === 'INTERNALLY_TERMINATED')
       }
     }
 
@@ -118,15 +120,28 @@ const ProcessHistory: React.FC = () => {
   }, [searchText, statusFilter, dateRange, instances])
 
   // 查看详细历史
-  const handleViewHistory = async (instance: ProcessInstance) => {
+  const handleViewHistory = async (instance: HistoricProcessInstance) => {
     setCurrentInstance(instance)
     setHistoryModalVisible(true)
     setHistoryLoading(true)
 
     try {
-      const response = await listHistoricTasksByProcessInstanceId(instance.id)
+      const response = await listHistoricActivities(instance.id, { size: 100 })
       if (response.success) {
-        setTaskHistory(response.data?.list || [])
+        const activities = response.data?.list || []
+        // Process activities to user task history format
+        const userTasks = activities
+          .filter(activity => activity.activityType === 'userTask')
+          .map(activity => ({
+            id: activity.taskId || activity.id,
+            name: activity.activityName,
+            assignee: activity.assignee,
+            startTime: activity.startTime,
+            endTime: activity.endTime,
+            deleteReason: activity.canceled ? '已取消' : undefined,
+            activityType: activity.activityType
+          }))
+        setTaskHistory(userTasks)
       } else {
         message.error(response.message || '加载任务历史失败')
       }
@@ -139,17 +154,23 @@ const ProcessHistory: React.FC = () => {
   }
 
   // 获取流程状态
-  const getStatusTag = (instance: ProcessInstance) => {
-    if (instance.deleteReason) {
+  const getStatusTag = (instance: HistoricProcessInstance) => {
+    if (instance.state === 'EXTERNALLY_TERMINATED' || instance.state === 'INTERNALLY_TERMINATED') {
       return (
         <Tag icon={<CloseCircleOutlined />} color="error">
           已终止
         </Tag>
       )
-    } else if (instance.ended) {
+    } else if (instance.state === 'COMPLETED') {
       return (
         <Tag icon={<CheckCircleOutlined />} color="success">
           已完成
+        </Tag>
+      )
+    } else if (instance.state === 'SUSPENDED') {
+      return (
+        <Tag icon={<CloseCircleOutlined />} color="warning">
+          已挂起
         </Tag>
       )
     } else {
@@ -162,8 +183,22 @@ const ProcessHistory: React.FC = () => {
   }
 
   // 计算持续时间
-  const calculateDuration = (instance: ProcessInstance) => {
-    const endTime = instance.ended && instance.endTime ? dayjs(instance.endTime) : dayjs()
+  const calculateDuration = (instance: HistoricProcessInstance) => {
+    if (instance.durationInMillis) {
+      const duration = Math.floor(instance.durationInMillis / 1000 / 60); // minutes
+      if (duration < 60) {
+        return `${duration}分钟`
+      } else if (duration < 1440) {
+        const hours = Math.floor(duration / 60)
+        const minutes = duration % 60
+        return `${hours}小时${minutes}分钟`
+      } else {
+        const days = Math.floor(duration / 1440)
+        const hours = Math.floor((duration % 1440) / 60)
+        return `${days}天${hours}小时`
+      }
+    }
+    const endTime = instance.endTime ? dayjs(instance.endTime) : dayjs()
     const duration = endTime.diff(dayjs(instance.startTime), 'minute')
 
     if (duration < 60) {
@@ -179,7 +214,7 @@ const ProcessHistory: React.FC = () => {
     }
   }
 
-  const columns: ColumnsType<ProcessInstance> = [
+  const columns: ColumnsType<HistoricProcessInstance> = [
     {
       title: '流程名称',
       dataIndex: 'processDefinitionName',
@@ -247,6 +282,7 @@ const ProcessHistory: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
+          {/* 历史页面查看详情通常跳到实例详情页，如果实例还存在的话。如果历史实例详情页不同，则需另外处理。这里复用实例详情页。 */}
           <Button
             type="link"
             size="small"
@@ -324,7 +360,7 @@ const ProcessHistory: React.FC = () => {
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
-                  {instances.filter((i) => i.ended && !i.deleteReason).length}
+                  {instances.filter((i) => i.state === 'COMPLETED').length}
                 </div>
                 <div style={{ color: '#999' }}>已完成</div>
               </div>
@@ -334,7 +370,7 @@ const ProcessHistory: React.FC = () => {
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 24, fontWeight: 'bold', color: '#13c2c2' }}>
-                  {instances.filter((i) => !i.ended).length}
+                  {instances.filter((i) => i.state === 'ACTIVE').length}
                 </div>
                 <div style={{ color: '#999' }}>进行中</div>
               </div>
@@ -344,7 +380,7 @@ const ProcessHistory: React.FC = () => {
             <Card size="small">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f5222d' }}>
-                  {instances.filter((i) => i.deleteReason).length}
+                  {instances.filter((i) => i.state.includes('TERMINATED')).length}
                 </div>
                 <div style={{ color: '#999' }}>已终止</div>
               </div>
@@ -422,6 +458,7 @@ const ProcessHistory: React.FC = () => {
                   {taskHistory.map((task, index) => {
                     const isCompleted = !!task.endTime
 
+                    // 简单判断: 如果有endTime就是已完成(绿色), 否则是进行中(蓝色)
                     return (
                       <Timeline.Item
                         key={task.id || index}

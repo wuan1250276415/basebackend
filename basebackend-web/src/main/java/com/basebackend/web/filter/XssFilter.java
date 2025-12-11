@@ -1,5 +1,6 @@
 package com.basebackend.web.filter;
 
+import com.basebackend.common.util.SanitizationUtils;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,7 +17,10 @@ import java.util.*;
 
 /**
  * XSS 防护过滤器
- * 过滤请求参数中的恶意脚本和HTML内容
+ * <p>
+ * 过滤请求参数中的恶意脚本和HTML内容。
+ * 使用 {@link SanitizationUtils} 进行基于OWASP的统一XSS清洗。
+ * </p>
  *
  * @author basebackend
  * @since 2025-11-23
@@ -25,35 +29,20 @@ import java.util.*;
 @Component
 public class XssFilter implements Filter {
 
-    private static final String XSS_FILTER_ENABLED = "xss.filter.enabled";
-    private static final String TRUE = "true";
-
     /**
-     * XSS 攻击模式匹配正则
+     * 请求参数：设置为 "false" 时禁用XSS过滤
      */
-    private static final String[] XSS_PATTERNS = {
-            "<script[^>]*>.*?</script>",
-            "<iframe[^>]*>.*?</iframe>",
-            "<object[^>]*>.*?</object>",
-            "<embed[^>]*>.*?</embed>",
-            "javascript:",
-            "vbscript:",
-            "onload\\s*=",
-            "onerror\\s*=",
-            "<img[^>]*src\\s*=\\s*[\"']\\s*javascript:",
-            "<svg[^>]*>\\s*<script[^>]*>.*?</script>",
-            "<[^>]*on[a-z]+\\s*=\\s*['\"].*?['\"]"
-    };
-
-    private static final List<String> ALLOWED_HTML_TAGS = Arrays.asList("p", "br", "strong", "em", "u", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li");
+    private static final String XSS_FILTER_ENABLED = "xss.filter.enabled";
+    private static final String FALSE = "false";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        // 检查是否启用 XSS 过滤
+        // 检查是否禁用 XSS 过滤（默认启用）
         String enabled = request.getParameter(XSS_FILTER_ENABLED);
-        if (TRUE.equals(enabled)) {
+        if (FALSE.equalsIgnoreCase(enabled)) {
+            // 明确禁用时，跳过XSS过滤
             chain.doFilter(request, response);
             return;
         }
@@ -70,36 +59,12 @@ public class XssFilter implements Filter {
     }
 
     /**
-     * 清理 XSS 内容
-     */
-    private String cleanXss(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String result = value;
-
-        // 移除或转义 XSS 模式
-        for (String pattern : XSS_PATTERNS) {
-            if (result.matches("(?s).*" + pattern + ".*")) {
-                result = result.replaceAll(pattern, "");
-            }
-        }
-
-        // HTML 实体编码
-        result = result.replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll("\"", "&quot;")
-                .replaceAll("'", "&#x27;")
-                .replaceAll("/", "&#x2F;");
-
-        return result;
-    }
-
-    /**
      * XSS 清理后的请求包装器
+     * <p>
+     * 对所有请求参数进行XSS清洗，使用OWASP的SanitizationUtils。
+     * </p>
      */
-    private class XssCleanedRequestWrapper extends HttpServletRequestWrapper {
+    private static class XssCleanedRequestWrapper extends HttpServletRequestWrapper {
 
         private final Map<String, String[]> sanitizedParams;
 
@@ -111,7 +76,7 @@ public class XssFilter implements Filter {
         @Override
         public String getParameter(String name) {
             String value = super.getParameter(name);
-            return value != null ? cleanXss(value) : null;
+            return value != null ? SanitizationUtils.sanitize(value) : null;
         }
 
         @Override
@@ -122,7 +87,7 @@ public class XssFilter implements Filter {
             }
             String[] cleaned = new String[values.length];
             for (int i = 0; i < values.length; i++) {
-                cleaned[i] = values[i] != null ? cleanXss(values[i]) : null;
+                cleaned[i] = values[i] != null ? SanitizationUtils.sanitize(values[i]) : null;
             }
             return cleaned;
         }
@@ -144,7 +109,7 @@ public class XssFilter implements Filter {
                 String[] values = entry.getValue();
                 String[] cleanValues = new String[values.length];
                 for (int i = 0; i < values.length; i++) {
-                    cleanValues[i] = cleanXss(values[i]);
+                    cleanValues[i] = SanitizationUtils.sanitize(values[i]);
                 }
                 sanitized.put(name, cleanValues);
             }

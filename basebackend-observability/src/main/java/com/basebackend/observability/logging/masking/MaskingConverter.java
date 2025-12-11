@@ -126,17 +126,75 @@ public class MaskingConverter extends MessageConverter {
             try {
                 Pattern pattern = Pattern.compile(rule.getFieldPattern(), Pattern.CASE_INSENSITIVE);
                 MaskingStrategy strategy = MaskingStrategy.valueOf(rule.getStrategy().toUpperCase());
+
+                // 根据策略类型生成正确的替换字符串
+                String replacement = generateReplacementForStrategy(rule, strategy);
+
                 converted.add(new MaskingRule(
                         rule.getFieldPattern(),
                         pattern,
                         strategy,
-                        rule.getPartialPattern()
+                        replacement
                 ));
             } catch (Exception e) {
                 // 规则编译失败时静默忽略
             }
         }
         configuredRules = Collections.unmodifiableList(converted);
+    }
+
+    /**
+     * 根据策略类型生成替换字符串
+     *
+     * @param rule     脱敏规则
+     * @param strategy 脱敏策略
+     * @return 替换字符串
+     */
+    private static String generateReplacementForStrategy(LoggingProperties.MaskingRule rule, MaskingStrategy strategy) {
+        switch (strategy) {
+            case HIDE:
+                // HIDE策略：完全隐藏，替换为固定字符串
+                return "******";
+
+            case HASH:
+                // HASH策略：不使用替换字符串，使用哈希函数
+                return null;
+
+            case PARTIAL:
+            default:
+                // PARTIAL策略：使用partialPattern生成替换字符串
+                return generatePartialReplacement(rule.getPartialPattern());
+        }
+    }
+
+    /**
+     * 生成部分显示的替换字符串
+     *
+     * @param partialPattern 部分显示模式（如 "3-4"）
+     * @return 替换字符串
+     */
+    private static String generatePartialReplacement(String partialPattern) {
+        if (partialPattern == null || partialPattern.isEmpty()) {
+            return "******";
+        }
+
+        // 解析 "prefix-suffix" 格式
+        String[] parts = partialPattern.split("-");
+        if (parts.length != 2) {
+            return "******";
+        }
+
+        try {
+            int prefix = Integer.parseInt(parts[0]);
+            int suffix = Integer.parseInt(parts[1]);
+
+            // 生成替换字符串：前prefix位 + * + 后suffix位
+            // 默认使用8个*作为占位符
+            int starCount = Math.max(0, 8 - prefix - suffix);
+            return "$1" + "*".repeat(starCount) + "$2";
+        } catch (NumberFormatException e) {
+            return "******";
+        }
     }
 
     @Override

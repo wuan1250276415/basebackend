@@ -1,8 +1,8 @@
 package com.basebackend.backup.infrastructure.monitoring;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.stereotype.Component;
@@ -12,18 +12,19 @@ import java.util.Map;
 
 /**
  * 备份系统指标端点
- * 提供 Prometheus 格式的指标数据
+ * <p>
+ * 提供 Prometheus 格式的指标数据和健康检查接口。
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @WebEndpoint(id = "backup-metrics")
 public class MetricsController {
 
-    @Autowired
-    private MeterRegistry meterRegistry;
-
-    @Autowired
-    private BackupMetricsRegistrar backupMetricsRegistrar;
+    private final MeterRegistry meterRegistry;
+    private final BackupMetricsRegistrar backupMetricsRegistrar;
 
     /**
      * 获取所有备份指标

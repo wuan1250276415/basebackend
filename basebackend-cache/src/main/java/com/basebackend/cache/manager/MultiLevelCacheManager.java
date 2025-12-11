@@ -124,16 +124,22 @@ public class MultiLevelCacheManager {
                 try {
                     String key = new String(message.getBody());
                     log.debug("Received cache eviction notification for key: {}", key);
-                    
-                    // 清除本地缓存
-                    localCache.invalidate(key);
-                    
-                    log.debug("Local cache evicted for key: {}", key);
+
+                    // 检查是否是批量清除通知
+                    if (key.endsWith(":BATCH_EVICT")) {
+                        // 批量清除：清除所有本地缓存
+                        localCache.invalidateAll();
+                        log.info("Received batch eviction notification, cleared all local cache");
+                    } else {
+                        // 单个键清除：清除指定键的本地缓存
+                        localCache.invalidate(key);
+                        log.debug("Local cache evicted for key: {}", key);
+                    }
                 } catch (Exception e) {
                     log.error("Error processing cache eviction message", e);
                 }
             }, new ChannelTopic(CACHE_EVICTION_CHANNEL));
-            
+
             log.info("Cache eviction listener setup successfully on channel: {}", CACHE_EVICTION_CHANNEL);
         } catch (Exception e) {
             log.error("Failed to setup cache eviction listener", e);

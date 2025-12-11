@@ -270,16 +270,21 @@ public class CacheEvictionManager {
 
     /**
      * 获取缓存大小（估算）
-     * 
+     * 安全版本：仅统计应用前缀下的缓存键
+     *
      * @return 缓存条目数
      */
     public long getCacheSize() {
         try {
-            // 使用 DBSIZE 命令获取键数量
-            // 注意：这会返回整个数据库的键数量，不仅仅是应用的缓存
-            Set<String> keys = redisService.keys("*");
+            // 获取缓存键前缀
+            String prefix = cacheProperties.getKey().getPrefix();
+            String separator = cacheProperties.getKey().getSeparator();
+            String pattern = prefix + separator + "*";
+
+            // 使用 SCAN 命令安全地扫描，避免阻塞Redis
+            Set<String> keys = redisService.scan(pattern);
             return keys != null ? keys.size() : 0;
-            
+
         } catch (Exception e) {
             log.error("Error getting cache size", e);
             return 0;
@@ -288,15 +293,16 @@ public class CacheEvictionManager {
 
     /**
      * 获取指定模式的缓存大小
-     * 
+     * 使用 SCAN 命令安全扫描，避免阻塞 Redis
+     *
      * @param pattern 键模式
      * @return 匹配的键数量
      */
     public long getCacheSize(String pattern) {
         try {
-            Set<String> keys = redisService.keys(pattern);
+            Set<String> keys = redisService.scan(pattern);
             return keys != null ? keys.size() : 0;
-            
+
         } catch (Exception e) {
             log.error("Error getting cache size for pattern: {}", pattern, e);
             return 0;
@@ -344,26 +350,52 @@ public class CacheEvictionManager {
     /**
      * 清空所有缓存
      * 慎用！这会删除所有缓存数据
-     * 
+     * 安全增强：仅清空应用前缀下的缓存，并需要确认
+     *
+     * @param confirmed 是否确认执行此操作（防止误操作）
      * @return 删除的键数量
      */
-    public long clearAll() {
+    public long clearAll(boolean confirmed) {
+        if (!confirmed) {
+            log.warn("clearAll() called without confirmation - operation cancelled");
+            return 0;
+        }
+
         log.warn("Clearing all cache data - this is a destructive operation!");
-        
+
         try {
-            Set<String> keys = redisService.keys("*");
+            // 获取缓存键前缀，仅清空应用前缀下的缓存
+            String prefix = cacheProperties.getKey().getPrefix();
+            String separator = cacheProperties.getKey().getSeparator();
+            String pattern = prefix + separator + "*";
+
+            // 使用 SCAN 命令安全地扫描，避免阻塞Redis
+            Set<String> keys = redisService.scan(pattern);
             if (keys != null && !keys.isEmpty()) {
                 Long deleted = redisService.delete(keys);
                 long count = deleted != null ? deleted : 0;
-                log.warn("Cleared {} cache entries", count);
+                log.warn("Cleared {} cache entries with prefix: {}{}", count, prefix, separator);
                 return count;
             }
             return 0;
-            
+
         } catch (Exception e) {
             log.error("Error clearing all cache", e);
             return 0;
         }
+    }
+
+    /**
+     * 清空所有缓存（保留方法兼容性，内部调用需要确认）
+     * 警告：此方法已弃用，请使用 clearAll(boolean confirmed)
+     *
+     * @return 删除的键数量
+     */
+    @Deprecated
+    public long clearAll() {
+        log.error("clearAll() without confirmation is deprecated and disabled for safety");
+        log.warn("Please use clearAll(boolean confirmed) instead");
+        return 0;
     }
 
     /**

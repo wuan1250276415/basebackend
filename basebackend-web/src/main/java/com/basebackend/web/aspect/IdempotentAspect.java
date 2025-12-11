@@ -1,7 +1,7 @@
 package com.basebackend.web.aspect;
 
+import com.basebackend.common.util.IpUtil;
 import com.basebackend.web.annotation.Idempotent;
-import com.basebackend.web.util.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +12,6 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**

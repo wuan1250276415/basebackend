@@ -6,9 +6,6 @@ import com.basebackend.backup.infrastructure.storage.StorageResult;
 import com.basebackend.backup.infrastructure.storage.StorageUsage;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.nio.file.*;
@@ -20,13 +17,13 @@ import java.util.Arrays;
  * 本地文件系统存储提供者
  */
 @Slf4j
-@Component
-@ConditionalOnProperty(name = "backup.storage.local.enabled", havingValue = "true", matchIfMissing = true)
-@org.springframework.context.annotation.Primary
 public class LocalStorageProvider implements StorageProvider {
 
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupProperties backupProperties;
+
+    public LocalStorageProvider(BackupProperties backupProperties) {
+        this.backupProperties = backupProperties;
+    }
 
     private static final String STORAGE_TYPE = "local";
 

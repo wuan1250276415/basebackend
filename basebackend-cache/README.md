@@ -137,7 +137,7 @@ public Order updateOrder(Order order) { }
 public User getUser(Long userId) { }
 ```
 
-详细文档：[注解使用指南](USAGE_EXAMPLES.md#注解驱动缓存)
+详细文档：[注解使用指南](docs/USAGE_EXAMPLES.md#注解驱动缓存)
 
 ### 2. 多级缓存
 
@@ -155,7 +155,7 @@ basebackend:
 
 查询顺序：本地缓存 → Redis → 数据源
 
-详细文档：[多级缓存配置](USAGE_EXAMPLES.md#多级缓存)
+详细文档：[多级缓存配置](docs/USAGE_EXAMPLES.md#多级缓存)
 
 ### 3. 缓存预热
 
@@ -183,7 +183,7 @@ public class CacheWarmingConfig {
 }
 ```
 
-详细文档：[CACHE_WARMING_USAGE.md](CACHE_WARMING_USAGE.md)
+详细文档：[CACHE_WARMING_USAGE.md](docs/CACHE_WARMING_USAGE.md)
 
 ### 4. 分布式锁
 
@@ -208,7 +208,7 @@ public Data readData() { }
 public void writeData(Data data) { }
 ```
 
-详细文档：[DISTRIBUTED_LOCK_USAGE.md](DISTRIBUTED_LOCK_USAGE.md)
+详细文档：[DISTRIBUTED_LOCK_USAGE.md](docs/DISTRIBUTED_LOCK_USAGE.md)
 
 ### 5. 缓存键生成器
 
@@ -237,7 +237,7 @@ String jsonKey = keyGenerator.generateJsonKey("cache", "query", queryObject);
 List<String> keys = keyGenerator.generateBatchKeys("cache", "user", userIds);
 ```
 
-详细文档：[CACHE_KEY_GENERATOR_USAGE.md](CACHE_KEY_GENERATOR_USAGE.md)
+详细文档：[CACHE_KEY_GENERATOR_USAGE.md](docs/CACHE_KEY_GENERATOR_USAGE.md)
 
 ### 6. 缓存模式
 
@@ -254,7 +254,7 @@ writeThroughTemplate.set(key, value, v -> saveToDB(v));
 writeBehindTemplate.set(key, value);
 ```
 
-详细文档：[缓存模式使用](USAGE_EXAMPLES.md#缓存模式)
+详细文档：[缓存模式使用](docs/USAGE_EXAMPLES.md#缓存模式)
 
 ### 7. 分布式数据结构
 
@@ -271,7 +271,7 @@ distributedQueueService.offer("myQueue", element);
 distributedSetService.add("mySet", element);
 ```
 
-详细文档：[分布式数据结构](USAGE_EXAMPLES.md#分布式数据结构)
+详细文档：[分布式数据结构](docs/USAGE_EXAMPLES.md#分布式数据结构)
 
 ### 8. 容错降级
 
@@ -288,7 +288,7 @@ basebackend:
         failure-threshold: 5
 ```
 
-详细文档：[FAULT_TOLERANCE_USAGE.md](FAULT_TOLERANCE_USAGE.md)
+详细文档：[FAULT_TOLERANCE_USAGE.md](docs/FAULT_TOLERANCE_USAGE.md)
 
 ## ⚙️ 配置说明
 
@@ -331,18 +331,18 @@ basebackend:
 
 ### 核心文档
 
-- [使用示例](USAGE_EXAMPLES.md) - 常见使用场景和代码示例
-- [最佳实践](BEST_PRACTICES.md) - 推荐的使用方式和注意事项
-- [配置示例](CONFIG_EXAMPLES.md) - 不同场景的配置示例
+- [使用示例](docs/USAGE_EXAMPLES.md) - 常见使用场景和代码示例
+- [最佳实践](docs/BEST_PRACTICES.md) - 推荐的使用方式和注意事项
+- [配置示例](docs/CONFIG_EXAMPLES.md) - 不同场景的配置示例
 - [配置参考](src/main/resources/application-cache.yml) - 完整的配置选项
 
 ### 专题文档
 
-- [缓存预热使用指南](CACHE_WARMING_USAGE.md) - 应用启动时预加载热点数据
-- [分布式锁使用指南](DISTRIBUTED_LOCK_USAGE.md) - 多种锁类型和使用方式
-- [容错降级使用指南](FAULT_TOLERANCE_USAGE.md) - 熔断器、超时控制、自动恢复
-- [异常处理指南](EXCEPTION_HANDLING_GUIDE.md) - 异常层次结构和处理策略
-- [集成测试说明](INTEGRATION_TESTS_README.md) - 使用 Testcontainers 进行集成测试
+- [缓存预热使用指南](docs/CACHE_WARMING_USAGE.md) - 应用启动时预加载热点数据
+- [分布式锁使用指南](docs/DISTRIBUTED_LOCK_USAGE.md) - 多种锁类型和使用方式
+- [容错降级使用指南](docs/FAULT_TOLERANCE_USAGE.md) - 熔断器、超时控制、自动恢复
+- [异常处理指南](docs/EXCEPTION_HANDLING_GUIDE.md) - 异常层次结构和处理策略
+- [集成测试说明](docs/INTEGRATION_TESTS_README.md) - 使用 Testcontainers 进行集成测试
 
 ## 💡 最佳实践
 
@@ -409,7 +409,7 @@ log.info("Hit rate: {}, Miss rate: {}",
     stats.getMissRate());
 ```
 
-更多最佳实践：[BEST_PRACTICES.md](BEST_PRACTICES.md)
+更多最佳实践：[BEST_PRACTICES.md](docs/BEST_PRACTICES.md)
 
 ## ⚡ 性能优化
 
@@ -600,7 +600,7 @@ class CacheIntegrationTest {
 }
 ```
 
-详细文档：[INTEGRATION_TESTS_README.md](INTEGRATION_TESTS_README.md)
+详细文档：[INTEGRATION_TESTS_README.md](docs/INTEGRATION_TESTS_README.md)
 
 ## 📊 性能指标
 
@@ -645,19 +645,19 @@ class CacheIntegrationTest {
 ## 📚 完整文档列表
 
 ### 核心功能文档
-- [使用示例](USAGE_EXAMPLES.md) - 各种功能的使用示例
-- [配置示例](CONFIG_EXAMPLES.md) - 详细的配置说明
-- [最佳实践](BEST_PRACTICES.md) - 使用建议和最佳实践
+- [使用示例](docs/USAGE_EXAMPLES.md) - 各种功能的使用示例
+- [配置示例](docs/CONFIG_EXAMPLES.md) - 详细的配置说明
+- [最佳实践](docs/BEST_PRACTICES.md) - 使用建议和最佳实践
 
 ### 专项功能文档
-- [缓存键生成器使用指南](CACHE_KEY_GENERATOR_USAGE.md) - 多种键生成策略详解
-- [缓存预热使用指南](CACHE_WARMING_USAGE.md) - 缓存预热配置和使用
-- [分布式锁使用指南](DISTRIBUTED_LOCK_USAGE.md) - 分布式锁的各种用法
-- [容错降级使用指南](FAULT_TOLERANCE_USAGE.md) - 容错和降级策略
-- [异常处理指南](EXCEPTION_HANDLING_GUIDE.md) - 异常处理最佳实践
+- [缓存键生成器使用指南](docs/CACHE_KEY_GENERATOR_USAGE.md) - 多种键生成策略详解
+- [缓存预热使用指南](docs/CACHE_WARMING_USAGE.md) - 缓存预热配置和使用
+- [分布式锁使用指南](docs/DISTRIBUTED_LOCK_USAGE.md) - 分布式锁的各种用法
+- [容错降级使用指南](docs/FAULT_TOLERANCE_USAGE.md) - 容错和降级策略
+- [异常处理指南](docs/EXCEPTION_HANDLING_GUIDE.md) - 异常处理最佳实践
 
 ### 测试文档
-- [集成测试说明](INTEGRATION_TESTS_README.md) - 集成测试指南
+- [集成测试说明](docs/INTEGRATION_TESTS_README.md) - 集成测试指南
 
 ## 🤝 贡献
 

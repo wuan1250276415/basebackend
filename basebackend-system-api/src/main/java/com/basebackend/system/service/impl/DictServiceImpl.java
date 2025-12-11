@@ -125,7 +125,7 @@ public class DictServiceImpl implements DictService {
         // 先从缓存获取（如果Redis可用）
         if (redisService != null) {
             String cacheKey = DICT_CACHE_PREFIX + dictType;
-            List<DictDataDTO> cachedData = (List<DictDataDTO>) redisService.get(cacheKey);
+            List<DictDataDTO> cachedData = getCachedDictData(cacheKey);
             if (cachedData != null) {
                 return cachedData;
             }
@@ -254,6 +254,70 @@ public class DictServiceImpl implements DictService {
         // 更新缓存
         redisService.set(cacheKey, result, DICT_CACHE_EXPIRE);
         log.debug("已刷新字典类型 {} 的缓存，共 {} 条数据", dictType, result.size());
+    }
+
+    /**
+     * 类型安全的缓存数据获取方法
+     * 解决从Redis获取数据时的未检查类型转换警告
+     *
+     * @param cacheKey 缓存键
+     * @return 字典数据列表，如果缓存不存在或类型不匹配则返回null
+     */
+    private List<DictDataDTO> getCachedDictData(String cacheKey) {
+        try {
+            Object cached = redisService.get(cacheKey);
+            if (cached == null) {
+                return null;
+            }
+            
+            // 类型安全检查
+            if (cached instanceof List<?> list) {
+                if (list.isEmpty()) {
+                    // 空列表直接返回
+                    return java.util.Collections.emptyList();
+                }
+                
+                // 检查列表元素类型
+                Object firstElement = list.get(0);
+                if (firstElement instanceof DictDataDTO) {
+                    @SuppressWarnings("unchecked")
+                    List<DictDataDTO> result = (List<DictDataDTO>) cached;
+                    return result;
+                }
+                
+                // 如果是LinkedHashMap（JSON反序列化的结果），需要手动转换
+                if (firstElement instanceof java.util.Map) {
+                    return list.stream()
+                            .filter(item -> item instanceof java.util.Map)
+                            .map(item -> {
+                                @SuppressWarnings("unchecked")
+                                java.util.Map<String, Object> map = (java.util.Map<String, Object>) item;
+                                DictDataDTO dto = new DictDataDTO();
+                                if (map.get("id") != null) {
+                                    dto.setId(((Number) map.get("id")).longValue());
+                                }
+                                dto.setDictType((String) map.get("dictType"));
+                                dto.setDictLabel((String) map.get("dictLabel"));
+                                dto.setDictValue((String) map.get("dictValue"));
+                                if (map.get("dictSort") != null) {
+                                    dto.setDictSort(((Number) map.get("dictSort")).intValue());
+                                }
+                                if (map.get("status") != null) {
+                                    dto.setStatus(((Number) map.get("status")).intValue());
+                                }
+                                dto.setRemark((String) map.get("remark"));
+                                return dto;
+                            })
+                            .collect(Collectors.toList());
+                }
+            }
+            
+            log.warn("缓存数据类型不匹配，key: {}, actualType: {}", cacheKey, cached.getClass().getName());
+            return null;
+        } catch (Exception e) {
+            log.warn("从缓存获取字典数据失败，key: {}, error: {}", cacheKey, e.getMessage());
+            return null;
+        }
     }
 
     private DictDTO convertToDTO(SysDict dict) {

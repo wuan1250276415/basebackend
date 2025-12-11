@@ -38,9 +38,97 @@ public class ApplicationResourceController {
     private final ApplicationResourceService resourceService;
     private final JwtUtil jwtUtil;
 
+    /**
+     * 获取菜单树（前端动态菜单用）
+     */
+    @GetMapping("/tree")
+    @Operation(summary = "获取菜单树", description = "获取所有菜单的树形结构")
+    @OperationLog(operation = "查询菜单树", businessType = BusinessType.SELECT)
+    public Result<List<MenuDTO>> getMenuTree() {
+        log.info("获取菜单树");
+        List<ApplicationResourceDTO> resourceTree = resourceService.getAllResourceTree();
+        List<MenuDTO> menuTree = convertResourceToMenu(resourceTree);
+        return Result.success(menuTree);
+    }
+
+    /**
+     * 获取菜单列表（扁平化）
+     */
+    @GetMapping
+    @Operation(summary = "获取菜单列表", description = "获取所有菜单的扁平列表")
+    @OperationLog(operation = "查询菜单列表", businessType = BusinessType.SELECT)
+    public Result<List<MenuDTO>> getMenuList() {
+        log.info("获取菜单列表");
+        List<ApplicationResourceDTO> resourceList = resourceService.getAllResourceList();
+        List<MenuDTO> menuList = resourceList.stream()
+                .map(this::toMenuDTO)
+                .collect(Collectors.toList());
+        return Result.success(menuList);
+    }
+
+    /**
+     * 获取前端路由配置
+     */
+    @GetMapping("/routes")
+    @Operation(summary = "获取前端路由", description = "获取当前用户的前端路由配置")
+    public Result<List<MenuDTO>> getRoutes() {
+        log.info("获取前端路由");
+        try {
+            Long currentUserId = UserContextHolder.getUserId();
+            List<ApplicationResourceDTO> resourceTree = resourceService.getUserResourceTreeByUserId(currentUserId);
+            List<MenuDTO> menuTree = convertResourceToMenu(resourceTree);
+            return Result.success(menuTree);
+        } catch (Exception e) {
+            log.error("获取前端路由失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据用户ID获取菜单树
+     */
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "根据用户ID获取菜单树", description = "获取指定用户的菜单树")
+    @OperationLog(operation = "查询用户菜单树", businessType = BusinessType.SELECT)
+    public Result<List<MenuDTO>> getMenuTreeByUserId(@PathVariable Long userId) {
+        log.info("获取用户菜单树: userId={}", userId);
+        List<ApplicationResourceDTO> resourceTree = resourceService.getUserResourceTreeByUserId(userId);
+        List<MenuDTO> menuTree = convertResourceToMenu(resourceTree);
+        return Result.success(menuTree);
+    }
+
+    /**
+     * 检查菜单名称唯一性
+     */
+    @GetMapping("/check-menu-name")
+    @Operation(summary = "检查菜单名称唯一性", description = "检查菜单名称在同级下是否唯一")
+    public Result<Boolean> checkMenuNameUnique(
+            @RequestParam("menuName") String menuName,
+            @RequestParam("parentId") Long parentId,
+            @RequestParam(value = "menuId", required = false) Long menuId) {
+        log.debug("检查菜单名称唯一性: menuName={}, parentId={}, menuId={}", menuName, parentId, menuId);
+        boolean isUnique = resourceService.checkResourceNameUnique(menuName, parentId, menuId);
+        return Result.success(isUnique);
+    }
+
+    /**
+     * 更新菜单（带ID参数）
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "更新菜单", description = "根据ID更新菜单信息")
+    @OperationLog(operation = "更新菜单", businessType = BusinessType.UPDATE)
+    public Result<Void> updateMenuById(
+            @PathVariable Long id,
+            @Validated @RequestBody ApplicationResourceDTO dto) {
+        log.info("更新菜单: id={}", id);
+        dto.setId(id);
+        boolean success = resourceService.updateResource(dto);
+        return success ? Result.success() : Result.error("更新失败");
+    }
+
     @GetMapping("/tree/{appId}")
     @Operation(summary = "查询应用的资源树")
-    @OperationLog(operation="查询应用的资源树",businessType = BusinessType.SELECT)
+    @OperationLog(operation = "查询应用的资源树", businessType = BusinessType.SELECT)
     public Result<List<ApplicationResourceDTO>> getResourceTree(@PathVariable Long appId) {
         List<ApplicationResourceDTO> tree = resourceService.getResourceTree(appId);
         return Result.success(tree);
@@ -48,7 +136,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/user/tree/{appId}")
     @Operation(summary = "查询用户的资源树")
-    @OperationLog(operation="查询用户的资源树", businessType = BusinessType.SELECT)
+    @OperationLog(operation = "查询用户的资源树", businessType = BusinessType.SELECT)
     public Result<List<ApplicationResourceDTO>> getUserResourceTree(
             @PathVariable Long appId,
             HttpServletRequest request) {
@@ -90,7 +178,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询资源")
-    @OperationLog(operation="根据ID查询资源", businessType = BusinessType.SELECT)
+    @OperationLog(operation = "根据ID查询资源", businessType = BusinessType.SELECT)
     public Result<ApplicationResourceDTO> getResourceById(@PathVariable Long id) {
         ApplicationResourceDTO dto = resourceService.getResourceById(id);
         if (dto == null) {
@@ -101,7 +189,7 @@ public class ApplicationResourceController {
 
     @PostMapping
     @Operation(summary = "创建资源")
-    @OperationLog(operation="创建资源", businessType = BusinessType.INSERT)
+    @OperationLog(operation = "创建资源", businessType = BusinessType.INSERT)
     public Result<Void> createResource(@Validated @RequestBody ApplicationResourceDTO dto) {
         log.info("创建资源: {}", dto.getResourceName());
         boolean success = resourceService.createResource(dto);
@@ -110,7 +198,7 @@ public class ApplicationResourceController {
 
     @PutMapping
     @Operation(summary = "更新资源")
-    @OperationLog(operation="更新资源", businessType = BusinessType.UPDATE)
+    @OperationLog(operation = "更新资源", businessType = BusinessType.UPDATE)
     public Result<Void> updateResource(@Validated @RequestBody ApplicationResourceDTO dto) {
         log.info("更新资源: {}", dto.getId());
         boolean success = resourceService.updateResource(dto);
@@ -119,7 +207,7 @@ public class ApplicationResourceController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除资源")
-    @OperationLog(operation="删除资源", businessType = BusinessType.DELETE)
+    @OperationLog(operation = "删除资源", businessType = BusinessType.DELETE)
     public Result<Void> deleteResource(@PathVariable Long id) {
         log.info("删除资源: {}", id);
         boolean success = resourceService.deleteResource(id);
@@ -128,7 +216,7 @@ public class ApplicationResourceController {
 
     @GetMapping("/role/{roleId}")
     @Operation(summary = "查询角色的资源ID列表")
-    @OperationLog(operation="查询角色的资源ID列表", businessType = BusinessType.SELECT)
+    @OperationLog(operation = "查询角色的资源ID列表", businessType = BusinessType.SELECT)
     public Result<List<Long>> getResourceIdsByRoleId(@PathVariable Long roleId) {
         List<Long> resourceIds = resourceService.getResourceIdsByRoleId(roleId);
         return Result.success(resourceIds);
@@ -136,7 +224,7 @@ public class ApplicationResourceController {
 
     @PostMapping("/role/{roleId}/assign")
     @Operation(summary = "分配角色资源")
-    @OperationLog(operation="分配角色资源", businessType = BusinessType.UPDATE)
+    @OperationLog(operation = "分配角色资源", businessType = BusinessType.UPDATE)
     public Result<Void> assignRoleResources(
             @PathVariable Long roleId,
             @RequestBody List<Long> resourceIds) {
@@ -144,6 +232,7 @@ public class ApplicationResourceController {
         boolean success = resourceService.assignRoleResources(roleId, resourceIds);
         return success ? Result.success() : Result.error("分配失败");
     }
+
     /**
      * 获取当前登录用户的菜单树（用于前端动态路由）
      */
@@ -180,7 +269,6 @@ public class ApplicationResourceController {
                 .map(this::toMenuDTO)
                 .collect(Collectors.toList());
     }
-
 
     /**
      * 将资源树平铺为列表

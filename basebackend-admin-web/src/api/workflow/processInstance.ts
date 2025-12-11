@@ -7,7 +7,7 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = '/api/workflow/instances'
+const BASE_URL = '/basebackend-scheduler/api/camunda/process-instances'
 
 /**
  * 启动流程实例
@@ -112,14 +112,6 @@ export const listProcessInstances = async (
   return request.get(`${BASE_URL}`, { params })
 }
 
-/**
- * 查询历史流程实例
- */
-export const listHistoricProcessInstances = async (
-  params?: ProcessInstanceQueryParams
-): Promise<ApiResponse<PageResult<ProcessInstance>>> => {
-  return request.get(`${BASE_URL}/historic`, { params })
-}
 
 /**
  * 获取流程实例变量（包括历史）

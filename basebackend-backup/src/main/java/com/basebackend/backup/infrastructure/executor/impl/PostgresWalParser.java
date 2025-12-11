@@ -6,8 +6,8 @@ import com.basebackend.backup.infrastructure.executor.WalEventList;
 import com.basebackend.backup.infrastructure.executor.WalEventListener;
 import com.basebackend.backup.infrastructure.executor.WalFileInfo;
 import com.basebackend.backup.infrastructure.executor.WalFileList;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -17,14 +17,18 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 /**
  * PostgreSQL WAL解析器
- * 用于解析PostgreSQL的WAL（Write-Ahead Logging）文件
+ * <p>
+ * 用于解析PostgreSQL的WAL（Write-Ahead Logging）文件，
+ * 支持增量备份和时间点恢复功能。
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class PostgresWalParser {
 
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupProperties backupProperties;
 
     /**
      * 获取当前WAL位置

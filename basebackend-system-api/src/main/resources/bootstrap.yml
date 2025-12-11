@@ -45,6 +45,8 @@ spring:
             refresh: true
           - data-id: application-web-config.yml
             refresh: true
+          - data-id: file-config.yml
+            refresh: true
         # 扩展配置（网关特有配置）
         extension-configs:
           - data-id: ${spring.application.name}-${spring.profiles.active}.yml
@@ -93,6 +95,8 @@ nacos:
       - data-id: security-config.yml
         refresh: true
       - data-id: application-web-config.yml
+        refresh: true
+      - data-id: file-config.yml
         refresh: true
     # 扩展配置（网关特有配置）
     extension-configs:

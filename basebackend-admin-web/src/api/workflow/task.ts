@@ -113,14 +113,6 @@ export const getTaskVariables = async (
   return request.get(`${BASE_URL}/${taskId}/variables`)
 }
 
-/**
- * 查询历史任务
- */
-export const listHistoricTasksByProcessInstanceId = async (
-  processInstanceId: string
-): Promise<ApiResponse<PageResult<Task>>> => {
-  return request.get(`${BASE_URL}/history/process-instance/${processInstanceId}`)
-}
 
 /**
  * 批量完成任务

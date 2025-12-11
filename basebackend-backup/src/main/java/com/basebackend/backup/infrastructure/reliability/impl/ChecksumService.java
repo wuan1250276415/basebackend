@@ -2,8 +2,8 @@ package com.basebackend.backup.infrastructure.reliability.impl;
 
 import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.infrastructure.reliability.Checksum;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -15,14 +15,18 @@ import java.util.Arrays;
 
 /**
  * 校验服务
- * 提供文件完整性校验功能，支持MD5和SHA256
+ * <p>
+ * 提供文件完整性校验功能，支持MD5和SHA256算法。
+ * 用于验证备份文件在传输和存储过程中的完整性。
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ChecksumService {
 
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupProperties backupProperties;
 
     /**
      * 计算文件的校验和

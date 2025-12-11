@@ -6,6 +6,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -21,6 +22,16 @@ public class GrayRouteProperties {
      * 是否启用灰度路由
      */
     private Boolean enabled = false;
+
+    /**
+     * 受信代理 CIDR 列表，仅匹配到时才信任 Forwarded/X-Forwarded-For
+     * 默认值：127.0.0.1/32 (IPv4本地回环) 和 ::1/128 (IPv6本地回环)
+     * 生产环境建议根据实际网关/Ingress地址进行配置
+     */
+    private List<String> trustedProxyCidrs = Arrays.asList(
+        "127.0.0.1/32",   // IPv4本地回环
+        "::1/128"          // IPv6本地回环
+    );
 
     /**
      * 灰度规则列表

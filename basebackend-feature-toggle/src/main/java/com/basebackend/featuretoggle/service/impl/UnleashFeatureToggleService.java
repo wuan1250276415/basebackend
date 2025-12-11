@@ -10,6 +10,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Unleash特性开关服务实现
@@ -83,11 +84,12 @@ public class UnleashFeatureToggleService implements FeatureToggleService {
                 return defaultVariant;
             }
 
-            unleashVariant.getPayload();
             return Variant.builder()
                     .name(unleashVariant.getName())
                     .enabled(unleashVariant.isEnabled())
-                    .payload(unleashVariant.getPayload().toString())
+                    .payload(Optional.ofNullable(unleashVariant.getPayload())
+                            .map(Object::toString)
+                            .orElse(null))
                     .build();
         } catch (Exception e) {
             log.error("Failed to get variant for feature '{}' in Unleash: {}", featureName, e.getMessage());

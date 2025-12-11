@@ -29,8 +29,8 @@ import {
   getTaskById,
   completeTask,
   getTaskVariables,
-  listHistoricTasksByProcessInstanceId,
 } from '@/api/workflow/task'
+import { listHistoricActivities } from '@/api/workflow/history'
 import { getProcessInstanceById } from '@/api/workflow/processInstance'
 import { useAuthStore } from '@/stores/auth'
 import type { Task, ProcessInstance } from '@/types/workflow'
@@ -41,7 +41,7 @@ const TaskDetail: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
   const [form] = Form.useForm()
-  const { user } = useAuthStore()
+  const { userInfo } = useAuthStore()
 
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -75,12 +75,22 @@ const TaskDetail: React.FC = () => {
             setProcessInstance(instanceResponse.data)
           }
 
-          // 加载审批历史
-          const historyResponse = await listHistoricTasksByProcessInstanceId(
-            taskData.processInstanceId
+          // 加载审批历史 (通过活动历史获取用户任务)
+          const historyResponse = await listHistoricActivities(
+            taskData.processInstanceId,
+            { size: 100 }
           )
           if (historyResponse.success) {
-            setApprovalHistory(historyResponse.data?.list || [])
+            const activities = historyResponse.data?.list || []
+            const userTasks = activities
+              .filter((activity) => activity.activityType === 'userTask')
+              .map((activity) => ({
+                name: activity.activityName,
+                assignee: activity.assignee,
+                startTime: activity.startTime,
+                endTime: activity.endTime,
+              }))
+            setApprovalHistory(userTasks)
           }
         }
       } else {
@@ -106,8 +116,8 @@ const TaskDetail: React.FC = () => {
     try {
       const approvalVariables = {
         approved: values.decision === 'approve',
-        approver: user?.username,
-        approverName: user?.realName || user?.username,
+        approver: userInfo?.username,
+        approverName: userInfo?.nickname || userInfo?.username,
         comment: values.comment,
         approvalTime: new Date().toISOString(),
       }
@@ -236,7 +246,7 @@ const TaskDetail: React.FC = () => {
           </Card>
 
           {/* 审批表单 */}
-          {task.assignee === user?.username && (
+          {task.assignee === userInfo?.username && (
             <Card title="审批操作">
               <Form
                 form={form}
@@ -291,7 +301,7 @@ const TaskDetail: React.FC = () => {
             </Card>
           )}
 
-          {task.assignee && task.assignee !== user?.username && (
+          {task.assignee && task.assignee !== userInfo?.username && (
             <Card>
               <Alert
                 message="无权操作"

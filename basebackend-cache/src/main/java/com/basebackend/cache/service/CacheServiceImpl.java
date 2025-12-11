@@ -296,10 +296,10 @@ public class CacheServiceImpl implements CacheService {
         if (pattern == null || pattern.trim().isEmpty()) {
             return Set.of();
         }
-        
+
         try {
-            return redisService.keys(pattern);
-            
+            return redisService.scan(pattern);
+
         } catch (Exception e) {
             log.error("Error getting keys by pattern: {}", pattern, e);
             return Set.of();
@@ -358,8 +358,24 @@ public class CacheServiceImpl implements CacheService {
 
     @Override
     public long clearAllCaches() {
+        return clearAllCaches(false);
+    }
+
+    /**
+     * 清空所有缓存
+     * 安全增强：需要显式确认才能执行
+     *
+     * @param confirmed 是否确认执行此操作（true表示确认，false表示取消）
+     * @return 删除的键数量
+     */
+    public long clearAllCaches(boolean confirmed) {
+        if (!confirmed) {
+            log.warn("clearAllCaches() called without confirmation - operation cancelled");
+            return 0;
+        }
+
         log.warn("Clearing all caches - this is a destructive operation!");
-        return evictionManager.clearAll();
+        return evictionManager.clearAll(confirmed);
     }
 
     // ========== 缓存统计和监控 ==========

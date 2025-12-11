@@ -25,6 +25,11 @@ public class MinioProperties {
     private String endpoint = "http://1.117.67.222:9001";
 
     /**
+     * 是否使用HTTPS
+     */
+    private boolean secure = false;
+
+    /**
      * Access Key
      */
     private String accessKey = "wuan";

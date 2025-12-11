@@ -8,31 +8,60 @@ import com.basebackend.database.audit.query.AuditLogQuery;
 import com.basebackend.database.audit.service.AuditLogArchiveService;
 import com.basebackend.database.audit.service.AuditLogService;
 import com.basebackend.database.config.DatabaseEnhancedProperties;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-
 /**
  * 审计日志服务实现
+ * 
+ * 性能优化：
+ * - 支持批量写入模式（高并发场景）
+ * - 异步处理减少主流程阻塞
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AuditLogServiceImpl implements AuditLogService {
 
     private final AuditLogMapper auditLogMapper;
     private final AuditLogArchiveService auditLogArchiveService;
     private final DatabaseEnhancedProperties properties;
+    
+    // 批量写入器（可选，用于高并发场景）
+    private BatchAuditLogWriter batchWriter;
+
+    public AuditLogServiceImpl(AuditLogMapper auditLogMapper,
+                               AuditLogArchiveService auditLogArchiveService,
+                               DatabaseEnhancedProperties properties) {
+        this.auditLogMapper = auditLogMapper;
+        this.auditLogArchiveService = auditLogArchiveService;
+        this.properties = properties;
+    }
+    
+    @Autowired(required = false)
+    public void setBatchWriter(BatchAuditLogWriter batchWriter) {
+        this.batchWriter = batchWriter;
+        if (batchWriter != null) {
+            log.info("BatchAuditLogWriter enabled for high-concurrency audit logging");
+        }
+    }
 
     @Override
     @Async("auditLogExecutor")
     public void logAsync(AuditLog auditLog) {
         try {
-            log(auditLog);
+            // 优先使用批量写入器（高并发优化）
+            if (batchWriter != null) {
+                if (!batchWriter.enqueue(auditLog)) {
+                    // 队列满时降级为直接写入
+                    log.warn("Batch queue full, falling back to direct insert");
+                    log(auditLog);
+                }
+            } else {
+                log(auditLog);
+            }
         } catch (Exception e) {
             log.error("Failed to save audit log asynchronously", e);
         }

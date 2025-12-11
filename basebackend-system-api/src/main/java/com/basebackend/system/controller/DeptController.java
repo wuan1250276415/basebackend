@@ -214,19 +214,51 @@ public class DeptController {
 
     /**
      * 批量查询部门（用于 Feign 调用）
+     * 限制：最多支持100个ID，参数长度不超过1000字符
      */
     @GetMapping("/batch")
-    @Operation(summary = "批量查询部门", description = "根据部门ID列表批量查询部门信息")
+    @Operation(summary = "批量查询部门", description = "根据部门ID列表批量查询部门信息（最多100个ID）")
     public Result<List<DeptDTO>> getBatchByIds(@Parameter(description = "部门ID列表（逗号分隔）") @RequestParam String deptIds) {
         log.info("批量查询部门: {}", deptIds);
+        
+        // 输入验证：参数长度限制
+        if (deptIds == null || deptIds.isBlank()) {
+            return Result.error("部门ID列表不能为空");
+        }
+        if (deptIds.length() > 1000) {
+            return Result.error("参数过长，请减少查询数量");
+        }
+        
         try {
             String[] idArray = deptIds.split(",");
+            
+            // 输入验证：ID数量限制
+            if (idArray.length > 100) {
+                return Result.error("批量查询最多支持100个ID");
+            }
+            
             List<Long> ids = new java.util.ArrayList<>();
             for (String id : idArray) {
-                ids.add(Long.parseLong(id.trim()));
+                String trimmedId = id.trim();
+                if (trimmedId.isEmpty()) {
+                    continue;
+                }
+                // 验证ID格式
+                if (!trimmedId.matches("\\d+")) {
+                    return Result.error("ID格式不正确: " + trimmedId);
+                }
+                ids.add(Long.parseLong(trimmedId));
             }
+            
+            if (ids.isEmpty()) {
+                return Result.error("有效的部门ID列表不能为空");
+            }
+            
             List<DeptDTO> depts = deptService.getBatchByIds(ids);
             return Result.success("查询成功", depts);
+        } catch (NumberFormatException e) {
+            log.warn("批量查询部门ID格式错误: {}", deptIds);
+            return Result.error("ID格式不正确，请输入有效的数字ID");
         } catch (Exception e) {
             return handleControllerError("批量查询部门", e);
         }

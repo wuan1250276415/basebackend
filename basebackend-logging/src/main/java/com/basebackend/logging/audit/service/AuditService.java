@@ -9,7 +9,6 @@ import com.basebackend.logging.audit.storage.AuditStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 审计服务核心类
@@ -46,9 +46,14 @@ public class AuditService {
     private final int batchSize;
     private final long flushIntervalMs;
 
-    private volatile String lastHash = null;
+    // P0优化：使用AtomicReference替代volatile+synchronized，提升线程安全性
+    private final AtomicReference<String> lastHash = new AtomicReference<>(null);
     private final AtomicLong totalEntries = new AtomicLong(0);
     private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
+    
+    // P0优化：内存监控相关
+    private final AtomicLong droppedEntries = new AtomicLong(0);
+    private static final double MEMORY_THRESHOLD = 0.85; // 内存使用率阈值
 
     public AuditService(AuditStorage storage,
                         HashChainCalculator hashChainCalculator,
@@ -108,23 +113,21 @@ public class AuditService {
                     .details(details)
                     .build();
 
-            // 计算哈希链
-            synchronized (this) {
-                entry.setPrevHash(lastHash);
-                String entryHash = hashChainCalculator.computeHash(entry, lastHash);
-                entry.setEntryHash(entryHash);
-                lastHash = entryHash;
-            }
+            // P0优化：使用AtomicReference的CAS操作替代synchronized
+            String prevHash;
+            String entryHash;
+            do {
+                prevHash = lastHash.get();
+                entry.setPrevHash(prevHash);
+                entryHash = hashChainCalculator.computeHash(entry, prevHash);
+            } while (!lastHash.compareAndSet(prevHash, entryHash));
+            entry.setEntryHash(entryHash);
 
             // 数字签名
             signatureService.sign(entry);
 
-            // 入队（阻塞式，防止内存溢出）
-            boolean success = queue.offer(entry, 5, TimeUnit.SECONDS);
-            if (!success) {
-                metrics.recordFailure("queue-full");
-                throw new RuntimeException("审计队列已满，操作被拒绝");
-            }
+            // P0优化：增强的队列入队策略，包含内存监控和降级处理
+            boolean success = tryEnqueue(entry);
 
             totalEntries.incrementAndGet();
             metrics.updateQueueSize(queue.size());
@@ -218,7 +221,8 @@ public class AuditService {
                 .queueCapacity(queueCapacity)
                 .percentFull(percentFull)
                 .totalEntries(totalEntries.get())
-                .lastHash(lastHash)
+                .lastHash(lastHash.get())
+                .droppedEntries(droppedEntries.get())
                 .needsFlush(currentSize >= batchSize / 2)
                 .build();
     }
@@ -279,6 +283,99 @@ public class AuditService {
         metrics.updateQueueSize(queue.size());
 
         return batch;
+    }
+    
+    /**
+     * P0优化：增强的入队策略，包含内存监控和降级处理
+     * 
+     * @param entry 审计日志条目
+     * @return 是否成功入队
+     */
+    private boolean tryEnqueue(AuditLogEntry entry) throws InterruptedException {
+        // 检查内存使用率
+        if (isMemoryPressureHigh()) {
+            // 内存压力大时，尝试立即刷盘
+            log.warn("内存压力过高，触发紧急刷盘");
+            flush();
+        }
+        
+        // 检查队列使用率
+        int currentSize = queue.size();
+        int percentFull = (int) ((currentSize * 100L) / queueCapacity);
+        
+        if (percentFull >= 95) {
+            // 队列几乎满了，执行降级策略
+            return handleQueueOverflow(entry, percentFull);
+        }
+        
+        // 正常入队
+        boolean success = queue.offer(entry, 5, TimeUnit.SECONDS);
+        if (!success) {
+            return handleQueueOverflow(entry, 100);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * P0优化：处理队列溢出的降级策略
+     */
+    private boolean handleQueueOverflow(AuditLogEntry entry, int percentFull) {
+        // 策略1：尝试紧急刷盘
+        flush();
+        
+        // 再次尝试入队
+        boolean success = queue.offer(entry);
+        if (success) {
+            log.info("紧急刷盘后成功入队，队列使用率: {}%", percentFull);
+            return true;
+        }
+        
+        // 策略2：根据事件优先级决定是否丢弃
+        if (entry.getEventType() != null && entry.getEventType().isHighRisk()) {
+            // 高风险事件不能丢弃，阻塞等待
+            try {
+                success = queue.offer(entry, 30, TimeUnit.SECONDS);
+                if (!success) {
+                    log.error("高风险审计事件入队超时，事件ID: {}", entry.getId());
+                    metrics.recordFailure("high-risk-queue-timeout");
+                    droppedEntries.incrementAndGet();
+                    return false;
+                }
+                return true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("高风险审计事件入队被中断", e);
+                return false;
+            }
+        }
+        
+        // 策略3：低优先级事件可以丢弃，但记录指标
+        droppedEntries.incrementAndGet();
+        metrics.recordFailure("queue-full-dropped");
+        log.warn("审计队列已满，丢弃低优先级事件，事件ID: {}, 已丢弃总数: {}", 
+                entry.getId(), droppedEntries.get());
+        
+        return false;
+    }
+    
+    /**
+     * P0优化：检查内存压力
+     */
+    private boolean isMemoryPressureHigh() {
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        double memoryUsage = (double) usedMemory / maxMemory;
+        
+        return memoryUsage > MEMORY_THRESHOLD;
+    }
+    
+    /**
+     * P0优化：获取丢弃的条目数
+     */
+    public long getDroppedEntries() {
+        return droppedEntries.get();
     }
 
     /**
@@ -354,6 +451,7 @@ public class AuditService {
         private final int percentFull;
         private final long totalEntries;
         private final String lastHash;
+        private final long droppedEntries;
         private final boolean needsFlush;
 
         private AuditQueueStatus(Builder builder) {
@@ -362,12 +460,22 @@ public class AuditService {
             this.percentFull = builder.percentFull;
             this.totalEntries = builder.totalEntries;
             this.lastHash = builder.lastHash;
+            this.droppedEntries = builder.droppedEntries;
             this.needsFlush = builder.needsFlush;
         }
 
         public static Builder builder() {
             return new Builder();
         }
+        
+        // P0优化：添加getter方法以便外部访问状态
+        public int getCurrentSize() { return currentSize; }
+        public int getQueueCapacity() { return queueCapacity; }
+        public int getPercentFull() { return percentFull; }
+        public long getTotalEntries() { return totalEntries; }
+        public String getLastHash() { return lastHash; }
+        public long getDroppedEntries() { return droppedEntries; }
+        public boolean isNeedsFlush() { return needsFlush; }
 
         public static class Builder {
             private int currentSize;
@@ -375,6 +483,7 @@ public class AuditService {
             private int percentFull;
             private long totalEntries;
             private String lastHash;
+            private long droppedEntries;
             private boolean needsFlush;
 
             public Builder currentSize(int currentSize) {
@@ -401,6 +510,11 @@ public class AuditService {
                 this.lastHash = lastHash;
                 return this;
             }
+            
+            public Builder droppedEntries(long droppedEntries) {
+                this.droppedEntries = droppedEntries;
+                return this;
+            }
 
             public Builder needsFlush(boolean needsFlush) {
                 this.needsFlush = needsFlush;
@@ -415,8 +529,8 @@ public class AuditService {
         @Override
         public String toString() {
             return String.format(
-                "队列状态: %d/%d (%d%%), 总条目: %d, 需要刷盘: %s",
-                currentSize, queueCapacity, percentFull, totalEntries, needsFlush
+                "队列状态: %d/%d (%d%%), 总条目: %d, 丢弃: %d, 需要刷盘: %s",
+                currentSize, queueCapacity, percentFull, totalEntries, droppedEntries, needsFlush
             );
         }
     }

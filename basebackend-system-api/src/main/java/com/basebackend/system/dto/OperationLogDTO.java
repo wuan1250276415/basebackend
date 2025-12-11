@@ -13,7 +13,7 @@ public class OperationLogDTO {
     /**
      * 日志ID
      */
-    private Long id;
+    private String id;
 
     /**
      * 用户ID

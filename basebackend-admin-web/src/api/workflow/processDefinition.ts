@@ -6,7 +6,7 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = '/api/workflow/definitions'
+const BASE_URL = 'basebackend-scheduler/api/camunda/process-definitions'
 
 /**
  * 查询所有流程定义

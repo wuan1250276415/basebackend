@@ -1,5 +1,7 @@
 package com.basebackend.file.controller;
 
+import com.basebackend.common.context.UserContext;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.PageResult;
 import com.basebackend.common.model.Result;
 import com.basebackend.file.entity.FileMetadata;
@@ -63,9 +65,8 @@ public class FileController {
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "folderId", required = false) Long folderId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         FileMetadata metadata = fileManagementService.uploadFile(file, folderId, userId, userName);
         return Result.success("文件上传成功", metadata);
@@ -130,8 +131,7 @@ public class FileController {
      */
     @GetMapping("/download-v2/{fileId}")
     public ResponseEntity<InputStreamResource> downloadFileV2(@PathVariable String fileId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         FileManagementService.FileDownloadInfo downloadInfo =
             fileManagementService.downloadFile(fileId, userId);
@@ -163,9 +163,9 @@ public class FileController {
      */
     @DeleteMapping("/{fileId}")
     public Result<Void> deleteFileV2(@PathVariable String fileId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        UserContext userContext = UserContextHolder.get();
+        String userName = UserContextHolder.getUsername();
 
         fileManagementService.deleteFile(fileId, userId, userName);
         return Result.success("文件已移入回收站", null);
@@ -176,9 +176,8 @@ public class FileController {
      */
     @DeleteMapping("/batch")
     public Result<Void> batchDeleteFiles(@RequestBody List<String> fileIds) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         fileManagementService.batchDeleteFiles(fileIds, userId, userName);
         return Result.success("文件已批量移入回收站", null);
@@ -192,8 +191,7 @@ public class FileController {
         @PathVariable String fileId,
         @RequestParam("newName") String newName
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.renameFile(fileId, newName, userId);
         return Result.success("文件重命名成功", null);
@@ -207,8 +205,7 @@ public class FileController {
         @PathVariable String fileId,
         @RequestParam("targetFolderId") Long targetFolderId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.moveFile(fileId, targetFolderId, userId);
         return Result.success("文件移动成功", null);
@@ -222,9 +219,8 @@ public class FileController {
         @PathVariable String fileId,
         @RequestParam(value = "targetFolderId", required = false) Long targetFolderId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         FileMetadata copy = fileManagementService.copyFile(fileId, targetFolderId, userId, userName);
         return Result.success("文件复制成功", copy);
@@ -247,8 +243,7 @@ public class FileController {
         @PathVariable String fileId,
         @PathVariable Long versionId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         FileManagementService.FileDownloadInfo info =
             fileManagementService.downloadVersion(fileId, versionId, userId);
@@ -271,8 +266,7 @@ public class FileController {
      */
     @PostMapping("/{fileId}/restore")
     public Result<Void> restoreFile(@PathVariable String fileId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.restoreFile(fileId, userId);
         return Result.success("文件恢复成功", null);
@@ -295,8 +289,7 @@ public class FileController {
      */
     @DeleteMapping("/{fileId}/permanent")
     public Result<Void> permanentDeleteFile(@PathVariable String fileId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.permanentDeleteFile(fileId, userId);
         return Result.success("文件已彻底删除", null);
@@ -307,8 +300,7 @@ public class FileController {
      */
     @PostMapping("/restore/batch")
     public Result<Void> batchRestoreFiles(@RequestBody List<String> fileIds) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.batchRestoreFiles(fileIds, userId);
         return Result.success("文件批量恢复成功", null);
@@ -319,8 +311,7 @@ public class FileController {
      */
     @DeleteMapping("/permanent/batch")
     public Result<Void> batchPermanentDelete(@RequestBody List<String> fileIds) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.batchPermanentDelete(fileIds, userId);
         return Result.success("文件批量彻底删除成功", null);
@@ -331,8 +322,7 @@ public class FileController {
      */
     @DeleteMapping("/recycle-bin/empty")
     public Result<Void> emptyRecycleBin() {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.emptyRecycleBin(userId);
         return Result.success("回收站已清空", null);
@@ -347,9 +337,8 @@ public class FileController {
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "description", required = false) String description
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         FileVersion version = fileManagementService.createFileVersion(
             fileId, file, description, userId, userName
@@ -365,8 +354,7 @@ public class FileController {
         @PathVariable String fileId,
         @PathVariable Long versionId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.revertToVersion(fileId, versionId, userId);
         return Result.success("版本回退成功", null);
@@ -389,9 +377,8 @@ public class FileController {
         @PathVariable String fileId,
         @RequestBody @Validated FilePermission permission
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         fileManagementService.addFilePermission(fileId, permission, userId, userName);
         return Result.success("权限添加成功", null);
@@ -405,8 +392,7 @@ public class FileController {
         @PathVariable String fileId,
         @PathVariable Long permissionId
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.deleteFilePermission(fileId, permissionId, userId);
         return Result.success("权限删除成功", null);
@@ -420,8 +406,7 @@ public class FileController {
         @PathVariable String fileId,
         @RequestParam("isPublic") Boolean isPublic
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.setFilePublic(fileId, isPublic, userId);
         return Result.success("文件公开状态已更新", null);
@@ -432,9 +417,8 @@ public class FileController {
      */
     @PostMapping("/share")
     public Result<FileShare> createFileShare(@RequestBody @Validated FileShareRequest request) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         FileShare share = fileManagementService.createFileShare(
             request.getFileId(),
@@ -466,8 +450,7 @@ public class FileController {
      */
     @DeleteMapping("/share/{shareId}")
     public Result<Void> cancelShare(@PathVariable Long shareId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.cancelShare(shareId, userId);
         return Result.success("分享已取消", null);
@@ -481,8 +464,7 @@ public class FileController {
         @RequestParam(value = "current", defaultValue = "1") long current,
         @RequestParam(value = "size", defaultValue = "10") long size
     ) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         PageResult<FileShare> page = fileManagementService.getMyShares(userId, current, size);
         return Result.success(page);
@@ -502,9 +484,8 @@ public class FileController {
      */
     @PostMapping("/tags")
     public Result<FileTag> createTag(@RequestBody @Validated FileTag tag) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         FileTag created = fileManagementService.createTag(tag, userId, userName);
         return Result.success("标签创建成功", created);
@@ -515,9 +496,8 @@ public class FileController {
      */
     @PostMapping("/{fileId}/tags/{tagId}")
     public Result<Void> addFileTag(@PathVariable String fileId, @PathVariable Long tagId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
-        String userName = "admin";
+        Long userId = UserContextHolder.getUserId();
+        String userName = UserContextHolder.getUsername();
 
         fileManagementService.addFileTag(fileId, tagId, userId, userName);
         return Result.success("标签添加成功", null);
@@ -528,8 +508,7 @@ public class FileController {
      */
     @DeleteMapping("/{fileId}/tags/{tagId}")
     public Result<Void> removeFileTag(@PathVariable String fileId, @PathVariable Long tagId) {
-        // TODO: 从SecurityContext获取当前用户信息
-        Long userId = 1L;
+        Long userId = UserContextHolder.getUserId();
 
         fileManagementService.removeFileTag(fileId, tagId, userId);
         return Result.success("标签移除成功", null);

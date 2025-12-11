@@ -106,7 +106,7 @@ public class AlertEngine {
     /**
      * 发送告警通知
      */
-    private void sendNotifications(AlertEvent event) {
+    public void sendNotifications(AlertEvent event) {
         String[] channels = event.getNotifyChannels().split(",");
         boolean anySuccess = false;
 

@@ -55,6 +55,16 @@ public class DatabaseEnhancedProperties {
      * 迁移配置
      */
     private MigrationProperties migration = new MigrationProperties();
+    
+    /**
+     * SQL注入防护配置
+     */
+    private SqlInjectionProperties sqlInjection = new SqlInjectionProperties();
+    
+    /**
+     * Prometheus 监控指标配置
+     */
+    private MetricsProperties metrics = new MetricsProperties();
 
     /**
      * 审计系统配置
@@ -172,7 +182,7 @@ public class DatabaseEnhancedProperties {
         private boolean enabled = false;
 
         /**
-         * 加密算法: AES, SM4
+         * 加密算法: AES, SM4, RSA
          */
         private String algorithm = "AES";
 
@@ -180,6 +190,83 @@ public class DatabaseEnhancedProperties {
          * 密钥
          */
         private String secretKey;
+        
+        /**
+         * 严格模式（加密失败时是否抛出异常）
+         * true: 加密失败时抛出异常，阻止业务操作
+         * false: 加密失败时记录告警，允许业务操作继续（可能以明文存储）
+         */
+        private boolean strictMode = true;
+        
+        /**
+         * 密钥来源: CONFIG, ENV, VAULT
+         * CONFIG: 从配置文件读取（默认，不推荐生产环境使用）
+         * ENV: 从环境变量读取
+         * VAULT: 从外部密钥管理系统读取（如 HashiCorp Vault）
+         */
+        private String keySource = "CONFIG";
+        
+        /**
+         * 环境变量名称（当 keySource=ENV 时使用）
+         */
+        private String keyEnvVariable = "DATABASE_ENCRYPTION_KEY";
+        
+        /**
+         * Vault 配置（当 keySource=VAULT 时使用）
+         */
+        private VaultProperties vault = new VaultProperties();
+        
+        /**
+         * 密钥轮换配置
+         */
+        private KeyRotationProperties keyRotation = new KeyRotationProperties();
+    }
+    
+    /**
+     * Vault 密钥管理配置
+     */
+    @Data
+    public static class VaultProperties {
+        /**
+         * Vault 服务地址
+         */
+        private String address = "http://localhost:8200";
+        
+        /**
+         * Vault 认证令牌
+         */
+        private String token;
+        
+        /**
+         * 密钥路径
+         */
+        private String secretPath = "secret/data/database/encryption";
+        
+        /**
+         * 密钥字段名
+         */
+        private String keyField = "key";
+    }
+    
+    /**
+     * 密钥轮换配置
+     */
+    @Data
+    public static class KeyRotationProperties {
+        /**
+         * 是否启用密钥轮换
+         */
+        private boolean enabled = false;
+        
+        /**
+         * 旧密钥（用于解密旧数据）
+         */
+        private String previousKey;
+        
+        /**
+         * 轮换时间戳（在此时间之前的数据使用旧密钥）
+         */
+        private String rotationTimestamp;
     }
 
     /**
@@ -290,6 +377,73 @@ public class DatabaseEnhancedProperties {
          * 是否启用执行计划分析
          */
         private boolean explainEnabled = false;
+    }
+    
+    /**
+     * SQL注入防护配置
+     */
+    @Data
+    public static class SqlInjectionProperties {
+        /**
+         * 是否启用SQL注入防护
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 白名单SQL模式（正则表达式列表，匹配的SQL跳过检测）
+         */
+        private List<String> whitelistPatterns = new ArrayList<>();
+        
+        /**
+         * 白名单Mapper方法（完整方法ID列表，如 com.example.mapper.UserMapper.customQuery）
+         */
+        private List<String> whitelistMappers = new ArrayList<>();
+        
+        /**
+         * 是否记录被阻止的SQL（用于调试）
+         */
+        private boolean logBlockedSql = true;
+        
+        /**
+         * 是否启用严格模式（检测到注入时抛出异常还是仅记录警告）
+         */
+        private boolean strictMode = true;
+    }
+    
+    /**
+     * Prometheus 监控指标配置
+     */
+    @Data
+    public static class MetricsProperties {
+        /**
+         * 是否启用 Prometheus 指标导出
+         */
+        private boolean enabled = true;
+        
+        /**
+         * 指标前缀
+         */
+        private String prefix = "database_enhanced";
+        
+        /**
+         * 是否导出连接池指标
+         */
+        private boolean connectionPoolMetrics = true;
+        
+        /**
+         * 是否导出审计指标
+         */
+        private boolean auditMetrics = true;
+        
+        /**
+         * 是否导出加密指标
+         */
+        private boolean encryptionMetrics = true;
+        
+        /**
+         * 是否导出SQL统计指标
+         */
+        private boolean sqlStatisticsMetrics = true;
     }
 
     /**

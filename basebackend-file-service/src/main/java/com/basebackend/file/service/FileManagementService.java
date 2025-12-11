@@ -534,10 +534,6 @@ public class FileManagementService {
             new LambdaQueryWrapper<FileTagRelation>()
                 .eq(FileTagRelation::getFileId, fileId)
         );
-        fileShareMapper.delete(
-            new LambdaQueryWrapper<FileShare>()
-                .eq(FileShare::getFileId, fileId)
-        );
         fileRecycleBinMapper.delete(
             new LambdaQueryWrapper<FileRecycleBin>()
                 .eq(FileRecycleBin::getFileId, fileId)

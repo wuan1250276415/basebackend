@@ -1,0 +1,260 @@
+# ========================================
+# Spring Boot Main Application Configuration
+# ========================================
+# 主配置文件,定义应用的核心配置项。
+# 该文件会被Nacos配置中心的配置覆盖(bootstrap.yml中定义的配置优先级更高)。
+#
+# 配置优先级(从高到低):
+# 1. Nacos配置中心(extension-configs)
+# 2. Nacos配置中心(shared-configs)
+# 3. bootstrap.yml
+# 4. application-{profile}.yml
+# 5. application.yml(本文件)
+# ========================================
+
+# ========== 服务器配置 ==========
+server:
+  port: ${SERVER_PORT:8089}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
+    session:
+      timeout: 30m
+  tomcat:
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:200}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:10}
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:10000}
+    connection-timeout: 20s
+    uri-encoding: UTF-8
+
+# ========== Spring核心配置 ==========
+spring:
+  application:
+    name: basebackend-scheduler
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  main:
+    web-application-type: servlet
+    allow-circular-references: ${SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES:true}
+    allow-bean-definition-overriding: ${SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING:true}
+    lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
+
+  # ========== 自动配置排除 ==========
+  autoconfigure:
+    exclude:
+      - com.basebackend.observability.otel.config.OtelAutoConfiguration
+      - com.basebackend.observability.otel.config.BridgeConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.h2.H2ConsoleAutoConfiguration
+
+  # ========== Flyway 配置 ==========
+  # 禁用 Flyway 自动迁移（数据库用户缺少 performance_schema 权限）
+  # 如需启用，请先授权：GRANT SELECT ON performance_schema.* TO 'basebackend_scheduler'@'%';
+  flyway:
+    enabled: false
+
+  # ========== Jackson JSON配置 ==========
+  jackson:
+    time-zone: UTC
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+      INDENT_OUTPUT: ${JACKSON_INDENT_OUTPUT:false}
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+    default-property-inclusion: NON_NULL
+
+  # ========== 数据源配置 (Fallback，优先使用Nacos配置) ==========
+  # 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: ${MYSQL_URL:}
+#    username: ${MYSQL_USERNAME:}
+#    password: ${MYSQL_PASSWORD:}
+#    hikari:
+#      pool-name: scheduler-hikari-pool
+#      minimum-idle: 5
+#      maximum-pool-size: 20
+#      idle-timeout: 600000
+#      max-lifetime: 1800000
+#      connection-timeout: 30000
+
+  # ========== Redis配置 (Fallback，优先使用Nacos配置) ==========
+  # 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
+  data:
+    redis:
+      # Redis 连接信息（使用环境变量）
+      host: ${REDIS_HOST:192.168.66.126}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_TChiFW}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:5000ms}
+
+      # Lettuce 连接池配置
+      lettuce:
+        pool:
+          max-active: ${REDIS_MAX_ACTIVE:20}
+          max-wait: ${REDIS_MAX_WAIT:2000ms}
+          max-idle: ${REDIS_MAX_IDLE:10}
+          min-idle: ${REDIS_MIN_IDLE:5}
+        shutdown-timeout: 100ms
+
+  # ========== Spring Cloud Bootstrap 配置 ==========
+  cloud:
+    bootstrap:
+      enabled: ${SPRING_CLOUD_BOOTSTRAP_ENABLED:true}
+
+# ========== 日志配置 ==========
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.basebackend.scheduler: ${LOGGING_LEVEL_SCHEDULER:INFO}
+    org.camunda.bpm: ${LOGGING_LEVEL_CAMUNDA:WARN}
+    tech.powerjob: ${LOGGING_LEVEL_POWERJOB:INFO}
+    org.springframework: ${LOGGING_LEVEL_SPRING:WARN}
+    com.basebackend.scheduler.mapper: ${LOGGING_LEVEL_MYBATIS:DEBUG}
+    # 抑制 JMX/RMI 调试日志
+    sun.rmi: WARN
+    javax.management.remote.rmi: WARN
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+  file:
+    path: ${LOGGING_FILE_PATH:logs}
+    name: ${LOGGING_FILE_NAME:${logging.file.path}/scheduler.log}
+    max-size: ${LOGGING_FILE_MAX_SIZE:100MB}
+    max-history: ${LOGGING_FILE_MAX_HISTORY:30}
+
+# ========================================
+# Scheduler Module Configuration
+# ========================================
+scheduler:
+  enabled: ${SCHEDULER_ENABLED:true}
+  default-tenant-id: ${SCHEDULER_DEFAULT_TENANT_ID:default}
+  time-zone: ${SCHEDULER_TIME_ZONE:UTC}
+  max-concurrent-workflows: ${SCHEDULER_MAX_CONCURRENT_WORKFLOWS:10}
+  max-dispatch-retries: ${SCHEDULER_MAX_DISPATCH_RETRIES:3}
+  dispatch-retry-backoff-millis: ${SCHEDULER_DISPATCH_RETRY_BACKOFF_MILLIS:500}
+  idempotency-key-ttl-seconds: ${SCHEDULER_IDEMPOTENCY_KEY_TTL_SECONDS:900}
+  page:
+    default-page-no: ${SCHEDULER_PAGE_DEFAULT_PAGE_NO:1}
+    default-page-size: ${SCHEDULER_PAGE_DEFAULT_PAGE_SIZE:20}
+    max-page-size: ${SCHEDULER_PAGE_MAX_PAGE_SIZE:200}
+    min-page-size: ${SCHEDULER_PAGE_MIN_PAGE_SIZE:1}
+    allow-query-all: ${SCHEDULER_PAGE_ALLOW_QUERY_ALL:false}
+  powerjob:
+    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
+    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
+    token: ${POWERJOB_TOKEN:}
+    worker-core-pool-size: ${POWERJOB_WORKER_CORE_POOL_SIZE:4}
+    worker-max-pool-size: ${POWERJOB_WORKER_MAX_POOL_SIZE:8}
+    heartbeat-interval-millis: ${POWERJOB_HEARTBEAT_INTERVAL_MILLIS:5000}
+    max-task-execution-timeout-seconds: ${POWERJOB_MAX_TASK_EXECUTION_TIMEOUT_SECONDS:0}
+  # Scheduler Core Configuration (P1优化：可配置的缓存和线程池)
+  core:
+    # 缓存配置
+    cache:
+      # 工作流定义缓存
+      definition-max-size: ${SCHEDULER_CACHE_DEFINITION_MAX_SIZE:1000}
+      definition-expire-after-access: ${SCHEDULER_CACHE_DEFINITION_TTL:PT1H}
+      # 工作流实例缓存
+      instance-max-size: ${SCHEDULER_CACHE_INSTANCE_MAX_SIZE:10000}
+      instance-expire-after-access: ${SCHEDULER_CACHE_INSTANCE_TTL:PT30M}
+      # 处理器缓存
+      processor-max-size: ${SCHEDULER_CACHE_PROCESSOR_MAX_SIZE:200}
+      processor-expire-after-access: ${SCHEDULER_CACHE_PROCESSOR_TTL:PT1H}
+      # 性能指标缓存
+      metrics-max-size: ${SCHEDULER_CACHE_METRICS_MAX_SIZE:500}
+      metrics-expire-after-access: ${SCHEDULER_CACHE_METRICS_TTL:PT10M}
+    # 线程池配置
+    thread-pool:
+      # 工作流执行器
+      workflow-core-pool-size: ${SCHEDULER_THREAD_WORKFLOW_CORE:8}
+      workflow-max-pool-size: ${SCHEDULER_THREAD_WORKFLOW_MAX:32}
+      workflow-queue-capacity: ${SCHEDULER_THREAD_WORKFLOW_QUEUE:200}
+      # 重试执行器
+      retry-core-pool-size: ${SCHEDULER_THREAD_RETRY_CORE:4}
+      retry-max-pool-size: ${SCHEDULER_THREAD_RETRY_MAX:16}
+      retry-queue-capacity: ${SCHEDULER_THREAD_RETRY_QUEUE:100}
+      # 线程空闲存活时间
+      keep-alive-seconds: ${SCHEDULER_THREAD_KEEP_ALIVE:60}
+    # 断路器配置
+    circuit-breaker:
+      enabled: ${SCHEDULER_CIRCUIT_BREAKER_ENABLED:true}
+      failure-rate-threshold: ${SCHEDULER_CIRCUIT_BREAKER_FAILURE_RATE:50}
+      slow-call-rate-threshold: ${SCHEDULER_CIRCUIT_BREAKER_SLOW_CALL_RATE:80}
+      slow-call-duration-threshold: ${SCHEDULER_CIRCUIT_BREAKER_SLOW_CALL_DURATION:PT5S}
+      sliding-window-size: ${SCHEDULER_CIRCUIT_BREAKER_WINDOW_SIZE:100}
+      minimum-number-of-calls: ${SCHEDULER_CIRCUIT_BREAKER_MIN_CALLS:10}
+      wait-duration-in-open-state: ${SCHEDULER_CIRCUIT_BREAKER_WAIT_DURATION:PT30S}
+      permitted-number-of-calls-in-half-open-state: ${SCHEDULER_CIRCUIT_BREAKER_HALF_OPEN_CALLS:5}
+
+# ========================================
+# RocketMQ 配置
+# ========================================
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:192.168.66.126:9876}
+  producer:
+    group: ${ROCKETMQ_PRODUCER_GROUP:scheduler-producer-group}
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+    retry-times-when-send-async-failed: 2
+
+# ========================================
+# PowerJob Worker 官方配置
+# ========================================
+# 注意：启用 PowerJob Worker 前，需要先在 PowerJob 控制台注册应用
+# 访问 http://192.168.66.126:7700 注册应用名称：basebackend-scheduler
+powerjob:
+  worker:
+    enabled: false
+    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
+    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
+    protocol: HTTP
+    port: 27777
+    store-strategy: DISK
+    max-lightweight-task-num: 1024
+    max-heavy-weight-task-num: 64
+    health-report-interval: 10
+
+# ========================================
+# Redisson 配置 (Fallback，优先使用Nacos配置)
+# ========================================
+# 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
+redisson:
+  # 单机模式配置
+  single-server-config:
+    # Redis 服务器地址
+    address: redis://192.168.66.126:6379
+    # 数据库索引
+    database: 0
+    # 密码
+    password: redis_TChiFW
+    # 连接超时时间
+    connect-timeout: 3000
+    # 命令执行超时时间
+    timeout: 3000
+    # 连接池大小
+    connection-pool-size: 64
+    # 最小空闲连接数
+    connection-minimum-idle-size: 10
+
+
+# ========================================
+# Management & Actuator Configuration
+# ========================================
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
+  health:
+    show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
+  prometheus:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED:true}

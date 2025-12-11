@@ -1,8 +1,100 @@
-# API网关配置
+# ========================================
+# BaseBackend Gateway 配置
+# ========================================
+
 server:
   port: 8080
+
+# ========================================
+# 网关安全配置
+# ========================================
+gateway:
+  security:
+    # Redis 操作超时时间
+    redis-timeout: 2s
+    
+    # 是否启用严格模式（未配置的路径都需要认证）
+    strict-mode: true
+    
+    # 是否记录认证详细日志（生产环境建议关闭）
+    debug-logging: ${GATEWAY_DEBUG_LOGGING:false}
+    
+    # 认证白名单路径（支持 Ant 风格路径匹配）
+    whitelist:
+      # 用户认证相关
+      - /basebackend-user-api/api/user/auth/**
+      # Swagger 文档（user-api）
+      - /basebackend-user-api/swagger-ui/**
+      - /basebackend-user-api/v3/api-docs/**
+      - /basebackend-user-api/doc.html
+      - /basebackend-user-api/webjars/**
+      - /basebackend-user-api/favicon.ico
+      # System API 公开接口
+      - /basebackend-system-api/api/system/depts/tree
+      - /basebackend-system-api/api/system/depts/by-name
+      - /basebackend-system-api/api/system/depts/by-code
+      - /basebackend-system-api/api/system/depts/batch
+      - /basebackend-system-api/api/system/depts/by-parent
+      - /basebackend-system-api/api/system/application/enabled
+      - /basebackend-system-api/api/system/application/code/**
+      - /basebackend-system-api/api/system/notifications/stream
+      - /basebackend-system-api/api/dicts/**
+      # Swagger 文档（system-api）
+      - /basebackend-system-api/swagger-ui/**
+      - /basebackend-system-api/v3/api-docs/**
+      - /basebackend-system-api/doc.html
+      - /basebackend-system-api/webjars/**
+      # stream
+      - /basebackend-notification-service/api/notifications/stream
+    # Actuator 端点白名单（安全限制，只开放必要端点）
+    # 注意：不要开放 /actuator/** 通配符，会暴露敏感信息
+    actuator-whitelist:
+      - /actuator/health
+      - /actuator/health/**
+      - /actuator/info
+    signature: # 是否启用签名验证
+          enabled: ${GATEWAY_SIGNATURE_ENABLED:false}
+          # 签名密钥（生产环境从密钥管理服务获取）
+          secret-key: ${GATEWAY_SIGNATURE_SECRET:your-secret-key-here}
+          # 时间戳有效期（毫秒）
+          timestamp-validity: ${GATEWAY_SIGNATURE_VALIDITY:300000}
+          # 需要签名验证的路径
+          paths:
+            - /api/payment/**
+            - /api/orders/**
+          # 签名验证白名单
+          whitelist:
+            - /api/payment/callback/**
+  idempotency: # 是否启用幂等性检查
+      enabled: ${GATEWAY_IDEMPOTENCY_ENABLED:false}
+      # 幂等性键有效期（秒）
+      ttl: ${GATEWAY_IDEMPOTENCY_TTL:300}
+      # 需要幂等性检查的路径
+      paths:
+        - /api/orders/create
+        - /api/payment/**
+  monitor: # 慢请求阈值（毫秒）
+      slow-request-threshold: ${GATEWAY_SLOW_REQUEST_THRESHOLD:1000}
+      # 超慢请求阈值（毫秒）
+      very-slow-request-threshold: ${GATEWAY_VERY_SLOW_REQUEST_THRESHOLD:3000}
+      # 是否启用慢请求详细日志
+      slow-request-log-enabled: ${GATEWAY_SLOW_REQUEST_LOG:true}
+
+# ========================================
+# Seata 分布式事务配置
+# ========================================
 seata:
-  # ============================================================================
-  # 基础配置
-  # ============================================================================
   enabled: false  # 临时禁用 Seata，需要时改为 true 并启动 Seata Server
+
+# ========================================
+# 请求签名验证配置
+# ========================================
+
+# ========================================
+# 日志配置
+# ========================================
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:WARN}
+    com.basebackend.gateway: ${LOGGING_LEVEL_GATEWAY:INFO}
+    org.springframework.cloud.gateway: ${LOGGING_LEVEL_SPRING_GATEWAY:WARN}

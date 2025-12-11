@@ -2,6 +2,7 @@ package com.basebackend.file.service;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
+import com.basebackend.common.enums.ErrorCode;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.file.config.FileProperties;
 import lombok.RequiredArgsConstructor;

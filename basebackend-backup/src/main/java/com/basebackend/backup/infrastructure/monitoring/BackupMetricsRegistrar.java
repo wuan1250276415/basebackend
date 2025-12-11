@@ -5,8 +5,8 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -17,18 +17,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 备份系统指标注册器
- * 收集和暴露备份系统的关键指标
+ * <p>
+ * 收集和暴露备份系统的关键指标，包括：
+ * <ul>
+ *   <li>备份/恢复操作计数</li>
+ *   <li>成功/失败率统计</li>
+ *   <li>操作耗时分布</li>
+ *   <li>活跃任务数量</li>
+ *   <li>存储使用量</li>
+ *   <li>重试统计</li>
+ * </ul>
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "backup.metrics.enabled", havingValue = "true")
 public class BackupMetricsRegistrar {
 
-    @Autowired
-    private MeterRegistry meterRegistry;
-
-    @Autowired
-    private BackupProperties backupProperties;
+    private final MeterRegistry meterRegistry;
+    private final BackupProperties backupProperties;
 
     // 计数器
     private Counter backupTotalCounter;

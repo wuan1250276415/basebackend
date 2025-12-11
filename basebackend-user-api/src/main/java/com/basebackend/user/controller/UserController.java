@@ -8,6 +8,7 @@ import com.basebackend.user.service.UserService;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
+import com.basebackend.security.annotation.RequiresPermission;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -142,10 +143,12 @@ public class UserController {
 
     /**
      * 重置密码
+     * 需要管理员权限才能重置他人密码
      */
     @PutMapping("/{id}/reset-password")
-    @Operation(summary = "重置密码", description = "重置用户密码")
+    @Operation(summary = "重置密码", description = "重置用户密码（需要管理员权限）")
     @OperationLog(operation="重置密码", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:user:resetPassword")
     public Result<String> resetPassword(
             @Parameter(description = "用户ID") @PathVariable Long id,
             @Parameter(description = "新密码") @RequestParam String newPassword) {
@@ -371,6 +374,23 @@ public class UserController {
             return Result.success("查询成功", users);
         } catch (Exception e) {
             log.error("根据部门ID查询用户失败: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有活跃用户ID列表（用于群发通知等场景）
+     */
+    @GetMapping("/active-ids")
+    @Operation(summary = "获取所有活跃用户ID", description = "获取所有状态为启用的用户ID列表，用于群发通知等场景")
+    @OperationLog(operation="获取所有活跃用户ID", businessType = BusinessType.SELECT)
+    public Result<List<Long>> getAllActiveUserIds() {
+        log.info("获取所有活跃用户ID列表");
+        try {
+            List<Long> userIds = userService.getAllActiveUserIds();
+            return Result.success("查询成功", userIds);
+        } catch (Exception e) {
+            log.error("获取活跃用户ID列表失败: {}", e.getMessage());
             return Result.error(e.getMessage());
         }
     }

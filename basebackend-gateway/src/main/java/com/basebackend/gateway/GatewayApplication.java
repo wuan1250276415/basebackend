@@ -11,14 +11,20 @@ import org.springframework.context.annotation.Import;
 
 /**
  * 网关启动类
+ * <p>
+ * 注意：Gateway 使用 Spring WebFlux（反应式），需要排除所有 Servlet 相关的自动配置。
+ * </p>
  */
-@SpringBootApplication(
-        exclude = {
-                DispatcherServletAutoConfiguration.class,
-                WebMvcAutoConfiguration.class,
-                ErrorMvcAutoConfiguration.class
-        }
-)
+@SpringBootApplication(scanBasePackages = { "com.basebackend.gateway" }, exclude = {
+        DispatcherServletAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
+        ErrorMvcAutoConfiguration.class
+},
+        // 排除 common-starter 中的 Servlet 相关自动配置
+        excludeName = {
+                "com.basebackend.common.starter.CommonAutoConfiguration",
+                "com.basebackend.common.starter.config.UserContextAutoConfiguration"
+        })
 @Import(GatewayComponentScanConfig.class)
 @EnableDiscoveryClient
 public class GatewayApplication {

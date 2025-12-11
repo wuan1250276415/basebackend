@@ -3,7 +3,7 @@
 # ========================================
 feature-toggle:
   # 是否启用特性开关
-  enabled: false
+  enabled: true
 
   # 提供商类型：UNLEASH, FLAGSMITH, BOTH
   provider: UNLEASH

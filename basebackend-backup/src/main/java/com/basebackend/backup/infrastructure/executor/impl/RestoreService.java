@@ -5,8 +5,8 @@ import com.basebackend.backup.domain.entity.RestoreRecord;
 import com.basebackend.backup.domain.mapper.BackupHistoryMapper;
 import com.basebackend.backup.domain.mapper.RestoreRecordMapper;
 import com.basebackend.backup.infrastructure.executor.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,23 +14,25 @@ import java.util.List;
 
 /**
  * PITR（时间点恢复）服务
- * 负责执行数据库的点到时间恢复操作
+ * <p>
+ * 负责执行数据库的点到时间恢复操作，支持：
+ * <ul>
+ *   <li>恢复到指定时间点</li>
+ *   <li>恢复到指定备份</li>
+ *   <li>增量链恢复</li>
+ * </ul>
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RestoreService {
 
-    @Autowired
-    private BackupHistoryMapper backupHistoryMapper;
-
-    @Autowired
-    private RestoreRecordMapper restoreRecordMapper;
-
-    @Autowired
-    private IncrementalChainManager incrementalChainManager;
-
-    @Autowired
-    private MySqlBackupExecutor mysqlBackupExecutor;
+    private final BackupHistoryMapper backupHistoryMapper;
+    private final RestoreRecordMapper restoreRecordMapper;
+    private final IncrementalChainManager incrementalChainManager;
+    private final MySqlBackupExecutor mysqlBackupExecutor;
 
     /**
      * 执行PITR恢复

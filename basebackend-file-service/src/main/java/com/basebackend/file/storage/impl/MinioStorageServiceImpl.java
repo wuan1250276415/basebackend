@@ -3,10 +3,12 @@ package com.basebackend.file.storage.impl;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.file.config.MinioProperties;
 import com.basebackend.file.storage.StorageService;
+import com.basebackend.file.storage.StorageServiceRegistry;
 import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,6 +33,16 @@ public class MinioStorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
     private final MinioProperties minioProperties;
+    private final StorageServiceRegistry storageServiceRegistry;
+
+    /**
+     * 初始化时自动注册到存储服务注册中心
+     */
+    @PostConstruct
+    public void init() {
+        storageServiceRegistry.registerService(StorageType.MINIO, this);
+        log.info("MinIO存储服务已注册到存储服务注册中心");
+    }
 
     @Override
     public String upload(InputStream inputStream, String path, String contentType, long size) {
@@ -40,13 +52,12 @@ public class MinioStorageServiceImpl implements StorageService {
 
             // 上传文件
             minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .object(path)
-                    .stream(inputStream, size, -1)
-                    .contentType(contentType)
-                    .build()
-            );
+                    PutObjectArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .object(path)
+                            .stream(inputStream, size, -1)
+                            .contentType(contentType)
+                            .build());
 
             log.info("MinIO存储：文件上传成功 bucket={}, path={}", minioProperties.getBucketName(), path);
             return getUrl(path);
@@ -60,11 +71,10 @@ public class MinioStorageServiceImpl implements StorageService {
     public InputStream download(String path) {
         try {
             return minioClient.getObject(
-                GetObjectArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .object(path)
-                    .build()
-            );
+                    GetObjectArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .object(path)
+                            .build());
         } catch (Exception e) {
             log.error("MinIO存储：文件下载失败 path={}", path, e);
             throw new BusinessException("文件下载失败: " + e.getMessage());
@@ -75,11 +85,10 @@ public class MinioStorageServiceImpl implements StorageService {
     public void delete(String path) {
         try {
             minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .object(path)
-                    .build()
-            );
+                    RemoveObjectArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .object(path)
+                            .build());
             log.info("MinIO存储：文件删除成功 path={}", path);
         } catch (Exception e) {
             log.error("MinIO存储：文件删除失败 path={}", path, e);
@@ -91,17 +100,15 @@ public class MinioStorageServiceImpl implements StorageService {
     public void copy(String sourcePath, String targetPath) {
         try {
             minioClient.copyObject(
-                CopyObjectArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .object(targetPath)
-                    .source(
-                        CopySource.builder()
+                    CopyObjectArgs.builder()
                             .bucket(minioProperties.getBucketName())
-                            .object(sourcePath)
-                            .build()
-                    )
-                    .build()
-            );
+                            .object(targetPath)
+                            .source(
+                                    CopySource.builder()
+                                            .bucket(minioProperties.getBucketName())
+                                            .object(sourcePath)
+                                            .build())
+                            .build());
             log.info("MinIO存储：文件复制成功 from={} to={}", sourcePath, targetPath);
         } catch (Exception e) {
             log.error("MinIO存储：文件复制失败 from={} to={}", sourcePath, targetPath, e);
@@ -120,11 +127,10 @@ public class MinioStorageServiceImpl implements StorageService {
     public boolean exists(String path) {
         try {
             minioClient.statObject(
-                StatObjectArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .object(path)
-                    .build()
-            );
+                    StatObjectArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .object(path)
+                            .build());
             return true;
         } catch (Exception e) {
             return false;
@@ -140,13 +146,12 @@ public class MinioStorageServiceImpl implements StorageService {
     public String getPresignedUrl(String path, int expireTime) {
         try {
             return minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(minioProperties.getBucketName())
-                    .object(path)
-                    .expiry(expireTime, TimeUnit.SECONDS)
-                    .build()
-            );
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(minioProperties.getBucketName())
+                            .object(path)
+                            .expiry(expireTime, TimeUnit.SECONDS)
+                            .build());
         } catch (Exception e) {
             log.error("MinIO存储：获取签名URL失败 path={}", path, e);
             throw new BusinessException("获取签名URL失败: " + e.getMessage());
@@ -158,12 +163,11 @@ public class MinioStorageServiceImpl implements StorageService {
         List<String> files = new ArrayList<>();
         try {
             Iterable<Result<Item>> results = minioClient.listObjects(
-                ListObjectsArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .prefix(prefix)
-                    .recursive(true)
-                    .build()
-            );
+                    ListObjectsArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .prefix(prefix)
+                            .recursive(true)
+                            .build());
 
             for (Result<Item> result : results) {
                 Item item = result.get();
@@ -189,17 +193,15 @@ public class MinioStorageServiceImpl implements StorageService {
     private void ensureBucketExists() {
         try {
             boolean found = minioClient.bucketExists(
-                BucketExistsArgs.builder()
-                    .bucket(minioProperties.getBucketName())
-                    .build()
-            );
+                    BucketExistsArgs.builder()
+                            .bucket(minioProperties.getBucketName())
+                            .build());
 
             if (!found) {
                 minioClient.makeBucket(
-                    MakeBucketArgs.builder()
-                        .bucket(minioProperties.getBucketName())
-                        .build()
-                );
+                        MakeBucketArgs.builder()
+                                .bucket(minioProperties.getBucketName())
+                                .build());
                 log.info("MinIO存储：创建bucket成功 bucket={}", minioProperties.getBucketName());
             }
         } catch (Exception e) {

@@ -1,6 +1,5 @@
 package com.basebackend.database.security.interceptor;
 
-import com.basebackend.security.annotation.DataScope;
 import com.basebackend.security.context.DataScopeContextHolder;
 import com.basebackend.security.enums.DataScopeType;
 import lombok.extern.slf4j.Slf4j;
@@ -14,31 +13,58 @@ import org.apache.ibatis.reflection.SystemMetaObject;
 import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
 
 import java.sql.Connection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 数据权限拦截器
+ * <p>
+ * 智能检测表结构，只对配置了部门字段的表应用数据权限过滤。
+ * 未在白名单中的表不会被添加任何数据权限过滤条件。
  *
  * @author Claude Code (浮浮酱)
  * @since 2025-11-26
  */
 @Slf4j
 @Intercepts({
-        @Signature(type = StatementHandler.class, method = "prepare", args = {Connection.class, Integer.class})
+        @Signature(type = StatementHandler.class, method = "prepare", args = { Connection.class, Integer.class })
 })
 public class DataScopeInterceptor implements Interceptor {
 
     /**
-     * 部门ID字段名映射
+     * 需要进行数据权限过滤的表（这些表有dept_id字段）
+     * 只有在此集合中的表才会被添加数据权限过滤条件
      */
-    private static final Map<String, String> DEPT_COLUMN_MAP = new HashMap<>();
+    private static final Set<String> DEPT_SCOPED_TABLES = new HashSet<>();
+
+    /**
+     * 需要进行创建者过滤的表（这些表有create_by字段）
+     */
+    private static final Set<String> CREATOR_SCOPED_TABLES = new HashSet<>();
+
+    /**
+     * 用于从SQL中提取表名的正则表达式
+     */
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile(
+            "(?i)\\bFROM\\s+([`\\[\"']?\\w+[`\\]\"']?)(?:\\s+(?:AS\\s+)?\\w+)?",
+            Pattern.CASE_INSENSITIVE);
 
     static {
-        // 常见部门字段名映射
-        DEPT_COLUMN_MAP.put("sys_user", "dept_id");
-        DEPT_COLUMN_MAP.put("sys_dept", "id");
-        DEPT_COLUMN_MAP.put("sys_role", "dept_id");
+        // ==================== 配置需要数据权限过滤的表 ====================
+        // 只有这些表会被添加 dept_id 相关的过滤条件
+        // 如果新表需要数据权限，在这里添加表名
+
+        // 系统核心表（有dept_id字段）
+        DEPT_SCOPED_TABLES.add("sys_user");
+        // 如有其他表有dept_id字段，在此添加
+        // DEPT_SCOPED_TABLES.add("other_table");
+
+        // ==================== 配置需要创建者过滤的表 ====================
+        // 这些表会被添加 create_by 相关的过滤条件（用于SELF权限类型）
+        CREATOR_SCOPED_TABLES.add("sys_user");
+        // 可根据实际业务添加更多表
     }
 
     @Override
@@ -70,12 +96,29 @@ public class DataScopeInterceptor implements Interceptor {
         BoundSql boundSql = statementHandler.getBoundSql();
         String originalSql = boundSql.getSql();
 
+        // 从SQL中提取表名
+        String tableName = extractTableName(originalSql);
+        if (tableName == null) {
+            log.debug("无法从SQL中提取表名，跳过数据权限过滤");
+            return invocation.proceed();
+        }
+
+        // 检查该表是否需要数据权限过滤
+        DataScopeType dataScopeType = DataScopeContextHolder.getDataScopeType();
+        boolean needDeptFilter = needsDeptScopeFilter(tableName, dataScopeType);
+        boolean needCreatorFilter = needsCreatorScopeFilter(tableName, dataScopeType);
+
+        if (!needDeptFilter && !needCreatorFilter) {
+            log.debug("表 {} 不需要数据权限过滤，跳过", tableName);
+            return invocation.proceed();
+        }
+
         log.debug("原始SQL: {}", originalSql);
 
         try {
             // 生成数据权限过滤 SQL
-            String filteredSql = addDataScopeFilter(originalSql, mappedStatement, boundSql);
-            if (filteredSql != null) {
+            String filteredSql = addDataScopeFilter(originalSql, needDeptFilter, needCreatorFilter);
+            if (filteredSql != null && !filteredSql.equals(originalSql)) {
                 // 重写 SQL
                 if (metaObject.hasGetter("delegate.boundSql.sql")) {
                     metaObject.setValue("delegate.boundSql.sql", filteredSql);
@@ -93,21 +136,53 @@ public class DataScopeInterceptor implements Interceptor {
     }
 
     /**
-     * 添加数据权限过滤条件（在ORDER BY/LIMIT之前插入）
+     * 从SQL中提取主表名
      */
-    private String addDataScopeFilter(String sql, MappedStatement mappedStatement, BoundSql boundSql) {
-        // 获取数据权限类型
+    private String extractTableName(String sql) {
+        Matcher matcher = TABLE_NAME_PATTERN.matcher(sql);
+        if (matcher.find()) {
+            String tableName = matcher.group(1);
+            // 移除可能的引号
+            return tableName.replaceAll("[`\\[\\]\"']", "").toLowerCase();
+        }
+        return null;
+    }
+
+    /**
+     * 检查表是否需要部门数据权限过滤
+     */
+    private boolean needsDeptScopeFilter(String tableName, DataScopeType dataScopeType) {
+        if (dataScopeType == DataScopeType.ALL || dataScopeType == DataScopeType.SELF) {
+            return false;
+        }
+        return DEPT_SCOPED_TABLES.contains(tableName.toLowerCase());
+    }
+
+    /**
+     * 检查表是否需要创建者数据权限过滤
+     */
+    private boolean needsCreatorScopeFilter(String tableName, DataScopeType dataScopeType) {
+        if (dataScopeType != DataScopeType.SELF) {
+            return false;
+        }
+        return CREATOR_SCOPED_TABLES.contains(tableName.toLowerCase());
+    }
+
+    /**
+     * 添加数据权限过滤条件
+     */
+    private String addDataScopeFilter(String sql, boolean needDeptFilter, boolean needCreatorFilter) {
         DataScopeType dataScopeType = DataScopeContextHolder.getDataScopeType();
         Long userId = DataScopeContextHolder.getUserId();
         Long deptId = DataScopeContextHolder.getDeptId();
 
         if (dataScopeType == DataScopeType.ALL) {
-            // 全部数据权限，不需要过滤
             return sql;
         }
 
-        // 根据数据权限类型生成过滤条件
-        String whereCondition = generateWhereConditionWithParams(dataScopeType, userId, deptId, boundSql);
+        // 生成过滤条件
+        String whereCondition = generateWhereCondition(dataScopeType, userId, deptId, needDeptFilter,
+                needCreatorFilter);
         if (whereCondition == null) {
             return sql;
         }
@@ -121,13 +196,11 @@ public class DataScopeInterceptor implements Interceptor {
         StringBuilder filteredSql = new StringBuilder();
 
         if (hasWhere) {
-            // 已有 WHERE 子句，追加 AND 条件
             filteredSql.append(sql, 0, insertPos)
                     .append(" AND ")
                     .append(whereCondition)
                     .append(sql.substring(insertPos));
         } else {
-            // 没有 WHERE 子句，添加 WHERE 子句
             filteredSql.append(sql, 0, insertPos)
                     .append(" WHERE ")
                     .append(whereCondition)
@@ -138,12 +211,10 @@ public class DataScopeInterceptor implements Interceptor {
     }
 
     /**
-     * 查找SQL中WHERE条件的插入位置（在ORDER BY、LIMIT等之前）
+     * 查找SQL中WHERE条件的插入位置
      */
     private int findInsertPosition(String sql) {
-        // 查找最后一个WHERE、ORDER BY、LIMIT、OFFSET、GROUP BY、HAVING的位置
         int[] keywords = {
-                findKeyword(sql, " where "),
                 findKeyword(sql, " order by "),
                 findKeyword(sql, " limit "),
                 findKeyword(sql, " offset "),
@@ -165,47 +236,43 @@ public class DataScopeInterceptor implements Interceptor {
      * 在SQL中查找关键字（不区分大小写）
      */
     private int findKeyword(String sql, String keyword) {
-        String lowerSql = sql.toLowerCase();
-        String lowerKeyword = keyword.toLowerCase();
-        return lowerSql.indexOf(lowerKeyword);
+        return sql.toLowerCase().indexOf(keyword.toLowerCase());
     }
 
     /**
-     * 根据数据权限类型生成 WHERE 条件（安全的参数处理）
+     * 根据数据权限类型生成 WHERE 条件
      */
-    private String generateWhereConditionWithParams(DataScopeType dataScopeType, Long userId, Long deptId, BoundSql boundSql) {
+    private String generateWhereCondition(DataScopeType dataScopeType, Long userId, Long deptId,
+            boolean needDeptFilter, boolean needCreatorFilter) {
         switch (dataScopeType) {
             case ALL:
-                return null; // 不需要过滤
+                return null;
 
             case DEPT:
-                // 本部门数据 - 直接使用参数值（已验证为Long类型）
-                if (deptId != null) {
-                    // 严格验证参数类型，防止注入
+                if (needDeptFilter && deptId != null) {
                     validateLongValue(deptId, "deptId");
                     return "dept_id = " + deptId;
                 }
-                return "1=0"; // 无法确定部门时返回空
+                return null; // 表没有dept_id字段，不添加过滤条件
 
             case DEPT_AND_CHILD:
-                // 本部门及下级部门数据
-                if (deptId != null) {
+                if (needDeptFilter && deptId != null) {
                     validateLongValue(deptId, "deptId");
-                    return "(dept_id = " + deptId + " OR dept_id IN (SELECT id FROM sys_dept WHERE parent_id = " + deptId + "))";
+                    return "(dept_id = " + deptId + " OR dept_id IN (SELECT id FROM sys_dept WHERE parent_id = "
+                            + deptId + "))";
                 }
-                return "1=0";
+                return null;
 
             case SELF:
-                // 仅本人数据
-                if (userId != null) {
+                if (needCreatorFilter && userId != null) {
                     validateLongValue(userId, "userId");
-                    return "(user_id = " + userId + " OR create_by = " + userId + ")";
+                    return "(create_by = " + userId + ")";
                 }
-                return "1=0";
+                return null;
 
             case CUSTOM:
                 // 自定义数据权限，由调用方处理
-                return "1=1";
+                return null;
 
             default:
                 return null;
@@ -219,7 +286,6 @@ public class DataScopeInterceptor implements Interceptor {
         if (value == null || value < 0) {
             throw new IllegalArgumentException("无效的" + paramName + "值: " + value);
         }
-        // Long类型的值天然安全，不会导致SQL注入
     }
 
     @Override
@@ -230,5 +296,23 @@ public class DataScopeInterceptor implements Interceptor {
     @Override
     public void setProperties(java.util.Properties properties) {
         // 可以从配置文件读取属性
+    }
+
+    /**
+     * 动态添加需要数据权限过滤的表
+     * 可在应用启动时调用此方法配置
+     *
+     * @param tableName   表名
+     * @param hasDeptId   是否有dept_id字段
+     * @param hasCreateBy 是否有create_by字段
+     */
+    public static void registerTable(String tableName, boolean hasDeptId, boolean hasCreateBy) {
+        if (hasDeptId) {
+            DEPT_SCOPED_TABLES.add(tableName.toLowerCase());
+        }
+        if (hasCreateBy) {
+            CREATOR_SCOPED_TABLES.add(tableName.toLowerCase());
+        }
+        log.info("注册数据权限表: {} (dept_id={}, create_by={})", tableName, hasDeptId, hasCreateBy);
     }
 }

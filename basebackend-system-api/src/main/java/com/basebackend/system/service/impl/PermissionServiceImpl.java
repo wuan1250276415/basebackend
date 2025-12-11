@@ -5,6 +5,7 @@ import com.basebackend.system.dto.PermissionDTO;
 import com.basebackend.system.entity.SysPermission;
 import com.basebackend.system.mapper.SysPermissionMapper;
 import com.basebackend.system.service.PermissionService;
+import com.basebackend.system.util.AuditHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class PermissionServiceImpl implements PermissionService {
 
     private final SysPermissionMapper permissionMapper;
+    private final AuditHelper auditHelper;
 
     @Override
     public List<PermissionDTO> getPermissionList() {
@@ -65,10 +67,14 @@ public class PermissionServiceImpl implements PermissionService {
         // 创建权限
         SysPermission permission = new SysPermission();
         BeanUtil.copyProperties(permissionDTO, permission);
-        permission.setCreateTime(LocalDateTime.now());
-        permission.setUpdateTime(LocalDateTime.now());
-        permission.setCreateBy(1L); // 临时硬编码
-        permission.setUpdateBy(1L); // 临时硬编码
+        
+        // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
+        Long currentUserId = auditHelper.getCurrentUserId();
+        LocalDateTime now = auditHelper.getCurrentTime();
+        permission.setCreateTime(now);
+        permission.setUpdateTime(now);
+        permission.setCreateBy(currentUserId);
+        permission.setUpdateBy(currentUserId);
 
         permissionMapper.insert(permission);
 
@@ -92,8 +98,10 @@ public class PermissionServiceImpl implements PermissionService {
 
         // 更新权限信息
         BeanUtil.copyProperties(permissionDTO, permission);
-        permission.setUpdateTime(LocalDateTime.now());
-        permission.setUpdateBy(1L); // 临时硬编码
+        
+        // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
+        permission.setUpdateTime(auditHelper.getCurrentTime());
+        permission.setUpdateBy(auditHelper.getCurrentUserId());
 
         permissionMapper.updateById(permission);
 

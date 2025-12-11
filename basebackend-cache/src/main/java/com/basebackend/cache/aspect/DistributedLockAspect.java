@@ -132,11 +132,14 @@ public class DistributedLockAspect {
             // 创建 SpEL 上下文
             EvaluationContext context = new StandardEvaluationContext();
 
-            // 获取方法参数名
-            String[] parameterNames = signature(method);
-            for (int i = 0; i < parameterNames.length; i++) {
-                context.setVariable(parameterNames[i], args[i]);
+            // 设置方法参数（使用参数索引）
+            for (int i = 0; i < args.length; i++) {
+                context.setVariable("arg" + i, args[i]);
             }
+
+            // 设置参数数组（兼容各种SpEL表达式）
+            context.setVariable("args", args);
+            context.setVariable("params", args);
 
             // 解析表达式
             Expression expression = parser.parseExpression(keyExpression);
@@ -148,17 +151,4 @@ public class DistributedLockAspect {
         }
     }
 
-    /**
-     * 获取方法参数名
-     */
-    private String[] signature(Method method) {
-        // 简化实现：使用参数索引作为名称
-        // 在实际应用中，可以使用 Spring 的 ParameterNameDiscoverer
-        int paramCount = method.getParameterCount();
-        String[] names = new String[paramCount];
-        for (int i = 0; i < paramCount; i++) {
-            names[i] = "arg" + i;
-        }
-        return names;
-    }
 }

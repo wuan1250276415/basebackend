@@ -82,7 +82,7 @@
         <!-- 基础模块依赖 -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common</artifactId>
+            <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -159,11 +159,11 @@
         </dependency>
 
         <!-- Feature Toggle -->
-<!--        <dependency>-->
-<!--            <groupId>com.basebackend</groupId>-->
-<!--            <artifactId>basebackend-feature-toggle</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-feature-toggle</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- MyBatis Plus -->
         <dependency>

@@ -37,6 +37,30 @@ public class FeatureToggleProperties {
      */
     private FlagsmithConfig flagsmith = new FlagsmithConfig();
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public ProviderType getProvider() {
+        return provider;
+    }
+
+    public ProviderType getPrimaryProvider() {
+        return primaryProvider;
+    }
+
+    public UnleashConfig getUnleash() {
+        return unleash;
+    }
+
+    public FlagsmithConfig getFlagsmith() {
+        return flagsmith;
+    }
+
+    public CacheConfig getCache() {
+        return new CacheConfig();
+    }
+
     @Data
     public static class UnleashConfig {
         /**
@@ -83,6 +107,42 @@ public class FeatureToggleProperties {
          * 启动时是否同步
          */
         private boolean synchronousFetchOnInitialisation = true;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String getApiToken() {
+            return apiToken;
+        }
+
+        public String getAppName() {
+            return appName;
+        }
+
+        public String getInstanceId() {
+            return instanceId;
+        }
+
+        public String getEnvironment() {
+            return environment;
+        }
+
+        public String getProjectName() {
+            return projectName;
+        }
+
+        public long getFetchTogglesInterval() {
+            return fetchTogglesInterval;
+        }
+
+        public long getSendMetricsInterval() {
+            return sendMetricsInterval;
+        }
+
+        public boolean isSynchronousFetchOnInitialisation() {
+            return synchronousFetchOnInitialisation;
+        }
     }
 
     @Data
@@ -121,6 +181,77 @@ public class FeatureToggleProperties {
          * 环境刷新间隔（秒）
          */
         private int environmentRefreshIntervalSeconds = 60;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public int getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public int getWriteTimeout() {
+            return writeTimeout;
+        }
+
+        public int getReadTimeout() {
+            return readTimeout;
+        }
+
+        public boolean isEnableLocalEvaluation() {
+            return enableLocalEvaluation;
+        }
+
+        public int getEnvironmentRefreshIntervalSeconds() {
+            return environmentRefreshIntervalSeconds;
+        }
+    }
+
+    /**
+     * 缓存配置
+     */
+    @Data
+    public static class CacheConfig {
+        /**
+         * 是否启用缓存
+         */
+        private boolean enabled = true;
+
+        /**
+         * 最大缓存大小
+         */
+        private long maxSize = 10000L;
+
+        /**
+         * 写入后过期时间（秒）
+         */
+        private long expireAfterWrite = 300L;
+
+        /**
+         * 访问后过期时间（秒）
+         */
+        private long expireAfterAccess = 600L;
+
+        // 手动添加 getter 以解决 Lombok 注解处理问题
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public long getMaxSize() {
+            return maxSize;
+        }
+
+        public long getExpireAfterWrite() {
+            return expireAfterWrite;
+        }
+
+        public long getExpireAfterAccess() {
+            return expireAfterAccess;
+        }
     }
 
     /**

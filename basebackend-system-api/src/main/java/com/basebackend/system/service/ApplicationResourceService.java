@@ -82,4 +82,28 @@ public interface ApplicationResourceService {
      * @return 资源树
      */
     List<ApplicationResourceDTO> getUserResourceTreeByUserId(Long userId);
+
+    /**
+     * 获取所有资源树（不限应用ID）
+     *
+     * @return 资源树
+     */
+    List<ApplicationResourceDTO> getAllResourceTree();
+
+    /**
+     * 获取所有资源列表（扁平化）
+     *
+     * @return 资源列表
+     */
+    List<ApplicationResourceDTO> getAllResourceList();
+
+    /**
+     * 检查资源名称是否唯一
+     *
+     * @param resourceName 资源名称
+     * @param parentId     父资源ID
+     * @param resourceId   资源ID（更新时排除自身）
+     * @return true-唯一，false-不唯一
+     */
+    boolean checkResourceNameUnique(String resourceName, Long parentId, Long resourceId);
 }

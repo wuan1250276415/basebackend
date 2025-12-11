@@ -1,8 +1,6 @@
 package com.basebackend.cache.integration;
 
 import com.basebackend.cache.config.CacheAutoConfiguration;
-import com.basebackend.cache.config.CacheProperties;
-import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -85,7 +85,7 @@ public class BackupProperties {
     /**
      * 是否启用增量备份
      */
-    private boolean incrementalBackupEnabled = true;
+    private boolean incrementalBackupEnabled = false;
 
     @Data
     public static class DistributedLock {
@@ -209,12 +209,12 @@ public class BackupProperties {
 
         @Data
         public static class MultiReplica {
-            private boolean enabled = true;
+            private boolean enabled = false;
             private List<Replica> replicas = new ArrayList<>();
 
             public MultiReplica() {
                 replicas.add(new Replica("local", 1, true));
-                replicas.add(new Replica("s3", 2, true));
+                replicas.add(new Replica("s3", 2, false));
             }
 
             @Data

@@ -44,7 +44,7 @@ import java.util.List;
 public class TenantInterceptor implements InnerInterceptor {
     
     private final DatabaseEnhancedProperties properties;
-    
+
     @Override
     public void beforeQuery(Executor executor, MappedStatement ms, Object parameter,
                            RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {

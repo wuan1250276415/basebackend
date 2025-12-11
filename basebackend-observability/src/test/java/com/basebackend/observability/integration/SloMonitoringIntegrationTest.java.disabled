@@ -1,0 +1,208 @@
+package com.basebackend.observability.integration;
+
+import com.basebackend.observability.slo.annotation.SloMonitored;
+import com.basebackend.observability.slo.model.ErrorBudget;
+import com.basebackend.observability.slo.model.SLO;
+import com.basebackend.observability.slo.model.SloType;
+import com.basebackend.observability.slo.registry.SloRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
+import static org.awaitility.Awaitility.await;
+
+/**
+ * SLO 监控集成测试
+ * 验证 SLO 监控系统能正确捕获方法调用的指标。
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@DisplayName("SLO 监控集成测试")
+class SloMonitoringIntegrationTest {
+
+    private static final String SERVICE = "test-service";
+    private static final String AVAILABILITY_SLO = "test-availability";
+
+    @Autowired
+    private SloRegistry sloRegistry;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Autowired
+    private TestService testService;
+
+    @TestConfiguration
+    @EnableAspectJAutoProxy
+    static class TestConfig {
+
+        @Bean
+        public TestService testService() {
+            return new TestService();
+        }
+    }
+
+    /**
+     * 测试服务（使用 @SloMonitored 注解）
+     */
+    static class TestService {
+
+        @SloMonitored(sloName = AVAILABILITY_SLO, service = SERVICE)
+        public String successOperation() {
+            return "success";
+        }
+
+        @SloMonitored(sloName = AVAILABILITY_SLO, service = SERVICE)
+        public String failureOperation() {
+            throw new RuntimeException("Simulated failure");
+        }
+
+        @SloMonitored(sloName = "test-latency", service = SERVICE)
+        public String slowOperation() throws InterruptedException {
+            Thread.sleep(100);
+            return "slow";
+        }
+    }
+
+    @Test
+    @DisplayName("成功请求应更新可用性 SLO 指标")
+    void shouldUpdateAvailabilitySloOnSuccess() {
+        registerAvailabilitySlo("TestService.successOperation");
+
+        String result = testService.successOperation();
+        assertThat(result).isEqualTo("success");
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            Counter total = meterRegistry.find("sli_requests_total")
+                    .tags("service", SERVICE, "method", "TestService.successOperation", "slo", AVAILABILITY_SLO, "outcome", "total")
+                    .counter();
+            Counter success = meterRegistry.find("sli_requests_total")
+                    .tags("service", SERVICE, "method", "TestService.successOperation", "slo", AVAILABILITY_SLO, "outcome", "success")
+                    .counter();
+
+            assertThat(total).isNotNull();
+            assertThat(success).isNotNull();
+            assertThat(total.count()).isGreaterThanOrEqualTo(1d);
+            assertThat(success.count()).isEqualTo(total.count());
+
+            double availability = sloRegistry.calculateSli(AVAILABILITY_SLO, SERVICE, "TestService.successOperation");
+            assertThat(availability).isGreaterThanOrEqualTo(1.0d);
+        });
+    }
+
+    @Test
+    @DisplayName("失败请求应降低可用性 SLO")
+    void shouldDecrementAvailabilitySloOnFailure() {
+        registerAvailabilitySlo("TestService.failureOperation");
+
+        assertThatThrownBy(testService::failureOperation)
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Simulated failure");
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            Counter total = meterRegistry.find("sli_requests_total")
+                    .tags("service", SERVICE, "method", "TestService.failureOperation", "slo", AVAILABILITY_SLO, "outcome", "total")
+                    .counter();
+            Counter error = meterRegistry.find("sli_requests_total")
+                    .tags("service", SERVICE, "method", "TestService.failureOperation", "slo", AVAILABILITY_SLO, "outcome", "error")
+                    .counter();
+
+            assertThat(total).isNotNull();
+            assertThat(error).isNotNull();
+            assertThat(total.count()).isGreaterThanOrEqualTo(1d);
+            assertThat(error.count()).isGreaterThanOrEqualTo(1d);
+
+            double availability = sloRegistry.calculateSli(AVAILABILITY_SLO, SERVICE, "TestService.failureOperation");
+            assertThat(availability).isLessThan(1.0d);
+        });
+    }
+
+    @Test
+    @DisplayName("慢请求应被延迟 SLO 捕获")
+    void shouldCaptureSlowRequestsInLatencySlo() throws InterruptedException {
+        registerLatencySlo();
+
+        String result = testService.slowOperation();
+        assertThat(result).isEqualTo("slow");
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            Timer timer = meterRegistry.find("sli_latency")
+                    .tags("service", SERVICE, "method", "TestService.slowOperation", "slo", "test-latency")
+                    .timer();
+
+            assertThat(timer).isNotNull();
+            assertThat(timer.count()).isGreaterThanOrEqualTo(1L);
+        });
+    }
+
+    @Test
+    @DisplayName("SLO 注册表应正确加载配置的 SLO")
+    void shouldLoadConfiguredSlos() {
+        assertThat(sloRegistry.count()).isGreaterThanOrEqualTo(1);
+        assertThat(sloRegistry.getAll())
+                .as("SLO registry should contain loaded definitions")
+                .isNotEmpty();
+        assertThat(sloRegistry.exists(AVAILABILITY_SLO)).isTrue();
+    }
+
+    @Test
+    @DisplayName("错误预算计算应正确")
+    void shouldCalculateErrorBudgetCorrectly() {
+        SLO slo = new SLO();
+        slo.setName("test-error-budget");
+        slo.setType(SloType.AVAILABILITY);
+        slo.setTarget(0.99); // 99% 可用性
+        slo.setWindow(Duration.ofHours(1));
+        slo.setService(SERVICE);
+        slo.setMethod("ErrorBudgetService.test");
+        slo.setBurnRateWindows(List.of(Duration.ofMinutes(5)));
+
+        sloRegistry.register(slo);
+
+        ErrorBudget budget = sloRegistry.updateErrorBudget("test-error-budget", 1000, 5);
+
+        assertThat(budget).isNotNull();
+        assertThat(budget.getTotalBudget()).isCloseTo(10d, within(0.0001d));
+        assertThat(budget.getConsumedBudget()).isCloseTo(5d, within(0.0001d));
+        assertThat(budget.getRemainingBudget()).isCloseTo(5d, within(0.0001d));
+        assertThat(budget.getBurnRate(Duration.ofMinutes(5))).isGreaterThan(0d);
+    }
+
+    private void registerAvailabilitySlo(String methodName) {
+        SLO slo = new SLO();
+        slo.setName(AVAILABILITY_SLO);
+        slo.setType(SloType.AVAILABILITY);
+        slo.setTarget(0.99);
+        slo.setWindow(Duration.ofHours(1));
+        slo.setService(SERVICE);
+        slo.setMethod(methodName);
+        sloRegistry.register(slo);
+    }
+
+    private void registerLatencySlo() {
+        SLO slo = new SLO();
+        slo.setName("test-latency");
+        slo.setType(SloType.LATENCY);
+        slo.setTarget(200d);
+        slo.setPercentile(0.95);
+        slo.setWindow(Duration.ofMinutes(1));
+        slo.setService(SERVICE);
+        slo.setMethod("TestService.slowOperation");
+        sloRegistry.register(slo);
+    }
+}

@@ -6,8 +6,10 @@ import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.Tracer;
 import com.alibaba.csp.sentinel.context.ContextUtil;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.basebackend.common.enums.CommonErrorCode;
+import com.basebackend.common.util.IpUtil;
+import com.basebackend.common.web.ResponseResult;
 import com.basebackend.web.annotation.RateLimit;
-import com.basebackend.web.util.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +46,8 @@ public class RateLimitAspect {
         }
     }
 
-    private Object handleQpsLimit(ProceedingJoinPoint joinPoint, String resourceName, RateLimit rateLimit) throws Throwable {
+    private Object handleQpsLimit(ProceedingJoinPoint joinPoint, String resourceName, RateLimit rateLimit)
+            throws Throwable {
         Entry entry = null;
         try {
             // 进入 Sentinel 限流规则检查
@@ -70,7 +73,8 @@ public class RateLimitAspect {
         }
     }
 
-    private Object handleThreadLimit(ProceedingJoinPoint joinPoint, String resourceName, RateLimit rateLimit) throws Throwable {
+    private Object handleThreadLimit(ProceedingJoinPoint joinPoint, String resourceName, RateLimit rateLimit)
+            throws Throwable {
         Entry entry = null;
         try {
             ContextUtil.enter(resourceName, getOrigin());
@@ -112,35 +116,15 @@ public class RateLimitAspect {
         return origin;
     }
 
-    private Object handleBlockException(String message) {
-        // 返回限流或熔断的响应
-        return new ApiResponse<>(500, message, null);
-    }
-
     /**
-     * API 响应封装
+     * 处理限流阻断异常
+     * 使用统一的 ResponseResult 响应格式和 CommonErrorCode 错误码
+     *
+     * @param message 限流提示消息
+     * @return 统一格式的限流响应
      */
-    public static class ApiResponse<T> {
-        private final int code;
-        private final String message;
-        private final T data;
-
-        public ApiResponse(int code, String message, T data) {
-            this.code = code;
-            this.message = message;
-            this.data = data;
-        }
-
-        public int getCode() {
-            return code;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public T getData() {
-            return data;
-        }
+    private Object handleBlockException(String message) {
+        // 使用统一的响应类和错误码
+        return ResponseResult.error(CommonErrorCode.TOO_MANY_REQUESTS, message);
     }
 }

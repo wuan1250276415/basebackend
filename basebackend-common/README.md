@@ -88,7 +88,7 @@ public class DataService {
 
 ## 📖 详细文档
 
-- **[迁移指南](./MIGRATION_GUIDE.md)** - 从旧版本迁移到新架构
+- **[迁移指南](docs/MIGRATION_GUIDE.md)** - 从旧版本迁移到新架构
 - **[子模块文档](./basebackend-common-core/README.md)** - 各子模块详细说明
 - **[最佳实践](./BEST_PRACTICES.md)** - 使用建议和代码规范
 

@@ -66,14 +66,31 @@ public class ZeroTrustPolicyEngine {
         this.auditEnabled = auditEnabled;
     }
 
+    // Getter methods for health indicator
+    public boolean isEnforceMode() {
+        return enforceMode;
+    }
+
+    public boolean isAuditEnabled() {
+        return auditEnabled;
+    }
+
+    public boolean isPolicyCacheEnabled() {
+        return policyCacheEnabled;
+    }
+
+    public int getTrustScoreThreshold() {
+        return trustScoreThreshold;
+    }
+
     public ZeroTrustDecision evaluateAccess(String userId, String resource) {
         log.debug("评估访问请求 - User: {}, Resource: {}", userId, resource);
 
         ZeroTrustDecision decision = ZeroTrustDecision.builder()
-            .userId(userId)
-            .resource(resource)
-            .timestamp(java.time.Instant.now())
-            .build();
+                .userId(userId)
+                .resource(resource)
+                .timestamp(java.time.Instant.now())
+                .build();
 
         return decision;
     }

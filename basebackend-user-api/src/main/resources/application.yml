@@ -4,7 +4,9 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   main:
-    allow-circular-references: true
+    # 已通过@Lazy注解和ObjectProvider解决循环依赖，不再需要此配置
+    # allow-circular-references: true
+    # Bean覆盖仅在必要时启用，用于覆盖自动配置的Bean
     allow-bean-definition-overriding: true
   autoconfigure:
     exclude:

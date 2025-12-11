@@ -2,6 +2,8 @@ package com.basebackend.observability.alert;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.Search;
+import lombok.Builder;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,7 +34,13 @@ public class AlertEvaluator {
         }
 
         try {
-            switch (rule.getRuleType()) {
+            // 检查规则类型是否为null
+            AlertRule.AlertRuleType ruleType = rule.getRuleType();
+            if (ruleType == null) {
+                return EvaluationResult.notTriggered("未知规则类型");
+            }
+
+            switch (ruleType) {
                 case THRESHOLD:
                     return evaluateThresholdRule(rule);
                 case LOG:
@@ -188,6 +196,8 @@ public class AlertEvaluator {
     /**
      * 评估结果
      */
+    @Data
+    @Builder
     public static class EvaluationResult {
         private final boolean triggered;
         private final String currentValue;
@@ -215,26 +225,6 @@ public class AlertEvaluator {
 
         public static EvaluationResult error(String message) {
             return new EvaluationResult(false, null, null, message, null);
-        }
-
-        public boolean isTriggered() {
-            return triggered;
-        }
-
-        public String getCurrentValue() {
-            return currentValue;
-        }
-
-        public String getThresholdValue() {
-            return thresholdValue;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public Map<String, Object> getMetadata() {
-            return metadata;
         }
     }
 }

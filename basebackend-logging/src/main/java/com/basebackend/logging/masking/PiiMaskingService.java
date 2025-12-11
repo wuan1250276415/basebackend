@@ -3,6 +3,7 @@ package com.basebackend.logging.masking;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -12,9 +13,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,10 +26,27 @@ import java.util.regex.Pattern;
  * 4. 嵌套对象支持：支持JSON对象的深度脱敏
  * 5. 线程安全：所有操作都是线程安全的
  *
+ * P0优化：
+ * - 使用ThreadLocal优化MessageDigest，避免重复创建
+ * - 细化异常处理，添加详细错误日志
+ * - 增强线程安全性
+ *
  * @author basebackend team
  * @since 2025-11-22
  */
+@Slf4j
 public class PiiMaskingService {
+    
+    /**
+     * P0优化：使用ThreadLocal复用MessageDigest，提升性能
+     */
+    private static final ThreadLocal<MessageDigest> SHA256_DIGEST = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256算法不可用", e);
+        }
+    });
 
     /**
      * 最大缓冲区大小（防止超大日志导致内存问题）
@@ -83,6 +98,8 @@ public class PiiMaskingService {
 
     /**
      * 脱敏对象（支持字符串和POJO）
+     * 
+     * P0优化：细化异常处理，添加详细错误日志
      */
     public Object mask(Object input) {
         if (!properties.isEnabled() || input == null) {
@@ -98,11 +115,36 @@ public class PiiMaskingService {
             Object result = changed ? mapper.convertValue(node, input.getClass()) : input;
             metrics.record(System.nanoTime() - start, changed);
             return result;
+        } catch (IllegalArgumentException e) {
+            // P0优化：JSON转换参数错误
+            log.warn("对象脱敏时JSON转换参数错误，类型: {}, 错误: {}", 
+                    input.getClass().getSimpleName(), e.getMessage());
+            return fallbackToStringMasking(input, start);
+        } catch (ClassCastException e) {
+            // P0优化：类型转换错误
+            log.warn("对象脱敏时类型转换失败，类型: {}, 错误: {}", 
+                    input.getClass().getSimpleName(), e.getMessage());
+            return fallbackToStringMasking(input, start);
         } catch (Exception e) {
-            // 对象转换失败时，回退到字符串脱敏
+            // P0优化：其他未知错误，记录详细日志
+            log.error("对象脱敏时发生未知错误，类型: {}, 错误类型: {}, 错误: {}", 
+                    input.getClass().getSimpleName(), e.getClass().getSimpleName(), e.getMessage());
+            return fallbackToStringMasking(input, start);
+        }
+    }
+    
+    /**
+     * P0优化：回退到字符串脱敏的辅助方法
+     */
+    private Object fallbackToStringMasking(Object input, long startTime) {
+        try {
             String masked = mask(String.valueOf(input));
-            metrics.record(System.nanoTime() - start, true);
+            metrics.record(System.nanoTime() - startTime, true);
             return masked;
+        } catch (Exception fallbackError) {
+            log.error("回退字符串脱敏也失败: {}", fallbackError.getMessage());
+            metrics.record(System.nanoTime() - startTime, false);
+            return "[MASKING_ERROR]";
         }
     }
 
@@ -235,17 +277,21 @@ public class PiiMaskingService {
 
     /**
      * 计算SHA-256哈希值
+     * 
+     * P0优化：使用ThreadLocal复用MessageDigest，提升性能
      */
     private String sha256(String value) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = SHA256_DIGEST.get();
+            digest.reset(); // 重置以便复用
             byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(hash.length * 2);
             for (byte b : hash) {
                 sb.append(String.format(Locale.ROOT, "%02x", b));
             }
             return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
+            log.warn("SHA-256哈希计算失败: {}", e.getMessage());
             return "***";
         }
     }

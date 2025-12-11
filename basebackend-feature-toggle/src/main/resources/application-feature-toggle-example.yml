@@ -1,0 +1,110 @@
+# 特性开关配置示例
+# 此文件展示了如何配置特性开关的各种功能
+
+basebackend:
+  feature-toggle:
+    # 启用特性开关模块
+    enabled: true
+
+    # 选择提供商：UNLEASH, FLAGSMITH, BOTH
+    provider: UNLEASH
+    primary-provider: UNLEASH
+
+    # Unleash配置
+    unleash:
+      url: http://localhost:4242/api
+      api-token: your-unleash-api-token
+      app-name: basebackend-app
+      instance-id: basebackend-instance-1
+      environment: development
+      project-name: basebackend-project
+      fetch-toggles-interval: 10
+      send-metrics-interval: 60
+      synchronous-fetch-on-initialisation: true
+
+    # Flagsmith配置
+    flagsmith:
+      url: https://edge.api.flagsmith.com/api/v1/
+      api-key: your-flagsmith-api-key
+      connect-timeout: 2000
+      write-timeout: 5000
+      read-timeout: 5000
+      enable-local-evaluation: false
+      environment-refresh-interval-seconds: 60
+
+    # 缓存配置
+    cache:
+      enabled: true
+      max-size: 10000
+      expire-after-write: 300  # 5分钟
+      expire-after-access: 600  # 10分钟
+
+    # Nacos配置（动态配置管理）
+    nacos:
+      enabled: false  # 启用Nacos配置
+      server-addr: localhost:8848
+      namespace: public
+      group-id: DEFAULT_GROUP
+      data-id: feature-toggles-${spring.profiles.active}.properties
+      timeout-ms: 5000
+      enable-cache: true
+      cache-refresh-interval-ms: 60000
+      encoding: UTF-8
+      enable-listening: true
+
+# Actuator配置 - 用于暴露监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: feature-toggles,prometheus,health,info
+      base-path: /actuator
+
+  endpoint:
+    feature-toggles:
+      enabled: true
+      cache:
+        time-to-live: 10s
+
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+
+# 监控配置
+info:
+  app:
+    name: basebackend-feature-toggle
+    description: 特性开关服务
+    version: '@project.version@'
+
+# 日志配置
+logging:
+  level:
+    com.basebackend.featuretoggle: DEBUG
+    io.micrometer: DEBUG
+
+# 示例：Prometheus Grafana仪表盘配置
+# 可以将以下内容导入Grafana作为监控面板：
+
+# 查询1: 特性开关总调用次数
+# rate(feature_toggle_total_calls[5m])
+
+# 查询2: 特性开关启用率
+# rate(feature_toggle_enabled_calls[5m]) / rate(feature_toggle_total_calls[5m])
+
+# 查询3: 缓存命中率
+# rate(feature_toggle_cache_hits[5m]) / (rate(feature_toggle_cache_hits[5m]) + rate(feature_toggle_cache_misses[5m]))
+
+# 查询4: 响应时间
+# histogram_quantile(0.95, rate(feature_toggle_response_time_bucket[5m]))
+
+# 查询5: 按特性分组的调用次数
+# rate(feature_toggle_feature_calls[5m]) by {feature}
+
+# 查询6: 异常率
+# rate(feature_toggle_exceptions[5m]) / rate(feature_toggle_total_calls[5m])
+
+# 查询7: AB测试分组分布
+# rate(feature_toggle_ab_test_groups[5m]) by {feature, group}

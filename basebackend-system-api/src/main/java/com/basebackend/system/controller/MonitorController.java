@@ -5,6 +5,7 @@ import com.basebackend.system.dto.OnlineUserDTO;
 import com.basebackend.system.dto.ServerInfoDTO;
 import com.basebackend.system.service.MonitorService;
 import com.basebackend.common.model.Result;
+import com.basebackend.security.annotation.RequiresPermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ public class MonitorController {
      */
     @GetMapping("/online")
     @Operation(summary = "获取在线用户", description = "获取在线用户列表")
+//    @RequiresPermission("system:monitor:online")
     public Result<List<OnlineUserDTO>> getOnlineUsers() {
         log.info("获取在线用户列表");
         try {
@@ -49,6 +51,7 @@ public class MonitorController {
      */
     @DeleteMapping("/online/{token}")
     @Operation(summary = "强制下线用户", description = "强制下线指定用户")
+//    @RequiresPermission("system:monitor:forceLogout")
     public Result<String> forceLogout(@Parameter(description = "用户Token") @PathVariable String token) {
         log.info("强制下线用户: {}", token);
         try {
@@ -65,6 +68,7 @@ public class MonitorController {
      */
     @GetMapping("/server")
     @Operation(summary = "获取服务器信息", description = "获取服务器详细信息")
+//    @RequiresPermission("system:monitor:server")
     public Result<ServerInfoDTO> getServerInfo() {
         log.info("获取服务器信息");
         try {
@@ -81,6 +85,7 @@ public class MonitorController {
      */
     @GetMapping("/cache")
     @Operation(summary = "获取缓存信息", description = "获取缓存详细信息")
+//    @RequiresPermission("system:monitor:cache")
     public Result<List<CacheInfoDTO>> getCacheInfo() {
         log.info("获取缓存信息");
         try {
@@ -97,6 +102,7 @@ public class MonitorController {
      */
     @DeleteMapping("/cache/{cacheName}")
     @Operation(summary = "清空指定缓存", description = "清空指定名称的缓存")
+//    @RequiresPermission("system:monitor:cacheClean")
     public Result<String> clearCache(@Parameter(description = "缓存名称") @PathVariable String cacheName) {
         log.info("清空指定缓存: {}", cacheName);
         try {
@@ -113,6 +119,7 @@ public class MonitorController {
      */
     @DeleteMapping("/cache")
     @Operation(summary = "清空所有缓存", description = "清空所有缓存")
+//    @RequiresPermission("system:monitor:cacheClean")
     public Result<String> clearAllCache() {
         log.info("清空所有缓存");
         try {
@@ -129,6 +136,7 @@ public class MonitorController {
      */
     @GetMapping("/stats")
     @Operation(summary = "获取系统统计信息", description = "获取系统统计信息")
+//    @RequiresPermission("system:monitor:stats")
     public Result<Object> getSystemStats() {
         log.info("获取系统统计信息");
         try {

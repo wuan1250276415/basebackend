@@ -84,6 +84,12 @@ public class UserFeignFallbackFactory implements FallbackFactory<UserFeignClient
                 log.error("[Feign降级] 检查手机号唯一性失败: phone={}, error={}", phone, cause.getMessage(), cause);
                 return Result.success("用户服务暂时不可用，建议稍后重试", false);
             }
+
+            @Override
+            public Result<List<Long>> getAllActiveUserIds() {
+                log.error("[Feign降级] 获取所有活跃用户ID失败: error={}", cause.getMessage(), cause);
+                return Result.success("用户服务暂时不可用，返回空列表", Collections.emptyList());
+            }
         };
     }
 }

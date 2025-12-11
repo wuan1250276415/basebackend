@@ -3,22 +3,26 @@ package com.basebackend.backup.infrastructure.reliability.impl;
 import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.infrastructure.reliability.RecoveryCallback;
 import com.basebackend.backup.infrastructure.reliability.RetryCallback;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeoutException;
 
 /**
  * 重试模板
- * 实现指数退避重试机制
+ * <p>
+ * 实现指数退避重试机制，用于处理备份过程中的临时性失败。
+ * 支持自定义最大重试次数、初始延迟、退避倍数和最大延迟。
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RetryTemplate {
 
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupProperties backupProperties;
 
     /**
      * 执行重试操作

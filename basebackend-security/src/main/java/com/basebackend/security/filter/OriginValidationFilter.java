@@ -1,35 +1,58 @@
 package com.basebackend.security.filter;
 
 import com.basebackend.security.config.SecurityBaselineProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 对敏感操作强制校验 Origin / Referer，防御 CSRF
  */
 @Slf4j
-@RequiredArgsConstructor
 public class OriginValidationFilter extends OncePerRequestFilter {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Set<HttpMethod> SAFE_METHODS = Set.of(
+            HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS);
+    private static final String FORBIDDEN_MESSAGE;
+
+    static {
+        String serialized;
+        try {
+            serialized = OBJECT_MAPPER.writeValueAsString(new ErrorBody());
+        } catch (JsonProcessingException e) {
+            serialized = "{\"code\":403,\"message\":\"Invalid request origin\"}";
+        }
+        FORBIDDEN_MESSAGE = serialized;
+    }
 
     private final SecurityBaselineProperties properties;
+    private final Set<String> normalizedAllowedOrigins;
+
+    public OriginValidationFilter(SecurityBaselineProperties properties) {
+        this.properties = properties;
+        this.normalizedAllowedOrigins = normalizeAllowedOrigins(properties.getAllowedOrigins());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -39,21 +62,20 @@ public class OriginValidationFilter extends OncePerRequestFilter {
             return;
         }
 
-        List<String> allowedOrigins = properties.getAllowedOrigins();
-        if (CollectionUtils.isEmpty(allowedOrigins)) {
+        if (CollectionUtils.isEmpty(normalizedAllowedOrigins)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String origin = request.getHeader("Origin");
-        if (isAllowedOrigin(origin, allowedOrigins)) {
+        if (isAllowedOrigin(origin)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         if (properties.isEnforceReferer()) {
             String referer = request.getHeader("Referer");
-            if (isAllowedOrigin(referer, allowedOrigins)) {
+            if (isAllowedOrigin(referer)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -65,28 +87,38 @@ public class OriginValidationFilter extends OncePerRequestFilter {
     }
 
     private boolean requiresValidation(HttpServletRequest request) {
-        HttpMethod method = HttpMethod.valueOf(request.getMethod());
-        if (method == null) {
+        try {
+            HttpMethod method = HttpMethod.valueOf(request.getMethod());
+            return !SAFE_METHODS.contains(method)
+                    && request.getHeader("Cookie") != null;
+        } catch (IllegalArgumentException e) {
+            // 无效的HTTP方法
             return false;
         }
-        return !(HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method) || HttpMethod.OPTIONS.equals(method))
-                && request.getHeader("Cookie") != null;
     }
 
-    private boolean isAllowedOrigin(String candidate, List<String> allowedOrigins) {
-        if (candidate == null) {
+    private boolean isAllowedOrigin(String candidate) {
+        if (!StringUtils.hasText(candidate)) {
             return false;
         }
         try {
             URI uri = new URI(candidate);
             String normalized = normalize(uri);
-            return allowedOrigins.stream()
-                    .map(this::normalize)
-                    .anyMatch(allowed -> allowed.equals(normalized));
+            return normalizedAllowedOrigins.contains(normalized);
         } catch (URISyntaxException e) {
             log.debug("Invalid origin header detected: {}", candidate, e);
             return false;
         }
+    }
+
+    private Set<String> normalizeAllowedOrigins(List<String> allowedOrigins) {
+        if (CollectionUtils.isEmpty(allowedOrigins)) {
+            return Collections.emptySet();
+        }
+        return allowedOrigins.stream()
+                .filter(StringUtils::hasText)
+                .map(this::normalize)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private String normalize(String origin) {
@@ -111,7 +143,7 @@ public class OriginValidationFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(OBJECT_MAPPER.writeValueAsString(new ErrorBody()));
+        response.getWriter().write(FORBIDDEN_MESSAGE);
     }
 
     private static class ErrorBody {

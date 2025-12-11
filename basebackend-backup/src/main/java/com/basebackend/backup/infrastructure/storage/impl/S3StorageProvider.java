@@ -7,9 +7,6 @@ import com.basebackend.backup.infrastructure.storage.StorageUsage;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -42,12 +39,13 @@ import java.util.Map;
  * 支持AWS S3、阿里云OSS、腾讯云COS、MinIO等S3协议存储
  */
 @Slf4j
-@Component
-@ConditionalOnProperty(name = "backup.storage.s3.enabled", havingValue = "true")
 public class S3StorageProvider implements StorageProvider {
 
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupProperties backupProperties;
+
+    public S3StorageProvider(BackupProperties backupProperties) {
+        this.backupProperties = backupProperties;
+    }
 
     private S3Client s3Client;
 

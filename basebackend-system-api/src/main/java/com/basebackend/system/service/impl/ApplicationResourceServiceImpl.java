@@ -38,10 +38,9 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
         if (appId == null) {
             // 查询所有资源
             resources = resourceMapper.selectList(
-                new LambdaQueryWrapper<SysApplicationResource>()
-                    .eq(SysApplicationResource::getDeleted, 0)
-                    .orderByAsc(SysApplicationResource::getOrderNum)
-            );
+                    new LambdaQueryWrapper<SysApplicationResource>()
+                            .eq(SysApplicationResource::getDeleted, 0)
+                            .orderByAsc(SysApplicationResource::getOrderNum));
         } else {
             // 查询指定应用的资源
             resources = resourceMapper.selectResourceTree(appId);
@@ -149,11 +148,11 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
                 try {
                     Result<String> result = sysRoleResourceFeignClient.assignMenus(roleId, menuIds);
                     if (result == null || result.getCode() != 200) {
-                        log.warn("通过Feign分配角色菜单失败: roleId={}, menuIds={}, message={}", 
+                        log.warn("通过Feign分配角色菜单失败: roleId={}, menuIds={}, message={}",
                                 roleId, menuIds, result != null ? result.getMessage() : "null");
                     }
                 } catch (Exception e) {
-                    log.error("通过Feign分配角色菜单异常: roleId={}, menuIds={}, error={}", 
+                    log.error("通过Feign分配角色菜单异常: roleId={}, menuIds={}, error={}",
                             roleId, menuIds, e.getMessage(), e);
                     // 不抛出异常，允许资源分配继续
                 }
@@ -174,11 +173,10 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
         if (isAdmin) {
             log.info("用户[{}]拥有admin角色，返回所有资源", userId);
             List<SysApplicationResource> allResources = resourceMapper.selectList(
-                new LambdaQueryWrapper<SysApplicationResource>()
-                    .eq(SysApplicationResource::getDeleted, 0)
-                    .eq(SysApplicationResource::getStatus, 1)
-                    .orderByAsc(SysApplicationResource::getOrderNum)
-            );
+                    new LambdaQueryWrapper<SysApplicationResource>()
+                            .eq(SysApplicationResource::getDeleted, 0)
+                            .eq(SysApplicationResource::getStatus, 1)
+                            .orderByAsc(SysApplicationResource::getOrderNum));
             return buildTree(allResources);
         }
 
@@ -196,12 +194,11 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
 
         // 查询所有资源用于查找父节点
         List<SysApplicationResource> allResources = resourceMapper.selectList(
-            new LambdaQueryWrapper<SysApplicationResource>()
-                .eq(SysApplicationResource::getDeleted, 0)
-        );
+                new LambdaQueryWrapper<SysApplicationResource>()
+                        .eq(SysApplicationResource::getDeleted, 0));
 
         Map<Long, SysApplicationResource> allResourceMap = allResources.stream()
-            .collect(Collectors.toMap(SysApplicationResource::getId, r -> r));
+                .collect(Collectors.toMap(SysApplicationResource::getId, r -> r));
 
         // 递归收集所有父节点ID
         for (SysApplicationResource resource : userResources) {
@@ -210,8 +207,8 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
 
         // 过滤出所需的资源（用户资源 + 所有父节点）
         List<SysApplicationResource> filteredResources = allResources.stream()
-            .filter(r -> requiredResourceIds.contains(r.getId()))
-            .collect(Collectors.toList());
+                .filter(r -> requiredResourceIds.contains(r.getId()))
+                .collect(Collectors.toList());
 
         return buildTree(filteredResources);
     }
@@ -219,7 +216,8 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     /**
      * 递归收集父节点ID
      */
-    private void collectParentResourceIds(Long parentId, Set<Long> requiredIds, Map<Long, SysApplicationResource> resourceMap) {
+    private void collectParentResourceIds(Long parentId, Set<Long> requiredIds,
+            Map<Long, SysApplicationResource> resourceMap) {
         if (parentId == null || parentId == 0) {
             return;
         }
@@ -275,5 +273,44 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
         ApplicationResourceDTO dto = new ApplicationResourceDTO();
         BeanUtils.copyProperties(entity, dto);
         return dto;
+    }
+
+    @Override
+    public List<ApplicationResourceDTO> getAllResourceTree() {
+        // 查询所有未删除且状态正常的资源
+        List<SysApplicationResource> resources = resourceMapper.selectList(
+                new LambdaQueryWrapper<SysApplicationResource>()
+                        .eq(SysApplicationResource::getDeleted, 0)
+                        .eq(SysApplicationResource::getStatus, 1)
+                        .orderByAsc(SysApplicationResource::getOrderNum));
+        return buildTree(resources);
+    }
+
+    @Override
+    public List<ApplicationResourceDTO> getAllResourceList() {
+        // 查询所有未删除的资源（扁平化列表）
+        List<SysApplicationResource> resources = resourceMapper.selectList(
+                new LambdaQueryWrapper<SysApplicationResource>()
+                        .eq(SysApplicationResource::getDeleted, 0)
+                        .orderByAsc(SysApplicationResource::getOrderNum));
+        return resources.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean checkResourceNameUnique(String resourceName, Long parentId, Long resourceId) {
+        LambdaQueryWrapper<SysApplicationResource> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysApplicationResource::getResourceName, resourceName)
+                .eq(SysApplicationResource::getParentId, parentId != null ? parentId : 0)
+                .eq(SysApplicationResource::getDeleted, 0);
+
+        // 如果是更新操作，排除自身
+        if (resourceId != null) {
+            queryWrapper.ne(SysApplicationResource::getId, resourceId);
+        }
+
+        Long count = resourceMapper.selectCount(queryWrapper);
+        return count == 0;
     }
 }

@@ -6,6 +6,11 @@ spring:
     name: admin-api
   profiles:
     active: observability
+  config:
+    import:
+      - classpath:application-feature-toggle.yml
+      - classpath:application-observability.yml
+      - classpath:application-database.yml
 
   # Flyway数据库迁移配置
   flyway:

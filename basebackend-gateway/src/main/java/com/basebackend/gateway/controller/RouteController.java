@@ -44,23 +44,22 @@ public class RouteController {
      */
     @PostMapping
     public Mono<ResponseEntity<Map<String, Object>>> addRoute(@RequestBody RouteDefinitionDTO routeDTO) {
-        try {
-            RouteDefinition routeDefinition = convertToRouteDefinition(routeDTO);
-            String result = dynamicRouteService.addRoute(routeDefinition);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", "success".equals(result));
-            response.put("message", result);
-            response.put("routeId", routeDTO.getId());
-
-            return Mono.just(ResponseEntity.ok(response));
-        } catch (Exception e) {
-            log.error("添加路由失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", e.getMessage());
-            return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
-        }
+        RouteDefinition routeDefinition = convertToRouteDefinition(routeDTO);
+        return dynamicRouteService.addRoute(routeDefinition)
+                .map(result -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", "success".equals(result));
+                    response.put("message", result);
+                    response.put("routeId", routeDTO.getId());
+                    return ResponseEntity.ok(response);
+                })
+                .onErrorResume(e -> {
+                    log.error("添加路由失败", e);
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+                });
     }
 
     /**
@@ -70,24 +69,23 @@ public class RouteController {
     public Mono<ResponseEntity<Map<String, Object>>> updateRoute(
             @PathVariable String id,
             @RequestBody RouteDefinitionDTO routeDTO) {
-        try {
-            routeDTO.setId(id);
-            RouteDefinition routeDefinition = convertToRouteDefinition(routeDTO);
-            String result = dynamicRouteService.updateRoute(routeDefinition);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", "success".equals(result));
-            response.put("message", result);
-            response.put("routeId", id);
-
-            return Mono.just(ResponseEntity.ok(response));
-        } catch (Exception e) {
-            log.error("更新路由失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", e.getMessage());
-            return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
-        }
+        routeDTO.setId(id);
+        RouteDefinition routeDefinition = convertToRouteDefinition(routeDTO);
+        return dynamicRouteService.updateRoute(routeDefinition)
+                .map(result -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", "success".equals(result));
+                    response.put("message", result);
+                    response.put("routeId", id);
+                    return ResponseEntity.ok(response);
+                })
+                .onErrorResume(e -> {
+                    log.error("更新路由失败", e);
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+                });
     }
 
     /**
@@ -95,22 +93,21 @@ public class RouteController {
      */
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Map<String, Object>>> deleteRoute(@PathVariable String id) {
-        try {
-            String result = dynamicRouteService.deleteRoute(id);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", "success".equals(result));
-            response.put("message", result);
-            response.put("routeId", id);
-
-            return Mono.just(ResponseEntity.ok(response));
-        } catch (Exception e) {
-            log.error("删除路由失败", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", e.getMessage());
-            return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
-        }
+        return dynamicRouteService.deleteRoute(id)
+                .map(result -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", "success".equals(result));
+                    response.put("message", result);
+                    response.put("routeId", id);
+                    return ResponseEntity.ok(response);
+                })
+                .onErrorResume(e -> {
+                    log.error("删除路由失败", e);
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("message", e.getMessage());
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+                });
     }
 
     /**

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.scheduler.persistence.mapper.WorkflowInstanceMapper">
+
+    <resultMap id="WorkflowInstanceResultMap" type="com.basebackend.scheduler.persistence.entity.WorkflowInstanceEntity">
+        <id property="id" column="id"/>
+        <result property="definitionId" column="definition_id"/>
+        <result property="status" column="status"/>
+        <result property="activeNodesJson" column="active_nodes"/>
+        <result property="contextJson" column="context"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="version" column="version"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <!-- 查询运行中的实例 -->
+    <select id="selectRunningByDefinitionId" parameterType="String" resultMap="WorkflowInstanceResultMap">
+        SELECT *
+        FROM workflow_instance
+        WHERE definition_id = #{definitionId}
+        AND status IN ('PENDING', 'RUNNING', 'PAUSED')
+        AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询超时未完成的实例 -->
+    <select id="selectTimeoutInstances" parameterType="java.time.Instant" resultMap="WorkflowInstanceResultMap">
+        SELECT *
+        FROM workflow_instance
+        WHERE status IN ('PENDING', 'RUNNING', 'PAUSED')
+        AND start_time &lt; #{timeoutTime}
+        AND deleted = 0
+        ORDER BY start_time ASC
+    </select>
+
+    <!-- 批量更新实例状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE workflow_instance
+        <set>
+            status = #{status},
+            end_time = #{endTime},
+            error_message = #{errorMessage},
+            update_time = NOW(),
+            version = version + 1
+        </set>
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND deleted = 0
+    </update>
+
+    <!-- 更新活跃节点 -->
+    <update id="updateActiveNodes">
+        UPDATE workflow_instance
+        <set>
+            active_nodes = #{activeNodesJson},
+            update_time = NOW(),
+            version = version + 1
+        </set>
+        WHERE id = #{id}
+        AND version = #{version}
+        AND deleted = 0
+    </update>
+
+    <!-- 更新上下文 -->
+    <update id="updateContext">
+        UPDATE workflow_instance
+        <set>
+            context = #{contextJson},
+            update_time = NOW(),
+            version = version + 1
+        </set>
+        WHERE id = #{id}
+        AND version = #{version}
+        AND deleted = 0
+    </update>
+
+    <!-- 查询活跃实例统计 -->
+    <select id="countActiveInstances" resultType="int">
+        SELECT COUNT(*)
+        FROM workflow_instance
+        WHERE status IN ('PENDING', 'RUNNING', 'PAUSED')
+        AND deleted = 0
+    </select>
+
+    <!-- 查询最近N分钟内失败的实例 -->
+    <select id="selectFailedRecentMinutes" parameterType="int" resultMap="WorkflowInstanceResultMap">
+        SELECT *
+        FROM workflow_instance
+        WHERE status = 'FAILED'
+        AND update_time >= DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE)
+        AND deleted = 0
+        ORDER BY update_time DESC
+    </select>
+
+</mapper>

@@ -1,7 +1,6 @@
 package com.basebackend.featuretoggle.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,7 +10,6 @@ import lombok.NoArgsConstructor;
  * @author BaseBackend
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Variant {
@@ -41,6 +39,10 @@ public class Variant {
      */
     private Boolean control;
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     /**
      * 创建默认变体
      */
@@ -49,5 +51,42 @@ public class Variant {
                 .name("disabled")
                 .enabled(false)
                 .build();
+    }
+
+    public static class Builder {
+        private String name;
+        private Integer weight;
+        private Boolean enabled;
+        private String payload;
+        private Boolean control;
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder weight(Integer weight) {
+            this.weight = weight;
+            return this;
+        }
+
+        public Builder enabled(Boolean enabled) {
+            this.enabled = enabled;
+            return this;
+        }
+
+        public Builder payload(String payload) {
+            this.payload = payload;
+            return this;
+        }
+
+        public Builder control(Boolean control) {
+            this.control = control;
+            return this;
+        }
+
+        public Variant build() {
+            return new Variant(name, weight, enabled, payload, control);
+        }
     }
 }

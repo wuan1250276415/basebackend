@@ -1,7 +1,7 @@
 package com.basebackend.web.interceptor;
 
-import com.basebackend.web.util.IpUtil;
-import com.basebackend.web.util.UserAgentUtil;
+import com.basebackend.common.util.IpUtil;
+import com.basebackend.common.util.UserAgentUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,8 @@ public class LoggingInterceptor implements HandlerInterceptor {
     private static final String REQUEST_ID_KEY = "logging_interceptor_request_id";
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
         // 记录请求开始时间
         long startTime = System.currentTimeMillis();
         request.setAttribute(START_TIME_KEY, startTime);
@@ -51,14 +52,14 @@ public class LoggingInterceptor implements HandlerInterceptor {
                 request.getMethod(),
                 request.getRequestURI(),
                 IpUtil.getIpAddress(request),
-                UserAgentUtil.getBrowser(request)
-        );
+                UserAgentUtil.getBrowser(request));
 
         return true;
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+            throws Exception {
         long startTime = (Long) request.getAttribute(START_TIME_KEY);
         long duration = System.currentTimeMillis() - startTime;
         String requestId = (String) request.getAttribute(REQUEST_ID_KEY);
@@ -77,8 +78,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                     response.getStatus(),
                     duration,
                     ex.getMessage(),
-                    ex
-            );
+                    ex);
         } else {
             log.info("""
                     Request Completed - [{}]
@@ -89,8 +89,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                     LocalDateTime.now(),
                     requestId,
                     response.getStatus(),
-                    duration
-            );
+                    duration);
         }
     }
 }

@@ -16,3 +16,6 @@ export * from './statistics'
 
 // 表单模板
 export * from './formTemplate'
+
+// 历史记录
+export * from './history'

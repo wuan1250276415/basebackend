@@ -280,7 +280,17 @@ public enum CommonErrorCode implements ErrorCode {
     /**
      * 存储服务异常
      */
-    STORAGE_SERVICE_ERROR(5006, "存储服务异常", 503);
+    STORAGE_SERVICE_ERROR(5006, "存储服务异常", 503),
+
+    /**
+     * 文件名不能为空
+     */
+    FILE_NAME_NOT_NULL(5007, "文件名不能为空", 400),
+
+    /**
+     * 文件删除失败
+     */
+    FILE_DELETE_FAILED(5008, "文件删除失败", 500);
 
     /**
      * 默认模块命名空间

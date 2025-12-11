@@ -3,7 +3,9 @@ package com.basebackend.security.filter;
 import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
+import com.basebackend.jwt.JwtUserDetails;
 import com.basebackend.jwt.JwtUtil;
+import com.basebackend.security.exception.TokenBlacklistException;
 import com.basebackend.security.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,42 +36,72 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         try {
+            // 检查是否已有认证信息，如果有则短路，避免重复解析或覆盖
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                log.debug("请求已有认证信息，直接放行");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             // 获取Token
             String token = getTokenFromRequest(request);
 
-            // 检查Token是否在黑名单中
-            if (StringUtils.hasText(token) && tokenBlacklistService.isBlacklisted(token)) {
-                log.warn("Token已在黑名单中，已拒绝访问: token={}", token);
-                handleAuthenticationError(response, "Token已失效");
+            // 如果没有Token，直接继续过滤器链
+            if (!StringUtils.hasText(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 先检查Token是否在黑名单中
+            try {
+                if (tokenBlacklistService.isBlacklisted(token)) {
+                    log.warn("Token已在黑名单中，已拒绝访问: token={}", token);
+                    // 清理可能存在的认证上下文
+                    SecurityContextHolder.clearContext();
+                    handleAuthenticationError(response, "Token已失效");
+                    return;
+                }
+            } catch (TokenBlacklistException e) {
+                log.error("黑名单检查失败，拒绝访问: token={}", token, e);
+                // 清理可能存在的认证上下文
+                SecurityContextHolder.clearContext();
+                handleAuthenticationError(response, "认证服务不可用");
                 return;
             }
 
             // 验证Token
-            if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
-                // 优先使用userId作为principal，确保PermissionService能正确获取
+            if (jwtUtil.validateToken(token)) {
+                // 从Token中获取完整用户信息
                 Long userId = jwtUtil.getUserIdFromToken(token);
-                String username = jwtUtil.getSubjectFromToken(token);
+                String username = jwtUtil.getUsernameFromToken(token);
+                Long deptId = jwtUtil.getDeptIdFromToken(token);
 
-                // 如果能获取到userId，使用userId作为principal；否则使用username
-                Object principal = userId != null ? userId : username;
+                // 创建JwtUserDetails作为principal，包含完整用户信息
+                JwtUserDetails userDetails = JwtUserDetails.builder()
+                        .userId(userId)
+                        .username(username)
+                        .deptId(deptId)
+                        .build();
 
                 // 创建认证对象
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // 设置到安全上下文
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("设置用户认证信息到SecurityContext: userId={}, username={}", userId, username);
+                log.debug("设置用户认证信息到SecurityContext: userId={}, username={}, deptId={}", userId, username, deptId);
             }
 
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.error("认证失败: {}", e.getMessage());
+            // 清理认证上下文
+            SecurityContextHolder.clearContext();
             handleAuthenticationError(response, "认证失败");
         }
     }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,11 +28,11 @@
         <module>basebackend-backup</module>
         <module>basebackend-nacos</module>
         <module>basebackend-feign-api</module>
-<!--        <module>basebackend-feature-toggle</module>-->
+        <module>basebackend-feature-toggle</module>
         <module>basebackend-gateway</module>
-        <module>basebackend-scheduler</module>
+        <module>basebackend-scheduler-parent</module>
         <module>basebackend-code-generator</module>
-        <module>basebackend-admin-api</module>
+<!--        <module>basebackend-admin-api</module>-->
         <!-- 新拆分的微服务模块 -->
         <module>basebackend-user-api</module>
         <module>basebackend-system-api</module>
@@ -50,7 +49,7 @@
         <!-- Spring Boot -->
         <spring-boot.version>3.1.5</spring-boot.version>
         <spring-cloud.version>2022.0.4</spring-cloud.version>
-        
+
         <!-- Nacos -->
         <nacos.version>3.1.0</nacos.version>
 
@@ -86,7 +85,7 @@
         <fastjson2.version>2.0.43</fastjson2.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
         <commons-io.version>2.15.1</commons-io.version>
-        
+
         <!-- Build & Quality -->
         <dependency-check.version>9.1.0</dependency-check.version>
         <jacoco.version>0.8.11</jacoco.version>
@@ -552,6 +551,77 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
+                    <configuration>
+                        <rules>
+                            <rule>
+                                <element>PACKAGE</element>
+                                <limits>
+                                    <limit>
+                                        <counter>LINE</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.30</minimum>
+                                    </limit>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.20</minimum>
+                                    </limit>
+                                </limits>
+                                <excludes>
+                                    <exclude>**/test/**</exclude>
+                                    <exclude>**/Application.java</exclude>
+                                    <exclude>**/config/**</exclude>
+                                    <exclude>**/dto/**</exclude>
+                                    <exclude>**/entity/**</exclude>
+                                    <exclude>**/mapper/**</exclude>
+                                    <exclude>**/repository/impl/**</exclude>
+                                    <exclude>**/exception/**</exclude>
+                                    <exclude>**/common/**</exclude>
+                                    <exclude>**/util/**</exclude>
+                                </excludes>
+                            </rule>
+                        </rules>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.3.1</version>
+                    <configuration>
+                        <configLocation>${project.basedir}/checkstyle.xml</configLocation>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>checkstyle</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>4.7.3.0</version>
+                    <configuration>
+                        <excludeFilterFile>${session.executionRootDirectory}/spotbugs.xml</excludeFilterFile>
+                        <effort>Max</effort>
+                        <threshold>Low</threshold>
+                        <maxHeapSize>1024</maxHeapSize>
+                        <xmlOutput>true</xmlOutput>
+                        <htmlOutput>false</htmlOutput>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>spotbugs</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.sonarsource.scanner.maven</groupId>

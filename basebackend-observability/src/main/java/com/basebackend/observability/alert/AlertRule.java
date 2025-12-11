@@ -1,6 +1,9 @@
 package com.basebackend.observability.alert;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -8,6 +11,9 @@ import java.time.LocalDateTime;
  * 告警规则实体
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AlertRule {
 
     /**

@@ -139,7 +139,9 @@ public class TraceQueryService {
             Map<String, Object> searchResult = searchTraces(request);
 
             if (searchResult.containsKey("traces")) {
-                List<Map<String, Object>> traces = (List<Map<String, Object>>) searchResult.get("traces");
+                Object tracesObj = searchResult.get("traces");
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> traces = (List<Map<String, Object>>) tracesObj;
 
                 stats.put("totalTraces", traces.size());
 

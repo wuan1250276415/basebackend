@@ -111,6 +111,47 @@ public class JwtUtil {
     }
 
     /**
+     * 从Token中获取用户名
+     * <p>
+     * 优先从username claim获取，如果不存在则返回subject
+     * 这样可以避免频繁Feign调用来获取用户信息
+     */
+    public String getUsernameFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        // 优先从username claim获取
+        Object usernameObj = claims.get("username");
+        if (usernameObj instanceof String) {
+            return (String) usernameObj;
+        }
+
+        // 回退到subject（兼容旧Token）
+        return claims.getSubject();
+    }
+
+    /**
+     * 从Token中获取部门ID
+     */
+    public Long getDeptIdFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        if (claims == null) {
+            return null;
+        }
+
+        Object deptIdObj = claims.get("deptId");
+        if (deptIdObj instanceof Integer) {
+            return ((Integer) deptIdObj).longValue();
+        } else if (deptIdObj instanceof Long) {
+            return (Long) deptIdObj;
+        }
+
+        return null;
+    }
+
+    /**
      * 从Token中获取声明
      */
     public Claims getClaimsFromToken(String token) {

@@ -28,7 +28,7 @@ import {
   getProcessInstanceById,
   getProcessInstanceVariables,
 } from '@/api/workflow/processInstance'
-import { listHistoricTasksByProcessInstanceId } from '@/api/workflow/task'
+import { listHistoricActivities } from '@/api/workflow/history'
 import { getProcessDefinitionXml } from '@/api/workflow/processDefinition'
 import type { ProcessInstance } from '@/types/workflow'
 
@@ -62,10 +62,22 @@ const ProcessInstanceDetail: React.FC = () => {
           setVariables(variablesResponse.data || {})
         }
 
-        // 加载任务历史
-        const historyResponse = await listHistoricTasksByProcessInstanceId(instanceId)
+        // 加载任务历史 (通过活动历史获取用户任务)
+        const historyResponse = await listHistoricActivities(instanceId, { size: 100 })
         if (historyResponse.success) {
-          setTaskHistory(historyResponse.data?.list || [])
+          const activities = historyResponse.data?.list || []
+          // 过滤出用户任务
+          const userTasks = activities
+            .filter((activity) => activity.activityType === 'userTask')
+            .map((activity) => ({
+              id: activity.taskId || activity.id,
+              name: activity.activityName,
+              assignee: activity.assignee,
+              startTime: activity.startTime,
+              endTime: activity.endTime,
+              deleteReason: activity.canceled ? '已取消' : undefined,
+            }))
+          setTaskHistory(userTasks)
         }
 
         // 加载BPMN XML

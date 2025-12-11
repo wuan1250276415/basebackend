@@ -3,10 +3,12 @@ package com.basebackend.user.context;
 import cn.hutool.core.util.StrUtil;
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.starter.interceptor.UserContextProvider;
+import com.basebackend.jwt.JwtUserDetails;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.entity.SysUserRole;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.mapper.SysUserRoleMapper;
+import com.basebackend.user.util.DeptInfoHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,16 +32,16 @@ public class UserContextProviderImpl implements UserContextProvider {
 
     private final SysUserMapper userMapper;
     private final SysUserRoleMapper userRoleMapper;
-
+    private final DeptInfoHelper deptInfoHelper;
     @Override
     public Optional<UserContext> loadUserContext(Authentication authentication, HttpServletRequest request) {
         if (authentication == null || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             return Optional.empty();
         }
-
-        String userId = authentication.getName();
-        SysUser user = userMapper.selectById(userId);
+        Object principal = authentication.getPrincipal();
+        JwtUserDetails userDetails = (JwtUserDetails) principal;
+        SysUser user = userMapper.selectById(userDetails.getUserId());
         if (user == null) {
             return Optional.empty();
         }
@@ -54,6 +56,7 @@ public class UserContextProviderImpl implements UserContextProvider {
                     .avatar(user.getAvatar())
                     .gender(user.getGender())
                     .deptId(user.getDeptId())
+                    .deptName(deptInfoHelper.getDeptName(user.getDeptId()))
                     .userType(user.getUserType())
                     .status(user.getStatus())
                     .ipAddress(getClientIp(request))
@@ -76,7 +79,7 @@ public class UserContextProviderImpl implements UserContextProvider {
 
             return Optional.of(builder.build());
         } catch (Exception e) {
-            log.error("加载用户上下文失败，userId={}", userId, e);
+            log.error("加载用户上下文失败，principal={}", principal, e);
             return Optional.empty();
         }
     }

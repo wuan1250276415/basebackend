@@ -107,4 +107,12 @@ public interface UserService {
      * 根据部门ID查询用户列表
      */
     List<UserDTO> getByDeptId(Long deptId);
+
+    /**
+     * 获取所有活跃用户ID列表
+     * 用于群发通知等场景
+     *
+     * @return 活跃用户ID列表
+     */
+    List<Long> getAllActiveUserIds();
 }

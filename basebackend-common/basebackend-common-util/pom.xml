@@ -49,6 +49,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Jakarta Servlet API (可选，用于Web工具类) -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- 测试依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

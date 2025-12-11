@@ -2,6 +2,7 @@ package com.basebackend.common.model;
 
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.enums.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import java.io.Serializable;
 
@@ -26,6 +27,7 @@ import java.io.Serializable;
  * @since 1.0.0
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;

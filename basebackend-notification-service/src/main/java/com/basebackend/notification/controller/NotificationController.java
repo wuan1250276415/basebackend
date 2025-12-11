@@ -8,6 +8,7 @@ import com.basebackend.notification.dto.NotificationQueryDTO;
 import com.basebackend.notification.dto.UserNotificationDTO;
 import com.basebackend.notification.service.NotificationService;
 import com.basebackend.notification.service.SSENotificationService;
+import com.basebackend.security.annotation.RequiresPermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 /**
  * 通知管理控制器
+ * P0: 添加权限控制
  *
  * @author Claude Code
  * @since 2025-10-30
@@ -75,6 +77,7 @@ public class NotificationController {
 
     @Operation(summary = "创建通知", description = "创建系统通知（管理员）")
     @PostMapping
+    @RequiresPermission("notification:create")  // P0: 添加权限控制
     public Result<Void> createNotification(@Valid @RequestBody CreateNotificationDTO dto) {
         notificationService.createSystemNotification(dto);
         return Result.success();
@@ -104,12 +107,21 @@ public class NotificationController {
     @Operation(summary = "SSE 连接", description = "建立 SSE 连接以接收实时通知推送")
     @GetMapping("/stream")
     public SseEmitter stream(@RequestParam String token) {
-
         Long userId = jwtUtil.getUserIdFromToken(token);
-
-        log.info("[SSE] 用户请求建立连接: userId={}", userId);
-
+        // P2: 日志脱敏
+        log.info("[SSE] 用户请求建立连接: userId=***{}", userId % 10000);
         return sseNotificationService.createConnection(userId);
     }
 
+    @Operation(summary = "SSE 连接状态", description = "获取SSE连接统计信息（管理员）")
+    @GetMapping("/stream/stats")
+    @RequiresPermission("notification:admin")
+    public Result<Map<String, Object>> getStreamStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("currentConnections", sseNotificationService.getConnectionCount());
+        stats.put("totalConnections", sseNotificationService.getTotalConnectionCount());
+        stats.put("pushSuccessCount", sseNotificationService.getPushSuccessCount());
+        stats.put("pushFailureCount", sseNotificationService.getPushFailureCount());
+        return Result.success(stats);
+    }
 }

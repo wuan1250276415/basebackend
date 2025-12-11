@@ -1,6 +1,8 @@
 package com.basebackend.backup.infrastructure.storage;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -9,6 +11,8 @@ import java.util.Map;
  * 文件上传请求对象
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UploadRequest {
     /**
      * 存储桶/容器名称

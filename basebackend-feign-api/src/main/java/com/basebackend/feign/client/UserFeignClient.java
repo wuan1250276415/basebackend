@@ -20,9 +20,9 @@ import java.util.List;
  * @since 2025-11-08
  */
 @FeignClient(
-        name = FeignServiceConstants.SYS_SERVICE,
+        name = FeignServiceConstants.USER_SERVICE,
         contextId = "userFeignClient",
-        path = "/api/admin/users",
+        path = "/api/user/users",
         fallbackFactory = UserFeignFallbackFactory.class
 )
 public interface UserFeignClient {
@@ -138,4 +138,14 @@ public interface UserFeignClient {
             @Parameter(description = "手机号") @RequestParam("phone") String phone,
             @Parameter(description = "用户ID") @RequestParam(value = "userId", required = false) Long userId
     );
+
+    /**
+     * 获取所有活跃用户ID列表
+     * 用于群发通知等场景
+     *
+     * @return 活跃用户ID列表
+     */
+    @GetMapping("/active-ids")
+    @Operation(summary = "获取所有活跃用户ID", description = "获取所有状态为启用的用户ID列表")
+    Result<List<Long>> getAllActiveUserIds();
 }

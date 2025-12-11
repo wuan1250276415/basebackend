@@ -2,10 +2,10 @@ package com.basebackend.backup.infrastructure.reliability.impl;
 
 import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.infrastructure.reliability.LockManager;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Callable;
@@ -13,16 +13,26 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 基于Redisson的分布式锁管理器实现
+ * <p>
+ * 提供分布式环境下的锁服务，确保备份任务在多实例部署时不会并发执行。
+ * 主要特性：
+ * <ul>
+ *   <li>支持可配置的等待时间和租约时间</li>
+ *   <li>支持Runnable和Callable两种回调模式</li>
+ *   <li>自动释放锁，防止死锁</li>
+ *   <li>支持中断处理，保证线程安全</li>
+ * </ul>
+ *
+ * @author BaseBackend
+ * @see LockManager
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RedissonLockManager implements LockManager {
 
-    @Autowired
-    private RedissonClient redissonClient;
-
-    @Autowired
-    private BackupProperties backupProperties;
+    private final RedissonClient redissonClient;
+    private final BackupProperties backupProperties;
 
     @Override
     public void withLock(String lockKey, Runnable action) throws Exception {

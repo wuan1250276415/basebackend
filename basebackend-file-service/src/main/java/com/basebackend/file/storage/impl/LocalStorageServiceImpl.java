@@ -3,6 +3,8 @@ package com.basebackend.file.storage.impl;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.file.config.FileProperties;
 import com.basebackend.file.storage.StorageService;
+import com.basebackend.file.storage.StorageServiceRegistry;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,6 +29,16 @@ import java.util.stream.Stream;
 public class LocalStorageServiceImpl implements StorageService {
 
     private final FileProperties fileProperties;
+    private final StorageServiceRegistry storageServiceRegistry;
+
+    /**
+     * 初始化时自动注册到存储服务注册中心
+     */
+    @PostConstruct
+    public void init() {
+        storageServiceRegistry.registerService(StorageType.LOCAL, this);
+        log.info("本地存储服务已注册到存储服务注册中心");
+    }
 
     @Override
     public String upload(InputStream inputStream, String path, String contentType, long size) {
@@ -149,12 +161,12 @@ public class LocalStorageServiceImpl implements StorageService {
             if (Files.exists(dirPath) && Files.isDirectory(dirPath)) {
                 try (Stream<Path> paths = Files.walk(dirPath)) {
                     paths.filter(Files::isRegularFile)
-                         .forEach(path -> {
-                             String relativePath = Paths.get(fileProperties.getUploadPath())
-                                                        .relativize(path)
-                                                        .toString();
-                             files.add(relativePath.replace("\\", "/"));
-                         });
+                            .forEach(path -> {
+                                String relativePath = Paths.get(fileProperties.getUploadPath())
+                                        .relativize(path)
+                                        .toString();
+                                files.add(relativePath.replace("\\", "/"));
+                            });
                 }
             }
         } catch (IOException e) {

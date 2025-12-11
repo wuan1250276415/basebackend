@@ -8,8 +8,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * Redis 缓存服务
@@ -138,26 +141,146 @@ public class RedisService {
     }
 
     /**
-     * 模式匹配删除
-     * 删除所有匹配指定模式的键
+     * 根据模式删除键
+     * 使用 SCAN 命令游标分页 + UNLINK 非阻塞删除
+     * 替代原来的 keys() + 批量删除，避免阻塞 Redis
      *
      * @param pattern 键模式（支持通配符 * 和 ?）
      * @return 删除的键数量
      */
     public long deleteByPattern(String pattern) {
+        return deleteByPattern(pattern, 1000);
+    }
+
+    /**
+     * 根据模式删除键（指定批量大小）
+     * 使用 SCAN 命令游标分页 + UNLINK 非阻塞删除
+     *
+     * @param pattern 键模式（支持通配符 * 和 ?）
+     * @param batchSize 批量删除大小，建议500-5000
+     * @return 删除的键数量
+     */
+    public long deleteByPattern(String pattern, int batchSize) {
         if (pattern == null || pattern.trim().isEmpty()) {
             return 0;
         }
 
-        return executeWithFallback(() -> {
-            Set<String> keys = redisTemplate.keys(pattern);
-            if (keys != null && !keys.isEmpty()) {
-                Long deleted = redisTemplate.delete(keys);
-                log.info("Deleted {} keys matching pattern: {}", deleted, pattern);
-                return deleted != null ? deleted : 0L;
+        if (batchSize <= 0) {
+            batchSize = 1000; // 默认值
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        // 创建最终副本以供 lambda 使用
+        final String finalPattern = pattern;
+        final int finalBatchSize = batchSize;
+
+        try {
+            log.info("Starting pattern-based deletion for pattern: {}, batch size: {}", finalPattern, finalBatchSize);
+
+            // 使用 AtomicLong 和 AtomicInteger 来跟踪状态
+            final long[] totalDeleted = {0};
+            final int[] batchCount = {0};
+
+            // 使用 SCAN 游标分页遍历所有匹配的键
+            ScanOptions scanOptions = ScanOptions.scanOptions()
+                .match(finalPattern)
+                .count(finalBatchSize)
+                .build();
+
+            redisTemplate.execute((RedisCallback<Void>) connection -> {
+                List<byte[]> currentBatch = new ArrayList<>();
+
+                try (Cursor<byte[]> cursor = connection.scan(scanOptions)) {
+                    while (cursor.hasNext()) {
+                        currentBatch.add(cursor.next());
+
+                        // 当批次达到指定大小时执行删除
+                        if (currentBatch.size() >= finalBatchSize) {
+                            batchCount[0]++;
+                            totalDeleted[0] += deleteBatch(currentBatch);
+                            log.debug("Processed batch #{}: {} keys, total deleted: {}",
+                                batchCount[0], currentBatch.size(), totalDeleted[0]);
+                            currentBatch.clear();
+                        }
+                    }
+
+                    // 删除剩余的键
+                    if (!currentBatch.isEmpty()) {
+                        batchCount[0]++;
+                        totalDeleted[0] += deleteBatch(currentBatch);
+                        log.debug("Processed final batch #{}: {} keys, total deleted: {}",
+                            batchCount[0], currentBatch.size(), totalDeleted[0]);
+                    }
+                }
+
+                return null;
+            });
+
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Pattern-based deletion completed: {} keys deleted in {} ms ({} batches), pattern: {}",
+                totalDeleted[0], duration, batchCount[0], finalPattern);
+
+            return totalDeleted[0];
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            log.error("Pattern-based deletion failed after {} ms, pattern: {}", duration, finalPattern, e);
+
+            // 失败时降级到原来的 keys() 方法
+            log.warn("Falling back to keys() + batch delete for pattern: {} (this may block Redis!)", finalPattern);
+            return executeWithFallback(() -> {
+                Set<String> keys = redisTemplate.keys(finalPattern);
+                if (keys != null && !keys.isEmpty()) {
+                    Long deleted = redisTemplate.delete(keys);
+                    long result = deleted != null ? deleted : 0L;
+                    log.warn("FALLBACK: Deleted {} keys using keys() method for pattern: {}", result, finalPattern);
+                    return result;
+                }
+                return 0L;
+            }, 0L, "deleteByPattern");
+        }
+    }
+
+    /**
+     * 批量删除键（使用 UNLINK 命令）
+     *
+     * @param keys 要删除的键列表
+     * @return 删除的键数量
+     */
+    private long deleteBatch(List<byte[]> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return 0;
+        }
+
+        try {
+            // 使用 UNLINK 命令（异步删除，不会阻塞 Redis）
+            Long deleted = redisTemplate.execute((RedisCallback<Long>) connection -> {
+                long count = 0;
+                for (byte[] key : keys) {
+                    Long result = connection.unlink(key);
+                    if (result != null && result > 0) {
+                        count++;
+                    }
+                }
+                return count;
+            });
+
+            return deleted != null ? deleted : 0;
+        } catch (Exception e) {
+            log.error("Error deleting batch of {} keys", keys.size(), e);
+            // 如果 UNLINK 失败，尝试使用 DEL
+            try {
+                List<String> stringKeys = keys.stream()
+                    .map(String::new)
+                    .collect(Collectors.toList());
+                Long deleted = redisTemplate.delete(stringKeys);
+                return deleted != null ? deleted : 0;
+            } catch (Exception ex) {
+                log.error("Error deleting batch with DEL fallback", ex);
+                return 0;
             }
-            return 0L;
-        }, 0L, "deleteByPattern");
+        }
     }
 
     /**
@@ -567,9 +690,100 @@ public class RedisService {
     }
  
     /**
-     * 获取所有符合pattern的key集合
+     * 使用 SCAN 命令安全地获取所有符合pattern的key集合
+     * 避免阻塞Redis，推荐使用此方法替代keys()
+     *
+     * @param pattern 键模式（支持通配符 * 和 ?）
+     * @param count 每次扫描的键数量（默认100）
+     * @return 匹配的键集合
      */
+    public Set<String> scan(String pattern, int count) {
+        if (pattern == null || pattern.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        if (count <= 0) {
+            count = 100; // 默认值
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        // 创建最终副本以供 lambda 使用
+        final String finalPattern = pattern;
+        final int finalCount = count;
+
+        // 使用数组来存储可变状态
+        final Set<String>[] keys = new HashSet[]{new HashSet<>()};
+        final long[] totalScanned = {0};
+
+        return executeWithFallback(() -> {
+            // 使用 RedisCallback 实现 SCAN 命令
+            ScanOptions scanOptions = ScanOptions.scanOptions()
+                .match(finalPattern)
+                .count(finalCount)
+                .build();
+
+            try {
+                redisTemplate.execute((RedisCallback<Void>) connection -> {
+                    try (Cursor<byte[]> cursor = connection.scan(scanOptions)) {
+                        while (cursor.hasNext()) {
+                            byte[] keyBytes = cursor.next();
+                            keys[0].add(new String(keyBytes));
+                            totalScanned[0]++;
+
+                            // 每扫描1000个键输出一次日志，避免日志过多
+                            if (totalScanned[0] % 1000 == 0) {
+                                log.debug("SCAN progress: {} keys scanned for pattern: {}", totalScanned[0], finalPattern);
+                            }
+                        }
+                        return null;
+                    }
+                });
+
+                long duration = System.currentTimeMillis() - startTime;
+                log.info("SCAN completed successfully: {} keys found in {} ms, pattern: {}",
+                    keys[0].size(), duration, finalPattern);
+
+                return keys[0];
+
+            } catch (Exception e) {
+                long duration = System.currentTimeMillis() - startTime;
+                log.error("SCAN failed after {} ms for pattern: {}, falling back to keys()", duration, finalPattern, e);
+
+                // SCAN 失败时降级到 keys()
+                Set<String> fallbackKeys = redisTemplate.keys(finalPattern);
+                if (fallbackKeys != null) {
+                    log.warn("FALLBACK: keys() returned {} keys for pattern: {} (this may block Redis!)",
+                        fallbackKeys.size(), finalPattern);
+                    return fallbackKeys;
+                }
+
+                return Collections.emptySet();
+            }
+        }, Collections.emptySet(), "scan");
+    }
+
+    /**
+     * 使用 SCAN 命令获取所有符合pattern的key集合（使用默认count=100）
+     *
+     * @param pattern 键模式
+     * @return 匹配的键集合
+     */
+    public Set<String> scan(String pattern) {
+        return scan(pattern, 100);
+    }
+
+    /**
+     * 获取所有符合pattern的key集合
+     * ⚠️ 已废弃：此方法会阻塞Redis单线程执行，在大规模key空间下可能导致性能问题
+     *
+     * @deprecated 使用 {@link #scan(String)} 或 {@link #scan(String, int)} 替代
+     * @param pattern 键模式（支持通配符 * 和 ?）
+     * @return 匹配的键集合
+     */
+    @Deprecated
     public Set<String> keys(String pattern) {
+        log.warn("⚠️ 使用已废弃的keys()方法，建议使用scan()替代。pattern: {}", pattern);
         return executeWithFallback(() -> redisTemplate.keys(pattern), Collections.emptySet(), "keys");
     }
 

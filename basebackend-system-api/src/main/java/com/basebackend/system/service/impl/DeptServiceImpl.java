@@ -5,6 +5,7 @@ import com.basebackend.system.dto.DeptDTO;
 import com.basebackend.system.entity.SysDept;
 import com.basebackend.system.mapper.SysDeptMapper;
 import com.basebackend.system.service.DeptService;
+import com.basebackend.system.util.AuditHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class DeptServiceImpl implements DeptService {
 
     private final SysDeptMapper deptMapper;
+    private final AuditHelper auditHelper;
 
     @Override
     public List<DeptDTO> getDeptTree() {
@@ -64,10 +66,14 @@ public class DeptServiceImpl implements DeptService {
         // 创建部门
         SysDept dept = new SysDept();
         BeanUtil.copyProperties(deptDTO, dept);
-        dept.setCreateTime(LocalDateTime.now());
-        dept.setUpdateTime(LocalDateTime.now());
-        dept.setCreateBy(1L); // 临时硬编码
-        dept.setUpdateBy(1L); // 临时硬编码
+        
+        // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
+        Long currentUserId = auditHelper.getCurrentUserId();
+        LocalDateTime now = auditHelper.getCurrentTime();
+        dept.setCreateTime(now);
+        dept.setUpdateTime(now);
+        dept.setCreateBy(currentUserId);
+        dept.setUpdateBy(currentUserId);
 
         deptMapper.insert(dept);
 
@@ -91,8 +97,10 @@ public class DeptServiceImpl implements DeptService {
 
         // 更新部门信息
         BeanUtil.copyProperties(deptDTO, dept);
-        dept.setUpdateTime(LocalDateTime.now());
-        dept.setUpdateBy(1L); // 临时硬编码
+        
+        // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
+        dept.setUpdateTime(auditHelper.getCurrentTime());
+        dept.setUpdateBy(auditHelper.getCurrentUserId());
 
         deptMapper.updateById(dept);
 

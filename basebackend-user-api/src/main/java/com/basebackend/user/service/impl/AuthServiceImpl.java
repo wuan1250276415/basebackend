@@ -1,10 +1,12 @@
 package com.basebackend.user.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.basebackend.cache.service.RedisService;
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.context.UserContextHolder;
-import com.basebackend.common.model.Result;
-import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.common.util.IpUtil;
+import com.basebackend.common.util.UserAgentUtil;
+import com.basebackend.jwt.JwtUtil;
 import com.basebackend.user.dto.LoginLogDTO;
 import com.basebackend.user.dto.LoginRequest;
 import com.basebackend.user.dto.LoginResponse;
@@ -13,14 +15,10 @@ import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.service.AuthService;
 import com.basebackend.user.service.LogService;
-import com.basebackend.cache.service.RedisService;
-import com.basebackend.jwt.JwtUtil;
-import com.basebackend.web.util.IpUtil;
-import com.basebackend.web.util.UserAgentUtil;
+import com.basebackend.user.util.DeptInfoHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -40,7 +38,7 @@ import java.util.Map;
 public class AuthServiceImpl implements AuthService {
 
     private final SysUserMapper userMapper;
-    private final ObjectProvider<com.basebackend.feign.client.DeptFeignClient> deptFeignClientProvider;
+    private final DeptInfoHelper deptInfoHelper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisService redisService;
@@ -143,27 +141,9 @@ public class AuthServiceImpl implements AuthService {
             userInfo.setDeptId(user.getDeptId());
             userInfo.setUserType(user.getUserType());
             userInfo.setStatus(user.getStatus());
-            
-            // 安全调用部门服务，失败不影响登录
-            if (user.getDeptId() != null) {
-                var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-                if (deptFeignClient != null) {
-                    try {
-                        Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
-                        if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                            userInfo.setDeptName(deptResult.getData().getDeptName());
-                        } else {
-                            log.warn("获取部门信息失败或返回空: deptId={}, message={}", 
-                                    user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
-                            userInfo.setDeptName(""); // 设置默认值
-                        }
-                    } catch (Exception e) {
-                        log.error("调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
-                        userInfo.setDeptName(""); // 设置默认值，不影响登录流程
-                    }
-                }
-            }
 
+            // 获取部门名称（使用DeptInfoHelper统一处理）
+            userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
 
             // 构建响应
             LoginResponse response = new LoginResponse();
@@ -240,27 +220,10 @@ public class AuthServiceImpl implements AuthService {
         userInfo.setDeptId(user.getDeptId());
         userInfo.setUserType(user.getUserType());
         userInfo.setStatus(user.getStatus());
-        
-        // 安全调用部门服务，失败不影响刷新token
-        if (user.getDeptId() != null) {
-            var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-            if (deptFeignClient != null) {
-                try {
-                    Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
-                    if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                        userInfo.setDeptName(deptResult.getData().getDeptName());
-                    } else {
-                        log.warn("刷新token时获取部门信息失败: deptId={}, message={}", 
-                                user.getDeptId(), deptResult != null ? deptResult.getMessage() : "null");
-                        userInfo.setDeptName("");
-                    }
-                } catch (Exception e) {
-                    log.error("刷新token时调用部门服务异常: deptId={}, error={}", user.getDeptId(), e.getMessage(), e);
-                    userInfo.setDeptName("");
-                }
-            }
-        }
-        
+
+        // 获取部门名称（使用DeptInfoHelper统一处理）
+        userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
+
         // 构建响应
         LoginResponse response = new LoginResponse();
         response.setAccessToken(newToken);
@@ -275,8 +238,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserContext getCurrentUserInfo() {
         // 从请求上下文获取当前用户ID
-        UserContext userContext = UserContextHolder.get();
-        return userContext;
+        return UserContextHolder.get();
     }
 
     @Override
@@ -347,7 +309,8 @@ public class AuthServiceImpl implements AuthService {
     /**
      * 保存在线用户信息到Redis
      */
-    private void saveOnlineUser(SysUser user, String token, String ipAddress, String location, String browser, String os) {
+    private void saveOnlineUser(SysUser user, String token, String ipAddress, String location, String browser,
+            String os) {
         try {
             Map<String, Object> onlineUser = new HashMap<>();
             onlineUser.put("userId", user.getId());
@@ -355,24 +318,8 @@ public class AuthServiceImpl implements AuthService {
             onlineUser.put("nickname", user.getNickname());
             onlineUser.put("deptId", user.getDeptId());
 
-            // 安全调用部门服务获取部门名称
-            if (user.getDeptId() != null) {
-                var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-                if (deptFeignClient != null) {
-                    try {
-                        Result<DeptBasicDTO> deptResult = deptFeignClient.getById(user.getDeptId());
-                        if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                            onlineUser.put("deptName", deptResult.getData().getDeptName());
-                        } else {
-                            onlineUser.put("deptName", "");
-                        }
-                    } catch (Exception e) {
-                        log.error("保存在线用户时获取部门名称失败: deptId={}, error={}", 
-                                user.getDeptId(), e.getMessage());
-                        onlineUser.put("deptName", "");
-                    }
-                }
-            }
+            // 获取部门名称（使用DeptInfoHelper统一处理）
+            onlineUser.put("deptName", deptInfoHelper.getDeptName(user.getDeptId()));
             onlineUser.put("loginIp", ipAddress);
             onlineUser.put("loginLocation", location);
             onlineUser.put("browser", browser);

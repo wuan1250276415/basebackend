@@ -5,12 +5,12 @@ spring:
     name: basebackend-notification-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
-  # 邮件配置
+  # 邮件配置 - P0: 使用环境变量，移除硬编码密码
   mail:
-    host: smtp-mail.outlook.com
-    port: 587
-    username: wuan1250276415@outlook.com
-    password: wuanfuck321.
+    host: ${MAIL_HOST:smtp-mail.outlook.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     default-encoding: UTF-8
     properties:
       mail:
@@ -20,6 +20,8 @@ spring:
             enable: true
             required: true
           timeout: 5000
+          connectiontimeout: 5000
+          writetimeout: 5000
   main:
     allow-circular-references: true
     allow-bean-definition-overriding: true
@@ -27,3 +29,23 @@ spring:
     exclude:
       - com.basebackend.observability.otel.config.OtelAutoConfiguration
       - com.basebackend.observability.otel.config.BridgeConfiguration
+
+# 通知服务安全配置
+notification:
+  security:
+    # 允许创建通知的角色
+    allowed-roles:
+      - ADMIN
+      - SYSTEM_ADMIN
+    # SSE最大连接数
+    sse-max-connections: ${SSE_MAX_CONNECTIONS:10000}
+    # 邮件发送频率限制（每分钟）
+    email-rate-limit-per-minute: ${EMAIL_RATE_LIMIT:100}
+    # 通知创建频率限制（每分钟）
+    notification-rate-limit-per-minute: ${NOTIFICATION_RATE_LIMIT:1000}
+    # 是否启用XSS过滤
+    xss-filter-enabled: true
+    # 邮件内容最大长度
+    email-content-max-length: 50000
+    # 通知内容最大长度
+    notification-content-max-length: 10000

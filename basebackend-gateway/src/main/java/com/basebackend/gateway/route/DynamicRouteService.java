@@ -23,49 +23,64 @@ public class DynamicRouteService {
 
     /**
      * 添加路由
+     *
+     * @param routeDefinition 路由定义
+     * @return 操作结果的Mono，成功返回"success"，失败返回错误信息
      */
-    public String addRoute(RouteDefinition routeDefinition) {
-        try {
-            routeDefinitionWriter.save(Mono.just(routeDefinition)).subscribe();
-            notifyRouteChanged();
-            log.info("添加路由成功: {}", routeDefinition.getId());
-            return "success";
-        } catch (Exception e) {
-            log.error("添加路由失败", e);
-            return "failed: " + e.getMessage();
-        }
+    public Mono<String> addRoute(RouteDefinition routeDefinition) {
+        return routeDefinitionWriter.save(Mono.just(routeDefinition))
+                .then(Mono.fromRunnable(this::notifyRouteChanged))
+                .thenReturn("success")
+                .doOnSuccess(result -> log.info("添加路由成功: {}", routeDefinition.getId()))
+                .onErrorResume(e -> {
+                    log.error("添加路由失败: {}", routeDefinition.getId(), e);
+                    return Mono.just("failed: " + e.getMessage());
+                });
     }
 
     /**
      * 更新路由
+     * 先删除旧路由，再保存新路由，最后通知路由变更
+     *
+     * @param routeDefinition 路由定义
+     * @return 操作结果的Mono，成功返回"success"，失败返回错误信息
      */
-    public String updateRoute(RouteDefinition routeDefinition) {
-        try {
-            // 先删除后添加
-            routeDefinitionWriter.delete(Mono.just(routeDefinition.getId())).subscribe();
-            routeDefinitionWriter.save(Mono.just(routeDefinition)).subscribe();
-            notifyRouteChanged();
-            log.info("更新路由成功: {}", routeDefinition.getId());
-            return "success";
-        } catch (Exception e) {
-            log.error("更新路由失败", e);
-            return "failed: " + e.getMessage();
-        }
+    public Mono<String> updateRoute(RouteDefinition routeDefinition) {
+        return routeDefinitionWriter.delete(Mono.just(routeDefinition.getId()))
+                .onErrorResume(e -> {
+                    // 仅忽略"路由不存在"的错误，其他错误（如网络/权限）应该中断
+                    if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                        log.debug("删除旧路由时未找到: {}", routeDefinition.getId());
+                        return Mono.empty();
+                    }
+                    // 其他错误向上抛出
+                    return Mono.error(e);
+                })
+                .then(routeDefinitionWriter.save(Mono.just(routeDefinition)))
+                .then(Mono.fromRunnable(this::notifyRouteChanged))
+                .thenReturn("success")
+                .doOnSuccess(result -> log.info("更新路由成功: {}", routeDefinition.getId()))
+                .onErrorResume(e -> {
+                    log.error("更新路由失败: {}", routeDefinition.getId(), e);
+                    return Mono.just("failed: " + e.getMessage());
+                });
     }
 
     /**
      * 删除路由
+     *
+     * @param routeId 路由ID
+     * @return 操作结果的Mono，成功返回"success"，失败返回错误信息
      */
-    public String deleteRoute(String routeId) {
-        try {
-            routeDefinitionWriter.delete(Mono.just(routeId)).subscribe();
-            notifyRouteChanged();
-            log.info("删除路由成功: {}", routeId);
-            return "success";
-        } catch (Exception e) {
-            log.error("删除路由失败", e);
-            return "failed: " + e.getMessage();
-        }
+    public Mono<String> deleteRoute(String routeId) {
+        return routeDefinitionWriter.delete(Mono.just(routeId))
+                .then(Mono.fromRunnable(this::notifyRouteChanged))
+                .thenReturn("success")
+                .doOnSuccess(result -> log.info("删除路由成功: {}", routeId))
+                .onErrorResume(e -> {
+                    log.error("删除路由失败: {}", routeId, e);
+                    return Mono.just("failed: " + e.getMessage());
+                });
     }
 
     /**

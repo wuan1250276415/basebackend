@@ -5,8 +5,8 @@ import com.basebackend.backup.domain.entity.BackupHistory;
 import com.basebackend.backup.domain.mapper.BackupHistoryMapper;
 import com.basebackend.backup.infrastructure.executor.ChainValidationResult;
 import com.basebackend.backup.infrastructure.executor.IncrementalChain;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,17 +15,19 @@ import java.util.stream.Collectors;
 
 /**
  * 增量链管理器
- * 负责管理增量备份链的构建、验证、清理等操作
+ * <p>
+ * 负责管理增量备份链的构建、验证、清理等操作。
+ * 增量链是一系列增量备份的有序集合，基于一个全量备份。
+ *
+ * @author BaseBackend
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class IncrementalChainManager {
 
-    @Autowired
-    private BackupHistoryMapper backupHistoryMapper;
-
-    @Autowired
-    private BackupProperties backupProperties;
+    private final BackupHistoryMapper backupHistoryMapper;
+    private final BackupProperties backupProperties;
 
     /**
      * 构建增量链

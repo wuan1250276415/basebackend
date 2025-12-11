@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(PermissionService.class)
 @Order(Ordered.LOWEST_PRECEDENCE - 10) // 在权限切面之后执行
 public class DataScopeAspect {
 
@@ -35,19 +37,20 @@ public class DataScopeAspect {
             Long userId = permissionService.getCurrentUserId();
             Long deptId = permissionService.getCurrentUserDeptId();
 
-            // 如果 deptId 为 null，则跳过数据权限检查（不进行过滤）
+            // 如果 deptId 为 null，则降级为 SELF 范围（安全默认）
+            DataScopeType finalScope = dataScope.value();
             if (deptId == null && dataScope.value() != DataScopeType.ALL) {
-                log.warn("无法获取用户部门信息，跳过数据权限检查: userId={}", userId);
-                return point.proceed();
+                log.warn("无法获取用户部门信息，降级为SELF数据权限范围: userId={}", userId);
+                finalScope = DataScopeType.SELF;
             }
 
             // 设置完整的数据权限上下文（一次性设置，避免覆盖）
             DataScopeContextHolder.DataScopeContext context =
-                new DataScopeContextHolder.DataScopeContext(dataScope.value(), userId, deptId);
+                new DataScopeContextHolder.DataScopeContext(finalScope, userId, deptId);
             DataScopeContextHolder.set(context);
 
             log.debug("设置数据权限: userId={}, deptId={}, scope={}",
-                    userId, deptId, dataScope.value());
+                    userId, deptId, finalScope);
 
             // 执行目标方法
             return point.proceed();

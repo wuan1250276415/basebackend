@@ -1,6 +1,5 @@
 package com.basebackend.security.aspect;
 
-import com.basebackend.security.annotation.DataScope;
 import com.basebackend.security.annotation.RequiresPermission;
 import com.basebackend.security.annotation.RequiresRole;
 import com.basebackend.security.service.PermissionService;
@@ -10,10 +9,14 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 权限校验切面
@@ -42,12 +45,13 @@ public class PermissionAspect {
 
         // 获取当前用户权限
         List<String> userPermissions = permissionService.getCurrentUserPermissions();
-        
+
         // 检查权限
         if (!hasPermission(userPermissions, requiresPermission)) {
-            log.warn("权限不足，需要权限: {}, 用户权限: {}", 
-                getRequiredPermissions(requiresPermission), userPermissions);
-            throw new SecurityException("权限不足，无法访问该资源");
+            log.warn("权限不足，需要权限: {}, 用户权限数量: {}",
+                Arrays.toString(getRequiredPermissions(requiresPermission)),
+                userPermissions == null ? 0 : userPermissions.size());
+            throw new AccessDeniedException("权限不足，无法访问该资源");
         }
 
         log.debug("权限校验通过");
@@ -63,12 +67,13 @@ public class PermissionAspect {
 
         // 获取当前用户角色
         List<String> userRoles = permissionService.getCurrentUserRoles();
-        
+
         // 检查角色
         if (!hasRole(userRoles, requiresRole)) {
-            log.warn("角色权限不足，需要角色: {}, 用户角色: {}", 
-                getRequiredRoles(requiresRole), userRoles);
-            throw new SecurityException("角色权限不足，无法访问该资源");
+            log.warn("角色权限不足，需要角色: {}, 用户角色数量: {}",
+                Arrays.toString(getRequiredRoles(requiresRole)),
+                userRoles == null ? 0 : userRoles.size());
+            throw new AccessDeniedException("角色权限不足，无法访问该资源");
         }
 
         log.debug("角色校验通过");
@@ -76,64 +81,49 @@ public class PermissionAspect {
     }
 
     /**
-     * 数据权限切面
-     */
-    @Around("@annotation(dataScope)")
-    public Object checkDataScope(ProceedingJoinPoint joinPoint, DataScope dataScope) throws Throwable {
-        log.debug("数据权限校验: {}", dataScope.value());
-
-        // 数据权限的具体实现由各服务自行处理
-        // 这里只是一个切入点，可以在方法执行前后添加数据过滤逻辑
-        
-        // 可以通过ThreadLocal传递数据权限信息给MyBatis拦截器
-        // 例如：DataScopeContextHolder.set(dataScope.value());
-        
-        try {
-            return joinPoint.proceed();
-        } finally {
-            // 清理ThreadLocal
-            // DataScopeContextHolder.clear();
-        }
-    }
-
-    /**
      * 检查权限
      */
     private boolean hasPermission(List<String> userPermissions, RequiresPermission requiresPermission) {
-        // 超级管理员拥有所有权限
-        if (userPermissions.contains("*:*:*") || userPermissions.contains("*")) {
+        Set<String> required = Arrays.stream(getRequiredPermissions(requiresPermission))
+            .filter(s -> s != null && !s.isBlank())
+            .collect(Collectors.toSet());
+        if (required.isEmpty()) {
+            return false;
+        }
+        if (userPermissions == null || userPermissions.isEmpty()) {
+            return false;
+        }
+        Set<String> userSet = new HashSet<>(userPermissions);
+        if (userSet.contains("*") || userSet.contains("*:*")) {
             return true;
         }
-
-        String[] permissions = getRequiredPermissions(requiresPermission);
-        
         if (requiresPermission.logical() == RequiresPermission.Logical.AND) {
-            // 需要所有权限
-            return Arrays.stream(permissions).allMatch(userPermissions::contains);
-        } else {
-            // 需要任一权限
-            return Arrays.stream(permissions).anyMatch(userPermissions::contains);
+            return required.stream().allMatch(userSet::contains);
         }
+        return required.stream().anyMatch(userSet::contains);
     }
 
     /**
      * 检查角色
      */
     private boolean hasRole(List<String> userRoles, RequiresRole requiresRole) {
-        // 超级管理员拥有所有角色
-        if (userRoles.contains("admin") || userRoles.contains("super_admin")) {
+        Set<String> required = Arrays.stream(getRequiredRoles(requiresRole))
+            .filter(s -> s != null && !s.isBlank())
+            .collect(Collectors.toSet());
+        if (required.isEmpty()) {
+            return false;
+        }
+        if (userRoles == null || userRoles.isEmpty()) {
+            return false;
+        }
+        Set<String> userSet = new HashSet<>(userRoles);
+        if (userSet.contains("super_admin") || userSet.contains("admin")) {
             return true;
         }
-
-        String[] roles = getRequiredRoles(requiresRole);
-        
         if (requiresRole.logical() == RequiresRole.Logical.AND) {
-            // 需要所有角色
-            return Arrays.stream(roles).allMatch(userRoles::contains);
-        } else {
-            // 需要任一角色
-            return Arrays.stream(roles).anyMatch(userRoles::contains);
+            return required.stream().allMatch(userSet::contains);
         }
+        return required.stream().anyMatch(userSet::contains);
     }
 
     /**
