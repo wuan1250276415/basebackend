@@ -87,8 +87,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardNotifications'],
       queryFn: async () => {
-        const res = await notificationApi.getNotifications(5)
-        return res.data || []
+        const data = await notificationApi.getNotifications(5)
+        return data || []
       },
       refetchInterval: 60000,
     },
@@ -96,8 +96,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardUnreadCount'],
       queryFn: async () => {
-        const res = await notificationApi.getUnreadCount()
-        return res.data || 0
+        const count = await notificationApi.getUnreadCount()
+        return count
       },
       refetchInterval: 60000,
     },
@@ -132,20 +132,20 @@ export const useDashboardData = () => {
   const serverInfo = serverInfoQuery.data
   const systemMonitor: SystemMonitorData | null = serverInfo
     ? {
-        cpuUsage: serverInfo.cpu?.usage || 0,
-        memoryUsage: serverInfo.memory?.usage || 0,
-        jvmMemoryUsed: serverInfo.jvm?.memoryUsed || 0,
-        jvmMemoryTotal: serverInfo.jvm?.memoryTotal || 0,
-        systemLoad: {
-          load1: serverInfo.sys?.load1 || 0,
-          load5: serverInfo.sys?.load5 || 0,
-          load15: serverInfo.sys?.load15 || 0,
-        },
-        apiCallsPerMin: 0, // 需要可观测性 API
-        apiErrorRate: 0, // 需要可观测性 API
-        avgResponseTime: 0, // 需要可观测性 API
-        activeRequests: 0, // 需要可观测性 API
-      }
+      cpuUsage: serverInfo.cpu?.usage || 0,
+      memoryUsage: serverInfo.memory?.usage || 0,
+      jvmMemoryUsed: serverInfo.jvm?.memoryUsed || 0,
+      jvmMemoryTotal: serverInfo.jvm?.memoryTotal || 0,
+      systemLoad: {
+        load1: serverInfo.sys?.load1 || 0,
+        load5: serverInfo.sys?.load5 || 0,
+        load15: serverInfo.sys?.load15 || 0,
+      },
+      apiCallsPerMin: 0, // 需要可观测性 API
+      apiErrorRate: 0, // 需要可观测性 API
+      avgResponseTime: 0, // 需要可观测性 API
+      activeRequests: 0, // 需要可观测性 API
+    }
     : null
 
   // 判断是否加载中

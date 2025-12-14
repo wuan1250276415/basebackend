@@ -17,6 +17,7 @@ import {
   Drawer,
 } from 'antd'
 import {
+  PlusOutlined,
   UploadOutlined,
   DeleteOutlined,
   EyeOutlined,
@@ -64,8 +65,8 @@ const ProcessDefinitionList: React.FC = () => {
     setLoading(true)
     try {
       const response = await listProcessDefinitions()
-      if (response.success) {
-        const definitionList = response.data?.list || []
+      if (response.code === 200) {
+        const definitionList = response.data?.records || []
         setDefinitions(definitionList)
         setFilteredDefinitions(definitionList)
       } else {
@@ -120,11 +121,12 @@ const ProcessDefinitionList: React.FC = () => {
     try {
       const file = fileList[0].originFileObj as File
       const response = await deployProcessDefinition({
-        name: values.name,
         file: file,
+        deploymentName: values.name,
+        name: values.name,
       })
 
-      if (response.success) {
+      if (response.code === 200) {
         message.success('部署成功')
         setDeployModalVisible(false)
         form.resetFields()
@@ -150,7 +152,7 @@ const ProcessDefinitionList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await deleteDeployment(definition.deploymentId, true)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('删除成功')
             loadDefinitions()
           } else {
@@ -172,7 +174,7 @@ const ProcessDefinitionList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await suspendProcessDefinition(definition.id)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('挂起成功')
             loadDefinitions()
           } else {
@@ -194,7 +196,7 @@ const ProcessDefinitionList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await activateProcessDefinition(definition.id)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('激活成功')
             loadDefinitions()
           } else {
@@ -212,7 +214,7 @@ const ProcessDefinitionList: React.FC = () => {
   const handleViewXml = async (definition: ProcessDefinition) => {
     try {
       const response = await getProcessDefinitionXml(definition.id)
-      if (response.success && response.data) {
+      if (response.code === 200 && response.data) {
         setCurrentXml(response.data.xml)
         setCurrentDefinition(definition)
         setXmlDrawerVisible(true)
@@ -396,7 +398,14 @@ const ProcessDefinitionList: React.FC = () => {
         title="流程定义管理"
         extra={
           <Space>
-            <Button type="primary" icon={<UploadOutlined />} onClick={() => setDeployModalVisible(true)}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/workflow/bpmn-designer')}
+            >
+              在线设计
+            </Button>
+            <Button icon={<UploadOutlined />} onClick={() => setDeployModalVisible(true)}>
               部署流程
             </Button>
             <Button onClick={loadDefinitions}>刷新</Button>

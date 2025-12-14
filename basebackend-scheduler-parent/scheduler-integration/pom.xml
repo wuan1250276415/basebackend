@@ -68,6 +68,11 @@
 
         <dependency>
             <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-logging</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
             <artifactId>basebackend-feign-api</artifactId>
             <version>${project.version}</version>
         </dependency>

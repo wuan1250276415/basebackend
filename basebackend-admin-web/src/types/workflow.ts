@@ -10,22 +10,23 @@ export interface ProcessDefinition {
   name: string
   version: number
   deploymentId: string
-  resourceName: string
-  diagramResourceName: string | null
+  resourceName?: string
+  diagramResourceName?: string | null
   suspended: boolean
   tenantId: string | null
-  versionTag: string | null
+  versionTag?: string | null
   description: string | null
-  deploymentTime: string
+  deploymentTime?: string
 }
 
 export interface ProcessDefinitionQueryParams {
   key?: string
   name?: string
-  latest?: boolean
+  latestVersion?: boolean
   suspended?: boolean
-  page?: number
+  current?: number
   size?: number
+  tenantId?: string
 }
 
 // ==================== 流程实例 ====================
@@ -34,31 +35,35 @@ export interface ProcessInstance {
   id: string
   businessKey: string
   processDefinitionId: string
-  processDefinitionKey: string
-  processDefinitionName: string
-  suspended: boolean
-  ended: boolean
-  startTime: string
-  endTime: string | null
-  durationInMillis: number | null
+  processDefinitionKey?: string // Doc doesn't show this in response but it's common.
+  processDefinitionName?: string
+  suspended?: boolean
+  ended?: boolean // Doc doesn't explicitly show.
+  startTime?: string
+  endTime?: string | null
+  durationInMillis?: number | null
   tenantId: string | null
-  variables: Record<string, any>
-  startUserId: string | null
+  variables?: Record<string, any>
+  startUserId?: string | null
 }
 
 export interface StartProcessInstanceParams {
-  processDefinitionKey: string
-  businessKey: string
-  variables: Record<string, any>
+  processDefinitionId?: string
+  processDefinitionKey?: string
+  businessKey?: string
+  variables?: Record<string, any>
+  tenantId?: string
 }
 
 export interface ProcessInstanceQueryParams {
   processDefinitionKey?: string
   businessKey?: string
   suspended?: boolean
-  active?: boolean
-  page?: number
+  active?: boolean // Custom helper if needed
+  current?: number
   size?: number
+  withVariables?: boolean
+  tenantId?: string
 }
 
 // ==================== 任务 ====================
@@ -66,34 +71,37 @@ export interface ProcessInstanceQueryParams {
 export interface Task {
   id: string
   name: string
-  taskDefinitionKey: string
+  taskDefinitionKey?: string
   processInstanceId: string
   processDefinitionId: string
-  executionId: string
+  executionId?: string
   assignee: string | null
-  candidateUsers: string | null
-  candidateGroups: string | null
+  owner?: string
+  candidateUsers?: string | null
+  candidateGroups?: string | null
   createTime: string
   dueDate: string | null
   followUpDate: string | null
   priority: number
   description: string | null
   tenantId: string | null
-  variables: Record<string, any>
+  variables?: Record<string, any>
 }
 
 export interface TaskQueryParams {
   assignee?: string
   candidateUser?: string
+  candidateGroup?: string
   processInstanceId?: string
   processDefinitionKey?: string
-  taskDefinitionKey?: string
-  page?: number
+  name?: string
+  current?: number
   size?: number
+  tenantId?: string
 }
 
 export interface CompleteTaskParams {
-  variables: Record<string, any>
+  variables?: Record<string, any>
 }
 
 export interface ClaimTaskParams {
@@ -110,146 +118,165 @@ export interface FormTemplate {
   id: string
   name: string
   description: string | null
-  formKey: string
-  processDefinitionKey: string | null
-  schema: FormSchema
-  createTime: string
-  updateTime: string
-}
-
-export interface FormSchema {
-  type: 'object'
-  properties: Record<string, FormField>
-  required?: string[]
-}
-
-export interface FormField {
   type: string
-  title: string
-  description?: string
-  default?: any
-  enum?: any[]
-  format?: string
-  minimum?: number
-  maximum?: number
-  pattern?: string
-  minLength?: number
-  maxLength?: number
-  'x-component'?: string
-  'x-component-props'?: Record<string, any>
-  'x-decorator'?: string
-  'x-decorator-props'?: Record<string, any>
-  'x-reactions'?: any
+  content: string // JSON content
+  tenantId: string | null
+  version: number
+  status?: number // 1 enabled, 0 disabled
+  createTime?: string
+  updateTime?: string
 }
 
 export interface FormTemplateQueryParams {
   name?: string
-  processDefinitionKey?: string
-  page?: number
+  keyword?: string
+  type?: string
+  status?: number
+  current?: number
   size?: number
+  tenantId?: string
+}
+
+export interface FormTemplateCreateParams {
+  name: string
+  description?: string
+  type: string
+  content: string
+  tenantId?: string
+}
+
+export interface FormTemplateUpdateParams {
+  name?: string
+  description?: string
+  content?: string
 }
 
 // ==================== 流程历史 ====================
 
 export interface HistoricProcessInstance {
   id: string
-  businessKey: string
+  businessKey?: string
   processDefinitionId: string
   processDefinitionKey: string
   processDefinitionName: string
+  processDefinitionVersion: number
   startTime: string
   endTime: string | null
   durationInMillis: number | null
   startUserId: string | null
   deleteReason: string | null
   tenantId: string | null
+  state: string
 }
 
-export interface HistoricTaskInstance {
-  id: string
-  processInstanceId: string
-  taskDefinitionKey: string
-  name: string
-  assignee: string | null
-  startTime: string
-  endTime: string | null
-  durationInMillis: number | null
-  deleteReason: string | null
-  priority: number
-  dueDate: string | null
-}
-
-export interface ApprovalHistory {
-  taskId: string
-  taskName: string
-  assignee: string
-  assigneeName: string
-  startTime: string
-  endTime: string | null
-  durationInMillis: number | null
-  approved: boolean | null
-  comment: string | null
-}
-
-export interface HistoricQueryParams {
+export interface HistoricProcessInstanceQuery {
   processDefinitionKey?: string
+  processDefinitionId?: string
   businessKey?: string
-  startedAfter?: string
-  startedBefore?: string
-  finishedAfter?: string
-  finishedBefore?: string
-  page?: number
+  startedBy?: string
+  finished?: boolean
+  tenantId?: string
+  current?: number
   size?: number
-}
-
-// ==================== 流程模板 ====================
-
-export enum ProcessTemplateType {
-  LEAVE = 'leave',
-  EXPENSE = 'expense',
-  PURCHASE = 'purchase',
-}
-
-export interface ProcessTemplate {
-  type: ProcessTemplateType
-  name: string
-  description: string
-  icon: string
-  processDefinitionKey: string
-  formKey: string
-  schema: FormSchema
 }
 
 // ==================== 流程统计 ====================
 
-export interface ProcessStatistics {
-  totalProcesses: number
-  runningProcesses: number
-  completedProcesses: number
-  failedProcesses: number
-  avgDurationInMillis: number
-  processCountByDay: Array<{
-    date: string
-    count: number
-  }>
-  processCountByType: Array<{
-    type: string
-    count: number
-  }>
+export interface ProcessDefinitionsStatistics {
+  totalDeployments: number
+  totalDefinitions: number
+  activeDefinitions: number
+  suspendedDefinitions: number
+}
+
+export interface InstanceStatistics {
+  runningInstances: number
+  completedInstances: number
+  terminatedInstances: number
+}
+
+export interface TaskStatistics {
+  pendingTasks: number
+  completedTasks: number
+  overdueTasks: number
+}
+
+export interface WorkflowOverview {
+  processDefinitions: ProcessDefinitionsStatistics
+  instances: InstanceStatistics
+  tasks: TaskStatistics
 }
 
 // ==================== API 响应 ====================
 
 export interface ApiResponse<T = any> {
-  success: boolean
+  code: number // Camunda wrapper usually returns code 200
+  message: string
   data: T
-  message?: string
-  total?: number
 }
 
 export interface PageResult<T> {
-  list: T[]
+  records: T[]
   total: number
-  page: number
+  current: number
   size: number
+}
+
+export interface HistoricActivityInstance {
+  id: string
+  activityId: string
+  activityName: string
+  activityType: string
+  startTime: string
+  endTime?: string
+  durationInMillis?: number
+  taskId?: string
+  assignee?: string
+  completeScope: boolean
+  canceled: boolean
+}
+
+export interface UserOperationLog {
+  id: string
+  deploymentId?: string
+  processDefinitionId?: string
+  processDefinitionKey?: string
+  processInstanceId?: string
+  executionId?: string
+  caseDefinitionId?: string
+  caseInstanceId?: string
+  caseExecutionId?: string
+  taskId?: string
+  jobId?: string
+  jobDefinitionId?: string
+  batchId?: string
+  userId?: string
+  timestamp: string
+  operationId: string
+  operationType: string
+  entityType: string
+  property?: string
+  orgValue?: string
+  newValue?: string
+}
+
+export interface HelperPageQuery {
+  current?: number
+  size?: number
+}
+
+// Alias for SimplePageQuery if used
+export type SimplePageQuery = HelperPageQuery
+
+export interface HistoricProcessInstanceStatus {
+  instanceId: string
+  status: 'COMPLETED' | 'EXTERNALLY_TERMINATED' | 'INTERNALLY_TERMINATED' | 'ACTIVE' | 'SUSPENDED'
+  startTime: string
+  endTime?: string
+  durationInMillis?: number
+}
+
+export interface HistoricProcessInstanceDetail extends HistoricProcessInstance {
+  variables: Record<string, any>
+  activities: HistoricActivityInstance[]
 }

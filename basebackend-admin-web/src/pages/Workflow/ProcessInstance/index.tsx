@@ -62,8 +62,8 @@ const ProcessInstanceList: React.FC = () => {
   const loadDefinitions = async () => {
     try {
       const response = await listProcessDefinitions()
-      if (response.success) {
-        setDefinitions(response.data?.list || [])
+      if (response.code === 200) {
+        setDefinitions(response.data?.records || [])
       }
     } catch (error) {
       console.error('加载流程定义失败', error)
@@ -75,8 +75,8 @@ const ProcessInstanceList: React.FC = () => {
     setLoading(true)
     try {
       const response = await listProcessInstances({})
-      if (response.success) {
-        const instanceList = response.data?.list || []
+      if (response.code === 200) {
+        const instanceList = response.data?.records || []
         setInstances(instanceList)
         setFilteredInstances(instanceList)
       } else {
@@ -150,7 +150,7 @@ const ProcessInstanceList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await suspendProcessInstance(instance.id)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('挂起成功')
             loadInstances()
           } else {
@@ -172,7 +172,7 @@ const ProcessInstanceList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await activateProcessInstance(instance.id)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('激活成功')
             loadInstances()
           } else {
@@ -195,7 +195,7 @@ const ProcessInstanceList: React.FC = () => {
       onOk: async () => {
         try {
           const response = await deleteProcessInstance(instance.id)
-          if (response.success) {
+          if (response.code === 200) {
             message.success('删除成功')
             loadInstances()
           } else {

@@ -58,20 +58,20 @@ const TaskDetail: React.FC = () => {
     try {
       // 加载任务信息
       const taskResponse = await getTaskById(taskId)
-      if (taskResponse.success && taskResponse.data) {
+      if (taskResponse.code === 200 && taskResponse.data) {
         const taskData = taskResponse.data
         setTask(taskData)
 
         // 加载任务变量
         const variablesResponse = await getTaskVariables(taskId)
-        if (variablesResponse.success) {
+        if (variablesResponse.code === 200) {
           setVariables(variablesResponse.data || {})
         }
 
         // 加载流程实例信息
         if (taskData.processInstanceId) {
           const instanceResponse = await getProcessInstanceById(taskData.processInstanceId)
-          if (instanceResponse.success) {
+          if (instanceResponse.code === 200) {
             setProcessInstance(instanceResponse.data)
           }
 
@@ -80,8 +80,8 @@ const TaskDetail: React.FC = () => {
             taskData.processInstanceId,
             { size: 100 }
           )
-          if (historyResponse.success) {
-            const activities = historyResponse.data?.list || []
+          if (historyResponse.code === 200) {
+            const activities = historyResponse.data?.records || []
             const userTasks = activities
               .filter((activity) => activity.activityType === 'userTask')
               .map((activity) => ({
@@ -123,7 +123,7 @@ const TaskDetail: React.FC = () => {
       }
 
       const response = await completeTask(taskId, { variables: approvalVariables })
-      if (response.success) {
+      if (response.code === 200) {
         message.success('审批成功')
         navigate('/workflow/todo')
       } else {

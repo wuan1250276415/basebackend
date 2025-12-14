@@ -30,6 +30,7 @@
     "ahooks": "^3.7.8",
     "antd": "^5.12.0",
     "axios": "^1.6.2",
+    "bpmn-js": "^18.9.1",
     "dayjs": "^1.11.10",
     "i18next": "^23.7.6",
     "i18next-browser-languagedetector": "^7.2.0",

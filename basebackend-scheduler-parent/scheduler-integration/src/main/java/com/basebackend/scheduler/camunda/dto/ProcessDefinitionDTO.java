@@ -94,6 +94,24 @@ public class ProcessDefinitionDTO {
     private String diagramResourceName;
 
     /**
+     * 部署时间
+     */
+    @Schema(description = "部署时间")
+    private java.util.Date deploymentTime;
+
+    /**
+     * 历史生存时间
+     */
+    @Schema(description = "历史生存时间", example = "180")
+    private Integer historyTimeToLive;
+
+    /**
+     * 是否可在任务列表中启动
+     */
+    @Schema(description = "是否可在任务列表中启动", example = "true")
+    private boolean startableInTasklist;
+
+    /**
      * 从 Camunda ProcessDefinition 转换为 DTO
      *
      * @param definition Camunda 流程定义
@@ -116,39 +134,8 @@ public class ProcessDefinitionDTO {
                 .suspended(definition.isSuspended())
                 .resourceName(definition.getResourceName())
                 .diagramResourceName(definition.getDiagramResourceName())
+                .historyTimeToLive(definition.getHistoryTimeToLive())
+                .startableInTasklist(definition.isStartableInTasklist())
                 .build();
-    }
-
-    public void setHistoryTimeToLive(Integer historyTimeToLive) {
-
-    }
-
-    public void setStartableInTasklist(boolean startableInTasklist) {
-    }
-
-    // ========== 兼容性方法（用于测试兼容）==========
-
-    /**
-     * 设置部署时间（兼容性方法）
-     * @param deploymentTime 部署时间
-     */
-    public void setDeploymentTime(java.time.Instant deploymentTime) {
-        // 这个字段在当前DTO中不存在，忽略或记录
-    }
-
-    /**
-     * 设置部署时间（兼容性方法 - Instant重载）
-     * @param deploymentTime 部署时间
-     */
-    public void setDeploymentTime(java.time.LocalDateTime deploymentTime) {
-        // 这个字段在当前DTO中不存在，忽略或记录
-    }
-
-    /**
-     * 获取部署时间（兼容性方法）
-     * @return 部署时间
-     */
-    public java.time.Instant getDeploymentTime() {
-        return null;
     }
 }

@@ -107,26 +107,7 @@ spring:
     bootstrap:
       enabled: ${SPRING_CLOUD_BOOTSTRAP_ENABLED:true}
 
-# ========== 日志配置 ==========
-logging:
-  level:
-    root: ${LOGGING_LEVEL_ROOT:INFO}
-    com.basebackend.scheduler: ${LOGGING_LEVEL_SCHEDULER:INFO}
-    org.camunda.bpm: ${LOGGING_LEVEL_CAMUNDA:WARN}
-    tech.powerjob: ${LOGGING_LEVEL_POWERJOB:INFO}
-    org.springframework: ${LOGGING_LEVEL_SPRING:WARN}
-    com.basebackend.scheduler.mapper: ${LOGGING_LEVEL_MYBATIS:DEBUG}
-    # 抑制 JMX/RMI 调试日志
-    sun.rmi: WARN
-    javax.management.remote.rmi: WARN
-  pattern:
-    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-  file:
-    path: ${LOGGING_FILE_PATH:logs}
-    name: ${LOGGING_FILE_NAME:${logging.file.path}/scheduler.log}
-    max-size: ${LOGGING_FILE_MAX_SIZE:100MB}
-    max-history: ${LOGGING_FILE_MAX_HISTORY:30}
+
 
 # ========================================
 # Scheduler Module Configuration

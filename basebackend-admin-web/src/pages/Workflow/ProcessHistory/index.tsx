@@ -34,7 +34,7 @@ import {
   listHistoricProcessInstances,
   listHistoricActivities,
 } from '@/api/workflow/history'
-import type { HistoricProcessInstance } from '@/api/workflow/history'
+import type { HistoricProcessInstance } from '@/types/workflow'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -62,8 +62,8 @@ const ProcessHistory: React.FC = () => {
     setLoading(true)
     try {
       const response = await listHistoricProcessInstances({})
-      if (response.success) {
-        const instanceList = response.data?.list || []
+      if (response.code === 200) {
+        const instanceList = response.data?.records || []
         setInstances(instanceList)
         setFilteredInstances(instanceList)
       } else {
@@ -127,8 +127,8 @@ const ProcessHistory: React.FC = () => {
 
     try {
       const response = await listHistoricActivities(instance.id, { size: 100 })
-      if (response.success) {
-        const activities = response.data?.list || []
+      if (response.code === 200) {
+        const activities = response.data?.records || []
         // Process activities to user task history format
         const userTasks = activities
           .filter(activity => activity.activityType === 'userTask')

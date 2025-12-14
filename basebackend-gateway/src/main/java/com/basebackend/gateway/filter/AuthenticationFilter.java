@@ -64,8 +64,23 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      */
     private static final Duration DEFAULT_REDIS_TIMEOUT = Duration.ofSeconds(2);
 
+    /**
+     * Exchange 属性：标记认证是否已完成（防止响应式流重复触发）
+     */
+    private static final String AUTH_COMPLETED_ATTR = "auth.completed";
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 幂等性保护：检查是否已经完成认证
+        // 在响应式流中，filter 可能被多次订阅触发（特别是 multipart 上传请求）
+        Boolean authCompleted = exchange.getAttribute(AUTH_COMPLETED_ATTR);
+        if (Boolean.TRUE.equals(authCompleted)) {
+            if (securityProperties.isDebugLogging()) {
+                log.debug("认证已完成，跳过重复验证");
+            }
+            return chain.filter(exchange);
+        }
+
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().toString();
 
@@ -116,42 +131,50 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         // 检查Redis中的Token是否存在（防止强制下线后仍能访问）
         // 添加超时控制，防止 Redis 操作无限等待
         String redisTokenKey = LOGIN_TOKEN_KEY + userId;
+        final Long finalUserId = userId;
+        final String finalToken = token;
+
         return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
                 .timeout(timeout)
                 .flatMap(redisToken -> {
                     // 防止NPE：显式检查null
                     if (redisToken == null) {
-                        log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", userId);
+                        log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", finalUserId);
                         return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
                     }
 
                     // 安全地转换为字符串进行比较
                     String redisTokenStr = String.valueOf(redisToken);
-                    if (!token.equals(redisTokenStr)) {
-                        log.warn("用户 {} 的Token与Redis中的Token不一致", userId);
+                    if (!finalToken.equals(redisTokenStr)) {
+                        log.warn("用户 {} 的Token与Redis中的Token不一致", finalUserId);
                         return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_MISMATCH);
                     }
 
+                    // 标记认证完成（防止响应式流重复触发时再次验证）
+                    exchange.getAttributes().put(AUTH_COMPLETED_ATTR, Boolean.TRUE);
+
                     // Token验证通过，添加用户信息到请求头
                     ServerHttpRequest mutatedRequest = request.mutate()
-                            .header("X-User-Id", String.valueOf(userId))
+                            .header("X-User-Id", String.valueOf(finalUserId))
                             .build();
 
                     return chain.filter(exchange.mutate().request(mutatedRequest).build());
                 })
                 // 处理Redis返回空值的情况（key不存在时）
                 .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", userId);
+                    log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", finalUserId);
                     return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
                 }))
                 .onErrorResume(TimeoutException.class, e -> {
-                    log.error("Redis验证Token超时，用户ID: {}", userId);
+                    log.error("Redis验证Token超时，用户ID: {}", finalUserId);
                     return unauthorized(exchange.getResponse(), GatewayErrorCode.AUTH_SERVICE_BUSY);
                 })
                 .onErrorResume(e -> {
                     log.error("Redis验证Token失败: {}", e.getMessage(), e);
                     return unauthorized(exchange.getResponse(), GatewayErrorCode.AUTH_SERVICE_ERROR);
-                });
+                })
+                // 使用 cache() 确保 Mono 只被订阅执行一次
+                .cache();
     }
 
     /**

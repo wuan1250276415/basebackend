@@ -26,9 +26,9 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 
-import { listProcessInstances } from '@/api/workflow/processInstance'
+import { listHistoricProcessInstances } from '@/api/workflow/history'
 import { useAuthStore } from '@/stores/auth'
-import type { ProcessInstance } from '@/types/workflow'
+import type { HistoricProcessInstance } from '@/types/workflow'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -39,26 +39,26 @@ const { RangePicker } = DatePicker
 
 const MyInitiated: React.FC = () => {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { userInfo } = useAuthStore()
 
   const [loading, setLoading] = useState(false)
-  const [instances, setInstances] = useState<ProcessInstance[]>([])
-  const [filteredInstances, setFilteredInstances] = useState<ProcessInstance[]>([])
+  const [instances, setInstances] = useState<HistoricProcessInstance[]>([])
+  const [filteredInstances, setFilteredInstances] = useState<HistoricProcessInstance[]>([])
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
   // 加载流程实例
   const loadInstances = async () => {
-    if (!user) return
+    if (!userInfo?.username) return
 
     setLoading(true)
     try {
-      const response = await listProcessInstances({
-        startedBy: user.username,
+      const response = await listHistoricProcessInstances({
+        startedBy: userInfo.username,
       })
-      if (response.success) {
-        const instanceList = response.data?.list || []
+      if (response.code === 200) {
+        const instanceList = response.data?.records || []
         setInstances(instanceList)
         setFilteredInstances(instanceList)
       } else {
@@ -74,7 +74,7 @@ const MyInitiated: React.FC = () => {
 
   useEffect(() => {
     loadInstances()
-  }, [user])
+  }, [userInfo])
 
   // 过滤逻辑
   useEffect(() => {
@@ -93,11 +93,11 @@ const MyInitiated: React.FC = () => {
     // 状态过滤
     if (statusFilter !== 'all') {
       if (statusFilter === 'active') {
-        filtered = filtered.filter((instance) => !instance.ended && !instance.suspended)
+        filtered = filtered.filter((instance) => instance.state === 'ACTIVE')
       } else if (statusFilter === 'suspended') {
-        filtered = filtered.filter((instance) => instance.suspended)
+        filtered = filtered.filter((instance) => instance.state === 'SUSPENDED')
       } else if (statusFilter === 'completed') {
-        filtered = filtered.filter((instance) => instance.ended)
+        filtered = filtered.filter((instance) => ['COMPLETED', 'EXTERNALLY_TERMINATED', 'INTERNALLY_TERMINATED'].includes(instance.state))
       }
     }
 
@@ -114,19 +114,19 @@ const MyInitiated: React.FC = () => {
   }, [searchText, statusFilter, dateRange, instances])
 
   // 查看详情
-  const handleView = (instance: ProcessInstance) => {
+  const handleView = (instance: HistoricProcessInstance) => {
     navigate(`/workflow/instance/${instance.id}`)
   }
 
   // 获取流程状态标签
-  const getStatusTag = (instance: ProcessInstance) => {
-    if (instance.ended) {
+  const getStatusTag = (instance: HistoricProcessInstance) => {
+    if (['COMPLETED', 'EXTERNALLY_TERMINATED', 'INTERNALLY_TERMINATED'].includes(instance.state)) {
       return (
         <Tag icon={<CheckCircleOutlined />} color="success">
           已完成
         </Tag>
       )
-    } else if (instance.suspended) {
+    } else if (instance.state === 'SUSPENDED') {
       return (
         <Tag icon={<CloseCircleOutlined />} color="error">
           已挂起
@@ -154,7 +154,7 @@ const MyInitiated: React.FC = () => {
     }
   }
 
-  const columns: ColumnsType<ProcessInstance> = [
+  const columns: ColumnsType<HistoricProcessInstance> = [
     {
       title: '流程名称',
       dataIndex: 'processDefinitionName',
@@ -248,7 +248,8 @@ const MyInitiated: React.FC = () => {
       key: 'duration',
       width: 120,
       render: (_, record) => {
-        if (record.ended && record.endTime) {
+        const isEnded = ['COMPLETED', 'EXTERNALLY_TERMINATED', 'INTERNALLY_TERMINATED'].includes(record.state)
+        if (isEnded && record.endTime) {
           const duration = dayjs(record.endTime).diff(dayjs(record.startTime), 'minute')
           if (duration < 60) {
             return `${duration}分钟`
@@ -343,7 +344,7 @@ const MyInitiated: React.FC = () => {
           <Card size="small">
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
-                {instances.filter((i) => !i.ended && !i.suspended).length}
+                {instances.filter((i) => i.state === 'ACTIVE').length}
               </div>
               <div style={{ color: '#999' }}>进行中</div>
             </div>
@@ -353,7 +354,7 @@ const MyInitiated: React.FC = () => {
           <Card size="small">
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#13c2c2' }}>
-                {instances.filter((i) => i.ended).length}
+                {instances.filter((i) => ['COMPLETED', 'EXTERNALLY_TERMINATED', 'INTERNALLY_TERMINATED'].includes(i.state)).length}
               </div>
               <div style={{ color: '#999' }}>已完成</div>
             </div>
@@ -363,7 +364,7 @@ const MyInitiated: React.FC = () => {
           <Card size="small">
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f5222d' }}>
-                {instances.filter((i) => i.suspended).length}
+                {instances.filter((i) => i.state === 'SUSPENDED').length}
               </div>
               <div style={{ color: '#999' }}>已挂起</div>
             </div>

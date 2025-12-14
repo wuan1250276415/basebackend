@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
 /**
  * 表单模板服务实现类
  *
- * <p>提供表单模板的CRUD操作，支持版本管理和缓存。
+ * <p>
+ * 提供表单模板的CRUD操作，支持版本管理和缓存。
  *
  * @author BaseBackend Team
  * @version 1.0.0
@@ -76,7 +77,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
 
-            return PageResult.of(dtoList, result.getTotal(), (long)pageNum, (long)pageSize);
+            return PageResult.of(dtoList, result.getTotal(), (long) pageNum, (long) pageSize);
         } catch (Exception ex) {
             log.error("Failed to query form templates", ex);
             throw new CamundaServiceException("查询表单模板失败: " + ex.getMessage(), ex);
@@ -85,7 +86,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "formTemplates", key = "'detail_' + #id")
+    @Cacheable(value = "formTemplates", key = "'detail_' + #id", cacheManager = "workflowCacheManager")
     public FormTemplateDTO detail(Long id) {
         try {
             log.info("Getting form template detail, id={}", id);
@@ -107,7 +108,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "formTemplates", allEntries = true)
+    @CacheEvict(value = "formTemplates", allEntries = true, cacheManager = "workflowCacheManager")
     public FormTemplateDTO create(FormTemplateCreateRequest request) {
         try {
             log.info("Creating form template, formCode={}", request.getFormCode());
@@ -151,7 +152,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "formTemplates", allEntries = true)
+    @CacheEvict(value = "formTemplates", allEntries = true, cacheManager = "workflowCacheManager")
     public FormTemplateDTO update(Long id, FormTemplateUpdateRequest request) {
         try {
             log.info("Updating form template, id={}", id);
@@ -199,7 +200,7 @@ public class FormTemplateServiceImpl implements FormTemplateService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "formTemplates", allEntries = true)
+    @CacheEvict(value = "formTemplates", allEntries = true, cacheManager = "workflowCacheManager")
     public void delete(Long id) {
         try {
             log.info("Deleting form template, id={}", id);

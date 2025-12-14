@@ -24,7 +24,7 @@ import DeadLetter from '@/pages/Integration/DeadLetter'
 import Profile from '@/pages/User/Profile'
 import NotificationCenter from '@/pages/Notification'
 import ApiDocs from '@/pages/Developer/ApiDocs'
-// import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
+import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
 import TaskDetail from '@/pages/Workflow/TaskManagement/TaskDetail'
 import MyInitiated from '@/pages/Workflow/TaskManagement/MyInitiated'
 import ProcessTemplateIndex from '@/pages/Workflow/ProcessTemplate'
@@ -35,6 +35,9 @@ import ProcessInstanceList from '@/pages/Workflow/ProcessInstance'
 import ProcessInstanceDetail from '@/pages/Workflow/ProcessInstance/Detail'
 import ProcessDefinitionList from '@/pages/Workflow/ProcessDefinition'
 import ProcessHistory from '@/pages/Workflow/ProcessHistory'
+import BpmnDesigner from '@/pages/Workflow/BpmnDesigner'
+import FormTemplateList from '@/pages/Workflow/FormTemplate'
+import Statistics from '@/pages/Workflow/Statistics'
 import FileList from '@/pages/File/FileList'
 import RecycleBin from '@/pages/File/RecycleBin'
 import { useAuthStore } from '@/stores/auth'
@@ -58,7 +61,7 @@ const AppRouter = () => {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        
+
         {/* 系统管理 */}
         <Route path="system/user" element={<UserList />} />
         <Route path="system/role" element={<RoleList />} />
@@ -67,7 +70,7 @@ const AppRouter = () => {
         <Route path="system/dict" element={<DictList />} />
         <Route path="system/application" element={<ApplicationManagement />} />
         <Route path="system/application-resource" element={<ApplicationResourceManagement />} />
-        
+
         {/* 系统监控 */}
         <Route path="monitor/online" element={<OnlineUser />} />
         <Route path="monitor/server" element={<ServerMonitor />} />
@@ -96,7 +99,7 @@ const AppRouter = () => {
         <Route path="developer/api-docs" element={<ApiDocs />} />
 
         {/* 工作流管理 */}
-        {/* <Route path="workflow/todo" element={<TodoList />} /> */}
+        <Route path="workflow/todo" element={<TodoList />} />
         <Route path="workflow/todo/:taskId" element={<TaskDetail />} />
         <Route path="workflow/initiated" element={<MyInitiated />} />
         <Route path="workflow/template" element={<ProcessTemplateIndex />} />
@@ -107,6 +110,9 @@ const AppRouter = () => {
         <Route path="workflow/instance/:instanceId" element={<ProcessInstanceDetail />} />
         <Route path="workflow/definition" element={<ProcessDefinitionList />} />
         <Route path="workflow/history" element={<ProcessHistory />} />
+        <Route path="workflow/bpmn-designer" element={<BpmnDesigner />} />
+        <Route path="workflow/form-template" element={<FormTemplateList />} />
+        <Route path="workflow/statistics" element={<Statistics />} />
 
         {/* 文件管理 */}
         <Route path="file/list" element={<FileList />} />

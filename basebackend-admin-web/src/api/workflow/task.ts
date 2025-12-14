@@ -9,42 +9,57 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = '/api/workflow/tasks'
+const BASE_URL = '/basebackend-scheduler/api/camunda/tasks'
 
 /**
- * 查询待办任务
+ * 分页查询任务
+ * 支持租户、流程实例、任务分配人、候选用户/组过滤
+ */
+export const listTasks = async (
+  params?: TaskQueryParams
+): Promise<ApiResponse<PageResult<Task>>> => {
+  return request.get(BASE_URL, { params })
+}
+
+/**
+ * 查询待办任务 (Helper wrapper around listTasks)
  */
 export const listPendingTasks = async (
-  assignee: string
+  assignee: string,
+  params?: Omit<TaskQueryParams, 'assignee'>
 ): Promise<ApiResponse<PageResult<Task>>> => {
-  return request.get(`${BASE_URL}/pending/${assignee}`)
+  return listTasks({ ...params, assignee })
 }
 
 /**
- * 查询候选任务
+ * 查询候选任务 (Helper wrapper around listTasks)
  */
 export const listCandidateTasks = async (
-  candidateUser: string
+  candidateUser: string,
+  params?: Omit<TaskQueryParams, 'candidateUser'>
 ): Promise<ApiResponse<PageResult<Task>>> => {
-  return request.get(`${BASE_URL}/candidate/${candidateUser}`)
+  return listTasks({ ...params, candidateUser })
 }
 
 /**
- * 根据流程实例ID查询任务
+ * 根据流程实例ID查询任务 (Helper wrapper around listTasks)
  */
 export const listTasksByProcessInstanceId = async (
   processInstanceId: string
 ): Promise<ApiResponse<PageResult<Task>>> => {
-  return request.get(`${BASE_URL}/process-instance/${processInstanceId}`)
+  return listTasks({ processInstanceId })
 }
 
 /**
  * 根据任务ID查询任务
  */
 export const getTaskById = async (
-  taskId: string
+  taskId: string,
+  withVariables: boolean = false
 ): Promise<ApiResponse<Task>> => {
-  return request.get(`${BASE_URL}/${taskId}`)
+  return request.get(`${BASE_URL}/${taskId}`, {
+    params: { withVariables }
+  })
 }
 
 /**
@@ -62,13 +77,13 @@ export const completeTask = async (
  */
 export const claimTask = async (
   taskId: string,
-  userId: ClaimTaskParams
+  data: ClaimTaskParams
 ): Promise<ApiResponse> => {
-  return request.post(`${BASE_URL}/${taskId}/claim`, userId)
+  return request.post(`${BASE_URL}/${taskId}/claim`, data)
 }
 
 /**
- * 取消认领任务
+ * 释放任务 (Unclaim)
  */
 export const unclaimTask = async (taskId: string): Promise<ApiResponse> => {
   return request.post(`${BASE_URL}/${taskId}/unclaim`)
@@ -79,29 +94,9 @@ export const unclaimTask = async (taskId: string): Promise<ApiResponse> => {
  */
 export const delegateTask = async (
   taskId: string,
-  userId: DelegateTaskParams
+  data: DelegateTaskParams
 ): Promise<ApiResponse> => {
-  return request.post(`${BASE_URL}/${taskId}/delegate`, userId)
-}
-
-/**
- * 转办任务
- */
-export const assignTask = async (
-  taskId: string,
-  userId: { userId: string }
-): Promise<ApiResponse> => {
-  return request.post(`${BASE_URL}/${taskId}/assign`, userId)
-}
-
-/**
- * 设置任务变量
- */
-export const setTaskVariables = async (
-  taskId: string,
-  variables: Record<string, any>
-): Promise<ApiResponse> => {
-  return request.put(`${BASE_URL}/${taskId}/variables`, variables)
+  return request.post(`${BASE_URL}/${taskId}/delegate`, data)
 }
 
 /**
@@ -113,35 +108,60 @@ export const getTaskVariables = async (
   return request.get(`${BASE_URL}/${taskId}/variables`)
 }
 
-
 /**
- * 批量完成任务
+ * 设置/更新任务变量
  */
-export const batchCompleteTasks = async (data: {
-  taskIds: string[]
-  variables?: Record<string, any>
-}): Promise<
-  ApiResponse<{
-    successCount: number
-    failCount: number
-    errors: Record<string, string>
-  }>
-> => {
-  return request.post(`${BASE_URL}/batch-complete`, data)
+export const setTaskVariables = async (
+  taskId: string,
+  variables: { key: string; value: any; local?: boolean }
+): Promise<ApiResponse> => {
+  return request.put(`${BASE_URL}/${taskId}/variables`, variables)
 }
 
 /**
- * 批量分配任务
+ * 删除任务变量
  */
-export const batchAssignTasks = async (data: {
-  taskIds: string[]
-  userId: string
-}): Promise<
-  ApiResponse<{
-    successCount: number
-    failCount: number
-    errors: Record<string, string>
-  }>
-> => {
-  return request.post(`${BASE_URL}/batch-assign`, data)
+export const deleteTaskVariable = async (
+  taskId: string,
+  key: string
+): Promise<ApiResponse> => {
+  return request.delete(`${BASE_URL}/${taskId}/variables/${key}`)
+}
+
+/**
+ * 查询任务附件
+ */
+export const listTaskAttachments = async (
+  taskId: string
+): Promise<ApiResponse<any[]>> => {
+  return request.get(`${BASE_URL}/${taskId}/attachments`)
+}
+
+/**
+ * 添加任务附件
+ */
+export const addTaskAttachment = async (
+  taskId: string,
+  data: { name: string; description?: string; type: string; url: string }
+): Promise<ApiResponse<any>> => {
+  return request.post(`${BASE_URL}/${taskId}/attachments`, data)
+}
+
+/**
+ * 查询任务评论
+ */
+export const listTaskComments = async (
+  taskId: string
+): Promise<ApiResponse<any[]>> => {
+  return request.get(`${BASE_URL}/${taskId}/comments`)
+}
+
+/**
+ * 添加任务评论
+ */
+export const addTaskComment = async (
+  taskId: string,
+  data: { message: string }
+): Promise<ApiResponse<any>> => {
+  return request.post(`${BASE_URL}/${taskId}/comments`, data)
 }

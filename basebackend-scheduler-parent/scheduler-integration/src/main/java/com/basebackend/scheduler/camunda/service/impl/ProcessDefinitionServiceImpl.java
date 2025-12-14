@@ -21,13 +21,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.zip.ZipInputStream;
 
 /**
  * 流程定义服务实现类
  *
- * <p>提供流程定义的部署、查询、启动、挂起、激活等功能。
+ * <p>
+ * 提供流程定义的部署、查询、启动、挂起、激活等功能。
  * 集成缓存机制提升查询性能，支持租户隔离。
  *
  * @author BaseBackend Team
@@ -44,14 +52,19 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "processDefinitions", allEntries = true)
+    @CacheEvict(value = "processDefinitions", allEntries = true, cacheManager = "workflowCacheManager")
     public String deploy(ProcessDefinitionDeployRequest request) {
         try {
+            // 确定部署名称
+            String deploymentName = StringUtils.hasText(request.getDeploymentName())
+                    ? request.getDeploymentName()
+                    : (StringUtils.hasText(request.getName()) ? request.getName() : "Unnamed Deployment");
+
             log.info("Deploying process definition, name={}, tenantId={}",
-                    request.getName(), request.getTenantId());
+                    deploymentName, request.getTenantId());
 
             DeploymentBuilder builder = repositoryService.createDeployment()
-                    .name(request.getName())
+                    .name(deploymentName)
                     .source(request.getSource());
 
             // 设置租户ID
@@ -59,12 +72,23 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
                 builder.tenantId(request.getTenantId());
             }
 
-            // 添加BPMN资源
-            if (request.getBpmnContent() != null && request.getBpmnContent().length > 0) {
+            // 添加BPMN资源 - 优先使用 MultipartFile
+            if (request.getFile() != null && !request.getFile().isEmpty()) {
+                String resourceName = StringUtils.hasText(request.getResourceName())
+                        ? request.getResourceName()
+                        : request.getFile().getOriginalFilename();
+                builder.addInputStream(resourceName, request.getFile().getInputStream());
+                log.info("Adding BPMN resource from file: {}", resourceName);
+            } else if (request.getBpmnContent() != null && request.getBpmnContent().length > 0) {
+                String resourceName = StringUtils.hasText(request.getResourceName())
+                        ? request.getResourceName()
+                        : "process.bpmn";
                 builder.addInputStream(
-                        request.getResourceName(),
-                        new java.io.ByteArrayInputStream(request.getBpmnContent())
-                );
+                        resourceName,
+                        new java.io.ByteArrayInputStream(request.getBpmnContent()));
+                log.info("Adding BPMN resource from bpmnContent: {}", resourceName);
+            } else {
+                throw new CamundaServiceException("必须提供 BPMN 文件或内容");
             }
 
             // 启用重复过滤
@@ -75,7 +99,26 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
             Deployment deployment = builder.deploy();
 
             log.info("Process definition deployed successfully, deploymentId={}", deployment.getId());
+
+            // 调试：验证部署后的流程定义是否可以查询到
+            List<ProcessDefinition> deployedDefinitions = repositoryService
+                    .createProcessDefinitionQuery()
+                    .deploymentId(deployment.getId())
+                    .list();
+            log.info("DEBUG: Deployed process definitions count: {}, definitions: {}",
+                    deployedDefinitions.size(),
+                    deployedDefinitions.stream()
+                            .map(d -> String.format("[id=%s, key=%s, name=%s, version=%d]",
+                                    d.getId(), d.getKey(), d.getName(), d.getVersion()))
+                            .collect(Collectors.joining(", ")));
+
+            // 调试：查询所有流程定义总数
+            long totalDefinitions = repositoryService.createProcessDefinitionQuery().count();
+            log.info("DEBUG: Total process definitions in database: {}", totalDefinitions);
+
             return deployment.getId();
+        } catch (CamundaServiceException ex) {
+            throw ex;
         } catch (Exception ex) {
             log.error("Failed to deploy process definition, name={}", request.getName(), ex);
             throw new CamundaServiceException("部署流程定义失败: " + ex.getMessage(), ex);
@@ -90,7 +133,10 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
             int pageNum = Math.max(1, query.getPageNum());
             int pageSize = Math.min(Math.max(1, query.getPageSize()), PaginationConstants.MAX_PAGE_SIZE);
 
-            log.info("Querying process definitions, page={}, size={}", pageNum, pageSize);
+            log.info(
+                    "Querying process definitions, page={}, size={}, key={}, name={}, tenantId={}, latestOnly={}, suspended={}",
+                    pageNum, pageSize, query.getKey(), query.getName(), query.getTenantId(),
+                    query.isLatestOnly(), query.isSuspended());
 
             ProcessDefinitionQuery definitionQuery = repositoryService
                     .createProcessDefinitionQuery();
@@ -100,6 +146,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
             // 统计总数
             long total = definitionQuery.count();
+            log.info("Process definition total count: {}", total);
 
             // 分页查询
             int firstResult = (pageNum - 1) * pageSize;
@@ -108,12 +155,33 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
                     .orderByProcessDefinitionVersion().desc()
                     .listPage(firstResult, pageSize);
 
+            log.info("Process definitions retrieved: {}", definitions.size());
+
+            // 批量查询部署信息以获取部署时间
+            Set<String> deploymentIds = definitions.stream()
+                    .map(ProcessDefinition::getDeploymentId)
+                    .collect(Collectors.toSet());
+
+            Map<String, Deployment> deploymentMap = new HashMap<>();
+            if (!deploymentIds.isEmpty()) {
+                // DeploymentQuery 可能不支持批量查询，改用循环单查 (N <= pageSize)
+                for (String depId : deploymentIds) {
+                    Deployment deployment = repositoryService.createDeploymentQuery()
+                            .deploymentId(depId)
+                            .singleResult();
+                    if (deployment != null) {
+                        deploymentMap.put(deployment.getId(), deployment);
+                    }
+                }
+            }
+
             // 转换为DTO
+            Map<String, Deployment> finalDeploymentMap = deploymentMap;
             List<ProcessDefinitionDTO> dtoList = definitions.stream()
-                    .map(this::convertToDTO)
+                    .map(def -> convertToDTO(def, finalDeploymentMap.get(def.getDeploymentId())))
                     .collect(Collectors.toList());
 
-            return PageResult.of(dtoList, total, (long)pageNum, (long)pageSize);
+            return PageResult.of(dtoList, total, (long) pageNum, (long) pageSize);
         } catch (Exception ex) {
             log.error("Failed to query process definitions", ex);
             throw new CamundaServiceException("查询流程定义失败: " + ex.getMessage(), ex);
@@ -122,7 +190,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "processDefinitions", key = "'detail_' + #definitionId")
+    @Cacheable(value = "processDefinitions", key = "'detail_' + #definitionId", cacheManager = "workflowCacheManager")
     public ProcessDefinitionDetailDTO detail(String definitionId) {
         try {
             log.info("Getting process definition detail, definitionId={}", definitionId);
@@ -148,15 +216,16 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     /**
      * 删除流程部署（完整参数版）
      *
-     * @param deploymentId         部署 ID
-     * @param cascade              是否级联删除关联的流程实例
-     * @param skipCustomListeners  是否跳过自定义监听器
-     * @param skipIoMappings       是否跳过 IO 映射
+     * @param deploymentId        部署 ID
+     * @param cascade             是否级联删除关联的流程实例
+     * @param skipCustomListeners 是否跳过自定义监听器
+     * @param skipIoMappings      是否跳过 IO 映射
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "processDefinitions", allEntries = true)
-    public void deleteDeployment(String deploymentId, boolean cascade, boolean skipCustomListeners, boolean skipIoMappings) {
+    @CacheEvict(value = "processDefinitions", allEntries = true, cacheManager = "workflowCacheManager")
+    public void deleteDeployment(String deploymentId, boolean cascade, boolean skipCustomListeners,
+            boolean skipIoMappings) {
         try {
             log.info("Deleting deployment [deploymentId={}, cascade={}, skipCustomListeners={}, skipIoMappings={}]",
                     deploymentId, cascade, skipCustomListeners, skipIoMappings);
@@ -172,7 +241,9 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
     /**
      * 下载 BPMN XML 资源
-     * <p>委托给 {@link #download(String)} 方法实现</p>
+     * <p>
+     * 委托给 {@link #download(String)} 方法实现
+     * </p>
      *
      * @param processDefinitionId 流程定义 ID
      * @return 二进制载荷
@@ -185,7 +256,9 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
     /**
      * 下载流程图资源
-     * <p>委托给 {@link #diagram(String)} 方法实现</p>
+     * <p>
+     * 委托给 {@link #diagram(String)} 方法实现
+     * </p>
      *
      * @param processDefinitionId 流程定义 ID
      * @return 二进制载荷
@@ -243,7 +316,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "processDefinitions", allEntries = true)
+    @CacheEvict(value = "processDefinitions", allEntries = true, cacheManager = "workflowCacheManager")
     @Override
     public void deleteDeployment(String deploymentId, boolean cascade) {
         try {
@@ -337,8 +410,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
             ProcessInstance instance = runtimeService.startProcessInstanceById(
                     definitionId,
                     request.getBusinessKey(),
-                    request.getVariables()
-            );
+                    request.getVariables());
 
             log.info("Process instance started successfully, instanceId={}", instance.getId());
 
@@ -350,7 +422,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "processDefinitions", allEntries = true)
+    @CacheEvict(value = "processDefinitions", allEntries = true, cacheManager = "workflowCacheManager")
     @Override
     public void suspend(String definitionId, boolean includeInstances) {
         try {
@@ -367,7 +439,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "processDefinitions", allEntries = true)
+    @CacheEvict(value = "processDefinitions", allEntries = true, cacheManager = "workflowCacheManager")
     @Override
     public void activate(String definitionId, boolean includeInstances) {
         try {
@@ -408,6 +480,10 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     }
 
     private ProcessDefinitionDTO convertToDTO(ProcessDefinition definition) {
+        return convertToDTO(definition, null);
+    }
+
+    private ProcessDefinitionDTO convertToDTO(ProcessDefinition definition, Deployment deployment) {
         ProcessDefinitionDTO dto = new ProcessDefinitionDTO();
         dto.setId(definition.getId());
         dto.setKey(definition.getKey());
@@ -421,6 +497,11 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
         dto.setSuspended(definition.isSuspended());
         dto.setTenantId(definition.getTenantId());
         dto.setVersionTag(definition.getVersionTag());
+
+        if (deployment != null) {
+            dto.setDeploymentTime(deployment.getDeploymentTime());
+        }
+
         dto.setHistoryTimeToLive(definition.getHistoryTimeToLive());
         dto.setStartableInTasklist(definition.isStartableInTasklist());
         return dto;
@@ -449,7 +530,8 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
                 .deploymentId(definition.getDeploymentId())
                 .singleResult();
         if (deployment != null) {
-            dto.setDeploymentTime(com.basebackend.scheduler.util.DateTimeUtil.toLocalDateTime(deployment.getDeploymentTime()));
+            dto.setDeploymentTime(
+                    com.basebackend.scheduler.util.DateTimeUtil.toLocalDateTime(deployment.getDeploymentTime()));
             dto.setDeploymentSource(deployment.getSource());
         }
 
@@ -470,7 +552,8 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
     }
 
     @Override
-    public void updateSuspensionState(String processDefinitionId, com.basebackend.scheduler.camunda.dto.ProcessDefinitionStateRequest request, boolean suspend) {
+    public void updateSuspensionState(String processDefinitionId,
+            com.basebackend.scheduler.camunda.dto.ProcessDefinitionStateRequest request, boolean suspend) {
         try {
             if (suspend) {
                 repositoryService.suspendProcessDefinitionById(processDefinitionId);

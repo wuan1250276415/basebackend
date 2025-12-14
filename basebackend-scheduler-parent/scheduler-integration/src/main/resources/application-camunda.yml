@@ -45,19 +45,13 @@ camunda:
     # 暂时禁用自动部署 BPMN 流程定义（BPMN 文件需要修复）
     auto-deployment-enabled: false
     
-    # 禁用 History TTL 强制检查
+    # 通用属性（注意：只能有一个 generic-properties 块，否则会被覆盖）
     generic-properties:
       properties:
+        # 禁用 History TTL 强制检查（重要：允许部署没有设置 historyTimeToLive 的流程）
         enforceHistoryTimeToLive: false
-
-    # 流程引擎指标
-    metrics:
-      enabled: true
-      db-reporter-activate: true
-
-    # 通用属性
-    generic-properties:
-      properties:
+        # 设置默认的历史数据保留时间（天）
+        historyTimeToLiveString: P180D
         # 启用权限检查
         authorizationEnabled: true
         # 禁用遥测

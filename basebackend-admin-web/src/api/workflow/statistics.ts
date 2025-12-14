@@ -1,54 +1,46 @@
 import request from '@/utils/request'
-import type { ApiResponse } from '@/types/workflow'
+import type {
+  ApiResponse,
+  ProcessDefinitionsStatistics,
+  InstanceStatistics,
+  TaskStatistics,
+  WorkflowOverview
+} from '@/types/workflow'
 
-const BASE_URL = '/api/workflow/statistics'
+const BASE_URL = '/basebackend-scheduler/api/camunda/statistics'
 
 /**
- * 流程统计数据
+ * 获取流程定义统计
  */
-export interface ProcessStatistics {
-  totalInstances: number
-  runningInstances: number
-  completedInstances: number
-  suspendedInstances: number
-  terminatedInstances: number
-  totalTasks: number
-  totalDefinitions: number
-  activeDefinitions: number
-  todayStarted: number
-  todayCompleted: number
-  weekStarted: number
-  weekCompleted: number
-  definitionStatistics?: DefinitionStatistics[]
+export const getProcessDefinitionStatistics = async (
+  params?: { tenantId?: string; startTime?: string; endTime?: string }
+): Promise<ApiResponse<ProcessDefinitionsStatistics>> => {
+  return request.get(`${BASE_URL}/process-definitions`, { params })
 }
 
 /**
- * 流程定义统计
+ * 获取流程实例统计
  */
-export interface DefinitionStatistics {
-  processDefinitionKey: string
-  processDefinitionName: string
-  version: number
-  runningInstances: number
-  completedInstances: number
-  pendingTasks: number
-  avgDurationInMillis: number | null
-}
-
-/**
- * 获取流程总体统计
- */
-export const getProcessStatistics = async (): Promise<
-  ApiResponse<ProcessStatistics>
+export const getInstanceStatistics = async (): Promise<
+  ApiResponse<InstanceStatistics>
 > => {
-  return request.get(BASE_URL)
+  return request.get(`${BASE_URL}/instances`)
 }
 
 /**
- * 按流程定义统计
+ * 获取任务统计
  */
-export const getStatisticsByDefinition = async (): Promise<
-  ApiResponse<DefinitionStatistics[]>
+export const getTaskStatistics = async (): Promise<
+  ApiResponse<TaskStatistics>
 > => {
-  return request.get(`${BASE_URL}/by-definition`)
+  return request.get(`${BASE_URL}/tasks`)
+}
+
+/**
+ * 获取工作流运行状态概览
+ */
+export const getWorkflowOverview = async (): Promise<
+  ApiResponse<WorkflowOverview>
+> => {
+  return request.get(`${BASE_URL}/overview`)
 }

@@ -309,7 +309,7 @@ public final class FixtureFactory {
      */
     public LoginLogDTO createValidLoginLogDTO() {
         LoginLogDTO dto = new LoginLogDTO();
-        dto.setId(1L);
+        dto.setId(String.valueOf(1));
         dto.setUserId(1L);
         dto.setUsername("admin");
         dto.setIpAddress("127.0.0.1");
@@ -327,7 +327,7 @@ public final class FixtureFactory {
      */
     public OperationLogDTO createValidOperationLogDTO() {
         OperationLogDTO dto = new OperationLogDTO();
-        dto.setId(1L);
+        dto.setId(String.valueOf(1));
         dto.setUserId(1L);
         dto.setUsername("admin");
         dto.setOperation("创建用户");

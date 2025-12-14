@@ -6,7 +6,7 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = 'basebackend-scheduler/api/camunda/process-definitions'
+const BASE_URL = '/basebackend-scheduler/api/camunda/process-definitions'
 
 /**
  * 查询所有流程定义
@@ -37,16 +37,27 @@ export const getProcessDefinitionById = async (
 
 /**
  * 部署流程定义
+ * POST /api/camunda/process-definitions/deployments
  */
 export const deployProcessDefinition = async (data: {
-  name: string
   file: File
-}): Promise<ApiResponse<{ deploymentId: string }>> => {
+  deploymentName?: string
+  name?: string
+  tenantId?: string
+  category?: string
+  enableDuplicateFilter?: boolean
+  deployChangedOnly?: boolean
+}): Promise<ApiResponse<string>> => {
   const formData = new FormData()
-  formData.append('name', data.name)
   formData.append('file', data.file)
+  if (data.deploymentName) formData.append('deploymentName', data.deploymentName)
+  if (data.name) formData.append('name', data.name)
+  if (data.tenantId) formData.append('tenantId', data.tenantId)
+  if (data.category) formData.append('category', data.category)
+  if (data.enableDuplicateFilter !== undefined) formData.append('enableDuplicateFilter', String(data.enableDuplicateFilter))
+  if (data.deployChangedOnly !== undefined) formData.append('deployChangedOnly', String(data.deployChangedOnly))
 
-  return request.post(BASE_URL, formData, {
+  return request.post(`${BASE_URL}/deployments`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -57,18 +68,20 @@ export const deployProcessDefinition = async (data: {
  * 挂起流程定义
  */
 export const suspendProcessDefinition = async (
-  id: string
+  id: string,
+  data: { includeProcessInstances?: boolean; executeAt?: string } = { includeProcessInstances: true }
 ): Promise<ApiResponse> => {
-  return request.put(`${BASE_URL}/${id}/suspend`)
+  return request.post(`${BASE_URL}/${id}/suspend`, data)
 }
 
 /**
  * 激活流程定义
  */
 export const activateProcessDefinition = async (
-  id: string
+  id: string,
+  data: { includeProcessInstances?: boolean; executeAt?: string } = { includeProcessInstances: true }
 ): Promise<ApiResponse> => {
-  return request.put(`${BASE_URL}/${id}/activate`)
+  return request.post(`${BASE_URL}/${id}/activate`, data)
 }
 
 /**
@@ -78,7 +91,7 @@ export const deleteDeployment = async (
   deploymentId: string,
   cascade: boolean = false
 ): Promise<ApiResponse> => {
-  return request.delete(`${BASE_URL}/deployment/${deploymentId}`, {
+  return request.delete(`${BASE_URL}/deployments/${deploymentId}`, {
     params: { cascade },
   })
 }
@@ -89,7 +102,7 @@ export const deleteDeployment = async (
 export const getProcessDefinitionXml = async (
   id: string
 ): Promise<ApiResponse<{ xml: string }>> => {
-  return request.get(`${BASE_URL}/${id}/xml`)
+  return request.get(`${BASE_URL}/${id}/xml-content`)
 }
 
 /**
