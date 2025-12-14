@@ -21,54 +21,49 @@ import java.util.Map;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(DatabaseEnhancedProperties.class)
-@ConditionalOnProperty(
-    prefix = "database.enhanced.dynamic-datasource",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = false
-)
+@ConditionalOnProperty(prefix = "database.enhanced.dynamic-datasource", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DynamicDataSourceConfig {
-    
+
     private final DatabaseEnhancedProperties properties;
-    
+
     public DynamicDataSourceConfig(DatabaseEnhancedProperties properties) {
         this.properties = properties;
     }
-    
+
     /**
      * 创建动态数据源
      * 注意：这里需要在实际使用时配置具体的数据源
      */
+    @Bean
     @Primary
     public DynamicDataSource dynamicDataSource(DataSource dataSource) {
         DynamicDataSource dynamicDataSource = new DynamicDataSource();
-        
+
         // 获取动态数据源配置
-        DatabaseEnhancedProperties.DynamicDataSourceProperties dsConfig = 
-            properties.getDynamicDatasource();
-        
+        DatabaseEnhancedProperties.DynamicDataSourceProperties dsConfig = properties.getDynamicDatasource();
+
         // 设置默认数据源
         dynamicDataSource.setDefaultTargetDataSource(dataSource);
-        
+
         // 设置主数据源键
         String primaryKey = dsConfig.getPrimary();
         if (primaryKey != null && !primaryKey.isEmpty()) {
             dynamicDataSource.setPrimaryDataSourceKey(primaryKey);
         }
-        
+
         // 设置严格模式
         dynamicDataSource.setStrict(dsConfig.isStrict());
-        
+
         // 初始化数据源映射
         Map<Object, Object> targetDataSources = new HashMap<>();
         targetDataSources.put(primaryKey != null ? primaryKey : "master", dataSource);
-        
+
         dynamicDataSource.setTargetDataSources(targetDataSources);
         dynamicDataSource.afterPropertiesSet();
-        
-        log.info("Dynamic DataSource initialized with primary: {}, strict mode: {}", 
-            primaryKey, dsConfig.isStrict());
-        
+
+        log.info("Dynamic DataSource initialized with primary: {}, strict mode: {}",
+                primaryKey, dsConfig.isStrict());
+
         return dynamicDataSource;
     }
 }

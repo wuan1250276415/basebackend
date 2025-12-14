@@ -6,7 +6,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -21,20 +21,20 @@ import java.util.Set;
  */
 @Slf4j
 @Component
-@ConditionalOnBean(DynamicDataSource.class)
+@ConditionalOnProperty(prefix = "database.enhanced.dynamic-datasource", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DataSourceManager {
-    
+
     private final DynamicDataSource dynamicDataSource;
-    
+
     @Autowired
     public DataSourceManager(DynamicDataSource dynamicDataSource) {
         this.dynamicDataSource = dynamicDataSource;
     }
-    
+
     /**
      * 注册数据源
      * 
-     * @param key 数据源键
+     * @param key        数据源键
      * @param dataSource 数据源
      */
     public void registerDataSource(String key, DataSource dataSource) {
@@ -44,7 +44,7 @@ public class DataSourceManager {
         if (dataSource == null) {
             throw new IllegalArgumentException("DataSource cannot be null");
         }
-        
+
         try {
             dynamicDataSource.addDataSource(key, dataSource);
             log.info("Successfully registered datasource: {}", key);
@@ -53,12 +53,12 @@ public class DataSourceManager {
             throw new DataSourceException("Failed to register datasource: " + key, e);
         }
     }
-    
+
     /**
      * 通过配置注册数据源
      * 
-     * @param key 数据源键
-     * @param url JDBC URL
+     * @param key      数据源键
+     * @param url      JDBC URL
      * @param username 用户名
      * @param password 密码
      */
@@ -68,37 +68,37 @@ public class DataSourceManager {
         config.setUsername(username);
         config.setPassword(password);
         config.setPoolName("HikariPool-" + key);
-        
+
         // 设置连接池参数
         config.setMaximumPoolSize(10);
         config.setMinimumIdle(2);
         config.setConnectionTimeout(30000);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
-        
+
         HikariDataSource dataSource = new HikariDataSource(config);
         registerDataSource(key, dataSource);
     }
-    
+
     /**
      * 通过配置映射注册数据源
      * 
-     * @param key 数据源键
+     * @param key        数据源键
      * @param properties 数据源配置属性
      */
     public void registerDataSource(String key, Map<String, String> properties) {
         String url = properties.get("url");
         String username = properties.get("username");
         String password = properties.get("password");
-        
+
         if (url == null || username == null || password == null) {
             throw new IllegalArgumentException(
-                "DataSource properties must contain url, username, and password");
+                    "DataSource properties must contain url, username, and password");
         }
-        
+
         registerDataSource(key, url, username, password);
     }
-    
+
     /**
      * 移除数据源
      * 
@@ -109,7 +109,7 @@ public class DataSourceManager {
         if (key == null || key.trim().isEmpty()) {
             throw new IllegalArgumentException("DataSource key cannot be null or empty");
         }
-        
+
         try {
             boolean removed = dynamicDataSource.removeDataSource(key);
             if (removed) {
@@ -123,7 +123,7 @@ public class DataSourceManager {
             throw new DataSourceException("Failed to unregister datasource: " + key, e);
         }
     }
-    
+
     /**
      * 检查数据源是否存在
      * 
@@ -133,7 +133,7 @@ public class DataSourceManager {
     public boolean containsDataSource(String key) {
         return dynamicDataSource.containsDataSource(key);
     }
-    
+
     /**
      * 获取所有数据源键
      * 
@@ -142,7 +142,7 @@ public class DataSourceManager {
     public Set<Object> getAllDataSourceKeys() {
         return dynamicDataSource.getDataSourceKeys();
     }
-    
+
     /**
      * 获取数据源数量
      * 
@@ -151,7 +151,7 @@ public class DataSourceManager {
     public int getDataSourceCount() {
         return dynamicDataSource.getDataSourceCount();
     }
-    
+
     /**
      * 测试数据源连接
      * 
@@ -163,7 +163,7 @@ public class DataSourceManager {
             log.warn("DataSource [{}] not found", key);
             return false;
         }
-        
+
         // 这里可以实现实际的连接测试逻辑
         // 暂时返回 true
         log.debug("Testing connection for datasource: {}", key);
