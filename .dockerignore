@@ -1,3 +1,30 @@
+# Ignore Maven build outputs
+**/target
+
+# Ignore local logs and runtime data
+logs
+logs/**
+docker/**/logs
+docker/**/logs/**
+docker/**/nacos/**/logs
+docker/**/nacos/**/logs/**
+# Exclude whole docker folder from build context (contains runtime containers/logs)
+docker/**
+
+# Git and IDE
+.git
+.idea
+*.iml
+
+# Node
+node_modules
+
+# OS files
+.DS_Store
+
+# Ignore temporary and package files
+*.log
+*.tmp
 # Docker镜像构建忽略文件
 
 # 源代码控制
