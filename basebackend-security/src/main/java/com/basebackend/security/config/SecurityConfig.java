@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -63,6 +64,7 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/actuator/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),
                                 new AntPathRequestMatcher("/doc.html"),
+                                new AntPathRequestMatcher("/api/files/**"),
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/druid/**"),
                                 new AntPathRequestMatcher("/api/notifications/stream")
@@ -81,7 +83,7 @@ public class SecurityConfig {
                     headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; base-uri 'self';"));
                     headers.referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN));
                     headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true));
-                    headers.frameOptions(frame -> frame.deny());
+                    headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::deny);
                     headers.permissionsPolicy(policy -> policy.policy("geolocation=(), microphone=(), camera=()"));
                 })
                 // 配置请求授权
@@ -91,6 +93,7 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api/auth/**"),
                                 new AntPathRequestMatcher("/api/user/auth/**"),
                                 new AntPathRequestMatcher("/api/public/**"),
+                                new AntPathRequestMatcher("/api/files/**"),  // 文件上传接口临时开放用于测试
                                 new AntPathRequestMatcher("/actuator/**"),
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),

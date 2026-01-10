@@ -115,6 +115,10 @@ nacos:
 
     # 服务名（可选，如果不配置则使用spring.application.name）
     service-name: ${spring.application.name}
+    
+    # Docker 部署时需要配置的 IP 和端口
+    ip: ${NACOS_DISCOVERY_IP:}
+    port: ${NACOS_DISCOVERY_PORT:${server.port:8080}}
 
     # 用户名密码
     username: ${NACOS_DISCOVERY_USERNAME:nacos}

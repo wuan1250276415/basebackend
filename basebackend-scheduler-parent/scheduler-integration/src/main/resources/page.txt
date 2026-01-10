@@ -1,0 +1,76 @@
+2025-12-13 11:32:44.619 [nio-8089-exec-5] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Before fill(): parsingHeader: [true], parsingRequestLine: [true], parsingRequestLinePhase: [0], parsingRequestLineStart: [0], byteBuffer.position(): [0], byteBuffer.limit(): [0], end: [1527]
+2025-12-13 11:32:44.619 [nio-8089-exec-5] DEBUG [o.a.tomcat.util.net.SocketWrapperBase   ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]], Read from buffer: [0]
+2025-12-13 11:32:44.619 [nio-8089-exec-5] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]], Read direct from socket: [1628]
+2025-12-13 11:32:44.619 [nio-8089-exec-5] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Received [GET /api/camunda/process-definitions HTTP/1.1
+sec-ch-ua-platform: "Windows"
+authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc2NTU1NDE0MCwiZXhwIjoxNzY1NjQwNTQwLCJkZXB0SWQiOjIsInVzZXJUeXBlIjoxLCJ1c2VySWQiOjEsInVzZXJuYW1lIjoiYWRtaW4ifQ.osTW9-Asd7KS_qVReqBpNMCqE-BsDzZ-02kMLoldbDN5wh1UXvcQ35QkeVc0s3d_SgnJ4Xeo7M7Gw9svRA_C7g
+x-xsrf-token: d932d151-3ba7-480f-bbfe-d78bb217f8c8
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+accept: application/json, text/plain, */*
+sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+sec-ch-ua-mobile: ?0
+sec-fetch-site: same-origin
+sec-fetch-mode: cors
+sec-fetch-dest: empty
+referer: http://localhost:3000/workflow/definition
+accept-encoding: gzip, deflate, br, zstd
+accept-language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7
+cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNhYjk5YThiLTI2NWUtNDIyNC1iMzdkLTNiYTIzMDJjMDFlNyIsImV4cCI6MTc2NTgwMzAwMX0.Q8yxyBX6-iT9iqNiLIc4sj8pB_-Swiap6sA582klxsk; grafana_session=b64174571d0be8ddd58cbfa160cd3ab0; grafana_session_expiry=1763544254; XSRF-TOKEN=d932d151-3ba7-480f-bbfe-d78bb217f8c8
+X-Trace-Id: 536bc696bc884527abc7b3cde98ed7c5
+X-Span-Id: 737b0509bd5f42885ea
+X-Request-Id: 536bc696bc884527abc7b3cde98ed7c5
+X-User-Id: 1
+Forwarded: proto=http;host="localhost:8080";for="[0:0:0:0:0:0:0:1]:61632"
+X-Forwarded-For: 0:0:0:0:0:0:0:1
+X-Forwarded-Proto: http
+X-Forwarded-Prefix: /basebackend-scheduler
+X-Forwarded-Port: 8080
+X-Forwarded-Host: localhost:8080
+host: 192.168.66.118:8089
+content-length: 0
+
+]
+2025-12-13 11:32:44.619 [nio-8089-exec-5] DEBUG [o.a.t.util.http.Rfc6265CookieProcessor  ] : Cookies: Parsing b[]: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNhYjk5YThiLTI2NWUtNDIyNC1iMzdkLTNiYTIzMDJjMDFlNyIsImV4cCI6MTc2NTgwMzAwMX0.Q8yxyBX6-iT9iqNiLIc4sj8pB_-Swiap6sA582klxsk; grafana_session=b64174571d0be8ddd58cbfa160cd3ab0; grafana_session_expiry=1763544254; XSRF-TOKEN=d932d151-3ba7-480f-bbfe-d78bb217f8c8
+2025-12-13 11:32:44.620 [nio-8089-exec-5] DEBUG [o.a.c.authenticator.AuthenticatorBase   ] : Security checking request GET /api/camunda/process-definitions
+2025-12-13 11:32:44.620 [nio-8089-exec-5] DEBUG [org.apache.catalina.realm.RealmBase     ] :   No applicable constraints defined
+2025-12-13 11:32:44.620 [nio-8089-exec-5] DEBUG [o.a.c.authenticator.AuthenticatorBase   ] : Not subject to any constraint
+2025-12-13 11:32:44.620 [nio-8089-exec-5] DEBUG [unknown.jul.logger                      ] : X-B3-TraceId was null
+2025-12-13 11:32:44.621 [nio-8089-exec-5] DEBUG [org.redisson.command.RedisExecutor      ] : acquired connection for command (EXISTS) and params [[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]] from slot NodeSource [slot=0, addr=null, redisClient=null, redirect=null, entry=null] using node 192.168.66.126/192.168.66.126:6379... RedisConnection@761852002 [redisClient=[addr=redis://192.168.66.126:6379], channel=[id: 0x3b678103, L:/192.168.66.118:58980 - R:192.168.66.126/192.168.66.126:6379], currentCommand=null, usage=1]
+2025-12-13 11:32:44.622 [sson-netty-2-10] DEBUG [org.redisson.command.RedisExecutor      ] : connection released for command (EXISTS) and params [[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]] from slot NodeSource [slot=0, addr=null, redisClient=null, redirect=null, entry=null] using connection RedisConnection@761852002 [redisClient=[addr=redis://192.168.66.126:6379], channel=[id: 0x3b678103, L:/192.168.66.118:58980 - R:192.168.66.126/192.168.66.126:6379], currentCommand=CommandData [promise=java.util.concurrent.CompletableFuture@10b8e548[Completed normally], command=(EXISTS), params=[[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]], codec=org.redisson.client.codec.StringCodec], usage=0]
+2025-12-13 11:32:44.626 [nio-8089-exec-5] DEBUG [org.apache.tomcat.util.http.Parameters  ] : Set encoding to UTF-8
+2025-12-13 11:32:44.629 [nio-8089-exec-5]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Querying process definitions, page=1, size=10, key=null, name=null, tenantId=null, latestOnly=true, suspended=null
+2025-12-13 11:32:44.629 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13005 Starting command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:32:44.629 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13009 opening new command context
+2025-12-13 11:32:44.629 [nio-8089-exec-5] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Opening JDBC Connection
+2025-12-13 11:32:44.629 [nio-8089-exec-5] DEBUG [ectProcessDefinitionCountByQueryCriteria] : ==>  Preparing: select count(distinct RES.ID_ ) from ACT_RE_PROCDEF RES inner join (select KEY_, TENANT_ID_, max(VERSION_) as MAX_VERSION from ACT_RE_PROCDEF group by TENANT_ID_, KEY_) VER on RES.KEY_ = VER.KEY_ WHERE RES.VERSION_ = VER.MAX_VERSION and (RES.TENANT_ID_ = VER.TENANT_ID_ or (RES.TENANT_ID_ is null and VER.TENANT_ID_ is null))
+2025-12-13 11:32:44.629 [nio-8089-exec-5] DEBUG [ectProcessDefinitionCountByQueryCriteria] : ==> Parameters: 
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [ectProcessDefinitionCountByQueryCriteria] : <==      Total: 1
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13011 closing existing command context
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03006 Cache state after flush: [
+]
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Closing JDBC Connection [Transaction-aware proxy for target Connection [com.mysql.cj.jdbc.ConnectionImpl@644c4e19]]
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13006 Finishing command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:32:44.630 [nio-8089-exec-5]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Process definition total count: 0
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13005 Starting command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13009 opening new command context
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Opening JDBC Connection
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [.selectProcessDefinitionsByQueryCriteria] : ==>  Preparing: select distinct RES.* from ACT_RE_PROCDEF RES inner join (select KEY_, TENANT_ID_, max(VERSION_) as MAX_VERSION from ACT_RE_PROCDEF group by TENANT_ID_, KEY_) VER on RES.KEY_ = VER.KEY_ WHERE RES.VERSION_ = VER.MAX_VERSION and (RES.TENANT_ID_ = VER.TENANT_ID_ or (RES.TENANT_ID_ is null and VER.TENANT_ID_ is null)) order by RES.KEY_ asc, RES.VERSION_ desc LIMIT ? OFFSET ?
+2025-12-13 11:32:44.630 [nio-8089-exec-5] DEBUG [.selectProcessDefinitionsByQueryCriteria] : ==> Parameters: 10(Integer), 0(Integer)
+2025-12-13 11:32:44.631 [nio-8089-exec-5] DEBUG [.selectProcessDefinitionsByQueryCriteria] : <==      Total: 0
+2025-12-13 11:32:44.631 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13011 closing existing command context
+2025-12-13 11:32:44.631 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03006 Cache state after flush: [
+]
+2025-12-13 11:32:44.631 [nio-8089-exec-5] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Closing JDBC Connection [Transaction-aware proxy for target Connection [com.mysql.cj.jdbc.ConnectionImpl@644c4e19]]
+2025-12-13 11:32:44.631 [nio-8089-exec-5] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13006 Finishing command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:32:44.632 [nio-8089-exec-5]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Process definitions retrieved: 0
+2025-12-13 11:32:44.634 [nio-8089-exec-5] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Before fill(): parsingHeader: [true], parsingRequestLine: [true], parsingRequestLinePhase: [0], parsingRequestLineStart: [0], byteBuffer.position(): [0], byteBuffer.limit(): [0], end: [1628]
+2025-12-13 11:32:44.634 [nio-8089-exec-5] DEBUG [o.a.tomcat.util.net.SocketWrapperBase   ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]], Read from buffer: [0]
+2025-12-13 11:32:44.634 [nio-8089-exec-5] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]], Read direct from socket: [0]
+2025-12-13 11:32:44.634 [nio-8089-exec-5] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Received []
+2025-12-13 11:32:44.634 [nio-8089-exec-5] DEBUG [o.apache.coyote.http11.Http11Processor  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]], Status in: [OPEN_READ], State out: [OPEN]
+2025-12-13 11:32:44.635 [nio-8089-exec-5] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Registered read interest for [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@15231135:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:59003]]
+2025-12-13 11:32:44.642 [SelectorManager] DEBUG [jdk.internal.httpclient.debug           ] : [HttpClient-1-SelectorManager] [52586s 247ms] HttpClientImpl(1) next timeout: 0
+2025-12-13 11:32:44.642 [SelectorManager] DEBUG [jdk.internal.httpclient.debug           ] : [HttpClient-1-SelectorManager] [52586s 247ms] HttpClientImpl(1) next expired: 1196358
+2025-12-13 11:32:44.642 [SelectorManager] DEBUG [jdk.internal.httpclient.debug           ] : [HttpClient-1-SelectorManager] [52586s 247ms] HttpClientImpl(1) Next deadline is 3000
+2025-12-13 11:32:44.802 [/api/v2/spans}}] DEBUG [s.n.www.protocol.http.HttpURLConnection ] : sun.net.www.MessageHeader@326f6ebf9 pairs: {POST /api/v2/spans HTTP/1.1: null}{b3: 0}{Content-Type: application/json}{Content-Encoding: gzip}{User-Agent: Java/17.0.17}{Host: 192.168.66.126:9411}{Accept: text/html, image/gif, image/jpeg, */*; q=0.2}{Connection: keep-alive}{Content-Length: 987}
+2025-12-13 11:32:44.804 [/api/v2/spans}}] DEBUG [s.n.www.protocol.http.HttpURLConnection ] : sun.net.www.MessageHeader@573bd5283 pairs: {null: HTTP/1.1 202 Accepted}{Date: Sat, 13 Dec 2025 03:32:43 GMT}{Content-Length: 0}

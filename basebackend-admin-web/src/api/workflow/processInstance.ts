@@ -7,7 +7,7 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = '/basebackend-scheduler/api/camunda/process-instances'
+const BASE_URL = '/api/camunda/process-instances'
 
 /**
  * 启动流程实例
@@ -70,6 +70,31 @@ export const activateProcessInstance = async (
   id: string
 ): Promise<ApiResponse> => {
   return request.put(`${BASE_URL}/${id}/activate`)
+}
+
+/**
+ * 终止流程实例
+ */
+export const terminateProcessInstance = async (
+  id: string,
+  reason?: string
+): Promise<ApiResponse> => {
+  const data = reason ? { reason } : undefined
+  return request.post(`${BASE_URL}/${id}/terminate`, data)
+}
+
+/**
+ * 迁移流程实例
+ */
+export const migrateProcessInstance = async (
+  id: string,
+  migrationData: {
+    targetProcessDefinitionKey: string
+    targetTenantId?: string
+    variables?: Record<string, any>
+  }
+): Promise<ApiResponse> => {
+  return request.post(`${BASE_URL}/${id}/migrate`, migrationData)
 }
 
 /**

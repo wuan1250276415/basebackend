@@ -104,16 +104,19 @@ const ExpenseApproval: React.FC = () => {
 
     setLoading(true)
     try {
+      // 1. TODO: Call Business API to save expense items
+      // const expenseId = await saveExpense(expenseItems);
+      // const businessKey = expenseId;
       const businessKey = `EXPENSE-${Date.now()}`
 
-      // 构建流程变量
+      // 构建流程变量 (不包含 expenseItems 大对象)
       const variables = {
         applicant: user.username,
         applicantName: user.realName || user.username,
         department: values.department,
         expenseDate: values.expenseDate.format('YYYY-MM-DD'),
         totalAmount: totalAmount,
-        expenseItems: expenseItems,
+        // expenseItems: expenseItems, // REMOVED: Store in business table instead
         purpose: values.purpose,
         approver: values.approver,
         email: user.email,

@@ -19,6 +19,17 @@ import java.util.List;
 public class ProcessInstanceMigrationRequest {
 
     /**
+     * 源流程定义 ID
+     */
+    @Schema(
+        description = "源流程定义 ID",
+        example = "order_approval:2:12345",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @NotBlank(message = "源流程定义 ID 不能为空")
+    private String sourceProcessDefinitionId;
+
+    /**
      * 目标流程定义 ID
      */
     @Schema(
@@ -28,6 +39,16 @@ public class ProcessInstanceMigrationRequest {
     )
     @NotBlank(message = "目标流程定义 ID 不能为空")
     private String targetProcessDefinitionId;
+
+    /**
+     * 待迁移的流程实例 ID 列表
+     */
+    @Schema(
+        description = "待迁移的流程实例 ID 列表",
+        example = "[\"instance-001\", \"instance-002\"]",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private List<String> processInstanceIds = Collections.emptyList();
 
     /**
      * 是否自动映射同名活动
@@ -64,4 +85,31 @@ public class ProcessInstanceMigrationRequest {
         example = "[{\"sourceActivityId\":\"UserTask_A\", \"targetActivityId\":\"UserTask_A_v2\"}]"
     )
     private List<MigrationInstructionDTO> instructions = Collections.emptyList();
+
+    // ========== Primitive getters for boolean fields ==========
+
+    public boolean isSkipCustomListeners() {
+        return Boolean.TRUE.equals(skipCustomListeners);
+    }
+
+    public boolean isSkipIoMappings() {
+        return Boolean.TRUE.equals(skipIoMappings);
+    }
+
+    /**
+     * 迁移指令 DTO
+     */
+    @Data
+    @Schema(name = "MigrationInstructionDTO", description = "活动迁移映射指令")
+    public static class MigrationInstructionDTO {
+
+        @Schema(description = "源活动 ID", example = "UserTask_A")
+        private String sourceActivityId;
+
+        @Schema(description = "目标活动 ID", example = "UserTask_A_v2")
+        private String targetActivityId;
+
+        @Schema(description = "是否更新事件触发器", defaultValue = "false")
+        private boolean updateEventTrigger = false;
+    }
 }

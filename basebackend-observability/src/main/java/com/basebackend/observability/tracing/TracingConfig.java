@@ -29,7 +29,7 @@ public class TracingConfig {
      * probability 为 1.0 表示 100% 采样（开发/测试环境）
      * 生产环境建议降低到 0.1 或更低
      */
-    @Bean
+    @Bean(name = "observabilitySampler")
     public Sampler sampler() {
         log.info("Configuring tracing sampler with probability: {}", samplingProbability);
         return Sampler.create((float) samplingProbability);
@@ -39,7 +39,7 @@ public class TracingConfig {
      * 配置 Zipkin Span Handler（用于 Tempo）
      * 只有在启用追踪时才创建此 Bean
      */
-    @Bean
+    @Bean(name = "observabilityZipkinSpanHandler")
     @ConditionalOnProperty(name = "observability.tempo.enabled", havingValue = "true")
     public AsyncZipkinSpanHandler zipkinSpanHandler() {
         log.info("Configuring Zipkin Span Handler for Tempo: {}", tempoEndpoint);

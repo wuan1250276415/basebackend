@@ -89,7 +89,7 @@ spring:
       # Redis 连接信息（使用环境变量）
       host: ${REDIS_HOST:192.168.66.126}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis_TChiFW}
+      password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
       timeout: ${REDIS_TIMEOUT:5000ms}
 
@@ -209,11 +209,11 @@ redisson:
   # 单机模式配置
   single-server-config:
     # Redis 服务器地址
-    address: redis://192.168.66.126:6379
+    address: ${REDIS_ADDRESS:redis://192.168.66.126:6379}
     # 数据库索引
-    database: 0
+    database: ${REDIS_DATABASE:0}
     # 密码
-    password: redis_TChiFW
+    password: ${REDIS_PASSWORD:}
     # 连接超时时间
     connect-timeout: 3000
     # 命令执行超时时间
@@ -233,8 +233,18 @@ management:
       base-path: /actuator
       exposure:
         include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
-  health:
-    show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:when-authorized}
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: scheduler
+    export:
+      prometheus:
+        enabled: true
+        descriptions: true  # 启用指标描述
   prometheus:
     metrics:
       export:

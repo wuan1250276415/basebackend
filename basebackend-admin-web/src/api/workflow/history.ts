@@ -14,7 +14,7 @@ import type {
 /**
  * 基础路径
  */
-const BASE_URL = '/basebackend-scheduler/api/camunda/history/process-instances'
+const BASE_URL = '/api/camunda/historic/process-instances'
 
 /**
  * 分页查询历史流程实例

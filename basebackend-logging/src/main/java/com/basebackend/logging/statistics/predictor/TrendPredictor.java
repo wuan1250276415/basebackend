@@ -1,7 +1,6 @@
 package com.basebackend.logging.statistics.predictor;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,14 +19,13 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class TrendPredictor {
 
     /**
      * 使用线性回归预测未来值
      *
      * @param historicalData 历史数据 (timestamp -> value)
-     * @param steps 预测步数
+     * @param steps          预测步数
      * @return 预测结果
      */
     public PredictionResult predictLinearRegression(Map<Long, Double> historicalData, int steps) {
@@ -76,9 +74,9 @@ public class TrendPredictor {
     /**
      * 使用移动平均预测
      *
-     * @param values 值序列
+     * @param values     值序列
      * @param windowSize 窗口大小
-     * @param steps 预测步数
+     * @param steps      预测步数
      * @return 预测结果
      */
     public PredictionResult predictMovingAverage(List<Double> values, int windowSize, int steps) {
@@ -118,8 +116,8 @@ public class TrendPredictor {
      * 使用指数平滑预测
      *
      * @param values 值序列
-     * @param alpha 平滑参数 (0-1)
-     * @param steps 预测步数
+     * @param alpha  平滑参数 (0-1)
+     * @param steps  预测步数
      * @return 预测结果
      */
     public PredictionResult predictExponentialSmoothing(List<Double> values, double alpha, int steps) {
@@ -166,7 +164,7 @@ public class TrendPredictor {
      * 复合预测（组合多种算法）
      *
      * @param historicalData 历史数据
-     * @param steps 预测步数
+     * @param steps          预测步数
      * @return 复合预测结果
      */
     public CompositePredictionResult predictComposite(Map<Long, Double> historicalData, int steps) {
@@ -190,11 +188,14 @@ public class TrendPredictor {
         List<PredictedPoint> compositePredictions = new ArrayList<>();
         for (int i = 0; i < steps; i++) {
             double linearValue = i < linearResult.getPredictions().size()
-                    ? linearResult.getPredictions().get(i).getValue() : 0;
+                    ? linearResult.getPredictions().get(i).getValue()
+                    : 0;
             double movingAvgValue = i < movingAvgResult.getPredictions().size()
-                    ? movingAvgResult.getPredictions().get(i).getValue() : 0;
+                    ? movingAvgResult.getPredictions().get(i).getValue()
+                    : 0;
             double expSmoothingValue = i < expSmoothingResult.getPredictions().size()
-                    ? expSmoothingResult.getPredictions().get(i).getValue() : 0;
+                    ? expSmoothingResult.getPredictions().get(i).getValue()
+                    : 0;
 
             double compositeValue = (linearValue + movingAvgValue + expSmoothingValue) / 3.0;
             double compositeConfidence = (linearResult.getPredictions().get(i).getConfidence()
@@ -220,7 +221,7 @@ public class TrendPredictor {
     /**
      * 计算置信区间
      *
-     * @param predictions 预测点
+     * @param predictions     预测点
      * @param confidenceLevel 置信水平 (0.95 表示95%)
      * @return 带置信区间的预测
      */
@@ -258,7 +259,8 @@ public class TrendPredictor {
     }
 
     private long calculateAverageInterval(List<Map.Entry<Long, Double>> sortedData) {
-        if (sortedData.size() < 2) return 1000; // 默认1秒
+        if (sortedData.size() < 2)
+            return 1000; // 默认1秒
 
         long totalInterval = 0;
         for (int i = 1; i < sortedData.size(); i++) {

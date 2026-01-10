@@ -7,7 +7,7 @@ import type {
   WorkflowOverview
 } from '@/types/workflow'
 
-const BASE_URL = '/basebackend-scheduler/api/camunda/statistics'
+const BASE_URL = '/api/camunda/statistics'
 
 /**
  * 获取流程定义统计

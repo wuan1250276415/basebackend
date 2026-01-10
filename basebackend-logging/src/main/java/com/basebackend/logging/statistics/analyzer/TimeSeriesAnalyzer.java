@@ -2,7 +2,6 @@ package com.basebackend.logging.statistics.analyzer;
 
 import com.basebackend.logging.statistics.model.LogStatisticsEntry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +21,6 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class TimeSeriesAnalyzer {
 
     /**
@@ -174,7 +172,7 @@ public class TimeSeriesAnalyzer {
      * 预测下一时刻的值
      *
      * @param timeSeries 历史时间序列
-     * @param method 预测方法 (LINEAR, MOVING_AVERAGE, EXPONENTIAL_SMOOTHING)
+     * @param method     预测方法 (LINEAR, MOVING_AVERAGE, EXPONENTIAL_SMOOTHING)
      * @return 预测值
      */
     public double predictNextValue(Map<Instant, Double> timeSeries, PredictionMethod method) {
@@ -241,7 +239,8 @@ public class TimeSeriesAnalyzer {
 
     private double calculateSlope(List<Map.Entry<Instant, Double>> sortedEntries) {
         int n = sortedEntries.size();
-        if (n < 2) return 0.0;
+        if (n < 2)
+            return 0.0;
 
         double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
@@ -259,12 +258,14 @@ public class TimeSeriesAnalyzer {
     }
 
     private double calculateChangeRate(List<Double> values) {
-        if (values.size() < 2) return 0.0;
+        if (values.size() < 2)
+            return 0.0;
 
         double first = values.get(0);
         double last = values.get(values.size() - 1);
 
-        if (first == 0) return 0.0;
+        if (first == 0)
+            return 0.0;
         return (last - first) / Math.abs(first);
     }
 
@@ -289,7 +290,8 @@ public class TimeSeriesAnalyzer {
     }
 
     private double calculateVolatility(List<Double> values) {
-        if (values.size() < 2) return 0.0;
+        if (values.size() < 2)
+            return 0.0;
 
         double mean = values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         double variance = values.stream()
@@ -318,7 +320,8 @@ public class TimeSeriesAnalyzer {
     }
 
     private double predictLinear(List<Double> values) {
-        if (values.size() < 2) return values.isEmpty() ? 0.0 : values.get(values.size() - 1);
+        if (values.size() < 2)
+            return values.isEmpty() ? 0.0 : values.get(values.size() - 1);
 
         // 简单线性回归预测
         int n = values.size();
@@ -340,7 +343,8 @@ public class TimeSeriesAnalyzer {
     }
 
     private double predictMovingAverage(List<Double> values, int windowSize) {
-        if (values.isEmpty()) return 0.0;
+        if (values.isEmpty())
+            return 0.0;
         if (values.size() < windowSize) {
             return values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         }
@@ -353,8 +357,10 @@ public class TimeSeriesAnalyzer {
     }
 
     private double predictExponentialSmoothing(List<Double> values, double alpha) {
-        if (values.isEmpty()) return 0.0;
-        if (values.size() == 1) return values.get(0);
+        if (values.isEmpty())
+            return 0.0;
+        if (values.size() == 1)
+            return values.get(0);
 
         double smoothed = values.get(0);
         for (int i = 1; i < values.size(); i++) {
@@ -368,8 +374,8 @@ public class TimeSeriesAnalyzer {
      * 预测方法枚举
      */
     public enum PredictionMethod {
-        LINEAR,           // 线性回归
-        MOVING_AVERAGE,   // 移动平均
+        LINEAR, // 线性回归
+        MOVING_AVERAGE, // 移动平均
         EXPONENTIAL_SMOOTHING // 指数平滑
     }
 
@@ -377,11 +383,11 @@ public class TimeSeriesAnalyzer {
      * 趋势分析结果
      */
     public static class TrendAnalysisResult {
-        private double slope;              // 趋势斜率
-        private double changeRate;         // 变化率
+        private double slope; // 趋势斜率
+        private double changeRate; // 变化率
         private LogStatisticsEntry.TrendType trendType; // 趋势类型
-        private double seasonalityIndex;   // 季节性指数
-        private double volatility;         // 波动性
+        private double seasonalityIndex; // 季节性指数
+        private double volatility; // 波动性
 
         public static Builder builder() {
             return new Builder();

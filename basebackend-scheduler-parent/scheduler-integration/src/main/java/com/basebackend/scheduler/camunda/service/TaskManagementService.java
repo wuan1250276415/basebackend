@@ -19,13 +19,14 @@ import java.util.Map;
 /**
  * 任务管理业务逻辑接口
  *
- * <p>提供任务相关的业务逻辑封装，包括：
+ * <p>
+ * 提供任务相关的业务逻辑封装，包括：
  * <ul>
- *   <li>任务查询（分页、详情）</li>
- *   <li>任务操作（认领、释放、完成任务、委托）</li>
- *   <li>任务变量管理（获取、设置、删除）</li>
- *   <li>任务附件管理（查询、添加）</li>
- *   <li>任务评论管理（查询、添加）</li>
+ * <li>任务查询（分页、详情）</li>
+ * <li>任务操作（认领、释放、完成任务、委托）</li>
+ * <li>任务变量管理（获取、设置、删除）</li>
+ * <li>任务附件管理（查询、添加）</li>
+ * <li>任务评论管理（查询、添加）</li>
  * </ul>
  *
  * @author BaseBackend Team
@@ -45,7 +46,7 @@ public interface TaskManagementService {
     /**
      * 获取任务详情
      *
-     * @param taskId 任务 ID
+     * @param taskId        任务 ID
      * @param withVariables 是否包含变量
      * @return 任务详情
      */
@@ -54,7 +55,7 @@ public interface TaskManagementService {
     /**
      * 认领任务
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 认领请求参数
      */
     void claim(String taskId, ClaimTaskRequest request);
@@ -69,7 +70,7 @@ public interface TaskManagementService {
     /**
      * 完成任务
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 完成任务请求参数
      */
     void complete(String taskId, CompleteTaskRequest request);
@@ -77,7 +78,7 @@ public interface TaskManagementService {
     /**
      * 委托任务
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 委托请求参数
      */
     void delegate(String taskId, DelegateTaskRequest request);
@@ -86,7 +87,7 @@ public interface TaskManagementService {
      * 获取任务变量
      *
      * @param taskId 任务 ID
-     * @param local 是否本地变量
+     * @param local  是否本地变量
      * @return 变量集合
      */
     Map<String, Object> variables(String taskId, boolean local);
@@ -94,7 +95,7 @@ public interface TaskManagementService {
     /**
      * 设置任务变量
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 变量设置请求
      */
     void upsertVariable(String taskId, VariableUpsertRequest request);
@@ -103,8 +104,8 @@ public interface TaskManagementService {
      * 删除任务变量
      *
      * @param taskId 任务 ID
-     * @param key 变量名
-     * @param local 是否本地变量
+     * @param key    变量名
+     * @param local  是否本地变量
      */
     void deleteVariable(String taskId, String key, boolean local);
 
@@ -119,7 +120,7 @@ public interface TaskManagementService {
     /**
      * 添加任务附件
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 附件添加请求
      * @return 附件信息
      */
@@ -136,7 +137,7 @@ public interface TaskManagementService {
     /**
      * 添加任务评论
      *
-     * @param taskId 任务 ID
+     * @param taskId  任务 ID
      * @param request 评论添加请求
      * @return 评论信息
      */
@@ -151,4 +152,141 @@ public interface TaskManagementService {
     default List<CommentDTO> getComments(String taskId) {
         return comments(taskId);
     }
+
+    // ========== 超时任务查询 ==========
+
+    /**
+     * 查询已超时任务
+     *
+     * <p>
+     * 查询截止时间已过的任务列表
+     *
+     * @param query 分页查询参数
+     * @return 超时任务分页结果
+     */
+    PageResult<TaskSummaryDTO> listOverdueTasks(TaskPageQuery query);
+
+    /**
+     * 查询即将超时任务
+     *
+     * <p>
+     * 查询截止时间在指定时间范围内的任务
+     *
+     * @param query         分页查询参数
+     * @param hoursUntilDue 距离超时的小时数
+     * @return 即将超时任务分页结果
+     */
+    PageResult<TaskSummaryDTO> listDueSoonTasks(TaskPageQuery query, int hoursUntilDue);
+
+    /**
+     * 统计超时任务数量
+     *
+     * @return 超时任务数量
+     */
+    long countOverdueTasks();
+
+    /**
+     * 统计即将超时任务数量
+     *
+     * @param hoursUntilDue 距离超时的小时数
+     * @return 即将超时任务数量
+     */
+    long countDueSoonTasks(int hoursUntilDue);
+
+    // ========== 批量任务操作 ==========
+
+    /**
+     * 批量完成任务
+     *
+     * @param taskIds   任务 ID 列表
+     * @param variables 流程变量（可选）
+     * @return 成功完成的任务数量
+     */
+    int batchComplete(List<String> taskIds, Map<String, Object> variables);
+
+    /**
+     * 批量认领任务
+     *
+     * @param taskIds 任务 ID 列表
+     * @param userId  用户 ID
+     * @return 成功认领的任务数量
+     */
+    int batchClaim(List<String> taskIds, String userId);
+
+    /**
+     * 批量委派任务
+     *
+     * @param taskIds 任务 ID 列表
+     * @param userId  被委派人 ID
+     * @return 成功委派的任务数量
+     */
+    int batchDelegate(List<String> taskIds, String userId);
+
+    // ========== 扩展任务操作 ==========
+
+    /**
+     * 解决任务（委托任务处理完成后归还）
+     *
+     * @param taskId 任务 ID
+     */
+    void resolve(String taskId);
+
+    /**
+     * 抄送任务
+     *
+     * @param taskId      任务 ID
+     * @param userIds     接收人 ID 列表(逗号分隔)
+     * @param initiatorId 发起人 ID
+     */
+    void cc(String taskId, String userIds, String initiatorId);
+
+    /**
+     * 标记抄送已读
+     *
+     * @param ccId 抄送记录 ID
+     */
+    void markCCAsRead(Long ccId);
+
+    // ========== 扩展查询接口 ==========
+
+    /**
+     * 分页查询已办任务（历史任务）
+     *
+     * @param query 分页查询参数
+     * @return 分页结果
+     */
+    PageResult<TaskSummaryDTO> pageHistoric(TaskPageQuery query);
+
+    /**
+     * 分页查询抄送给我的任务
+     *
+     * @param query 分页查询参数
+     * @return 分页结果
+     */
+    PageResult<com.basebackend.scheduler.camunda.dto.TaskCCDTO> pageCC(TaskPageQuery query);
+
+    /**
+     * 分页查询我发起的流程实例
+     *
+     * @param query 分页查询参数（复用 TaskPageQuery 或新建 ProcessInstancePageQuery，这里暂时复用
+     *              assignee 字段作为 initiator）
+     * @return 分页结果
+     */
+    PageResult<com.basebackend.scheduler.camunda.dto.ProcessInstanceDTO> pageInitiated(TaskPageQuery query);
+
+    /**
+     * 转办任务（变更负责人）
+     *
+     * @param taskId 任务 ID
+     * @param userId 新负责人 ID
+     */
+    void transfer(String taskId, String userId);
+
+    /**
+     * 回退任务（驳回到上一个节点）
+     *
+     * @param taskId 任务 ID
+     * @param reason 回退原因
+     */
+    void rollback(String taskId, String reason);
 }

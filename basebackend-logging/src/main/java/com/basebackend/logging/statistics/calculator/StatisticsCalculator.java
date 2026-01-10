@@ -2,7 +2,6 @@ package com.basebackend.logging.statistics.calculator;
 
 import com.basebackend.logging.statistics.model.LogStatisticsEntry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class StatisticsCalculator {
 
     /**
@@ -70,7 +68,7 @@ public class StatisticsCalculator {
     /**
      * 计算百分位数
      *
-     * @param values 数值列表
+     * @param values      数值列表
      * @param percentiles 要计算的百分位数列表 (如 50, 95, 99)
      * @return 百分位数结果映射
      */
@@ -94,14 +92,14 @@ public class StatisticsCalculator {
     /**
      * 检测异常值（基于 Z-Score）
      *
-     * @param values 数值列表
-     * @param mean 平均值
-     * @param stdDev 标准差
+     * @param values     数值列表
+     * @param mean       平均值
+     * @param stdDev     标准差
      * @param zThreshold Z-Score 阈值 (默认 3.0)
      * @return 异常值检测结果
      */
     public AnomalyDetectionResult detectAnomalies(List<Double> values, double mean,
-                                                  double stdDev, double zThreshold) {
+            double stdDev, double zThreshold) {
         if (values == null || values.isEmpty() || stdDev == 0) {
             return AnomalyDetectionResult.builder()
                     .anomalyCount(0)

@@ -19,12 +19,12 @@ public class StorageStrategyConfiguration {
     /**
      * 配置存储策略执行器
      */
-    @Bean
+    @Bean(name = "backupStorageStrategyExecutor")
     @ConditionalOnProperty(name = "backup.storage.multi-replica.enabled", havingValue = "true")
     public StorageStrategyExecutor storageStrategyExecutor(BackupProperties backupProperties,
-                                                           LockManager lockManager,
-                                                           RetryTemplate retryTemplate,
-                                                           java.util.List<StorageProvider> storageProviders) {
+            LockManager lockManager,
+            RetryTemplate retryTemplate,
+            java.util.List<StorageProvider> storageProviders) {
         log.info("配置多副本存储策略执行器");
         return new StorageStrategyExecutor(backupProperties, lockManager, retryTemplate, storageProviders);
     }

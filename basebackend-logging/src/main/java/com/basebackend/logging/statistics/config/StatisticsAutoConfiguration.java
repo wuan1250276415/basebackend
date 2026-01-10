@@ -5,7 +5,6 @@ import com.basebackend.logging.statistics.analyzer.PatternAnalyzer;
 import com.basebackend.logging.statistics.analyzer.TimeSeriesAnalyzer;
 import com.basebackend.logging.statistics.cache.StatisticsCache;
 import com.basebackend.logging.statistics.calculator.StatisticsCalculator;
-import com.basebackend.logging.statistics.endpoint.StatisticsEndpoint;
 import com.basebackend.logging.statistics.predictor.TrendPredictor;
 import com.basebackend.logging.statistics.report.ReportGenerator;
 import com.basebackend.logging.statistics.service.StatisticsService;
@@ -14,8 +13,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
 
 /**
  * 统计分析系统自动配置
@@ -31,7 +28,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置统计缓存
      */
-    @Bean
+    @Bean(name = "loggingStatisticsCache")
     public StatisticsCache statisticsCache(StatisticsProperties properties) {
         return new StatisticsCache(properties.getCacheSize(), properties.getCacheTtl());
     }
@@ -39,7 +36,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置对象映射器
      */
-    @Bean
+    @Bean(name = "loggingObjectMapper")
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
@@ -47,7 +44,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置统计计算器
      */
-    @Bean
+    @Bean(name = "loggingStatisticsCalculator")
     public StatisticsCalculator statisticsCalculator() {
         return new StatisticsCalculator();
     }
@@ -55,7 +52,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置时间序列分析器
      */
-    @Bean
+    @Bean(name = "loggingTimeSeriesAnalyzer")
     public TimeSeriesAnalyzer timeSeriesAnalyzer() {
         return new TimeSeriesAnalyzer();
     }
@@ -63,7 +60,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置模式分析器
      */
-    @Bean
+    @Bean(name = "loggingPatternAnalyzer")
     public PatternAnalyzer patternAnalyzer() {
         return new PatternAnalyzer();
     }
@@ -71,7 +68,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置趋势预测器
      */
-    @Bean
+    @Bean(name = "loggingTrendPredictor")
     public TrendPredictor trendPredictor() {
         return new TrendPredictor();
     }
@@ -79,7 +76,7 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置统计聚合器
      */
-    @Bean
+    @Bean(name = "loggingStatisticsAggregator")
     public StatisticsAggregator statisticsAggregator() {
         return new StatisticsAggregator();
     }
@@ -87,32 +84,24 @@ public class StatisticsAutoConfiguration {
     /**
      * 配置报告生成器
      */
-    @Bean
+    @Bean(name = "loggingReportGenerator")
     public ReportGenerator reportGenerator(ObjectMapper objectMapper,
-                                          StatisticsAggregator aggregator,
-                                          PatternAnalyzer patternAnalyzer) {
+            StatisticsAggregator aggregator,
+            PatternAnalyzer patternAnalyzer) {
         return new ReportGenerator(objectMapper, aggregator, patternAnalyzer);
     }
 
     /**
      * 配置统计服务
      */
-    @Bean
+    @Bean(name = "loggingStatisticsService")
     public StatisticsService statisticsService(StatisticsCalculator calculator,
-                                             TimeSeriesAnalyzer timeSeriesAnalyzer,
-                                             PatternAnalyzer patternAnalyzer,
-                                             TrendPredictor predictor,
-                                             StatisticsAggregator aggregator,
-                                             ReportGenerator reportGenerator) {
+            TimeSeriesAnalyzer timeSeriesAnalyzer,
+            PatternAnalyzer patternAnalyzer,
+            TrendPredictor predictor,
+            StatisticsAggregator aggregator,
+            ReportGenerator reportGenerator) {
         return new StatisticsService(calculator, timeSeriesAnalyzer, patternAnalyzer,
                 predictor, aggregator, reportGenerator);
-    }
-
-    /**
-     * 配置统计端点
-     */
-    @Bean
-    public StatisticsEndpoint statisticsEndpoint(StatisticsService statisticsService) {
-        return new StatisticsEndpoint(statisticsService);
     }
 }

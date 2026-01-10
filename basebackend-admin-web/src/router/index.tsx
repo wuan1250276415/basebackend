@@ -38,6 +38,8 @@ import ProcessHistory from '@/pages/Workflow/ProcessHistory'
 import BpmnDesigner from '@/pages/Workflow/BpmnDesigner'
 import FormTemplateList from '@/pages/Workflow/FormTemplate'
 import Statistics from '@/pages/Workflow/Statistics'
+import JobManagement from '@/pages/Workflow/JobManagement'
+import IncidentCenter from '@/pages/Workflow/IncidentCenter'
 import FileList from '@/pages/File/FileList'
 import RecycleBin from '@/pages/File/RecycleBin'
 import { useAuthStore } from '@/stores/auth'
@@ -113,6 +115,8 @@ const AppRouter = () => {
         <Route path="workflow/bpmn-designer" element={<BpmnDesigner />} />
         <Route path="workflow/form-template" element={<FormTemplateList />} />
         <Route path="workflow/statistics" element={<Statistics />} />
+        <Route path="workflow/job" element={<JobManagement />} />
+        <Route path="workflow/incident" element={<IncidentCenter />} />
 
         {/* 文件管理 */}
         <Route path="file/list" element={<FileList />} />

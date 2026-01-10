@@ -25,6 +25,13 @@
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
+        <!-- Feign Form 支持 Multipart 文件上传 -->
+        <dependency>
+            <groupId>io.github.openfeign.form</groupId>
+            <artifactId>feign-form-spring</artifactId>
+            <version>3.8.0</version>
+        </dependency>
+
         <!-- Spring Cloud Loadbalancer -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

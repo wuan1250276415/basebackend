@@ -1,0 +1,111 @@
+# ========================================
+# Camunda 工作流引擎告警规则
+# ========================================
+# 该文件定义了基于 Prometheus 指标的告警规则
+# 可导入到 Prometheus/Alertmanager 中使用
+#
+# 使用方法：
+# 1. 将此文件放置在 Prometheus 配置目录中
+# 2. 在 prometheus.yml 中添加规则文件路径
+# 3. 重启 Prometheus 服务
+# ========================================
+
+groups:
+  - name: camunda-engine
+    interval: 30s  # 规则评估间隔
+    rules:
+      # ========== 高优先级告警 ==========
+
+      # Camunda 失败作业数量激增
+      - alert: CamundaFailedJobsSpike
+        expr: increase(camunda_jobs_failed[5m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Camunda 失败作业数量激增"
+          description: "过去5分钟内，失败作业数量增加了 {{ $value }} 个。请检查相关服务和作业配置。"
+
+      # 活跃流程实例数量为0（长时间）
+      - alert: CamundaNoActiveInstances
+        expr: camunda_process_instances_active == 0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Camunda 没有活跃的流程实例"
+          description: "系统已连续10分钟没有活跃的流程实例。请检查流程部署和发起是否正常。"
+
+      # 运行中的作业数量异常
+      - alert: CamundaManyRunningJobs
+        expr: camunda_jobs_running > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Camunda 运行中的作业数量过多"
+          description: "当前有 {{ $value }} 个作业正在运行，可能存在性能瓶颈。"
+
+      # ========== 中优先级告警 ==========
+
+      # 作业执行失败率过高
+      - alert: CamundaJobFailureRateHigh
+        expr: |
+          (
+            increase(camunda_jobs_failed[5m]) /
+            (increase(camunda_jobs_failed[5m]) + increase(camunda_jobs_running[5m]))
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Camunda 作业失败率过高"
+          description: "过去5分钟内，作业失败率超过20%。请检查作业实现和依赖服务。"
+
+      # 待办任务积压
+      - alert: CamundaTaskBacklogHigh
+        expr: camunda_tasks_pending > 500
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Camunda 待办任务积压"
+          description: "当前有 {{ $value }} 个待办任务，可能存在处理能力不足的问题。"
+
+      # ========== 通知渠道配置 ==========
+      # 在 Alertmanager 中配置路由规则：
+      #
+      # route:
+      #   receiver: 'default'
+      #   group_by: ['alertname', 'cluster', 'service']
+      #   group_wait: 10s
+      #   group_interval: 10s
+      #   repeat_interval: 1h
+      #   routes:
+      #   - match:
+      #       severity: critical
+      #     receiver: 'critical-alerts'
+      #   - match:
+      #       severity: warning
+      #     receiver: 'warning-alerts'
+      #
+      # receivers:
+      # - name: 'default'
+      #   email_configs:
+      #   - to: 'platform-team@company.com'
+      #
+      # - name: 'critical-alerts'
+      #   email_configs:
+      #   - to: 'oncall@company.com'
+      #   slack_configs:
+      #   - api_url: 'https://hooks.slack.com/services/...'
+      #     channel: '#oncall'
+      #
+      # - name: 'warning-alerts'
+      #   email_configs:
+      #   - to: 'platform-team@company.com'

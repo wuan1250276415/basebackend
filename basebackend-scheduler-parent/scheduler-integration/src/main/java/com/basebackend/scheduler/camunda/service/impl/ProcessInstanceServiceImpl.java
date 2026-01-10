@@ -31,11 +31,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.basebackend.scheduler.camunda.dto.ProcessDefinitionStartRequest;
 
 /**
  * 流程实例服务实现类
  *
- * <p>提供流程实例的查询、挂起、激活、删除、变量管理、迁移等功能。
+ * <p>
+ * 提供流程实例的查询、挂起、激活、删除、变量管理、迁移等功能。
  *
  * @author BaseBackend Team
  * @version 1.0.0
@@ -48,6 +50,68 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
 
     private final RuntimeService runtimeService;
     private final HistoryService historyService;
+    private final org.camunda.bpm.engine.RepositoryService repositoryService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProcessInstanceDTO start(com.basebackend.scheduler.camunda.dto.ProcessDefinitionStartRequest request) {
+        // 1. 验证 BusinessKey
+        if (!StringUtils.hasText(request.getBusinessKey())) {
+            throw new CamundaServiceException("INVALID_REQUEST", "启动流程必须提供业务关联键(BusinessKey)");
+        }
+
+        // 2. 验证变量大小 (简单估算)
+        if (request.getVariables() != null) {
+            try {
+                String jsonVariables = objectMapper.writeValueAsString(request.getVariables());
+                if (jsonVariables.length() > 50 * 1024) { // 50KB 限制
+                    throw new CamundaServiceException("INVALID_REQUEST", "流程变量总大小超过限制(50KB)，请使用业务表存储大对象");
+                }
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("Failed to calculate variable size", e);
+            }
+        }
+
+        // 3. 确定 Definition ID
+        String definitionId = request.getProcessDefinitionId();
+        if (!StringUtils.hasText(definitionId) && StringUtils.hasText(request.getProcessDefinitionKey())) {
+            org.camunda.bpm.engine.repository.ProcessDefinitionQuery query = repositoryService
+                    .createProcessDefinitionQuery()
+                    .processDefinitionKey(request.getProcessDefinitionKey())
+                    .latestVersion();
+
+            if (StringUtils.hasText(request.getTenantId())) {
+                query.tenantIdIn(request.getTenantId());
+            }
+
+            org.camunda.bpm.engine.repository.ProcessDefinition definition = query.singleResult();
+            if (definition == null) {
+                throw new CamundaServiceException("DEFINITION_NOT_FOUND",
+                        "找不到流程定义: " + request.getProcessDefinitionKey());
+            }
+            definitionId = definition.getId();
+        }
+
+        if (!StringUtils.hasText(definitionId)) {
+            throw new CamundaServiceException("INVALID_REQUEST", "必须提供流程定义ID或Key");
+        }
+
+        // 4. 启动流程
+        try {
+            log.info("Starting process instance, definitionId={}, businessKey={}", definitionId,
+                    request.getBusinessKey());
+            ProcessInstance instance = runtimeService.startProcessInstanceById(
+                    definitionId,
+                    request.getBusinessKey(),
+                    request.getVariables());
+            log.info("Process instance started, id={}", instance.getId());
+            return convertToDTO(instance);
+        } catch (Exception e) {
+            log.error("Failed to start process instance", e);
+            throw new CamundaServiceException("启动流程实例失败: " + e.getMessage(), e);
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -78,7 +142,7 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
 
-            return PageResult.of(dtoList, total, (long)pageNum, (long)pageSize);
+            return PageResult.of(dtoList, total, (long) pageNum, (long) pageSize);
         } catch (Exception ex) {
             log.error("Failed to query process instances", ex);
             throw new CamundaServiceException("查询流程实例失败: " + ex.getMessage(), ex);
@@ -159,14 +223,43 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
                     request.getDeleteReason(),
                     request.isSkipCustomListeners(),
                     request.isExternallyTerminated(),
-                    request.isSkipIoMappings()
-            );
+                    request.isSkipIoMappings());
 
             log.info("Process instance deleted successfully, instanceId={}", instanceId);
         } catch (Exception ex) {
             log.error("Failed to delete process instance, instanceId={}", instanceId, ex);
             throw new CamundaServiceException("删除流程实例失败: " + ex.getMessage(), ex);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void terminate(String instanceId, String reason) {
+        // terminate 本质上是 delete，但语义上是强制终止
+        ProcessInstanceDeleteRequest request = new ProcessInstanceDeleteRequest();
+        request.setDeleteReason(StringUtils.hasText(reason) ? reason : "人工强制终止");
+        request.setExternallyTerminated(true);
+        request.setSkipCustomListeners(false); // 通常终止时可能需要触发结束监听器
+        delete(instanceId, request);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String draft(com.basebackend.scheduler.camunda.dto.ProcessDefinitionStartRequest request) {
+        // 草稿功能的简易实现：
+        // 实际生产中草稿通常存放在业务表，或者一个专门的 mongodb/json 表
+        // 这里为了演示，我们假设草稿只是生成一个 BusinessKey 并返回，实际由前端暂存或存业务侧
+
+        // 如果提供了 businessKey，直接返回
+        if (StringUtils.hasText(request.getBusinessKey())) {
+            return request.getBusinessKey();
+        }
+
+        // 否则生成一个草稿ID (例如 DRAFT_UUID)
+        return "DRAFT_" + java.util.UUID.randomUUID().toString();
+
+        // NOTE: 真正的草稿应该存库。鉴于 scheduler-integration 定位，
+        // 建议业务方调用自己的 DraftService，这里仅提供接口契约的空实现或简单逻辑。
     }
 
     @Override
@@ -297,8 +390,7 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
             // 创建迁移计划
             MigrationPlan migrationPlan = runtimeService.createMigrationPlan(
                     instance.getProcessDefinitionId(),
-                    request.getTargetProcessDefinitionId()
-            ).mapEqualActivities().build();
+                    request.getTargetProcessDefinitionId()).mapEqualActivities().build();
 
             // 执行迁移
             runtimeService.newMigration(migrationPlan)
@@ -344,7 +436,7 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
                     .map(this::convertHistoricToDTO)
                     .collect(Collectors.toList());
 
-            return PageResult.of(dtoList, total, (long)pageNum, (long)pageSize);
+            return PageResult.of(dtoList, total, (long) pageNum, (long) pageSize);
         } catch (Exception ex) {
             log.error("Failed to query historic process instances", ex);
             throw new CamundaServiceException("查询历史流程实例失败: " + ex.getMessage(), ex);
@@ -373,7 +465,7 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
     }
 
     private void applyHistoryQueryFilters(HistoricProcessInstanceQuery query,
-                                          ProcessInstanceHistoryQuery pageQuery) {
+            ProcessInstanceHistoryQuery pageQuery) {
         if (StringUtils.hasText(pageQuery.getProcessDefinitionKey())) {
             query.processDefinitionKey(pageQuery.getProcessDefinitionKey());
         }

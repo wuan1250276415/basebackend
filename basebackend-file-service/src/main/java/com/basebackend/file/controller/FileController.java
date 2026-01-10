@@ -4,6 +4,8 @@ import com.basebackend.common.context.UserContext;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.PageResult;
 import com.basebackend.common.model.Result;
+import com.basebackend.feign.dto.file.FileMetadataDTO;
+import com.basebackend.feign.dto.file.FileVersionDTO;
 import com.basebackend.file.entity.FileMetadata;
 import com.basebackend.file.entity.FileOperationLog;
 import com.basebackend.file.entity.FilePermission;
@@ -16,6 +18,7 @@ import com.basebackend.file.model.FileStatistics;
 import com.basebackend.file.model.StorageUsageSummary;
 import com.basebackend.file.service.FileManagementService;
 import com.basebackend.file.service.FileService;
+import org.springframework.beans.BeanUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -61,7 +64,7 @@ public class FileController {
      * 上传文件 (增强版本 - 支持权限控制和版本管理)
      */
     @PostMapping("/upload-v2")
-    public Result<FileMetadata> uploadFileV2(
+    public Result<FileMetadataDTO> uploadFileV2(
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "folderId", required = false) Long folderId
     ) {
@@ -69,7 +72,12 @@ public class FileController {
         String userName = UserContextHolder.getUsername();
 
         FileMetadata metadata = fileManagementService.uploadFile(file, folderId, userId, userName);
-        return Result.success("文件上传成功", metadata);
+        
+        // 转换为 DTO
+        FileMetadataDTO dto = new FileMetadataDTO();
+        BeanUtils.copyProperties(metadata, dto);
+        
+        return Result.success("文件上传成功", dto);
     }
 
     /**
@@ -332,7 +340,7 @@ public class FileController {
      * 创建文件版本
      */
     @PostMapping("/{fileId}/version")
-    public Result<FileVersion> createVersion(
+    public Result<FileVersionDTO> createVersion(
         @PathVariable String fileId,
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "description", required = false) String description
@@ -343,7 +351,12 @@ public class FileController {
         FileVersion version = fileManagementService.createFileVersion(
             fileId, file, description, userId, userName
         );
-        return Result.success("版本创建成功", version);
+        
+        // 转换为 DTO
+        FileVersionDTO dto = new FileVersionDTO();
+        BeanUtils.copyProperties(version, dto);
+        
+        return Result.success("版本创建成功", dto);
     }
 
     /**

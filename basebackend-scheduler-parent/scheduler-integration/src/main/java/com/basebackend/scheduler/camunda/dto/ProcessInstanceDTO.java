@@ -75,6 +75,15 @@ public class ProcessInstanceDTO {
     @Schema(description = "是否已结束", example = "false")
     private Boolean ended;
 
+    @Schema(description = "开始时间")
+    private java.util.Date startTime;
+
+    @Schema(description = "结束时间")
+    private java.util.Date endTime;
+
+    @Schema(description = "状态: ACTIVE, SUSPENDED, COMPLETED, EXTERNALLY_TERMINATED, INTERNALLY_TERMINATED")
+    private String state;
+
     /**
      * 从 Camunda ProcessInstance 转换为 DTO
      *

@@ -4,11 +4,13 @@ import com.basebackend.common.dto.PageResult;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceDTO;
 import com.basebackend.scheduler.camunda.dto.ProcessInstancePageQuery;
 import com.basebackend.common.model.Result;
+import com.basebackend.scheduler.camunda.dto.ProcessDefinitionStartRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceDeleteRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceDetailDTO;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceMigrationRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceVariablesRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessVariableDTO;
+import com.basebackend.scheduler.camunda.dto.TerminateRequest;
 import com.basebackend.scheduler.camunda.service.ProcessInstanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -70,6 +72,38 @@ public class ProcessInstanceController {
     private final ProcessInstanceService processInstanceService;
 
     /**
+     * 启动流程实例
+     *
+     * @param request 启动请求参数
+     * @return 流程实例信息
+     */
+    @Operation(summary = "启动流程实例", description = "根据流程定义 ID 或 Key 启动新的流程实例")
+    @PostMapping("/start")
+    public Result<ProcessInstanceDTO> startInstance(
+            @Valid @RequestBody ProcessDefinitionStartRequest request) {
+        ProcessInstanceDTO dto = processInstanceService.start(request);
+        return Result.success("流程实例启动成功", dto);
+    }
+
+    @Operation(summary = "保存草稿", description = "校验并保存流程草稿（不启动流程）")
+    @PostMapping("/draft")
+    public Result<String> draft(
+            @Valid @RequestBody ProcessDefinitionStartRequest request) {
+        String draftId = processInstanceService.draft(request);
+        return Result.success("草稿保存成功", draftId);
+    }
+
+    @Operation(summary = "终止流程实例", description = "强制终止运行中的流程实例")
+    @PostMapping("/{instanceId}/terminate")
+    public Result<String> terminate(
+            @Parameter(description = "流程实例 ID") @PathVariable @NotBlank String instanceId,
+            @Parameter(description = "终止原因") @RequestBody(required = false) TerminateRequest request) {
+        String reason = request != null ? request.getReason() : null;
+        processInstanceService.terminate(instanceId, reason);
+        return Result.success("流程实例终止成功");
+    }
+
+    /**
      * 分页查询流程实例
      *
      * @param query 查询参数
@@ -108,7 +142,7 @@ public class ProcessInstanceController {
      * @return 操作结果
      */
     @Operation(summary = "挂起流程实例", description = "挂起运行中的流程实例及其任务，阻止继续执行")
-    @PostMapping("/{instanceId}/suspend")
+    @PutMapping("/{instanceId}/suspend")
     public Result<String> suspend(@Parameter(description = "流程实例 ID") @PathVariable @NotBlank String instanceId) {
         processInstanceService.suspend(instanceId);
         return Result.success("流程实例挂起成功");
@@ -121,7 +155,7 @@ public class ProcessInstanceController {
      * @return 操作结果
      */
     @Operation(summary = "激活流程实例", description = "恢复已挂起的流程实例，允许继续执行")
-    @PostMapping("/{instanceId}/activate")
+    @PutMapping("/{instanceId}/activate")
     public Result<String> activate(@Parameter(description = "流程实例 ID") @PathVariable @NotBlank String instanceId) {
         processInstanceService.activate(instanceId);
         return Result.success("流程实例激活成功");

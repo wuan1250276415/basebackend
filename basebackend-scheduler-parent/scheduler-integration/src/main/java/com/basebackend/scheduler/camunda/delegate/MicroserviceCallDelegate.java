@@ -23,32 +23,35 @@ import java.util.Map;
 /**
  * 微服务调用服务任务委托
  *
- * <p>功能说明：
+ * <p>
+ * 功能说明：
  * <ul>
- *   <li>通过HTTP调用外部微服务</li>
- *   <li>支持配置化的重试机制</li>
- *   <li>记录调用结果和响应时间</li>
- *   <li>失败时抛出业务异常（BpmnError）</li>
+ * <li>通过HTTP调用外部微服务</li>
+ * <li>支持配置化的重试机制</li>
+ * <li>记录调用结果和响应时间</li>
+ * <li>失败时抛出业务异常（BpmnError）</li>
  * </ul>
  *
- * <p>输入变量：
+ * <p>
+ * 输入变量：
  * <ul>
- *   <li>remoteService (String, required): 服务名称或基础URL</li>
- *   <li>remotePath (String, required): 接口路径</li>
- *   <li>remoteMethod (String, optional): HTTP方法，默认POST</li>
- *   <li>remoteBody (Map, optional): 请求体</li>
- *   <li>remoteHeaders (Map, optional): 自定义请求头</li>
- *   <li>remoteMaxAttempts (Integer, optional): 最大重试次数，默认3次</li>
- *   <li>remoteRetryDelaySeconds (Integer, optional): 重试延迟秒数，默认2秒</li>
+ * <li>remoteService (String, required): 服务名称或基础URL</li>
+ * <li>remotePath (String, required): 接口路径</li>
+ * <li>remoteMethod (String, optional): HTTP方法，默认POST</li>
+ * <li>remoteBody (Map, optional): 请求体</li>
+ * <li>remoteHeaders (Map, optional): 自定义请求头</li>
+ * <li>remoteMaxAttempts (Integer, optional): 最大重试次数，默认3次</li>
+ * <li>remoteRetryDelaySeconds (Integer, optional): 重试延迟秒数，默认2秒</li>
  * </ul>
  *
- * <p>输出变量：
+ * <p>
+ * 输出变量：
  * <ul>
- *   <li>remoteCallStatus (String): 调用状态 SUCCESS/FAILED</li>
- *   <li>remoteCallResult (Map): 调用结果</li>
- *   <li>remoteCallError (String): 错误消息（失败时）</li>
- *   <li>remoteCallAttempts (Integer): 实际尝试次数</li>
- *   <li>remoteCallDurationMs (Long): 调用耗时（毫秒）</li>
+ * <li>remoteCallStatus (String): 调用状态 SUCCESS/FAILED</li>
+ * <li>remoteCallResult (Map): 调用结果</li>
+ * <li>remoteCallError (String): 错误消息（失败时）</li>
+ * <li>remoteCallAttempts (Integer): 实际尝试次数</li>
+ * <li>remoteCallDurationMs (Long): 调用耗时（毫秒）</li>
  * </ul>
  *
  * @author BaseBackend Team
@@ -87,11 +90,17 @@ public class MicroserviceCallDelegate implements JavaDelegate {
 
             validateRequiredVariables(serviceName, path);
 
-            // 获取可选的重试配置
+            // 获取重试配置
+            Boolean useNativeRetry = (Boolean) execution.getVariable("remoteUseNativeRetry");
+            if (useNativeRetry == null) {
+                useNativeRetry = false; // 默认为 false，保持向后兼容
+            }
+
             Integer maxAttempts = (Integer) execution.getVariable("remoteMaxAttempts");
             Integer retryDelaySeconds = (Integer) execution.getVariable("remoteRetryDelaySeconds");
 
-            int maxRetries = maxAttempts != null ? maxAttempts : 3;
+            // 如果使用原生重试，强制内部重试次数为 1，交由引擎处理
+            int maxRetries = useNativeRetry ? 1 : (maxAttempts != null ? maxAttempts : 3);
             long retryDelay = retryDelaySeconds != null ? retryDelaySeconds * 1000L : 2000L;
             HttpMethod httpMethod = parseHttpMethod(method);
 
@@ -104,8 +113,7 @@ public class MicroserviceCallDelegate implements JavaDelegate {
                     headers,
                     maxRetries,
                     retryDelay,
-                    execution
-            );
+                    execution);
 
             // 记录成功状态
             long duration = System.currentTimeMillis() - startTime;
@@ -113,7 +121,8 @@ public class MicroserviceCallDelegate implements JavaDelegate {
             execution.setVariable("remoteCallResult", result);
             execution.setVariable("remoteCallDurationMs", duration);
 
-            log.info("Microservice call completed successfully, processInstanceId={}, service={}, path={}, duration={}ms",
+            log.info(
+                    "Microservice call completed successfully, processInstanceId={}, service={}, path={}, duration={}ms",
                     processInstanceId, serviceName, path, duration);
 
         } catch (IllegalArgumentException ex) {
@@ -134,7 +143,16 @@ public class MicroserviceCallDelegate implements JavaDelegate {
             execution.setVariable("remoteCallStatus", "FAILED");
             execution.setVariable("remoteCallError", "微服务调用失败: " + ex.getMessage());
 
-            throw new BpmnError("REMOTE_CALL_ERROR", "微服务调用失败: " + ex.getMessage());
+            // 检查是否启用了原生重试
+            Boolean useNativeRetry = (Boolean) execution.getVariable("remoteUseNativeRetry");
+            if (Boolean.TRUE.equals(useNativeRetry)) {
+                // 原生重试模式：抛出 RuntimeException 以触发外部 Job 重试
+                // (注意：这里不应抛出 BpmnError，否则会直接进入错误处理流程而不是重试)
+                throw new RuntimeException("Microservice call failed (Native Retry): " + ex.getMessage(), ex);
+            } else {
+                // 传统模式：捕获所有异常并转换为 BpmnError，由流程捕获或结束
+                throw new BpmnError("REMOTE_CALL_ERROR", "微服务调用失败: " + ex.getMessage());
+            }
         }
     }
 
@@ -191,8 +209,7 @@ public class MicroserviceCallDelegate implements JavaDelegate {
 
                 // 执行实际的HTTP调用
                 Map<String, Object> result = performHttpCall(
-                        serviceName, path, method, body, customHeaders
-                );
+                        serviceName, path, method, body, customHeaders);
 
                 // 构建成功结果
                 Map<String, Object> response = new HashMap<>();
@@ -249,8 +266,7 @@ public class MicroserviceCallDelegate implements JavaDelegate {
                 url,
                 method,
                 requestEntity,
-                Map.class
-        );
+                Map.class);
 
         // 构建结果
         Map<String, Object> result = new HashMap<>();

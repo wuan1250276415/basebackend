@@ -18,12 +18,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties(MaskingProperties.class)
 @ConditionalOnClass(ObjectMapper.class)
-@ConditionalOnProperty(
-        prefix = "basebackend.logging.masking",
-        name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true
-)
+@ConditionalOnProperty(prefix = "basebackend.logging.masking", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MaskingAutoConfiguration {
 
     /**
@@ -39,8 +34,8 @@ public class MaskingAutoConfiguration {
      */
     @Bean
     public PiiMaskingService piiMaskingService(MaskingProperties properties,
-                                               MaskingMetrics metrics,
-                                               ObjectMapper objectMapper) {
+            MaskingMetrics metrics,
+            ObjectMapper objectMapper) {
         PiiMaskingService svc = new PiiMaskingService(properties, metrics, objectMapper);
         MaskingServiceHolder.set(svc);
         return svc;
@@ -49,7 +44,7 @@ public class MaskingAutoConfiguration {
     /**
      * 配置脱敏切面
      */
-    @Bean
+    @Bean(name = "loggingPiiMaskingAspect")
     public PiiMaskingAspect piiMaskingAspect(PiiMaskingService service, MaskingProperties properties) {
         return new PiiMaskingAspect(service, properties);
     }

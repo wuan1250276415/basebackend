@@ -8,12 +8,15 @@ import com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceDetailDTO;
 import com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceStatusDTO;
 import com.basebackend.scheduler.camunda.dto.HistoricVariableInstanceDTO;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceHistoryQuery;
+import com.basebackend.scheduler.camunda.dto.ProcessTrackingDTO;
 import com.basebackend.scheduler.camunda.dto.UserOperationLogDTO;
 import com.basebackend.scheduler.camunda.exception.CamundaServiceException;
 import com.basebackend.scheduler.camunda.service.HistoricProcessInstanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.engine.HistoryService;
+import org.camunda.bpm.engine.RepositoryService;
+import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.history.HistoricActivityInstance;
 import org.camunda.bpm.engine.history.HistoricActivityInstanceQuery;
 import org.camunda.bpm.engine.history.HistoricProcessInstance;
@@ -22,7 +25,6 @@ import org.camunda.bpm.engine.history.UserOperationLogEntry;
 import org.camunda.bpm.engine.history.UserOperationLogQuery;
 import org.camunda.bpm.engine.history.HistoricVariableInstance;
 
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +36,8 @@ import java.util.stream.Collectors;
 /**
  * 历史流程实例服务实现类
  *
- * <p>提供历史流程实例的查询、详情、状态、活动实例、审计日志等功能。
+ * <p>
+ * 提供历史流程实例的查询、详情、状态、活动实例、审计日志等功能。
  *
  * @author BaseBackend Team
  * @version 1.0.0
@@ -46,6 +49,8 @@ import java.util.stream.Collectors;
 public class HistoricProcessInstanceServiceImpl implements HistoricProcessInstanceService {
 
     private final HistoryService historyService;
+    private final RepositoryService repositoryService;
+    private final RuntimeService runtimeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -160,7 +165,7 @@ public class HistoricProcessInstanceServiceImpl implements HistoricProcessInstan
     @Override
     @Transactional(readOnly = true)
     public PageResult<HistoricActivityInstanceDTO> activities(String instanceId,
-                                                               ProcessInstanceHistoryQuery query) {
+            ProcessInstanceHistoryQuery query) {
         try {
             // 验证分页参数
             int pageNum = Math.max(1, query.getPageNum());
@@ -197,7 +202,7 @@ public class HistoricProcessInstanceServiceImpl implements HistoricProcessInstan
     @Override
     @Transactional(readOnly = true)
     public PageResult<UserOperationLogDTO> auditLogs(String instanceId,
-                                                      ProcessInstanceHistoryQuery query) {
+            ProcessInstanceHistoryQuery query) {
         try {
             // 验证分页参数
             int pageNum = Math.max(1, query.getPageNum());
@@ -231,10 +236,122 @@ public class HistoricProcessInstanceServiceImpl implements HistoricProcessInstan
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ProcessTrackingDTO getProcessTracking(String instanceId) {
+        try {
+            log.info("Getting process tracking for instanceId={}", instanceId);
+
+            // 获取历史流程实例
+            HistoricProcessInstance instance = historyService
+                    .createHistoricProcessInstanceQuery()
+                    .processInstanceId(instanceId)
+                    .singleResult();
+
+            if (instance == null) {
+                throw new CamundaServiceException("流程实例不存在: " + instanceId);
+            }
+
+            ProcessTrackingDTO dto = ProcessTrackingDTO.builder()
+                    .processInstanceId(instanceId)
+                    .processDefinitionId(instance.getProcessDefinitionId())
+                    .processDefinitionKey(instance.getProcessDefinitionKey())
+                    .businessKey(instance.getBusinessKey())
+                    .ended(instance.getEndTime() != null)
+                    .suspended(false) // 历史实例无法判断是否挂起
+                    .startTime(instance.getStartTime())
+                    .endTime(instance.getEndTime())
+                    .build();
+
+            // 获取 BPMN XML
+            try {
+                java.io.InputStream bpmnStream = repositoryService.getProcessModel(instance.getProcessDefinitionId());
+                if (bpmnStream != null) {
+                    dto.setBpmnXml(new String(bpmnStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get BPMN XML for process definition: {}", instance.getProcessDefinitionId());
+            }
+
+            // 获取活动历史
+            List<HistoricActivityInstance> activities = historyService
+                    .createHistoricActivityInstanceQuery()
+                    .processInstanceId(instanceId)
+                    .orderByHistoricActivityInstanceStartTime().asc()
+                    .list();
+
+            // 分类活动节点
+            java.util.Set<String> completedActivityIds = new java.util.HashSet<>();
+            java.util.Set<String> activeActivityIds = new java.util.HashSet<>();
+            java.util.List<ProcessTrackingDTO.ActivityHistoryDTO> activityHistories = new java.util.ArrayList<>();
+
+            for (HistoricActivityInstance activity : activities) {
+                // 过滤掉序列流等节点，只关注业务节点
+                String actType = activity.getActivityType();
+                if ("sequenceFlow".equals(actType) || "multiInstanceBody".equals(actType)) {
+                    continue;
+                }
+
+                if (activity.getEndTime() != null) {
+                    // 已完成
+                    completedActivityIds.add(activity.getActivityId());
+                } else {
+                    // 进行中
+                    activeActivityIds.add(activity.getActivityId());
+                }
+
+                // 构建活动历史 DTO
+                ProcessTrackingDTO.ActivityHistoryDTO historyDTO = ProcessTrackingDTO.ActivityHistoryDTO.builder()
+                        .id(activity.getId())
+                        .activityId(activity.getActivityId())
+                        .activityName(activity.getActivityName())
+                        .activityType(activity.getActivityType())
+                        .assignee(activity.getAssignee())
+                        .taskId(activity.getTaskId())
+                        .startTime(activity.getStartTime())
+                        .endTime(activity.getEndTime())
+                        .durationInMillis(activity.getDurationInMillis())
+                        .ended(activity.getEndTime() != null)
+                        .canceled(activity.isCanceled())
+                        .build();
+                activityHistories.add(historyDTO);
+            }
+
+            dto.setCompletedActivityIds(new java.util.ArrayList<>(completedActivityIds));
+            dto.setActiveActivityIds(new java.util.ArrayList<>(activeActivityIds));
+            dto.setActivityHistories(activityHistories);
+
+            // 获取失败活动节点（通过 Incident 查询）
+            try {
+                List<org.camunda.bpm.engine.runtime.Incident> incidents = runtimeService.createIncidentQuery()
+                        .processInstanceId(instanceId)
+                        .list();
+                if (incidents != null && !incidents.isEmpty()) {
+                    java.util.Set<String> failedIds = new java.util.HashSet<>();
+                    for (org.camunda.bpm.engine.runtime.Incident incident : incidents) {
+                        if (incident.getActivityId() != null) {
+                            failedIds.add(incident.getActivityId());
+                        }
+                    }
+                    dto.setFailedActivityIds(new java.util.ArrayList<>(failedIds));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get incidents for process instance: {}", instanceId);
+            }
+
+            return dto;
+        } catch (CamundaServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Failed to get process tracking, instanceId={}", instanceId, ex);
+            throw new CamundaServiceException("获取流程跟踪信息失败: " + ex.getMessage(), ex);
+        }
+    }
+
     // ========== 私有辅助方法 ==========
 
     private void applyQueryFilters(HistoricProcessInstanceQuery query,
-                                    ProcessInstanceHistoryQuery pageQuery) {
+            ProcessInstanceHistoryQuery pageQuery) {
         if (StringUtils.hasText(pageQuery.getProcessDefinitionKey())) {
             query.processDefinitionKey(pageQuery.getProcessDefinitionKey());
         }

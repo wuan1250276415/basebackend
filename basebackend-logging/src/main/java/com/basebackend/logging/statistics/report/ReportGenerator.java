@@ -5,7 +5,6 @@ import com.basebackend.logging.statistics.analyzer.PatternAnalyzer;
 import com.basebackend.logging.statistics.model.LogStatisticsEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class ReportGenerator {
 
     private final ObjectMapper objectMapper;
@@ -37,8 +35,8 @@ public class ReportGenerator {
     private final PatternAnalyzer patternAnalyzer;
 
     public ReportGenerator(ObjectMapper objectMapper,
-                          StatisticsAggregator aggregator,
-                          PatternAnalyzer patternAnalyzer) {
+            StatisticsAggregator aggregator,
+            PatternAnalyzer patternAnalyzer) {
         this.objectMapper = objectMapper;
         this.aggregator = aggregator;
         this.patternAnalyzer = patternAnalyzer;
@@ -47,7 +45,7 @@ public class ReportGenerator {
     /**
      * 生成 JSON 格式报告
      *
-     * @param data 统计数据
+     * @param data         统计数据
      * @param reportConfig 报告配置
      * @return 报告内容
      */
@@ -92,7 +90,7 @@ public class ReportGenerator {
     /**
      * 生成 HTML 格式报告
      *
-     * @param data 统计数据
+     * @param data         统计数据
      * @param reportConfig 报告配置
      * @return 报告内容
      */
@@ -136,7 +134,7 @@ public class ReportGenerator {
     /**
      * 生成多格式报告
      *
-     * @param data 统计数据
+     * @param data         统计数据
      * @param reportConfig 报告配置
      * @return 多格式报告结果
      */
@@ -326,13 +324,11 @@ public class ReportGenerator {
 
     private String identifyMainTrend(List<LogStatisticsEntry> data) {
         long growingCount = data.stream()
-                .mapToLong(e -> e.getTrendType() ==
-                        LogStatisticsEntry.TrendType.GROWING ? 1 : 0)
+                .mapToLong(e -> e.getTrendType() == LogStatisticsEntry.TrendType.GROWING ? 1 : 0)
                 .sum();
 
         long decliningCount = data.stream()
-                .mapToLong(e -> e.getTrendType() ==
-                        LogStatisticsEntry.TrendType.DECLINING ? 1 : 0)
+                .mapToLong(e -> e.getTrendType() == LogStatisticsEntry.TrendType.DECLINING ? 1 : 0)
                 .sum();
 
         if (growingCount > data.size() * 0.6) {
@@ -431,8 +427,10 @@ public class ReportGenerator {
             ReportSummary summary = (ReportSummary) reportData.get("summary");
             html.append("<tr><th>指标</th><th>值</th></tr>\n");
             html.append("<tr><td>总条目数</td><td>").append(summary.getTotalEntries()).append("</td></tr>\n");
-            html.append("<tr><td>总数量</td><td>").append(String.format("%.2f", summary.getTotalCount())).append("</td></tr>\n");
-            html.append("<tr><td>平均数量</td><td>").append(String.format("%.2f", summary.getAverageCount())).append("</td></tr>\n");
+            html.append("<tr><td>总数量</td><td>").append(String.format("%.2f", summary.getTotalCount()))
+                    .append("</td></tr>\n");
+            html.append("<tr><td>平均数量</td><td>").append(String.format("%.2f", summary.getAverageCount()))
+                    .append("</td></tr>\n");
             html.append("<tr><td>主要趋势</td><td>").append(summary.getMainTrend()).append("</td></tr>\n");
             html.append("</table>\n");
             html.append("</div>\n");
@@ -480,29 +478,69 @@ public class ReportGenerator {
         private boolean includeTrends = true;
 
         // Getters and setters
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
+        public String getTitle() {
+            return title;
+        }
 
-        public boolean isEnableJson() { return enableJson; }
-        public void setEnableJson(boolean enableJson) { this.enableJson = enableJson; }
+        public void setTitle(String title) {
+            this.title = title;
+        }
 
-        public boolean isEnableHtml() { return enableHtml; }
-        public void setEnableHtml(boolean enableHtml) { this.enableHtml = enableHtml; }
+        public boolean isEnableJson() {
+            return enableJson;
+        }
 
-        public boolean isEnablePdf() { return enablePdf; }
-        public void setEnablePdf(boolean enablePdf) { this.enablePdf = enablePdf; }
+        public void setEnableJson(boolean enableJson) {
+            this.enableJson = enableJson;
+        }
 
-        public boolean isEnableExcel() { return enableExcel; }
-        public void setEnableExcel(boolean enableExcel) { this.enableExcel = enableExcel; }
+        public boolean isEnableHtml() {
+            return enableHtml;
+        }
 
-        public boolean isIncludeAggregations() { return includeAggregations; }
-        public void setIncludeAggregations(boolean includeAggregations) { this.includeAggregations = includeAggregations; }
+        public void setEnableHtml(boolean enableHtml) {
+            this.enableHtml = enableHtml;
+        }
 
-        public boolean isIncludeTopN() { return includeTopN; }
-        public void setIncludeTopN(boolean includeTopN) { this.includeTopN = includeTopN; }
+        public boolean isEnablePdf() {
+            return enablePdf;
+        }
 
-        public boolean isIncludeTrends() { return includeTrends; }
-        public void setIncludeTrends(boolean includeTrends) { this.includeTrends = includeTrends; }
+        public void setEnablePdf(boolean enablePdf) {
+            this.enablePdf = enablePdf;
+        }
+
+        public boolean isEnableExcel() {
+            return enableExcel;
+        }
+
+        public void setEnableExcel(boolean enableExcel) {
+            this.enableExcel = enableExcel;
+        }
+
+        public boolean isIncludeAggregations() {
+            return includeAggregations;
+        }
+
+        public void setIncludeAggregations(boolean includeAggregations) {
+            this.includeAggregations = includeAggregations;
+        }
+
+        public boolean isIncludeTopN() {
+            return includeTopN;
+        }
+
+        public void setIncludeTopN(boolean includeTopN) {
+            this.includeTopN = includeTopN;
+        }
+
+        public boolean isIncludeTrends() {
+            return includeTrends;
+        }
+
+        public void setIncludeTrends(boolean includeTrends) {
+            this.includeTrends = includeTrends;
+        }
     }
 
     /**

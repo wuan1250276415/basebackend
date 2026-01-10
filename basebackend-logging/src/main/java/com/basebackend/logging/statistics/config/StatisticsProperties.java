@@ -51,7 +51,7 @@ public class StatisticsProperties {
      * LRU 缓存大小
      */
     @Min(100)
-    private int cacheSize = 512;
+    private Integer cacheSize = 512;
 
     /**
      * 缓存 TTL（默认 10 分钟）

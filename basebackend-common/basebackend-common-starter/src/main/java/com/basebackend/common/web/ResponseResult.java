@@ -1,5 +1,6 @@
 package com.basebackend.common.web;
 
+import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.enums.ErrorCode;
 import com.basebackend.common.model.Result;
 import lombok.Data;
@@ -13,6 +14,7 @@ import lombok.EqualsAndHashCode;
  * </p>
  *
  * <h3>使用示例：</h3>
+ * 
  * <pre>{@code
  * // 成功响应
  * ResponseResult.success(data);
@@ -52,7 +54,7 @@ public class ResponseResult<T> extends Result<T> {
      * @return 成功结果
      */
     public static <T> ResponseResult<T> success() {
-        return new ResponseResult<>();
+        return new ResponseResult<>(CommonErrorCode.SUCCESS.getCode(), CommonErrorCode.SUCCESS.getMessage());
     }
 
     /**
@@ -62,7 +64,7 @@ public class ResponseResult<T> extends Result<T> {
      * @return 成功结果
      */
     public static <T> ResponseResult<T> success(T data) {
-        return new ResponseResult<>(null, null, data);
+        return new ResponseResult<>(CommonErrorCode.SUCCESS.getCode(), CommonErrorCode.SUCCESS.getMessage(), data);
     }
 
     /**
@@ -73,7 +75,7 @@ public class ResponseResult<T> extends Result<T> {
      * @return 成功结果
      */
     public static <T> ResponseResult<T> success(String message, T data) {
-        return new ResponseResult<>(null, message, data);
+        return new ResponseResult<>(CommonErrorCode.SUCCESS.getCode(), message, data);
     }
 
     // ========== 失败响应（ErrorCode 枚举）==========
@@ -132,7 +134,8 @@ public class ResponseResult<T> extends Result<T> {
      * @param code    状态码
      * @param message 错误消息
      * @return 失败结果
-     * @deprecated 推荐使用 {@link #error(ErrorCode)} 或 {@link #error(ErrorCode, String)}
+     * @deprecated 推荐使用 {@link #error(ErrorCode)} 或
+     *             {@link #error(ErrorCode, String)}
      */
     @Deprecated
     public static <T> ResponseResult<T> error(Integer code, String message) {

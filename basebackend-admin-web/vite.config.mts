@@ -16,33 +16,27 @@ export default defineConfig({
     proxy: {
       // 用户服务 API
       '/basebackend-user-api': {
-        target: 'http://localhost:8080',
+        target: 'http://192.168.66.126:8280',
         changeOrigin: true,
       },
       // 系统服务 API
       '/basebackend-system-api': {
-        target: 'http://localhost:8080',
+        target: 'http://192.168.66.126:8280',
         changeOrigin: true,
       },
       // notification
       '/basebackend-notification-service': {
-        target: 'http://localhost:8080',
+        target: 'http://192.168.66.126:8280',
         changeOrigin: true,
       },
       // workflow 服务 - 转换为 camunda 路径
       '/basebackend-scheduler': {
-        target: 'http://localhost:8080',
+        target: 'http://192.168.66.126:8280',
         changeOrigin: true,
-      },
-      // user.ts 等简化路径的接口 (/admin/**) - 转换为 admin-api/api/admin/**
-      '/admin': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/admin/, '/admin-api/api/admin'),
       },
       // 其他 API 请求走默认网关路由
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://192.168.66.126:8280',
         changeOrigin: true,
       },
     },

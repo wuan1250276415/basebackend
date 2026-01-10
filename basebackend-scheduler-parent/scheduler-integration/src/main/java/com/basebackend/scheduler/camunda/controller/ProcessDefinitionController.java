@@ -236,13 +236,18 @@ public class ProcessDefinitionController {
      * @param request 启动请求参数
      * @return 流程实例信息
      */
-    @Operation(summary = "启动流程实例", description = "根据流程定义 ID 或 Key 启动新的流程实例")
-    @PostMapping("/start")
-    public Result<ProcessInstanceDTO> startInstance(
-            @Valid @RequestBody ProcessDefinitionStartRequest request) {
-        ProcessInstanceDTO dto = processDefinitionService.startInstance(request);
-        return Result.success("流程实例启动成功", dto);
-    }
+    // 启动流程实例已迁移至 ProcessInstanceController
+    /*
+     * @Operation(summary = "启动流程实例", description = "根据流程定义 ID 或 Key 启动新的流程实例")
+     * 
+     * @PostMapping("/start")
+     * public Result<ProcessInstanceDTO> startInstance(
+     * 
+     * @Valid @RequestBody ProcessDefinitionStartRequest request) {
+     * ProcessInstanceDTO dto = processDefinitionService.startInstance(request);
+     * return Result.success("流程实例启动成功", dto);
+     * }
+     */
 
     /**
      * 挂起流程定义

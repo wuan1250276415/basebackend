@@ -9,7 +9,7 @@ import type {
   PageResult,
 } from '@/types/workflow'
 
-const BASE_URL = '/basebackend-scheduler/api/camunda/tasks'
+const BASE_URL = '/api/camunda/tasks'
 
 /**
  * 分页查询任务
@@ -164,4 +164,83 @@ export const addTaskComment = async (
   data: { message: string }
 ): Promise<ApiResponse<any>> => {
   return request.post(`${BASE_URL}/${taskId}/comments`, data)
+}
+
+// ========== 超时任务查询 ==========
+
+/**
+ * 查询已超时任务
+ */
+export const listOverdueTasks = async (
+  params?: TaskQueryParams
+): Promise<ApiResponse<PageResult<Task>>> => {
+  return request.get(`${BASE_URL}/overdue`, { params })
+}
+
+/**
+ * 查询即将超时任务
+ */
+export const listDueSoonTasks = async (
+  params?: TaskQueryParams,
+  hours: number = 24
+): Promise<ApiResponse<PageResult<Task>>> => {
+  return request.get(`${BASE_URL}/due-soon`, { params: { ...params, hours } })
+}
+
+/**
+ * 统计已超时任务数量
+ */
+export const countOverdueTasks = async (): Promise<ApiResponse<number>> => {
+  return request.get(`${BASE_URL}/overdue/count`)
+}
+
+/**
+ * 统计即将超时任务数量
+ */
+export const countDueSoonTasks = async (hours: number = 24): Promise<ApiResponse<number>> => {
+  return request.get(`${BASE_URL}/due-soon/count`, { params: { hours } })
+}
+
+// ========== 批量任务操作 ==========
+
+export interface BatchOperationResult {
+  total: number
+  success: number
+  failed: number
+}
+
+/**
+ * 批量完成任务
+ */
+export const batchCompleteTasks = async (
+  taskIds: string[],
+  variables?: Record<string, any>
+): Promise<ApiResponse<BatchOperationResult>> => {
+  return request.post(`${BASE_URL}/batch-complete`, taskIds, {
+    params: variables ? { variables } : undefined
+  })
+}
+
+/**
+ * 批量认领任务
+ */
+export const batchClaimTasks = async (
+  taskIds: string[],
+  userId: string
+): Promise<ApiResponse<BatchOperationResult>> => {
+  return request.post(`${BASE_URL}/batch-claim`, taskIds, {
+    params: { userId }
+  })
+}
+
+/**
+ * 批量委派任务
+ */
+export const batchDelegateTasks = async (
+  taskIds: string[],
+  userId: string
+): Promise<ApiResponse<BatchOperationResult>> => {
+  return request.post(`${BASE_URL}/batch-delegate`, taskIds, {
+    params: { userId }
+  })
 }

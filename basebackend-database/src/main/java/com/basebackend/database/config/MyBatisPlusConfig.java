@@ -116,7 +116,7 @@ public class MyBatisPlusConfig {
      * not an InnerInterceptor. It intercepts result set handling to decrypt
      * sensitive fields.
      */
-    @Bean
+    @Bean(name = "mybatisPlusDecryptionInterceptor")
     @ConditionalOnProperty(prefix = "database.enhanced.security.encryption", name = "enabled", havingValue = "true")
     public DecryptionInterceptor decryptionInterceptor(EncryptionService encryptionService,
             DatabaseEnhancedProperties properties) {

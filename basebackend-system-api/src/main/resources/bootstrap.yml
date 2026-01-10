@@ -13,6 +13,8 @@ spring:
         group: ${nacos.discovery.group}
         username: ${NACOS_CONFIG_USERNAME:nacos}
         password: ${NACOS_CONFIG_PASSWORD:nacos}
+        ip: ${NACOS_DISCOVERY_IP:192.168.66.126}
+        port: 8082
         metadata:
           # 传递实例元数据
           version: ${nacos.discovery.metadata.version}
@@ -115,6 +117,13 @@ nacos:
     weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
     cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
 
+    # Docker 部署时需要配置的 IP 和端口
+    # 如果不指定，则使用自动检测（适用于本地开发）
+    # Docker 部署时通过环境变量指定：
+    #   - 同一 Docker 网络：ip=容器名, port=8080
+    #   - 不同网络：ip=宿主机IP, port=宿主机映射端口
+    ip: ${NACOS_DISCOVERY_IP:192.168.66.126}
+    port: ${NACOS_DISCOVERY_PORT:${server.port:8082}}
     # 服务名（可选，如果不配置则使用spring.application.name）
     service-name: ${spring.application.name}
 

@@ -1,7 +1,6 @@
 package com.basebackend.logging.statistics.analyzer;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -22,13 +21,13 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class PatternAnalyzer {
 
     // 常见错误模式
     private static final Pattern NULL_POINTER_PATTERN = Pattern.compile("(?i)(null.*pointer|npe|nullpoint)",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile("(?i)(sql.*injection|select.*union|drop.*table)",
+    private static final Pattern SQL_INJECTION_PATTERN = Pattern.compile(
+            "(?i)(sql.*injection|select.*union|drop.*table)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern TIMEOUT_PATTERN = Pattern.compile("(?i)(timeout|connection.*refused|timed.*out)",
             Pattern.CASE_INSENSITIVE);
@@ -55,7 +54,8 @@ public class PatternAnalyzer {
         int totalErrors = 0;
 
         for (String log : logs) {
-            if (log == null) continue;
+            if (log == null)
+                continue;
 
             ErrorType detectedType = detectErrorType(log);
             if (detectedType != ErrorType.NONE) {
@@ -145,7 +145,7 @@ public class PatternAnalyzer {
     /**
      * 检测频率分布
      *
-     * @param values 数值列表
+     * @param values      数值列表
      * @param bucketCount 分桶数量
      * @return 频率分布结果
      */
@@ -175,8 +175,7 @@ public class PatternAnalyzer {
                     bucketCount - 1,
                     Math.max(0, (value - min) / bucketSize));
             double bucketStart = min + bucketIndex * bucketSize;
-            double bucketEnd = bucketIndex == bucketCount - 1 ?
-                    max : min + (bucketIndex + 1) * bucketSize;
+            double bucketEnd = bucketIndex == bucketCount - 1 ? max : min + (bucketIndex + 1) * bucketSize;
             String bucketKey = String.format("%.2f-%.2f", bucketStart, bucketEnd);
 
             buckets.put(bucketKey, buckets.getOrDefault(bucketKey, 0) + 1);
@@ -245,19 +244,24 @@ public class PatternAnalyzer {
     // ==================== 私有辅助方法 ====================
 
     private ErrorType detectErrorType(String log) {
-        if (log == null) return ErrorType.NONE;
+        if (log == null)
+            return ErrorType.NONE;
 
         Matcher matcher = NULL_POINTER_PATTERN.matcher(log);
-        if (matcher.find()) return ErrorType.NULL_POINTER;
+        if (matcher.find())
+            return ErrorType.NULL_POINTER;
 
         matcher = SQL_INJECTION_PATTERN.matcher(log);
-        if (matcher.find()) return ErrorType.SQL_INJECTION;
+        if (matcher.find())
+            return ErrorType.SQL_INJECTION;
 
         matcher = TIMEOUT_PATTERN.matcher(log);
-        if (matcher.find()) return ErrorType.TIMEOUT;
+        if (matcher.find())
+            return ErrorType.TIMEOUT;
 
         matcher = OUT_OF_MEMORY_PATTERN.matcher(log);
-        if (matcher.find()) return ErrorType.OUT_OF_MEMORY;
+        if (matcher.find())
+            return ErrorType.OUT_OF_MEMORY;
 
         return ErrorType.OTHER;
     }
@@ -298,12 +302,12 @@ public class PatternAnalyzer {
      * 错误类型枚举
      */
     public enum ErrorType {
-        NONE,              // 无错误
-        NULL_POINTER,      // 空指针
-        SQL_INJECTION,     // SQL注入
-        TIMEOUT,           // 超时
-        OUT_OF_MEMORY,     // 内存溢出
-        OTHER              // 其他
+        NONE, // 无错误
+        NULL_POINTER, // 空指针
+        SQL_INJECTION, // SQL注入
+        TIMEOUT, // 超时
+        OUT_OF_MEMORY, // 内存溢出
+        OTHER // 其他
     }
 
     /**
@@ -317,20 +321,45 @@ public class PatternAnalyzer {
         private java.time.Instant timestamp;
 
         // Getters and setters
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public String getUserId() {
+            return userId;
+        }
 
-        public String getEndpoint() { return endpoint; }
-        public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
 
-        public int getStatusCode() { return statusCode; }
-        public void setStatusCode(int statusCode) { this.statusCode = statusCode; }
+        public String getEndpoint() {
+            return endpoint;
+        }
 
-        public long getResponseTime() { return responseTime; }
-        public void setResponseTime(long responseTime) { this.responseTime = responseTime; }
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
 
-        public java.time.Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(java.time.Instant timestamp) { this.timestamp = timestamp; }
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public void setStatusCode(int statusCode) {
+            this.statusCode = statusCode;
+        }
+
+        public long getResponseTime() {
+            return responseTime;
+        }
+
+        public void setResponseTime(long responseTime) {
+            this.responseTime = responseTime;
+        }
+
+        public java.time.Instant getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(java.time.Instant timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 
     /**
@@ -542,10 +571,10 @@ public class PatternAnalyzer {
      */
     public static class CyclicPatternResult {
         private boolean detected;
-        private long interval;    // 间隔 (毫秒)
-        private int frequency;    // 频率
+        private long interval; // 间隔 (毫秒)
+        private int frequency; // 频率
         private double confidence; // 置信度
-        private int totalEvents;  // 总事件数
+        private int totalEvents; // 总事件数
 
         public static Builder builder() {
             return new Builder();

@@ -2,7 +2,6 @@ package com.basebackend.logging.statistics.aggregator;
 
 import com.basebackend.logging.statistics.model.LogStatisticsEntry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
@@ -22,13 +21,12 @@ import java.util.stream.Collectors;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class StatisticsAggregator {
 
     /**
      * 按时间维度聚合数据
      *
-     * @param entries 统计条目列表
+     * @param entries       统计条目列表
      * @param timeDimension 时间维度 (HOUR, DAY, WEEK, MONTH)
      * @return 聚合结果
      */
@@ -67,7 +65,7 @@ public class StatisticsAggregator {
     /**
      * 按业务维度聚合数据
      *
-     * @param entries 统计条目列表
+     * @param entries        统计条目列表
      * @param dimensionField 维度字段名 (如 "level", "module", "userId")
      * @return 聚合结果
      */
@@ -80,8 +78,7 @@ public class StatisticsAggregator {
         Map<String, List<LogStatisticsEntry>> groupedData = entries.stream()
                 .collect(Collectors.groupingBy(entry -> {
                     Map<String, String> dimensions = entry.getDimensions();
-                    return dimensions != null ?
-                            dimensions.getOrDefault(dimensionField, "UNKNOWN") : "UNKNOWN";
+                    return dimensions != null ? dimensions.getOrDefault(dimensionField, "UNKNOWN") : "UNKNOWN";
                 }));
 
         Map<String, LogStatisticsEntry> aggregatedResults = new HashMap<>();
@@ -107,10 +104,10 @@ public class StatisticsAggregator {
     /**
      * Top-N 分析
      *
-     * @param entries 统计条目列表
+     * @param entries     统计条目列表
      * @param metricField 度量字段 (COUNT, MEAN, ERROR_RATE等)
-     * @param topN Top N 的数量
-     * @param ascending 是否升序排列
+     * @param topN        Top N 的数量
+     * @param ascending   是否升序排列
      * @return Top-N 结果
      */
     public TopNResult analyzeTopN(
@@ -154,7 +151,7 @@ public class StatisticsAggregator {
     /**
      * 计算百分比聚合
      *
-     * @param entries 统计条目列表
+     * @param entries    统计条目列表
      * @param percentile 百分位数 (0-100)
      * @return 百分比聚合结果
      */
@@ -191,7 +188,7 @@ public class StatisticsAggregator {
     /**
      * 多维度交叉聚合
      *
-     * @param entries 统计条目列表
+     * @param entries    统计条目列表
      * @param dimensions 维度列表
      * @return 交叉聚合结果
      */
@@ -209,8 +206,8 @@ public class StatisticsAggregator {
                 .collect(Collectors.groupingBy(entry -> {
                     Map<String, String> entryDimensions = entry.getDimensions();
                     List<String> values = dimensions.stream()
-                            .map(dim -> entryDimensions != null ?
-                                    entryDimensions.getOrDefault(dim, "UNKNOWN") : "UNKNOWN")
+                            .map(dim -> entryDimensions != null ? entryDimensions.getOrDefault(dim, "UNKNOWN")
+                                    : "UNKNOWN")
                             .collect(Collectors.toList());
                     return String.join("|", values);
                 }));
@@ -357,7 +354,8 @@ public class StatisticsAggregator {
     }
 
     private double calculatePercentile(List<Double> values, double percentile) {
-        if (values.isEmpty()) return 0.0;
+        if (values.isEmpty())
+            return 0.0;
 
         int size = values.size();
         double index = (percentile / 100.0) * (size - 1);
@@ -378,23 +376,23 @@ public class StatisticsAggregator {
      * 时间维度枚举
      */
     public enum TimeDimension {
-        HOUR,   // 小时
-        DAY,    // 天
-        WEEK,   // 周
-        MONTH   // 月
+        HOUR, // 小时
+        DAY, // 天
+        WEEK, // 周
+        MONTH // 月
     }
 
     /**
      * 度量字段枚举
      */
     public enum MetricField {
-        COUNT,       // 数量
-        MEAN,        // 平均值
-        MEDIAN,      // 中位数
-        VARIANCE,    // 方差
-        STD_DEV,     // 标准差
-        MIN,         // 最小值
-        MAX,         // 最大值
+        COUNT, // 数量
+        MEAN, // 平均值
+        MEDIAN, // 中位数
+        VARIANCE, // 方差
+        STD_DEV, // 标准差
+        MIN, // 最小值
+        MAX, // 最大值
         GROWTH_RATE, // 增长率
         ANOMALY_RATE // 异常率
     }
@@ -404,8 +402,8 @@ public class StatisticsAggregator {
      */
     @lombok.Data
     public static class AggregationResult {
-        private String dimension;  // 维度名称
-        private String keyField;   // 键字段
+        private String dimension; // 维度名称
+        private String keyField; // 键字段
         private Map<String, LogStatisticsEntry> groups; // 分组结果
 
         public static Builder builder() {

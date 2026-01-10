@@ -30,11 +30,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 @Configuration
 @ConditionalOnClass(RedisTemplate.class)
 @EnableConfigurationProperties(HotLogCacheProperties.class)
-@ConditionalOnProperty(
-        prefix = "basebackend.logging.hot-cache",
-        name = "enabled",
-        havingValue = "true",
-        matchIfMissing = true  // 默认启用
+@ConditionalOnProperty(prefix = "basebackend.logging.hot-cache", name = "enabled", havingValue = "true", matchIfMissing = true // 默认启用
 )
 public class HotLogCacheConfiguration {
 
@@ -52,7 +48,7 @@ public class HotLogCacheConfiguration {
      * 配置专门的RedisTemplate用于热点日志缓存
      * 使用独立的RedisTemplate避免与其他缓存冲突
      *
-     * @param connectionFactory      Redis连接工厂
+     * @param connectionFactory        Redis连接工厂
      * @param fastJson2RedisSerializer 序列化器
      * @return RedisTemplate实例
      */
@@ -135,11 +131,11 @@ public class HotLogCacheConfiguration {
     /**
      * 配置缓存AOP切面
      *
-     * @param cache       Redis缓存
+     * @param cache      Redis缓存
      * @param properties 配置属性
      * @return HotLogCacheAspect实例
      */
-    @Bean
+    @Bean(name = "loggingHotLogCacheAspect")
     public HotLogCacheAspect hotLogCacheAspect(
             RedisHotLogCache cache,
             HotLogCacheProperties properties) {
@@ -150,7 +146,7 @@ public class HotLogCacheConfiguration {
      * 配置缓存预热任务
      * 启动时自动加载预热键到本地缓存
      *
-     * @param cache       Redis缓存
+     * @param cache      Redis缓存
      * @param properties 配置属性
      * @return ApplicationRunner实例
      */

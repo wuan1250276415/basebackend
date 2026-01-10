@@ -84,7 +84,7 @@ const Statistics: React.FC = () => {
     return (
         <div>
             <Row gutter={[16, 16]}>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                     <Card>
                         <Statistic
                             title="流程定义总数"
@@ -96,7 +96,7 @@ const Statistics: React.FC = () => {
                         </div>
                     </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                     <Card>
                         <Statistic
                             title="运行中实例"
@@ -106,7 +106,7 @@ const Statistics: React.FC = () => {
                         />
                     </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                     <Card>
                         <Statistic
                             title="待办任务"
@@ -116,7 +116,7 @@ const Statistics: React.FC = () => {
                         />
                     </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                     <Card>
                         <Statistic
                             title="已完成任务"
@@ -129,12 +129,12 @@ const Statistics: React.FC = () => {
             </Row>
 
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                <Col span={12}>
+                <Col xs={24} lg={12}>
                     <Card title="流程实例状态分布">
                         <Pie {...instanceConfig} style={{ height: 300 }} />
                     </Card>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} lg={12}>
                     <Card title="任务状态分布">
                         <Pie {...taskConfig} style={{ height: 300 }} />
                     </Card>

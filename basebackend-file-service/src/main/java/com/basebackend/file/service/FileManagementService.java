@@ -940,21 +940,29 @@ public class FileManagementService {
 
     /**
      * 获取文件预览URL
+     * <p>
+     * 对于MinIO等对象存储,返回带签名的临时访问URL(有效期7天)
+     * </p>
      */
     public String getFilePreviewUrl(String fileId) {
         FileMetadata metadata = getFileMetadata(fileId);
-        return storageService.getUrl(metadata.getFilePath());
+        // 使用预签名URL,有效期7天(604800秒)
+        return storageService.getPresignedUrl(metadata.getFilePath(), 604800);
     }
 
     /**
      * 获取文件缩略图URL
+     * <p>
+     * 对于MinIO等对象存储,返回带签名的临时访问URL(有效期7天)
+     * </p>
      */
     public String getThumbnailUrl(String fileId) {
         FileMetadata metadata = getFileMetadata(fileId);
         if (StringUtils.hasText(metadata.getThumbnailPath())) {
-            return storageService.getUrl(metadata.getThumbnailPath());
+            // 使用预签名URL,有效期7天(604800秒)
+            return storageService.getPresignedUrl(metadata.getThumbnailPath(), 604800);
         }
-        return storageService.getUrl(metadata.getFilePath());
+        return storageService.getPresignedUrl(metadata.getFilePath(), 604800);
     }
 
     /**

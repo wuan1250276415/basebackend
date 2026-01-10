@@ -3,8 +3,10 @@ package com.basebackend.scheduler.camunda.service.impl;
 import com.basebackend.common.dto.PageResult;
 import com.basebackend.scheduler.camunda.config.PaginationConstants;
 import com.basebackend.scheduler.camunda.dto.*;
+import com.basebackend.scheduler.camunda.entity.ProcessTemplateEntity;
 import com.basebackend.scheduler.camunda.exception.CamundaServiceException;
 import com.basebackend.scheduler.camunda.service.ProcessDefinitionService;
+import com.basebackend.scheduler.camunda.service.ProcessTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.engine.RepositoryService;
@@ -49,6 +51,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
     private final RepositoryService repositoryService;
     private final RuntimeService runtimeService;
+    private final ProcessTemplateService processTemplateService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -100,21 +103,35 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
             log.info("Process definition deployed successfully, deploymentId={}", deployment.getId());
 
-            // 调试：验证部署后的流程定义是否可以查询到
+            // 同步流程模板元数据
             List<ProcessDefinition> deployedDefinitions = repositoryService
                     .createProcessDefinitionQuery()
                     .deploymentId(deployment.getId())
                     .list();
-            log.info("DEBUG: Deployed process definitions count: {}, definitions: {}",
-                    deployedDefinitions.size(),
-                    deployedDefinitions.stream()
-                            .map(d -> String.format("[id=%s, key=%s, name=%s, version=%d]",
-                                    d.getId(), d.getKey(), d.getName(), d.getVersion()))
-                            .collect(Collectors.joining(", ")));
+
+            for (ProcessDefinition def : deployedDefinitions) {
+                com.basebackend.scheduler.camunda.entity.ProcessTemplateEntity template = processTemplateService
+                        .getByKey(def.getKey(), def.getTenantId());
+                if (template == null) {
+                    template = new com.basebackend.scheduler.camunda.entity.ProcessTemplateEntity();
+                    template.setTemplateKey(def.getKey());
+                    template.setTenantId(def.getTenantId());
+                    template.setCreateBy(0L); // TODO: 获取当前用户
+                }
+                template.setTemplateName(def.getName() != null ? def.getName() : def.getKey());
+                template.setCategory(request.getCategory() != null ? request.getCategory() : template.getCategory());
+                template.setVersionTag(def.getVersionTag());
+                template.setDeploymentId(def.getDeploymentId());
+                template.setResourceName(def.getResourceName());
+                template.setDescription(def.getDescription());
+                template.setStatus(1); // 发布
+                processTemplateService.saveOrUpdate(template);
+            }
 
             // 调试：查询所有流程定义总数
             long totalDefinitions = repositoryService.createProcessDefinitionQuery().count();
-            log.info("DEBUG: Total process definitions in database: {}", totalDefinitions);
+            // log.info("DEBUG: Total process definitions in database: {}",
+            // totalDefinitions);
 
             return deployment.getId();
         } catch (CamundaServiceException ex) {

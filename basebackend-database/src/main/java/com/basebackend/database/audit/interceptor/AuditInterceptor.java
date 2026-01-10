@@ -180,11 +180,23 @@ public class AuditInterceptor implements Interceptor {
         try {
             Map<String, Object> beforeData = new HashMap<>();
 
-            if (parameter instanceof Map) {
-                Map<?, ?> paramMap = (Map<?, ?>) parameter;
-                Object entity = paramMap.get("et");
+            if (parameter instanceof Map<?, ?> paramMap) {
+                // Try to get entity from 'et' parameter
+                Object entity = null;
+                try {
+                    entity = paramMap.get("et");
+                } catch (Exception e) {
+                    log.trace("No 'et' parameter when capturing before data: operationId={}", operationId);
+                }
+                
                 if (entity != null) {
                     beforeData = extractEntityData(entity, operationId);
+                } else {
+                    // Try 'param1' as fallback
+                    Object param1 = paramMap.get("param1");
+                    if (param1 != null && !isPrimitiveOrWrapper(param1.getClass())) {
+                        beforeData = extractEntityData(param1, operationId);
+                    }
                 }
             } else {
                 beforeData = extractEntityData(parameter, operationId);
@@ -262,13 +274,28 @@ public class AuditInterceptor implements Interceptor {
         }
 
         // Handle Map parameter
-        if (entity instanceof Map) {
-            Map<?, ?> paramMap = (Map<?, ?>) entity;
-            Object et = paramMap.get("et");
+        if (entity instanceof Map<?, ?> paramMap) {
+            // Try to get 'et' parameter (entity wrapper from MyBatis)
+            Object et = null;
+            try {
+                et = paramMap.get("et");
+            } catch (Exception e) {
+                log.trace("No 'et' parameter found in map: operationId={}", operationId);
+            }
+            
             if (et != null) {
                 entity = et;
             } else {
-                return data;
+                // Try to get 'param1' (first parameter from MyBatis)
+                Object param1 = paramMap.get("param1");
+                if (param1 != null && !isPrimitiveOrWrapper(param1.getClass())) {
+                    entity = param1;
+                } else {
+                    // If no entity object found, return the map as-is (for primitive parameters)
+                    log.debug("No entity object found in parameters, using map: operationId={}, params={}", 
+                        operationId, paramMap.keySet());
+                    return new HashMap<>((Map<String, Object>) paramMap);
+                }
             }
         }
 
@@ -334,9 +361,26 @@ public class AuditInterceptor implements Interceptor {
         // Handle Map parameter
         if (entity instanceof Map) {
             Map<?, ?> paramMap = (Map<?, ?>) entity;
-            Object et = paramMap.get("et");
+            // Try to get 'et' parameter
+            Object et = null;
+            try {
+                et = paramMap.get("et");
+            } catch (Exception e) {
+                log.trace("No 'et' parameter found when extracting primary key: operationId={}", operationId);
+            }
+            
             if (et != null) {
                 entity = et;
+            } else {
+                // Try to get 'param1' as fallback
+                Object param1 = paramMap.get("param1");
+                if (param1 != null && !isPrimitiveOrWrapper(param1.getClass())) {
+                    entity = param1;
+                } else {
+                    // No entity object found, return null
+                    log.debug("Cannot extract primary key from primitive parameters: operationId={}", operationId);
+                    return null;
+                }
             }
         }
 
@@ -580,5 +624,27 @@ public class AuditInterceptor implements Interceptor {
         FAILED_AUDIT_OPERATIONS.set(0);
         OPERATION_COUNTS.clear();
         log.info("Audit interceptor performance counters reset");
+    }
+
+    /**
+     * Check if a class is a primitive type or wrapper
+     */
+    private boolean isPrimitiveOrWrapper(Class<?> clazz) {
+        return clazz.isPrimitive() ||
+               clazz == Boolean.class ||
+               clazz == Byte.class ||
+               clazz == Character.class ||
+               clazz == Short.class ||
+               clazz == Integer.class ||
+               clazz == Long.class ||
+               clazz == Float.class ||
+               clazz == Double.class ||
+               clazz == String.class ||
+               clazz == java.util.Date.class ||
+               clazz == java.time.LocalDate.class ||
+               clazz == java.time.LocalDateTime.class ||
+               clazz == java.time.LocalTime.class ||
+               java.util.Collection.class.isAssignableFrom(clazz) ||
+               java.util.Map.class.isAssignableFrom(clazz);
     }
 }

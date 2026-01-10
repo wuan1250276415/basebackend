@@ -1,11 +1,9 @@
 package com.basebackend.logging.statistics.cache;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,14 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2025-11-22
  */
 @Slf4j
-@Component
 public class StatisticsCache {
 
-    private final int maxSize;
+    private final Integer maxSize;
     private final Duration ttl;
     private final ConcurrentHashMap<String, CacheEntry> cache;
 
-    public StatisticsCache(int maxSize, Duration ttl) {
+    public StatisticsCache(Integer maxSize, Duration ttl) {
         this.maxSize = maxSize;
         this.ttl = ttl;
         this.cache = new ConcurrentHashMap<>();
@@ -41,7 +38,8 @@ public class StatisticsCache {
      * @return 缓存值
      */
     public <T> T get(String key, Class<T> type) {
-        if (key == null) return null;
+        if (key == null)
+            return null;
 
         CacheEntry entry = cache.get(key);
         if (entry == null) {
@@ -66,7 +64,7 @@ public class StatisticsCache {
     /**
      * 放入缓存项
      *
-     * @param key 缓存键
+     * @param key   缓存键
      * @param value 缓存值
      */
     public void put(String key, Object value) {
@@ -126,7 +124,8 @@ public class StatisticsCache {
     // ==================== 私有方法 ====================
 
     private void evictLRU() {
-        if (cache.isEmpty()) return;
+        if (cache.isEmpty())
+            return;
 
         Instant oldestAccess = Instant.now();
         String oldestKey = null;
@@ -167,17 +166,37 @@ public class StatisticsCache {
         private Instant expiryTime;
 
         // Getters and setters
-        public Object getValue() { return value; }
-        public void setValue(Object value) { this.value = value; }
+        public Object getValue() {
+            return value;
+        }
 
-        public Instant getCreatedTime() { return createdTime; }
-        public void setCreatedTime(Instant createdTime) { this.createdTime = createdTime; }
+        public void setValue(Object value) {
+            this.value = value;
+        }
 
-        public Instant getLastAccessed() { return lastAccessed; }
-        public void setLastAccessed(Instant lastAccessed) { this.lastAccessed = lastAccessed; }
+        public Instant getCreatedTime() {
+            return createdTime;
+        }
 
-        public Instant getExpiryTime() { return expiryTime; }
-        public void setExpiryTime(Instant expiryTime) { this.expiryTime = expiryTime; }
+        public void setCreatedTime(Instant createdTime) {
+            this.createdTime = createdTime;
+        }
+
+        public Instant getLastAccessed() {
+            return lastAccessed;
+        }
+
+        public void setLastAccessed(Instant lastAccessed) {
+            this.lastAccessed = lastAccessed;
+        }
+
+        public Instant getExpiryTime() {
+            return expiryTime;
+        }
+
+        public void setExpiryTime(Instant expiryTime) {
+            this.expiryTime = expiryTime;
+        }
     }
 
     /**

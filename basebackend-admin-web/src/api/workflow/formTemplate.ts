@@ -8,7 +8,7 @@ import type {
   FormTemplateUpdateParams
 } from '@/types/workflow'
 
-const BASE_URL = '/basebackend-scheduler/api/camunda/form-templates'
+const BASE_URL = '/api/camunda/form-templates'
 
 /**
  * 查询表单模板列表（分页）

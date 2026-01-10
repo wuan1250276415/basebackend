@@ -52,20 +52,20 @@ const ProcessInstanceDetail: React.FC = () => {
     try {
       // 加载流程实例信息
       const instanceResponse = await getProcessInstanceById(instanceId)
-      if (instanceResponse.success && instanceResponse.data) {
+      if (instanceResponse.code === 200 && instanceResponse.data) {
         const instanceData = instanceResponse.data
         setInstance(instanceData)
 
         // 加载流程变量
         const variablesResponse = await getProcessInstanceVariables(instanceId)
-        if (variablesResponse.success) {
+        if (variablesResponse.code === 200) {
           setVariables(variablesResponse.data || {})
         }
 
         // 加载任务历史 (通过活动历史获取用户任务)
         const historyResponse = await listHistoricActivities(instanceId, { size: 100 })
-        if (historyResponse.success) {
-          const activities = historyResponse.data?.list || []
+        if (historyResponse.code === 200) {
+          const activities = historyResponse.data?.records || []
           // 过滤出用户任务
           const userTasks = activities
             .filter((activity) => activity.activityType === 'userTask')
@@ -83,7 +83,7 @@ const ProcessInstanceDetail: React.FC = () => {
         // 加载BPMN XML
         if (instanceData.processDefinitionId) {
           const xmlResponse = await getProcessDefinitionXml(instanceData.processDefinitionId)
-          if (xmlResponse.success && xmlResponse.data) {
+          if (xmlResponse.code === 200 && xmlResponse.data) {
             setBpmnXml(xmlResponse.data.xml)
           }
         }

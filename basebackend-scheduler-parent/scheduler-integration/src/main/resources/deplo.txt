@@ -1,0 +1,155 @@
+2025-12-13 11:31:36.293 [nio-8089-exec-2] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Before fill(): parsingHeader: [true], parsingRequestLine: [true], parsingRequestLinePhase: [0], parsingRequestLineStart: [0], byteBuffer.position(): [0], byteBuffer.limit(): [0], end: [1661]
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [o.a.tomcat.util.net.SocketWrapperBase   ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]], Read from buffer: [0]
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]], Read direct from socket: [3605]
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Received [POST /api/camunda/process-definitions/deployments HTTP/1.1
+content-length: 1843
+sec-ch-ua-platform: "Windows"
+authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc2NTU1NDE0MCwiZXhwIjoxNzY1NjQwNTQwLCJkZXB0SWQiOjIsInVzZXJUeXBlIjoxLCJ1c2VySWQiOjEsInVzZXJuYW1lIjoiYWRtaW4ifQ.osTW9-Asd7KS_qVReqBpNMCqE-BsDzZ-02kMLoldbDN5wh1UXvcQ35QkeVc0s3d_SgnJ4Xeo7M7Gw9svRA_C7g
+x-xsrf-token: c9c189fa-1dca-40a6-a4f1-ea3e3a623479
+sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+sec-ch-ua-mobile: ?0
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+accept: application/json, text/plain, */*
+content-type: multipart/form-data; boundary=----WebKitFormBoundarynALtVRm0XbUXw1nf
+origin: http://localhost:3000
+sec-fetch-site: same-origin
+sec-fetch-mode: cors
+sec-fetch-dest: empty
+referer: http://localhost:3000/workflow/bpmn-designer
+accept-encoding: gzip, deflate, br, zstd
+accept-language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7
+cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNhYjk5YThiLTI2NWUtNDIyNC1iMzdkLTNiYTIzMDJjMDFlNyIsImV4cCI6MTc2NTgwMzAwMX0.Q8yxyBX6-iT9iqNiLIc4sj8pB_-Swiap6sA582klxsk; grafana_session=b64174571d0be8ddd58cbfa160cd3ab0; grafana_session_expiry=1763544254; XSRF-TOKEN=c9c189fa-1dca-40a6-a4f1-ea3e3a623479
+X-Trace-Id: b1d6dfea87f9487ca0719464f177ca09
+X-Span-Id: 737a068bfaeb87413d2
+X-Request-Id: b1d6dfea87f9487ca0719464f177ca09
+X-User-Id: 1
+Forwarded: proto=http;host="localhost:8080";for="[0:0:0:0:0:0:0:1]:54425"
+X-Forwarded-For: 0:0:0:0:0:0:0:1
+X-Forwarded-Proto: http
+X-Forwarded-Prefix: /basebackend-scheduler
+X-Forwarded-Port: 8080
+X-Forwarded-Host: localhost:8080
+host: 192.168.66.118:8089
+
+------WebKitFormBoundarynALtVRm0XbUXw1nf
+Content-Disposition: form-data; name="file"; filename="test4.bpmn"
+Content-Type: text/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_184ipv7</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="Event_1h4c4ex">
+      <bpmn:incoming>Flow_184ipv7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_184ipv7" sourceRef="StartEvent_1" targetRef="Event_1h4c4ex" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="173" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1h4c4ex_di" bpmnElement="Event_1h4c4ex">
+        <dc:Bounds x="262" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_184ipv7_di" bpmnElement="Flow_184ipv7">
+        <di:waypoint x="209" y="120" />
+        <di:waypoint x="262" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+
+------WebKitFormBoundarynALtVRm0XbUXw1nf
+Content-Disposition: form-data; name="deploymentName"
+
+test4
+------WebKitFormBoundarynALtVRm0XbUXw1nf
+Content-Disposition: form-data; name="name"
+
+test4
+------WebKitFormBoundarynALtVRm0XbUXw1nf--
+]
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [o.a.t.util.http.Rfc6265CookieProcessor  ] : Cookies: Parsing b[]: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNhYjk5YThiLTI2NWUtNDIyNC1iMzdkLTNiYTIzMDJjMDFlNyIsImV4cCI6MTc2NTgwMzAwMX0.Q8yxyBX6-iT9iqNiLIc4sj8pB_-Swiap6sA582klxsk; grafana_session=b64174571d0be8ddd58cbfa160cd3ab0; grafana_session_expiry=1763544254; XSRF-TOKEN=c9c189fa-1dca-40a6-a4f1-ea3e3a623479
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [o.a.c.authenticator.AuthenticatorBase   ] : Security checking request POST /api/camunda/process-definitions/deployments
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [org.apache.catalina.realm.RealmBase     ] :   No applicable constraints defined
+2025-12-13 11:31:36.294 [nio-8089-exec-2] DEBUG [o.a.c.authenticator.AuthenticatorBase   ] : Not subject to any constraint
+2025-12-13 11:31:36.295 [nio-8089-exec-2] DEBUG [unknown.jul.logger                      ] : X-B3-TraceId was null
+2025-12-13 11:31:36.304 [nio-8089-exec-2] DEBUG [org.redisson.command.RedisExecutor      ] : acquired connection for command (EXISTS) and params [[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]] from slot NodeSource [slot=0, addr=null, redisClient=null, redirect=null, entry=null] using node 192.168.66.126/192.168.66.126:6379... RedisConnection@1489941829 [redisClient=[addr=redis://192.168.66.126:6379], channel=[id: 0xbadc8d40, L:/192.168.66.118:58977 - R:192.168.66.126/192.168.66.126:6379], currentCommand=null, usage=1]
+2025-12-13 11:31:36.305 [isson-netty-2-5] DEBUG [org.redisson.command.RedisExecutor      ] : connection released for command (EXISTS) and params [[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]] from slot NodeSource [slot=0, addr=null, redisClient=null, redirect=null, entry=null] using connection RedisConnection@1489941829 [redisClient=[addr=redis://192.168.66.126:6379], channel=[id: 0xbadc8d40, L:/192.168.66.118:58977 - R:192.168.66.126/192.168.66.126:6379], currentCommand=CommandData [promise=java.util.concurrent.CompletableFuture@7bb2accd[Completed normally], command=(EXISTS), params=[[116, 111, 107, 101, 110, 58, 98, 108, 97, 99, ...]], codec=org.redisson.client.codec.StringCodec], usage=0]
+2025-12-13 11:31:36.313 [nio-8089-exec-2] DEBUG [org.apache.tomcat.util.http.Parameters  ] : Set encoding to UTF-8
+2025-12-13 11:31:36.327 [nio-8089-exec-2]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Deploying process definition, name=test4, tenantId=null
+2025-12-13 11:31:36.341 [nio-8089-exec-2]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Adding BPMN resource from file: test4.bpmn
+2025-12-13 11:31:36.342 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13005 Starting command -------------------- DeployCmd ----------------------
+2025-12-13 11:31:36.342 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13009 opening new command context
+2025-12-13 11:31:36.343 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Opening JDBC Connection
+2025-12-13 11:31:36.343 [nio-8089-exec-2] DEBUG [c.b.e.i.p.e.P.lockDeploymentLockProperty] : ==>  Preparing: SELECT VALUE_ FROM ACT_GE_PROPERTY WHERE NAME_ = 'deployment.lock' for update
+2025-12-13 11:31:36.343 [nio-8089-exec-2] DEBUG [c.b.e.i.p.e.P.lockDeploymentLockProperty] : ==> Parameters: 
+2025-12-13 11:31:36.345 [nio-8089-exec-2] DEBUG [c.b.e.i.p.e.P.lockDeploymentLockProperty] : <==      Total: 1
+2025-12-13 11:31:36.346 [nio-8089-exec-2] DEBUG [.R.selectLatestResourcesByDeploymentName] : ==>  Preparing: select B.* from ACT_GE_BYTEARRAY B inner join (select B.NAME_, MAX(D.DEPLOY_TIME_) DEPLOY_TIME_ from ACT_GE_BYTEARRAY B inner join ACT_RE_DEPLOYMENT D on B.DEPLOYMENT_ID_ = D.ID_ where D.NAME_ = ? and (D.SOURCE_ is null or D.SOURCE_ = ? ) and B.NAME_ in ( ? ) group by B.NAME_) LAST_RESOURCE on B.NAME_ = LAST_RESOURCE.NAME_ inner join ACT_RE_DEPLOYMENT D on B.DEPLOYMENT_ID_ = D.ID_ and D.DEPLOY_TIME_ = LAST_RESOURCE.DEPLOY_TIME_ and D.NAME_ = ? and (D.SOURCE_ is null or D.SOURCE_ = ? ) and D.TENANT_ID_ is null order by B.ID_ asc
+2025-12-13 11:31:36.347 [nio-8089-exec-2] DEBUG [.R.selectLatestResourcesByDeploymentName] : ==> Parameters: test4(String), process application(String), test4.bpmn(String), test4(String), process application(String)
+2025-12-13 11:31:36.347 [nio-8089-exec-2] DEBUG [.R.selectLatestResourcesByDeploymentName] : <==      Total: 0
+2025-12-13 11:31:36.347 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13001 Creating new deployment
+2025-12-13 11:31:36.349 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13018 Processing deployment test4
+2025-12-13 11:31:36.349 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13019 Processing resource test4.bpmn
+2025-12-13 11:31:36.407 [nio-8089-exec-2]  INFO [org.camunda.bpm.engine.bpmn.parser      ] : ENGINE-01002 Ignoring non-executable process with id 'Process_1'. Set the attribute isExecutable="true" to deploy this process.
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13018 Processing deployment test4
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13019 Processing resource test4.bpmn
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13018 Processing deployment test4
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13019 Processing resource test4.bpmn
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13018 Processing deployment test4
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13019 Processing resource test4.bpmn
+2025-12-13 11:31:36.407 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13018 Processing deployment test4
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13019 Processing resource test4.bpmn
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13011 closing existing command context
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03006 Cache state after flush: [
+  PERSISTENT ResourceEntity[3a87762c-d7d4-11f0-8dd0-345a6011b5ec]
+  PERSISTENT DeploymentEntity[3a874f1b-d7d4-11f0-8dd0-345a6011b5ec]
+]
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03008 Flush Summary: [
+  INSERT DeploymentEntity[3a874f1b-d7d4-11f0-8dd0-345a6011b5ec]
+  INSERT ResourceEntity[3a87762c-d7d4-11f0-8dd0-345a6011b5ec]
+]
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03009 SQL operation: 'INSERT'; Entity: 'DeploymentEntity[id=3a874f1b-d7d4-11f0-8dd0-345a6011b5ec]'
+2025-12-13 11:31:36.408 [nio-8089-exec-2] DEBUG [o.c.b.e.i.p.e.D.insertDeployment        ] : ==>  Preparing: insert into ACT_RE_DEPLOYMENT(ID_, NAME_, DEPLOY_TIME_, SOURCE_, TENANT_ID_) values(?, ?, ?, ?, ?)
+2025-12-13 11:31:36.409 [nio-8089-exec-2] DEBUG [o.c.b.e.i.p.e.D.insertDeployment        ] : ==> Parameters: 3a874f1b-d7d4-11f0-8dd0-345a6011b5ec(String), test4(String), 2025-12-13 11:31:36.345(Timestamp), null, null
+2025-12-13 11:31:36.409 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03009 SQL operation: 'INSERT'; Entity: 'ResourceEntity[id=3a87762c-d7d4-11f0-8dd0-345a6011b5ec]'
+2025-12-13 11:31:36.409 [nio-8089-exec-2] DEBUG [o.c.b.e.i.p.e.R.insertResource          ] : ==>  Preparing: insert into ACT_GE_BYTEARRAY( ID_, NAME_, BYTES_, DEPLOYMENT_ID_, GENERATED_, TENANT_ID_, TYPE_, CREATE_TIME_, REV_) values ( ?, ?, ?, ?, ?, ?, ?, ?, 1)
+2025-12-13 11:31:36.410 [nio-8089-exec-2] DEBUG [o.c.b.e.i.p.e.R.insertResource          ] : ==> Parameters: 3a87762c-d7d4-11f0-8dd0-345a6011b5ec(String), test4.bpmn(String), java.io.ByteArrayInputStream@21de74a5(ByteArrayInputStream), 3a874f1b-d7d4-11f0-8dd0-345a6011b5ec(String), false(Boolean), null, 1(Integer), 2025-12-13 11:31:36.348(Timestamp)
+2025-12-13 11:31:36.412 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Closing JDBC Connection [Transaction-aware proxy for target Connection [com.mysql.cj.jdbc.ConnectionImpl@644c4e19]]
+2025-12-13 11:31:36.412 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13006 Finishing command -------------------- DeployCmd ----------------------
+2025-12-13 11:31:36.412 [nio-8089-exec-2]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : Process definition deployed successfully, deploymentId=3a874f1b-d7d4-11f0-8dd0-345a6011b5ec
+2025-12-13 11:31:36.412 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13005 Starting command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:31:36.412 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13009 opening new command context
+2025-12-13 11:31:36.412 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Opening JDBC Connection
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [.selectProcessDefinitionsByQueryCriteria] : ==>  Preparing: select distinct RES.* from ACT_RE_PROCDEF RES WHERE RES.DEPLOYMENT_ID_ = ? order by RES.ID_ asc LIMIT ? OFFSET ?
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [.selectProcessDefinitionsByQueryCriteria] : ==> Parameters: 3a874f1b-d7d4-11f0-8dd0-345a6011b5ec(String), 2147483647(Integer), 0(Integer)
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [.selectProcessDefinitionsByQueryCriteria] : <==      Total: 0
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13011 closing existing command context
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03006 Cache state after flush: [
+]
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Closing JDBC Connection [Transaction-aware proxy for target Connection [com.mysql.cj.jdbc.ConnectionImpl@644c4e19]]
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13006 Finishing command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:31:36.413 [nio-8089-exec-2]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : DEBUG: Deployed process definitions count: 0, definitions: 
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13005 Starting command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13009 opening new command context
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Opening JDBC Connection
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [ectProcessDefinitionCountByQueryCriteria] : ==>  Preparing: select count(distinct RES.ID_ ) from ACT_RE_PROCDEF RES
+2025-12-13 11:31:36.413 [nio-8089-exec-2] DEBUG [ectProcessDefinitionCountByQueryCriteria] : ==> Parameters: 
+2025-12-13 11:31:36.415 [nio-8089-exec-2] DEBUG [ectProcessDefinitionCountByQueryCriteria] : <==      Total: 1
+2025-12-13 11:31:36.415 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13011 closing existing command context
+2025-12-13 11:31:36.415 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.persistence      ] : ENGINE-03006 Cache state after flush: [
+]
+2025-12-13 11:31:36.415 [nio-8089-exec-2] DEBUG [o.a.i.t.managed.ManagedTransaction      ] : Closing JDBC Connection [Transaction-aware proxy for target Connection [com.mysql.cj.jdbc.ConnectionImpl@644c4e19]]
+2025-12-13 11:31:36.415 [nio-8089-exec-2] DEBUG [org.camunda.bpm.engine.cmd              ] : ENGINE-13006 Finishing command -------------------- ProcessDefinitionQueryImpl ----------------------
+2025-12-13 11:31:36.415 [nio-8089-exec-2]  INFO [c.b.s.c.s.i.ProcessDefinitionServiceImpl] : DEBUG: Total process definitions in database: 0
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Before fill(): parsingHeader: [true], parsingRequestLine: [true], parsingRequestLinePhase: [0], parsingRequestLineStart: [0], byteBuffer.position(): [0], byteBuffer.limit(): [0], end: [1762]
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [o.a.tomcat.util.net.SocketWrapperBase   ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]], Read from buffer: [0]
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]], Read direct from socket: [0]
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [o.a.coyote.http11.Http11InputBuffer     ] : Received []
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [o.apache.coyote.http11.Http11Processor  ] : Socket: [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]], Status in: [OPEN_READ], State out: [OPEN]
+2025-12-13 11:31:36.432 [nio-8089-exec-2] DEBUG [org.apache.tomcat.util.net.NioEndpoint  ] : Registered read interest for [org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper@1c8d1e10:org.apache.tomcat.util.net.NioChannel@341bc4c2:java.nio.channels.SocketChannel[connected local=/192.168.66.118:8089 remote=/192.168.66.118:58987]]
+2025-12-13 11:31:36.532 [/api/v2/spans}}] DEBUG [s.n.www.protocol.http.HttpURLConnection ] : sun.net.www.MessageHeader@74e441c99 pairs: {POST /api/v2/spans HTTP/1.1: null}{b3: 0}{Content-Type: application/json}{Content-Encoding: gzip}{User-Agent: Java/17.0.17}{Host: 192.168.66.126:9411}{Accept: text/html, image/gif, image/jpeg, */*; q=0.2}{Connection: keep-alive}{Content-Length: 1009}
+2025-12-13 11:31:36.534 [/api/v2/spans}}] DEBUG [s.n.www.protocol.http.HttpURLConnection ] : sun.net.www.MessageHeader@7853ac463 pairs: {null: HTTP/1.1 202 Accepted}{Date: Sat, 13 Dec 2025 03:31:35 GMT}{Content-Length: 0}

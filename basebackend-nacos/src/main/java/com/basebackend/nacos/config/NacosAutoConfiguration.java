@@ -21,15 +21,10 @@ import org.springframework.context.annotation.Import;
 @Slf4j
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(NacosConfigProperties.class)
-@ConditionalOnProperty(
-    prefix = "nacos",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true
-)
+@ConditionalOnProperty(prefix = "nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Import({
-    NacosConfigConfiguration.class,
-    NacosDiscoveryConfiguration.class
+        NacosConfigConfiguration.class,
+        NacosDiscoveryConfiguration.class
 })
 @RequiredArgsConstructor
 public class NacosAutoConfiguration {
@@ -49,7 +44,7 @@ public class NacosAutoConfiguration {
     /**
      * Nacos配置管理器
      */
-    @Bean
+    @Bean("customNacosConfigManager")
     @ConditionalOnMissingBean
     public NacosConfigManager customNacosConfigManager() {
         log.info("初始化自定义 Nacos 配置管理器");

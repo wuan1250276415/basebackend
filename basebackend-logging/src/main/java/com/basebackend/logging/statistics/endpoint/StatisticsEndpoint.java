@@ -46,8 +46,7 @@ public class StatisticsEndpoint {
         // TODO: 从数据库或日志系统获取实际数据
         List<LogStatisticsEntry> mockData = createMockData(limit);
 
-        StatisticsService.RealtimeStatisticsSummary summary =
-                statisticsService.getRealtimeSummary(mockData);
+        StatisticsService.RealtimeStatisticsSummary summary = statisticsService.getRealtimeSummary(mockData);
 
         return ResponseEntity.ok(summary);
     }
@@ -95,8 +94,7 @@ public class StatisticsEndpoint {
                 "id", id,
                 "title", "统计分析报告",
                 "generatedAt", Instant.now(),
-                "status", "completed"
-        );
+                "status", "completed");
 
         return ResponseEntity.ok(report);
     }
