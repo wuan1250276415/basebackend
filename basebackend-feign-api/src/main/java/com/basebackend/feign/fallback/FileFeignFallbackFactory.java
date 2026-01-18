@@ -49,6 +49,20 @@ public class FileFeignFallbackFactory implements FallbackFactory<FileFeignClient
                 return Result.error("文件服务暂时不可用，请稍后重试");
             }
 
+            @Override
+            public Result<String> getFilePreviewUrl(String fileId) {
+                log.error("[Feign降级] 创建文件版本失败: fileId={}",
+                        fileId);
+                return Result.error("文件服务暂时不可用，请稍后重试");
+            }
+
+            @Override
+            public Result<String> getThumbnailUrl(String fileId) {
+                log.error("[Feign降级] 创建文件版本失败: fileId={}",
+                        fileId);
+                return Result.error("文件服务暂时不可用，请稍后重试");
+            }
+
             /**
              * 安全获取文件名，处理空值情况
              */

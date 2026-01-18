@@ -1,5 +1,9 @@
 package com.basebackend.feign.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.Request;
 import feign.codec.Encoder;
 import feign.form.spring.SpringFormEncoder;
@@ -8,6 +12,7 @@ import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.cloud.openfeign.support.SpringEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.util.concurrent.TimeUnit;
 
@@ -58,4 +63,5 @@ public class FileFeignConfig {
                 true
         );
     }
+
 }

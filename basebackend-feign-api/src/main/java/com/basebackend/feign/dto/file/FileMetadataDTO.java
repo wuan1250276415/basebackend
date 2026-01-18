@@ -1,5 +1,6 @@
 package com.basebackend.feign.dto.file;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -84,6 +85,7 @@ public class FileMetadataDTO implements Serializable {
     private Boolean isDeleted;
 
     @Schema(description = "删除时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime deletedAt;
 
     @Schema(description = "删除人ID")
@@ -114,8 +116,10 @@ public class FileMetadataDTO implements Serializable {
     private String metadata;
 
     @Schema(description = "创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
 
     @Schema(description = "更新时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
 }

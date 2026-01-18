@@ -1,15 +1,16 @@
 package com.basebackend.user.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.cache.service.RedisService;
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.util.IpUtil;
 import com.basebackend.common.util.UserAgentUtil;
+import com.basebackend.feign.dto.user.LoginRequest;
+import com.basebackend.feign.dto.user.LoginResponse;
 import com.basebackend.jwt.JwtUtil;
 import com.basebackend.user.dto.LoginLogDTO;
-import com.basebackend.user.dto.LoginRequest;
-import com.basebackend.user.dto.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.mapper.SysUserMapper;
@@ -333,6 +334,129 @@ public class AuthServiceImpl implements AuthService {
             redisService.set(onlineUserKey, onlineUser, 24 * 60 * 60); // 24小时
         } catch (Exception e) {
             log.error("保存在线用户信息失败: {}", e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public LoginResponse wechatLogin(String phone) {
+        log.info("微信单点登录: phone={}", phone);
+
+        // 获取请求信息
+        HttpServletRequest request = getHttpServletRequest();
+        String ipAddress = IpUtil.getIpAddress(request);
+        String location = IpUtil.getLocationByIp(ipAddress);
+        String browser = UserAgentUtil.getBrowser(request);
+        String os = UserAgentUtil.getOperatingSystem(request);
+
+        LoginLogDTO loginLog = new LoginLogDTO();
+        loginLog.setUsername(phone);
+        loginLog.setIpAddress(ipAddress);
+        loginLog.setLoginLocation(location);
+        loginLog.setBrowser(browser);
+        loginLog.setOs(os);
+        loginLog.setLoginTime(LocalDateTime.now());
+
+        try {
+            // 根据手机号查询用户
+            LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(SysUser::getPhone, phone);
+            SysUser user = userMapper.selectOne(wrapper);
+
+            // 如果用户不存在，则创建新用户
+            if (user == null) {
+                log.info("用户不存在，创建新用户: phone={}", phone);
+                user = new SysUser();
+                user.setUsername(phone);  // 用户名为手机号
+                user.setPhone(phone);
+                user.setNickname("微信用户_" + phone.substring(phone.length() - 4)); // 昵称为"微信用户_后4位"
+                user.setPassword(passwordEncoder.encode("123456")); // 默认密码
+                user.setUserType(2); // 2-普通用户
+                user.setStatus(1);   // 1-启用
+                user.setLoginIp(ipAddress);
+                user.setLoginTime(LocalDateTime.now());
+                user.setCreateTime(LocalDateTime.now());
+                
+                userMapper.insert(user);
+                log.info("新用户创建成功: userId={}, phone={}", user.getId(), phone);
+            } else {
+                // 检查用户状态
+                if (user.getStatus() == 0) {
+                    loginLog.setUserId(user.getId());
+                    loginLog.setStatus(0);
+                    loginLog.setMsg("用户已被禁用");
+                    recordLoginLog(loginLog);
+                    throw new RuntimeException("用户已被禁用");
+                }
+
+                // 更新登录信息
+                user.setLoginIp(ipAddress);
+                user.setLoginTime(LocalDateTime.now());
+                userMapper.updateById(user);
+            }
+
+            // 设置成功日志
+            loginLog.setUserId(user.getId());
+            loginLog.setStatus(1);
+            loginLog.setMsg("微信登录成功");
+
+            // 生成Token
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("userId", user.getId());
+            claims.put("username", user.getUsername());
+            claims.put("userType", user.getUserType());
+            claims.put("deptId", user.getDeptId());
+
+            String token = jwtUtil.generateToken(user.getUsername(), claims);
+
+            // 缓存用户信息
+            String userKey = LOGIN_TOKEN_KEY + user.getId();
+            redisService.set(userKey, token, 24 * 60 * 60); // 24小时
+
+            // 保存在线用户信息
+            saveOnlineUser(user, token, ipAddress, location, browser, os);
+
+            // 获取用户权限和角色
+            List<String> permissions = userMapper.selectUserPermissions(user.getId());
+            List<String> roles = userMapper.selectUserRoles(user.getId());
+
+            // 缓存权限和角色
+            redisService.set(USER_PERMISSIONS_KEY + user.getId(), permissions, 24 * 60 * 60);
+            redisService.set(USER_ROLES_KEY + user.getId(), roles, 24 * 60 * 60);
+
+            // 构建用户信息
+            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
+            userInfo.setUserId(user.getId());
+            userInfo.setUsername(user.getUsername());
+            userInfo.setNickname(user.getNickname());
+            userInfo.setEmail(user.getEmail());
+            userInfo.setPhone(user.getPhone());
+            userInfo.setAvatar(user.getAvatar());
+            userInfo.setGender(user.getGender());
+            userInfo.setDeptId(user.getDeptId());
+            userInfo.setUserType(user.getUserType());
+            userInfo.setStatus(user.getStatus());
+
+            // 获取部门名称
+            userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
+
+            // 构建响应
+            LoginResponse response = new LoginResponse();
+            response.setAccessToken(token);
+            response.setExpiresIn(24 * 60 * 60L); // 24小时
+            response.setUserInfo(userInfo);
+            response.setPermissions(permissions);
+            response.setRoles(roles);
+
+            // 记录登录日志
+            recordLoginLog(loginLog);
+
+            log.info("微信单点登录成功: phone={}, userId={}", phone, user.getId());
+            return response;
+        } catch (Exception e) {
+            loginLog.setStatus(0);
+            loginLog.setMsg("微信登录失败: " + e.getMessage());
+            recordLoginLog(loginLog);
+            throw e;
         }
     }
 }

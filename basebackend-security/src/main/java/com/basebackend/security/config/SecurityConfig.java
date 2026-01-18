@@ -59,12 +59,13 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
                                 new AntPathRequestMatcher("/api/auth/**"),
-                                new AntPathRequestMatcher("/api/user/auth/**"),
+                                new AntPathRequestMatcher("/api/user/**"),
                                 new AntPathRequestMatcher("/api/public/**"),
                                 new AntPathRequestMatcher("/actuator/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),
                                 new AntPathRequestMatcher("/doc.html"),
                                 new AntPathRequestMatcher("/api/files/**"),
+                                new AntPathRequestMatcher("/api/auth/wechat/**"),
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/druid/**"),
                                 new AntPathRequestMatcher("/api/notifications/stream")
@@ -93,7 +94,8 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api/auth/**"),
                                 new AntPathRequestMatcher("/api/user/auth/**"),
                                 new AntPathRequestMatcher("/api/public/**"),
-                                new AntPathRequestMatcher("/api/files/**"),  // 文件上传接口临时开放用于测试
+                                new AntPathRequestMatcher("/api/files/**"),
+                                new AntPathRequestMatcher("/api/auth/wechat/**"),  // 文件上传接口临时开放用于测试
                                 new AntPathRequestMatcher("/actuator/**"),
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),

@@ -1,4 +1,4 @@
-package com.basebackend.user.dto;
+package com.basebackend.feign.dto.user;
 
 import com.basebackend.common.validation.SafeString;
 import jakarta.validation.constraints.NotBlank;

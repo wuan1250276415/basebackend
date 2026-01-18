@@ -1,9 +1,9 @@
 package com.basebackend.user.service.impl;
 
 import com.basebackend.cache.service.RedisService;
+import com.basebackend.feign.dto.user.LoginRequest;
+import com.basebackend.feign.dto.user.LoginResponse;
 import com.basebackend.jwt.JwtUtil;
-import com.basebackend.user.dto.LoginRequest;
-import com.basebackend.user.dto.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.mapper.SysUserMapper;

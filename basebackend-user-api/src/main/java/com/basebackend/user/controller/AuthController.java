@@ -2,8 +2,8 @@ package com.basebackend.user.controller;
 
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.exception.BusinessException;
-import com.basebackend.user.dto.LoginRequest;
-import com.basebackend.user.dto.LoginResponse;
+import com.basebackend.feign.dto.user.LoginRequest;
+import com.basebackend.feign.dto.user.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.service.AuthService;
 import com.basebackend.common.model.Result;
@@ -11,6 +11,7 @@ import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -136,6 +137,29 @@ public class AuthController {
                     : Result.error(e.getMessage());
         } catch (Exception e) {
             log.error("修改密码系统异常", e);
+            return Result.error("系统繁忙，请稍后重试");
+        }
+    }
+
+    /**
+     * 微信单点登录
+     */
+    @PostMapping("/wechat-login")
+    @Operation(summary = "微信单点登录", description = "根据手机号进行微信单点登录，如果用户不存在则自动创建")
+    @OperationLog(operation="微信单点登录", businessType = BusinessType.SELECT)
+    public Result<LoginResponse> wechatLogin(
+            @Parameter(description = "手机号") @RequestParam String phone) {
+        log.info("微信单点登录请求: phone={}", phone);
+        try {
+            LoginResponse response = authService.wechatLogin(phone);
+            return Result.success("登录成功", response);
+        } catch (BusinessException e) {
+            log.warn("微信单点登录业务异常，手机号：{}，错误：{}", phone, e.getMessage());
+            return e.getErrorCode() != null 
+                    ? Result.error(e.getErrorCode(), e.getMessage()) 
+                    : Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("微信单点登录系统异常，手机号：{}", phone, e);
             return Result.error("系统繁忙，请稍后重试");
         }
     }

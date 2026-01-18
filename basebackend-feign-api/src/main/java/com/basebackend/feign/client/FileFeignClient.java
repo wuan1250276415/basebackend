@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
  *     <li>简单文件上传（兼容旧接口）</li>
  *     <li>增强文件上传（支持文件夹、权限、版本管理）</li>
  *     <li>文件版本创建</li>
+ *     <li>获取文件预览地址</li>
+ *     <li>获取文件缩略图地址</li>
  * </ul>
  * </p>
  *
@@ -101,5 +104,41 @@ public interface FileFeignClient {
             @Parameter(description = "文件ID") @PathVariable("fileId") String fileId,
             @Parameter(description = "新版本文件") @RequestPart("file") MultipartFile file,
             @Parameter(description = "版本说明") @RequestParam(value = "description", required = false) String description
+    );
+
+    /**
+     * 获取文件预览地址
+     * <p>
+     * 返回可用于在线预览文件的 URL。
+     * </p>
+     *
+     * @param fileId 文件ID
+     * @return 文件预览地址
+     */
+    @GetMapping(
+            value = "/{fileId}/preview-url",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "获取文件预览地址", description = "返回文件在线预览 URL")
+    Result<String> getFilePreviewUrl(
+            @Parameter(description = "文件ID") @PathVariable("fileId") String fileId
+    );
+
+    /**
+     * 获取文件缩略图地址
+     * <p>
+     * 返回文件缩略图的 URL，适用于图片等媒体文件。
+     * </p>
+     *
+     * @param fileId 文件ID
+     * @return 文件缩略图地址
+     */
+    @GetMapping(
+            value = "/{fileId}/thumbnail-url",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "获取文件缩略图地址", description = "返回文件缩略图 URL")
+    Result<String> getThumbnailUrl(
+            @Parameter(description = "文件ID") @PathVariable("fileId") String fileId
     );
 }
