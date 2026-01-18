@@ -197,6 +197,7 @@ mvn jacoco:check
 - 源码目录和测试目录
 - 排除规则
 - 质量门禁设置
+  - 覆盖率阈值（`sonar.java.coverageThreshold`），CI 应执行 Sonar 分析以追踪覆盖率变化
   - 漏洞（Vulnerability）：0
   - 缺陷（Bug）：0
   - 代码味道（Code Smell）：100
