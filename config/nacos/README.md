@@ -1,5 +1,7 @@
 # Nacos配置中心配置文件
 
+> 注意：`config/nacos/` 为历史遗留目录，当前权威配置目录为 `config/nacos-configs/`。
+
 ## 目录结构
 
 ```
@@ -21,10 +23,12 @@ config/nacos/
 
 ```bash
 # Linux/Mac
-./bin/maintenance/upload-nacos-configs.sh
+cd config/nacos-configs
+bash import-nacos-configs.sh
 
 # Windows
-bin\maintenance\upload-nacos-configs.bat
+cd config\\nacos-configs
+.\import-nacos-configs.ps1
 ```
 
 ### 方式2：手动上传

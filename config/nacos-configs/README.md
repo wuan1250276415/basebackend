@@ -1,6 +1,6 @@
 # Nacos 配置文件说明
 
-> 本目录包含了项目的 Nacos 配置中心配置文件
+> 本目录是项目 Nacos 配置的唯一权威来源，`config/nacos/` 为历史遗留目录，仅供参考。
 
 ## 📁 目录结构
 
@@ -40,7 +40,7 @@ nacos\bin\startup.cmd -m standalone
 
 ```powershell
 # 在项目根目录执行
-cd nacos-configs
+cd config/nacos-configs
 .\import-nacos-configs.ps1
 
 # 自定义参数
@@ -51,7 +51,7 @@ cd nacos-configs
 
 ```bash
 # 在项目根目录执行
-cd nacos-configs
+cd config/nacos-configs
 bash import-nacos-configs.sh
 
 # 自定义参数
