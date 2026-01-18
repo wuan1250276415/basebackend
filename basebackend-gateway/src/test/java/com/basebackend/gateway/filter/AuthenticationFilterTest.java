@@ -2,7 +2,6 @@ package com.basebackend.gateway.filter;
 
 import com.basebackend.gateway.config.GatewaySecurityProperties;
 import com.basebackend.gateway.enums.GatewayErrorCode;
-import com.basebackend.gateway.model.GatewayResult;
 import com.basebackend.jwt.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

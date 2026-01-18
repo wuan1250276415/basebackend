@@ -1,7 +1,8 @@
 package com.basebackend.gateway.filter;
 
 import com.basebackend.gateway.enums.GatewayErrorCode;
-import com.basebackend.gateway.model.GatewayResult;
+import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.model.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -216,8 +217,8 @@ public class IdempotencyFilter implements GlobalFilter, Ordered {
         response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
         response.setStatusCode(HttpStatus.CONFLICT);
 
-        GatewayResult<?> result = GatewayResult.error(GatewayErrorCode.REQUEST_DUPLICATE, message);
-        String body = result.toJsonString();
+        Result<?> result = Result.error(GatewayErrorCode.REQUEST_DUPLICATE, message);
+        String body = JSON.toJSONString(result);
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));
