@@ -69,3 +69,4 @@ dependency-check-report/
 *.kubeconfig
 secrets.yaml
 *-sealed.yaml
+.ace-tool/
