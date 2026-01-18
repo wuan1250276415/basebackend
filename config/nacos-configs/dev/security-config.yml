@@ -12,7 +12,7 @@
 
 # JWT 配置
 jwt:
-  secret: ${JWT_SECRET:basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required}
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24小时（毫秒）
   refresh-expiration: 604800000  # 7天（毫秒）
 

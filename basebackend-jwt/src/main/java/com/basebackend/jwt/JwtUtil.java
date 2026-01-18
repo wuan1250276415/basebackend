@@ -24,9 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtUtil {
 
-    private static final String DEFAULT_SECRET = "basebackend-secret-key-for-jwt-token-generation-minimum-256-bits";
-
-    @Value("${jwt.secret:basebackend-secret-key-for-jwt-token-generation-minimum-256-bits}")
+    @Value("${jwt.secret}")
     private String configuredSecret;
 
     @Value("${jwt.expiration:86400000}")
@@ -39,7 +37,7 @@ public class JwtUtil {
      */
     private SecretKey getSecretKey() {
         String secretValue = secretManager.getRequiredSecret("jwt.secret",
-                () -> configuredSecret != null ? configuredSecret : DEFAULT_SECRET);
+                () -> configuredSecret);
         return Keys.hmacShaKeyFor(secretValue.getBytes(StandardCharsets.UTF_8));
     }
 
