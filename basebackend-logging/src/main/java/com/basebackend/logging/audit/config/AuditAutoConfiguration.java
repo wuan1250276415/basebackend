@@ -7,6 +7,7 @@ import com.basebackend.logging.audit.service.AuditVerificationService;
 import com.basebackend.logging.audit.storage.AuditStorage;
 import com.basebackend.logging.audit.storage.CompositeAuditStorage;
 import com.basebackend.logging.audit.storage.FileAuditStorage;
+import com.basebackend.logging.audit.storage.database.DatabaseAuditStorage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -142,7 +144,8 @@ public class AuditAutoConfiguration {
     @ConditionalOnMissingBean
     public AuditStorage auditStorage(AuditProperties properties,
                                      ObjectMapper objectMapper,
-                                     AesEncryptor aesEncryptor) {
+                                     AesEncryptor aesEncryptor,
+                                     ApplicationContext applicationContext) {
         log.info("初始化文件审计存储，路径: {}", properties.getStoragePath());
 
         Path storagePath = Paths.get(properties.getStoragePath());
@@ -167,11 +170,15 @@ public class AuditAutoConfiguration {
                 // secondaries.add(new RedisAuditStorage(...));
             }
 
-            // 数据库存储
+            // 数据库存储：从 ApplicationContext 中解析 DatabaseAuditStorage
             if (properties.getDatabase().isEnabled()) {
-                log.info("初始化数据库审计存储");
-                // TODO: 实现数据库存储
-                // secondaries.add(new DatabaseAuditStorage(...));
+                try {
+                    DatabaseAuditStorage dbStorage = applicationContext.getBean(DatabaseAuditStorage.class);
+                    secondaries.add(dbStorage);
+                    log.info("已加载数据库审计存储作为备用存储");
+                } catch (Exception e) {
+                    log.warn("数据库审计存储配置已启用但 Bean 未就绪，跳过: {}", e.getMessage());
+                }
             }
 
             if (!secondaries.isEmpty()) {

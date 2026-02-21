@@ -1,7 +1,10 @@
 package com.basebackend.logging.config;
 
 import com.basebackend.logging.audit.config.AuditAutoConfiguration;
+import com.basebackend.logging.audit.export.AuditExportAutoConfiguration;
+import com.basebackend.logging.audit.storage.database.DatabaseAuditStorageAutoConfiguration;
 import com.basebackend.logging.cache.HotLogCacheConfiguration;
+import com.basebackend.logging.loglevel.DynamicLogLevelAutoConfiguration;
 import com.basebackend.logging.masking.MaskingAutoConfiguration;
 import com.basebackend.logging.statistics.config.StatisticsAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +29,10 @@ import org.springframework.context.annotation.Import;
         AuditAutoConfiguration.class,
         MaskingAutoConfiguration.class,
         HotLogCacheConfiguration.class,
-        StatisticsAutoConfiguration.class
+        StatisticsAutoConfiguration.class,
+        AuditExportAutoConfiguration.class,
+        DynamicLogLevelAutoConfiguration.class,
+        DatabaseAuditStorageAutoConfiguration.class
 })
 public class LoggingAutoConfiguration {
 
