@@ -24,12 +24,6 @@
             <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.gnu/gnu-crypto -->
-        <dependency>
-            <groupId>org.gnu</groupId>
-            <artifactId>gnu-crypto</artifactId>
-            <version>2.0.1</version>
-        </dependency>
         <!-- Spring Boot AOP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -70,13 +64,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Apollo Config (optional) -->
-        <dependency>
-            <groupId>com.ctrip.framework.apollo</groupId>
-            <artifactId>apollo-client</artifactId>
-            <version>2.1.0</version>
-            <optional>true</optional>
-        </dependency>
 
         <!-- SpringDoc OpenAPI (optional) -->
         <dependency>
@@ -101,7 +88,13 @@
         </dependency>
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
+            <artifactId>hutool-core</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+            <version>${hutool.version}</version>
         </dependency>
 
         <!-- Jackson JSR310 - Java 8 Date/Time API support -->
