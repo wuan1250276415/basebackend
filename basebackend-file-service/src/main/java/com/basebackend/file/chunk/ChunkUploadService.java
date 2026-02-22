@@ -9,16 +9,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 分块上传服务
  * <p>
  * 支持大文件的分块上传、断点续传。
- * 使用Redis存储上传状态，支持分布式环境。
+ * 使用Redis存储上传状态，磁盘临时目录存储分块数据，避免OOM。
  * </p>
  *
  * @author BaseBackend Team
@@ -44,18 +46,11 @@ public class ChunkUploadService {
     /** 上传过期时间：24小时 */
     private static final Duration UPLOAD_EXPIRE = Duration.ofHours(24);
 
-    /** 本地临时分块缓存（内存模式，生产建议使用Redis） */
-    private final ConcurrentHashMap<String, Map<Integer, byte[]>> chunkCache = new ConcurrentHashMap<>();
+    /** 分块临时目录根路径 */
+    private static final Path CHUNK_TEMP_DIR = Path.of(System.getProperty("java.io.tmpdir"), "chunk_upload");
 
     /**
      * 初始化分块上传
-     *
-     * @param filename    文件名
-     * @param fileSize    文件总大小
-     * @param fileMd5     文件MD5（可选，用于校验）
-     * @param contentType 文件类型
-     * @param targetPath  目标存储路径
-     * @return 分块上传信息
      */
     public ChunkUploadInfo initUpload(String filename, long fileSize, String fileMd5,
             String contentType, String targetPath) {
@@ -64,21 +59,10 @@ public class ChunkUploadService {
 
     /**
      * 初始化分块上传（自定义分块大小）
-     *
-     * @param filename    文件名
-     * @param fileSize    文件总大小
-     * @param fileMd5     文件MD5（可选）
-     * @param contentType 文件类型
-     * @param targetPath  目标存储路径
-     * @param chunkSize   分块大小
-     * @return 分块上传信息
      */
     public ChunkUploadInfo initUpload(String filename, long fileSize, String fileMd5,
             String contentType, String targetPath, int chunkSize) {
-        // 生成上传ID
         String uploadId = UUID.randomUUID().toString().replace("-", "");
-
-        // 计算分块数
         int totalChunks = (int) Math.ceil((double) fileSize / chunkSize);
 
         ChunkUploadInfo info = new ChunkUploadInfo();
@@ -95,7 +79,6 @@ public class ChunkUploadService {
         info.setLastUpdateTime(System.currentTimeMillis());
         info.setStatus(ChunkUploadInfo.UploadStatus.INITIALIZED);
 
-        // 保存到Redis
         saveUploadInfo(info);
 
         log.info("初始化分块上传: uploadId={}, filename={}, fileSize={}, totalChunks={}",
@@ -106,11 +89,6 @@ public class ChunkUploadService {
 
     /**
      * 上传单个分块
-     *
-     * @param uploadId   上传ID
-     * @param chunkIndex 分块索引（从0开始）
-     * @param chunk      分块数据
-     * @return 更新后的上传信息
      */
     public ChunkUploadInfo uploadChunk(String uploadId, int chunkIndex, MultipartFile chunk) {
         ChunkUploadInfo info = getUploadInfo(uploadId);
@@ -126,20 +104,15 @@ public class ChunkUploadService {
             throw BusinessException.paramError("分块索引超出范围: " + chunkIndex);
         }
 
-        // 检查分块是否已上传
         if (isChunkUploaded(uploadId, chunkIndex)) {
             log.info("分块已上传，跳过: uploadId={}, chunkIndex={}", uploadId, chunkIndex);
             return info;
         }
 
         try {
-            // 缓存分块数据
-            cacheChunk(uploadId, chunkIndex, chunk.getBytes());
-
-            // 标记分块已上传
+            saveChunkToDisk(uploadId, chunkIndex, chunk);
             markChunkUploaded(uploadId, chunkIndex);
 
-            // 更新上传信息
             info.setUploadedChunks(info.getUploadedChunks() + 1);
             info.setLastUpdateTime(System.currentTimeMillis());
             info.setStatus(ChunkUploadInfo.UploadStatus.UPLOADING);
@@ -157,9 +130,6 @@ public class ChunkUploadService {
 
     /**
      * 合并分块并完成上传
-     *
-     * @param uploadId 上传ID
-     * @return 最终存储路径
      */
     public String completeUpload(String uploadId) {
         ChunkUploadInfo info = getUploadInfo(uploadId);
@@ -172,34 +142,33 @@ public class ChunkUploadService {
                     String.format("分块上传未完成: %d/%d", info.getUploadedChunks(), info.getTotalChunks()));
         }
 
+        Path mergedFile = null;
         try {
-            // 合并分块
-            byte[] mergedData = mergeChunks(uploadId, info.getTotalChunks());
+            mergedFile = mergeChunksToDisk(uploadId, info.getTotalChunks());
 
-            // 校验文件MD5
             if (info.getFileMd5() != null && !info.getFileMd5().isEmpty()) {
-                String actualMd5 = calculateMd5(mergedData);
+                String actualMd5 = calculateFileMd5(mergedFile);
                 if (!info.getFileMd5().equalsIgnoreCase(actualMd5)) {
                     throw BusinessException.paramError("文件MD5校验失败");
                 }
             }
 
-            // 上传到最终存储
-            String storagePath = storageService.upload(
-                    new ByteArrayInputStream(mergedData),
-                    info.getTargetPath(),
-                    info.getContentType(),
-                    mergedData.length);
+            String storagePath;
+            try (InputStream is = new BufferedInputStream(Files.newInputStream(mergedFile))) {
+                storagePath = storageService.upload(
+                        is,
+                        info.getTargetPath(),
+                        info.getContentType(),
+                        Files.size(mergedFile));
+            }
 
-            // 更新状态为完成
             info.setStatus(ChunkUploadInfo.UploadStatus.COMPLETED);
             info.setLastUpdateTime(System.currentTimeMillis());
             saveUploadInfo(info);
 
-            // 清理临时数据
             cleanupUpload(uploadId);
 
-            log.info("分块上传完成: uploadId={}, path={}, size={}", uploadId, storagePath, mergedData.length);
+            log.info("分块上传完成: uploadId={}, path={}, size={}", uploadId, storagePath, Files.size(mergedFile));
 
             return storagePath;
         } catch (BusinessException e) {
@@ -209,13 +178,18 @@ public class ChunkUploadService {
             info.setStatus(ChunkUploadInfo.UploadStatus.FAILED);
             saveUploadInfo(info);
             throw BusinessException.fileUploadFailed("合并分块失败: " + e.getMessage());
+        } finally {
+            if (mergedFile != null) {
+                try {
+                    Files.deleteIfExists(mergedFile);
+                } catch (IOException ignored) {
+                }
+            }
         }
     }
 
     /**
      * 取消上传
-     *
-     * @param uploadId 上传ID
      */
     public void cancelUpload(String uploadId) {
         ChunkUploadInfo info = getUploadInfo(uploadId);
@@ -231,9 +205,6 @@ public class ChunkUploadService {
 
     /**
      * 获取上传信息
-     *
-     * @param uploadId 上传ID
-     * @return 上传信息，不存在返回null
      */
     public ChunkUploadInfo getUploadInfo(String uploadId) {
         try {
@@ -267,9 +238,6 @@ public class ChunkUploadService {
 
     /**
      * 获取已上传的分块列表
-     *
-     * @param uploadId 上传ID
-     * @return 已上传的分块索引列表
      */
     public List<Integer> getUploadedChunks(String uploadId) {
         try {
@@ -323,34 +291,60 @@ public class ChunkUploadService {
         redisTemplate.expire(key, UPLOAD_EXPIRE);
     }
 
-    private void cacheChunk(String uploadId, int chunkIndex, byte[] data) {
-        // 简单内存缓存实现，生产环境可改为Redis或文件存储
-        chunkCache.computeIfAbsent(uploadId, k -> new ConcurrentHashMap<>())
-                .put(chunkIndex, data);
+    private Path getChunkDir(String uploadId) {
+        return CHUNK_TEMP_DIR.resolve(uploadId);
     }
 
-    private byte[] mergeChunks(String uploadId, int totalChunks) throws IOException {
-        Map<Integer, byte[]> chunks = chunkCache.get(uploadId);
-        if (chunks == null) {
-            throw new IOException("分块数据不存在");
-        }
+    private Path getChunkFile(String uploadId, int chunkIndex) {
+        return getChunkDir(uploadId).resolve(String.valueOf(chunkIndex));
+    }
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        for (int i = 0; i < totalChunks; i++) {
-            byte[] chunkData = chunks.get(i);
-            if (chunkData == null) {
-                throw new IOException("分块 " + i + " 数据丢失");
+    private void saveChunkToDisk(String uploadId, int chunkIndex, MultipartFile chunk) throws IOException {
+        Path chunkDir = getChunkDir(uploadId);
+        Files.createDirectories(chunkDir);
+
+        Path chunkFile = getChunkFile(uploadId, chunkIndex);
+        chunk.transferTo(chunkFile);
+    }
+
+    private Path mergeChunksToDisk(String uploadId, int totalChunks) throws IOException {
+        Path chunkDir = getChunkDir(uploadId);
+        Path mergedFile = CHUNK_TEMP_DIR.resolve(uploadId + "_merged");
+
+        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(mergedFile))) {
+            byte[] buffer = new byte[8192];
+            for (int i = 0; i < totalChunks; i++) {
+                Path chunkFile = chunkDir.resolve(String.valueOf(i));
+                if (!Files.exists(chunkFile)) {
+                    throw new IOException("分块 " + i + " 数据丢失");
+                }
+                try (InputStream in = new BufferedInputStream(Files.newInputStream(chunkFile))) {
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                }
             }
-            outputStream.write(chunkData);
         }
 
-        return outputStream.toByteArray();
+        return mergedFile;
     }
 
     private void cleanupUpload(String uploadId) {
         try {
-            // 清理分块缓存
-            chunkCache.remove(uploadId);
+            // 清理磁盘临时分块文件
+            Path chunkDir = getChunkDir(uploadId);
+            if (Files.exists(chunkDir)) {
+                try (var files = Files.walk(chunkDir)) {
+                    files.sorted(Comparator.reverseOrder())
+                            .forEach(path -> {
+                                try {
+                                    Files.deleteIfExists(path);
+                                } catch (IOException ignored) {
+                                }
+                            });
+                }
+            }
 
             // 清理Redis中的分块状态
             redisTemplate.delete(CHUNK_KEY_PREFIX + uploadId);
@@ -361,10 +355,17 @@ public class ChunkUploadService {
         }
     }
 
-    private String calculateMd5(byte[] data) {
+    private String calculateFileMd5(Path file) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(data);
+            try (InputStream is = new DigestInputStream(
+                    new BufferedInputStream(Files.newInputStream(file)), md)) {
+                byte[] buffer = new byte[8192];
+                while (is.read(buffer) != -1) {
+                    // digest is updated automatically
+                }
+            }
+            byte[] digest = md.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) {
                 sb.append(String.format("%02x", b));

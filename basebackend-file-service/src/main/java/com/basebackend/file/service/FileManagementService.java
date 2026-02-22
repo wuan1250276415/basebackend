@@ -8,17 +8,21 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.PageResult;
+import com.basebackend.file.antivirus.AntivirusService;
+import com.basebackend.file.antivirus.ScanResult;
 import com.basebackend.file.config.FileProperties;
 import com.basebackend.file.entity.*;
 import com.basebackend.file.mapper.*;
 import com.basebackend.file.model.FileStatistics;
 import com.basebackend.file.model.FileStatistics.FileTypeDistribution;
 import com.basebackend.file.model.StorageUsageSummary;
+import com.basebackend.file.security.FileSecurityValidator;
 import com.basebackend.file.storage.StorageService;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -40,7 +44,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FileManagementService {
 
     private final StorageService storageService;
@@ -53,6 +56,41 @@ public class FileManagementService {
     private final FileShareMapper fileShareMapper;
     private final FileTagMapper fileTagMapper;
     private final FileTagRelationMapper fileTagRelationMapper;
+    private final FileSecurityValidator fileSecurityValidator;
+    private final PasswordEncoder passwordEncoder;
+
+    /** 病毒扫描服务（可选依赖，无 ClamAV 时为 null） */
+    private final AntivirusService antivirusService;
+
+    @Autowired
+    public FileManagementService(
+            StorageService storageService,
+            FileProperties fileProperties,
+            FileMetadataMapper fileMetadataMapper,
+            FileVersionMapper fileVersionMapper,
+            FilePermissionMapper filePermissionMapper,
+            FileRecycleBinMapper fileRecycleBinMapper,
+            FileOperationLogMapper fileOperationLogMapper,
+            FileShareMapper fileShareMapper,
+            FileTagMapper fileTagMapper,
+            FileTagRelationMapper fileTagRelationMapper,
+            FileSecurityValidator fileSecurityValidator,
+            PasswordEncoder passwordEncoder,
+            @Autowired(required = false) AntivirusService antivirusService) {
+        this.storageService = storageService;
+        this.fileProperties = fileProperties;
+        this.fileMetadataMapper = fileMetadataMapper;
+        this.fileVersionMapper = fileVersionMapper;
+        this.filePermissionMapper = filePermissionMapper;
+        this.fileRecycleBinMapper = fileRecycleBinMapper;
+        this.fileOperationLogMapper = fileOperationLogMapper;
+        this.fileShareMapper = fileShareMapper;
+        this.fileTagMapper = fileTagMapper;
+        this.fileTagRelationMapper = fileTagRelationMapper;
+        this.fileSecurityValidator = fileSecurityValidator;
+        this.passwordEncoder = passwordEncoder;
+        this.antivirusService = antivirusService;
+    }
 
     /**
      * 上传文件
@@ -63,8 +101,27 @@ public class FileManagementService {
             throw new BusinessException("文件不能为空");
         }
 
+        // 1. 安全验证：文件类型 + MIME检测 + 文件名安全性
+        fileSecurityValidator.validateFile(file, fileProperties.getAllowedTypes());
+
+        // 2. 病毒扫描（可选，无杀毒服务时跳过）
+        if (antivirusService != null && antivirusService.isAvailable()) {
+            try {
+                ScanResult scanResult = antivirusService.scan(file.getInputStream(), file.getOriginalFilename());
+                if (!scanResult.isSafe()) {
+                    log.warn("文件病毒扫描未通过: filename={}, threat={}", file.getOriginalFilename(), scanResult.getThreatName());
+                    throw new BusinessException("文件安全检测未通过: " + scanResult.getMessage());
+                }
+                log.debug("文件病毒扫描通过: filename={}, engine={}, cost={}ms",
+                    file.getOriginalFilename(), scanResult.getEngineName(), scanResult.getScanTimeMs());
+            } catch (IOException e) {
+                log.error("病毒扫描IO异常", e);
+                throw new BusinessException("文件安全检测失败: " + e.getMessage());
+            }
+        }
+
         try {
-            // 1. 生成文件标识
+            // 3. 生成文件标识
             String fileId = IdUtil.simpleUUID();
             String originalName = file.getOriginalFilename();
             String extension = FileUtil.extName(originalName);
@@ -150,9 +207,11 @@ public class FileManagementService {
         // 3. 获取文件流
         InputStream inputStream = storageService.download(metadata.getFilePath());
 
-        // 4. 更新下载次数
-        metadata.setDownloadCount(metadata.getDownloadCount() + 1);
-        fileMetadataMapper.updateById(metadata);
+        // 4. 原子更新下载次数（避免并发丢失计数）
+        fileMetadataMapper.update(null,
+            new LambdaUpdateWrapper<FileMetadata>()
+                .eq(FileMetadata::getFileId, fileId)
+                .setSql("download_count = download_count + 1"));
 
         // 5. 记录操作日志
         logOperation(fileId, "DOWNLOAD", userId, null, "下载文件");
@@ -670,7 +729,10 @@ public class FileManagementService {
         FileShare share = new FileShare();
         share.setFileId(fileId);
         share.setShareCode(shareCode);
-        share.setSharePassword(sharePassword);
+        // 密码使用 BCrypt 哈希存储，禁止明文落库
+        if (StringUtils.hasText(sharePassword)) {
+            share.setSharePassword(passwordEncoder.encode(sharePassword));
+        }
         share.setSharedBy(userId);
         share.setSharedByName(userName);
         share.setExpireTime(expireTime);
@@ -712,7 +774,7 @@ public class FileManagementService {
             throw new BusinessException("需要分享密码");
         }
         if (StringUtils.hasText(share.getSharePassword())
-            && !share.getSharePassword().equals(password)) {
+            && !passwordEncoder.matches(password, share.getSharePassword())) {
             throw new BusinessException("分享密码不正确");
         }
 
@@ -855,27 +917,26 @@ public class FileManagementService {
     }
 
     /**
-     * 获取文件统计信息
+     * 获取文件统计信息（SQL聚合，避免全表加载到内存）
      */
     public FileStatistics getFileStatistics() {
-        List<FileMetadata> files = fileMetadataMapper.selectList(
-            new LambdaQueryWrapper<FileMetadata>()
-                .eq(FileMetadata::getIsDeleted, false)
-        );
-        long totalFiles = files.size();
-        long totalSize = files.stream()
-            .mapToLong(file -> file.getFileSize() == null ? 0L : file.getFileSize())
-            .sum();
-
-        Map<String, Long> storageSizeMap = files.stream()
-            .collect(Collectors.groupingBy(
-                file -> Optional.ofNullable(file.getStorageType()).orElse("LOCAL"),
-                Collectors.summingLong(file -> Optional.ofNullable(file.getFileSize()).orElse(0L))
-            ));
+        // 1. 查询总数和总大小
+        Map<String, Object> summary = fileMetadataMapper.selectFileSummary();
+        long totalFiles = ((Number) summary.get("total_files")).longValue();
+        long totalSize = ((Number) summary.get("total_size")).longValue();
 
         FileStatistics statistics = new FileStatistics();
         statistics.setTotalFiles(totalFiles);
         statistics.setTotalSize(totalSize);
+
+        // 2. 按存储类型聚合
+        List<Map<String, Object>> storageStats = fileMetadataMapper.selectStorageStatistics();
+        Map<String, Long> storageSizeMap = new HashMap<>();
+        for (Map<String, Object> row : storageStats) {
+            String storageType = (String) row.get("storage_type");
+            long size = ((Number) row.get("total_size")).longValue();
+            storageSizeMap.put(storageType, size);
+        }
 
         FileStatistics.StorageUsage usage = new FileStatistics.StorageUsage();
         usage.setLocal(storageSizeMap.getOrDefault(StorageService.StorageType.LOCAL.name(), 0L));
@@ -884,27 +945,16 @@ public class FileManagementService {
         usage.setS3(storageSizeMap.getOrDefault(StorageService.StorageType.AWS_S3.name(), 0L));
         statistics.setStorageUsage(usage);
 
-        Map<String, List<FileMetadata>> typeMap = files.stream()
-            .collect(Collectors.groupingBy(file ->
-                Optional.ofNullable(file.getFileExtension())
-                    .map(String::toLowerCase)
-                    .filter(StringUtils::hasText)
-                    .orElse("unknown")
-            ));
-
-        List<FileTypeDistribution> distributions = typeMap.entrySet().stream()
-            .map(entry -> {
-                FileTypeDistribution dist = new FileTypeDistribution();
-                dist.setType(entry.getKey());
-                dist.setCount(entry.getValue().size());
-                long sizeSum = entry.getValue().stream()
-                    .mapToLong(file -> Optional.ofNullable(file.getFileSize()).orElse(0L))
-                    .sum();
-                dist.setSize(sizeSum);
-                return dist;
-            })
-            .sorted(Comparator.comparingLong(FileTypeDistribution::getSize).reversed())
-            .collect(Collectors.toList());
+        // 3. 按文件扩展名聚合
+        List<Map<String, Object>> typeStats = fileMetadataMapper.selectFileTypeDistribution();
+        List<FileTypeDistribution> distributions = new ArrayList<>();
+        for (Map<String, Object> row : typeStats) {
+            FileTypeDistribution dist = new FileTypeDistribution();
+            dist.setType((String) row.get("file_type"));
+            dist.setCount(((Number) row.get("file_count")).longValue());
+            dist.setSize(((Number) row.get("total_size")).longValue());
+            distributions.add(dist);
+        }
         statistics.setFileTypeDistribution(distributions);
         return statistics;
     }

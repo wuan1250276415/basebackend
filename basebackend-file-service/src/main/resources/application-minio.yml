@@ -4,16 +4,16 @@ minio:
   enabled: true
 
   # MinIO服务地址
-  endpoint: http://1.117.67.222:9001
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
 
-  # Access Key
-  access-key: wuan
+  # Access Key（从环境变量注入，禁止硬编码）
+  access-key: ${MINIO_ACCESS_KEY}
 
-  # Secret Key
-  secret-key: Wuanfuck321
+  # Secret Key（从环境变量注入，禁止硬编码）
+  secret-key: ${MINIO_SECRET_KEY}
 
   # 默认存储桶
-  bucket-name: basebackend
+  bucket-name: ${MINIO_BUCKET_NAME:basebackend}
 
   # 文件路径配置
   path-prefix: files
