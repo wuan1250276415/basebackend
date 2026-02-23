@@ -78,7 +78,7 @@ public class UnleashFeatureToggleService implements FeatureToggleService {
     public Variant getVariant(String featureName, FeatureContext context, Variant defaultVariant) {
         try {
             UnleashContext unleashContext = convertToUnleashContext(context);
-            io.getunleash.Variant unleashVariant = unleash.getVariant(featureName, unleashContext);
+            io.getunleash.variant.Variant unleashVariant = unleash.getVariant(featureName, unleashContext);
 
             if (!unleashVariant.isEnabled()) {
                 return defaultVariant;
