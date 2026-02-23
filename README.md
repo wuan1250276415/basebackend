@@ -1,432 +1,347 @@
-# Base Backend - 微服务基础后台架构
+# BaseBackend — 企业级微服务基础架构
 
-一个基于 Java 和 Spring Boot 的企业级微服务基础架构项目，采用 Maven 多模块管理，提供了完整的基础组件和服务模块。
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=openjdk" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.1.5-brightgreen?style=flat-square&logo=springboot" />
+  <img src="https://img.shields.io/badge/Spring%20Cloud-2022.0.4-brightgreen?style=flat-square&logo=spring" />
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" />
+</p>
 
-> **✅ 最新更新 (2025-11-18)**: 微服务架构改造全部完成！  
-> 完成了从单体应用到微服务架构的完整改造，包括7个微服务、完整的可观测性体系、配置中心集成、安全加固和生产环境准备。  
-> 📖 查看 [最终完成总结](docs/FINAL_COMPLETION_SUMMARY.md) | [项目完成报告](docs/PROJECT_COMPLETION_REPORT.md) | [快速启动指南](docs/QUICK_START_AFTER_OPTIMIZATION.md)
+> 一个开箱即用的 Java 微服务基础架构，提供 **安全认证、数据库、缓存、消息队列、API 网关、工作流调度、可观测性** 等完整的企业级基础设施，让你专注于业务开发。
+
+📖 **完整文档**: [GitHub Wiki](https://github.com/wuan1250276415/basebackend/wiki)
+
+---
+
+## ✨ 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| 🔐 **JWT 安全认证** | 双 Token 机制、密钥轮换、多设备管理、Token 黑名单、事件审计 |
+| 🛡️ **权限控制** | RBAC 模型、@RequiresPermission / @RequiresRole / @DataScope 注解式权限 |
+| 🔒 **分布式锁** | @DistributedLock 注解 + SpEL 表达式，Redis/内存双实现 |
+| 🛡️ **幂等性** | @Idempotent 注解，TOKEN/PARAM/SPEL 三种策略防重复提交 |
+| 📊 **数据权限** | @DataScope 注解 + MyBatis 拦截器，5 种数据范围自动过滤 |
+| ⚡ **多级缓存** | L1 本地 + L2 Redis、热 Key 检测、布隆过滤器、缓存预热 |
+| 🚦 **多算法限流** | @RateLimit 注解，滑动窗口/令牌桶/固定窗口，Redis/内存双实现 |
+| 📤 **数据导出** | CSV + EasyExcel 导出导入，异步大数据量导出 |
+| 📨 **可靠事件** | DomainEvent 持久化 + 指数退避重试 + 事务提交后发布 |
+| 🔄 **分布式事务** | Seata AT 模式，自动补偿 |
+| 📡 **消息队列** | RocketMQ 5.2.0，同步/异步/事务消息 |
+| 🌐 **API 网关** | 12 个过滤器链、灰度发布、动态路由、签名验证 |
+| ⏰ **工作流调度** | Camunda BPM，流程定义/任务管理/历史查询 |
+| 📁 **文件存储** | Local / MinIO / S3 / OSS 四种 Provider |
+| 🔭 **可观测性** | OpenTelemetry + Prometheus + Loki + Tempo 全链路 |
+| 🏢 **多租户** | 数据库级租户隔离，自动注入租户条件 |
+| 🔑 **敏感数据加密** | @Sensitive 注解字段级 AES 加密，透明读写 |
+
+---
 
 ## 🚀 快速开始
 
-**5 分钟启动开发环境**: 查看 [快速开始指南](QUICKSTART.md)
+### 环境要求
 
-### Linux/Mac
+| 依赖 | 版本 |
+|------|------|
+| JDK | 17+ |
+| Maven | 3.8+ |
+| MySQL | 8.0+ |
+| Redis | 7.0+ |
+| Docker | 20.10+ |
+
+### 5 分钟启动
+
 ```bash
-# 1. 启动基础设施
+# 1. 克隆项目
+git clone https://github.com/wuan1250276415/basebackend.git
+cd basebackend
+
+# 2. 启动基础设施
 docker-compose -f docker/compose/base/docker-compose.base.yml up -d
 docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d nacos
 
-# 2. 上传配置到Nacos
+# 3. 上传 Nacos 配置
 ./bin/maintenance/upload-nacos-configs.sh
 
-# 3. 编译项目
+# 4. 编译项目
 mvn clean package -DskipTests
 
-# 4. 启动所有微服务
+# 5. 启动微服务
 ./bin/start/start-microservices.sh
 
-# 5. 验证服务
+# 6. 验证
 ./bin/test/verify-services.sh
 ```
 
-### Windows
-```batch
-REM 1. 启动基础设施
-docker-compose -f docker/compose/base/docker-compose.base.yml up -d
-docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d nacos
+> 💡 详细步骤请查看 [快速启动指南](https://github.com/wuan1250276415/basebackend/wiki/快速启动指南)
 
-REM 2. 上传配置到Nacos
-bin\maintenance\upload-nacos-configs.bat
+---
 
-REM 3. 编译项目
-mvn clean package -DskipTests
+## 🏗️ 技术栈
 
-REM 4. 启动所有微服务
-bin\start\start-all.bat
+| 层级 | 技术 | 版本 |
+|------|------|------|
+| **语言** | Java | 17 |
+| **框架** | Spring Boot | 3.1.5 |
+| **微服务** | Spring Cloud | 2022.0.4 |
+| **前端** | React + TypeScript + Ant Design 5 | 18 |
+| **ORM** | MyBatis Plus | 3.5.x |
+| **数据库** | MySQL | 8.0 |
+| **缓存** | Redis + Redisson | 7.x / 3.x |
+| **消息队列** | RocketMQ | 5.2.0 |
+| **注册/配置** | Nacos | 2.x |
+| **分布式事务** | Seata (AT 模式) | 1.7 |
+| **工作流** | Camunda BPM | 7.x |
+| **网关** | Spring Cloud Gateway | - |
+| **文件存储** | MinIO | - |
+| **可观测性** | OpenTelemetry + Prometheus + Loki + Tempo | - |
+| **CI/CD** | GitHub Actions + Docker | - |
 
-REM 5. 验证服务
-bin\test\health-check.bat
-```
-
-## 项目概述
-
-本项目是一个开箱即用的微服务架构后台系统，集成了常用的企业级功能模块，包括数据库操作、缓存、安全认证、日志、消息队列、文件服务和 API 网关等。
-
-## 技术栈
-
-- **Java 17**
-- **Spring Boot 3.2.0**
-- **Spring Cloud 2023.0.0**
-- **MyBatis Plus 3.5.5** - ORM框架
-- **MySQL 8.0** - 关系型数据库
-- **Redis** - 缓存和分布式锁
-- **Redisson 3.25.2** - Redis客户端
-- **RocketMQ** - 消息队列
-- **JWT** - 身份认证
-- **Spring Cloud Gateway** - API网关
-- **Micrometer + Prometheus** - 监控指标
-- **Zipkin** - 链路追踪
-- **Logback** - 日志框架
+---
 
 ## 📁 项目结构
 
 ```
 basebackend/
-├── 📚 docs/                         # 所有项目文档
-│   ├── getting-started/             # 快速入门指南
-│   ├── guides/                      # 详细使用指南
-│   ├── architecture/                # 架构设计文档
-│   ├── troubleshooting/             # 故障排查文档
-│   ├── implementation/              # 功能实现总结
-│   ├── changelog/                   # 变更记录
-│   └── README.md                    # 文档索引
 │
-├── 🔧 bin/                          # 所有脚本文件
-│   ├── start/                       # 启动脚本
-│   ├── test/                        # 测试脚本
-│   ├── maintenance/                 # 运维脚本
-│   └── sql/                         # SQL脚本
+├── 🚀 微服务 (可部署)
+│   ├── basebackend-gateway/              # API 网关 (端口 8180)
+│   ├── basebackend-user-api/             # 用户服务 (认证/用户/角色/资料)
+│   ├── basebackend-system-api/           # 系统管理 (部门/字典/日志/权限/监控)
+│   ├── basebackend-notification-service/ # 通知服务
+│   ├── basebackend-observability-service/# 可观测性服务
+│   └── basebackend-file-service/         # 文件服务
 │
-├── 🐳 docker/                       # Docker相关
-│   ├── compose/                     # Docker Compose文件
-│   ├── messaging/                   # 消息队列配置
-│   ├── nacos/                       # Nacos配置
-│   ├── observability/               # 可观测性配置
-│   └── seata-server/                # Seata配置
+├── 📦 公共模块 (basebackend-common/)
+│   ├── common-core/         # 核心模型 (Result, PageResult, BusinessException)
+│   ├── common-util/         # 工具类
+│   ├── common-context/      # 用户/租户上下文
+│   ├── common-security/     # 公共安全工具
+│   ├── common-storage/      # 文件存储 SPI (Local/MinIO/S3/OSS)
+│   ├── common-lock/         # 🔒 分布式锁 (@DistributedLock)
+│   ├── common-idempotent/   # 🛡️ 幂等性 (@Idempotent)
+│   ├── common-datascope/    # 📊 数据权限 (@DataScope)
+│   ├── common-ratelimit/    # 🚦 多算法限流 (@RateLimit)
+│   ├── common-export/       # 📤 导出 (CSV + EasyExcel + 异步)
+│   ├── common-event/        # 📨 可靠领域事件
+│   └── common-starter/      # 自动配置 Starter
 │
-├── ⚙️ config/                       # 配置文件
-│   ├── nacos-configs/               # Nacos配置中心
-│   └── env/                         # 环境配置模板
+├── 🔧 基础设施库
+│   ├── basebackend-jwt/          # JWT 认证 (双Token/黑名单/密钥轮换/多设备/审计)
+│   ├── basebackend-database/     # 数据库 (动态数据源/多租户/审计/加密/故障转移)
+│   ├── basebackend-cache/        # 缓存 (多级缓存/热Key/布隆过滤器/分布式数据结构)
+│   ├── basebackend-security/     # 安全 (RBAC/动态权限/安全事件)
+│   ├── basebackend-messaging/    # 消息队列 (RocketMQ)
+│   ├── basebackend-transaction/  # 分布式事务 (Seata AT)
+│   ├── basebackend-observability/# 可观测性 (OpenTelemetry)
+│   ├── basebackend-logging/      # 日志
+│   ├── basebackend-nacos/        # 注册/配置中心
+│   ├── basebackend-feign-api/    # Feign 客户端
+│   ├── basebackend-feature-toggle/# 特性开关 (Unleash/Flagsmith)
+│   └── basebackend-web/          # Web 基础配置
 │
-├── 🔄 .github/                      # GitHub Actions CI/CD
-├── ☸️ k8s/                          # Kubernetes配置
-├── 🚀 deployment/                   # 部署相关
-├── 📦 rocketmq/                     # RocketMQ配置
-├── 🛡️ sentinel-rules/               # Sentinel规则
+├── ⏰ 调度系统
+│   └── basebackend-scheduler-parent/
+│       └── scheduler-camunda/    # Camunda BPM 工作流调度
 │
-└── 📦 业务模块/
-    ├── basebackend-common/          # 公共模块
-    ├── basebackend-database/        # 数据库模块
-    ├── basebackend-cache/           # 缓存模块
-    ├── basebackend-logging/         # 日志模块
-    ├── basebackend-security/        # 安全模块
-    ├── basebackend-observability/   # 可观测模块
-    ├── basebackend-messaging/       # 消息服务模块
-    ├── basebackend-file-service/    # 文件服务模块
-    ├── basebackend-gateway/         # 网关模块
-    ├── basebackend-admin-api/       # 管理后台API
-    └── ...                          # 其他业务模块
+├── 🛠️ 工具
+│   ├── basebackend-code-generator/ # 代码生成器
+│   ├── basebackend-backup/         # 数据备份
+│   └── basebackend-admin-web/      # React 前端管理界面
+│
+├── 🐳 docker/                 # Docker Compose 部署
+├── ⚙️ config/                 # Nacos 配置文件
+├── 📖 wiki/                   # 项目 Wiki 文档
+└── 📚 docs/                   # 其他文档
 ```
 
-### 模块详细说明
+---
 
-#### 核心基础模块
+## 💡 使用示例
 
-**basebackend-common** - 公共模块
-- 通用数据模型（Result, PageResult）
-- 全局异常处理
-- 常量定义和枚举类
+### 分布式锁
 
-**basebackend-database** - 数据库模块
-- MyBatis Plus配置
-- 基础实体类
-- 字段自动填充处理器
-
-**basebackend-cache** - 缓存模块
-- Redis配置
-- 缓存服务
-- Redisson分布式锁工具
-
-**basebackend-logging** - 日志模块
-- Web日志切面
-- Logback配置
-
-**basebackend-security** - 安全模块
-- Spring Security配置
-- JWT认证过滤器
-- JWT工具类
-
-**basebackend-observability** - 可观测模块
-- 监控指标配置
-- Actuator端点
-- 健康检查、指标暴露
-
-**basebackend-messaging** - 消息服务模块
-- 消息生产者
-- 消息消费者
-
-**basebackend-file-service** - 文件服务模块
-- 文件配置
-- 文件上传下载服务
-- 文件API接口
-
-**basebackend-gateway** - 网关模块
-- 网关过滤器（认证、日志）
-- 路由配置
-
-## 核心功能
-
-### 1. 公共模块 (basebackend-common)
-- 统一响应结果封装 (Result)
-- 分页结果封装 (PageResult)
-- 全局异常处理
-- 业务异常定义
-- 通用常量和枚举
-
-### 2. 数据库模块 (basebackend-database)
-- MyBatis Plus 集成和配置
-- 基础实体类 (BaseEntity) 包含通用字段
-- 自动填充创建时间、更新时间、创建人、更新人
-- 逻辑删除支持
-- 分页插件
-- 乐观锁插件
-- 防止全表更新与删除
-
-### 3. 缓存模块 (basebackend-cache)
-- Redis 集成 (支持各种数据类型操作)
-- Redisson 分布式锁
-- 读写锁、信号量、倒计时锁等高级功能
-
-### 4. 日志模块 (basebackend-logging)
-- Web请求日志切面 (自动记录请求和响应)
-- 按级别分文件存储 (INFO/WARN/ERROR)
-- 按天滚动日志
-- 异步日志输出
-- 支持多环境配置
-
-### 5. 安全模块 (basebackend-security)
-- JWT Token 生成和验证
-- Spring Security 集成
-- JWT 认证过滤器
-- 密码加密 (BCrypt)
-- 路径白名单配置
-
-### 6. 可观测模块 (basebackend-observability)
-- Spring Boot Actuator 集成
-- Prometheus 指标暴露
-- Micrometer 监控
-- Zipkin 链路追踪
-- 健康检查端点
-
-### 7. 消息服务模块 (basebackend-message-service)
-- RocketMQ 集成
-- 支持同步/异步/单向消息
-- 延迟消息
-- 消息标签
-- 消费者示例
-
-### 8. 文件服务模块 (basebackend-file-service)
-- 文件上传、下载、删除
-- 文件类型验证
-- 文件大小限制
-- 按日期分目录存储
-- 唯一文件名生成
-
-### 9. 网关模块 (basebackend-gateway)
-- Spring Cloud Gateway 路由
-- 全局认证过滤器
-- 请求日志记录
-- 限流配置
-- CORS 跨域支持
-- 负载均衡
-
-## 📖 文档导航
-
-完整的项目文档请访问 [docs/](docs/) 目录：
-
-- **快速入门**: [docs/getting-started/](docs/getting-started/) - 快速上手指南
-- **详细指南**: [docs/guides/](docs/guides/) - 各功能模块的详细使用说明
-- **架构设计**: [docs/architecture/](docs/architecture/) - 系统架构和设计文档
-- **故障排查**: [docs/troubleshooting/](docs/troubleshooting/) - 常见问题解决方案
-- **实现总结**: [docs/implementation/](docs/implementation/) - 功能实现记录
-- **变更记录**: [docs/changelog/](docs/changelog/) - 功能更新历史
-
-推荐从 [docs/README.md](docs/README.md) 开始浏览完整的文档索引。
-
-## 快速开始
-
-### 前置要求
-
-- JDK 17+
-- Maven 3.6+
-- MySQL 8.0+
-- Redis 6.0+
-- RocketMQ 4.9+ (可选)
-
-### 安装步骤
-
-1. 克隆项目
-```bash
-git clone <repository-url>
-cd basebackend
+```java
+@DistributedLock(key = "#order.id", waitTime = 5, leaseTime = 30)
+public void processOrder(Order order) {
+    // 自动加锁/解锁，支持 SpEL 表达式
+}
 ```
 
-2. 编译项目
-```bash
-mvn clean install
+### 幂等性 — 防重复提交
+
+```java
+@Idempotent(strategy = IdempotentStrategy.PARAM, timeout = 5)
+@PostMapping("/submit")
+public Result<?> submitOrder(@RequestBody OrderDTO dto) {
+    // 相同参数 5 秒内重复请求自动拦截
+}
 ```
 
-3. 配置数据库
-- 创建数据库
-- 在各服务的 `application.yml` 中配置数据库连接
+### 数据权限
 
-4. 配置Redis
-- 在 `application-cache.yml` 中配置Redis连接
-
-5. 启动网关
-```bash
-cd basebackend-gateway
-mvn spring-boot:run
+```java
+@DataScope(type = DataScopeType.DEPT_AND_BELOW)
+public List<User> listUsers(UserQuery query) {
+    // SQL 自动追加部门过滤条件
+}
 ```
 
-## 配置说明
+### 多算法限流
 
-### 数据库配置
-在 `basebackend-database/src/main/resources/application-database.yml` 中配置：
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/your_database
-    username: your_username
-    password: your_password
+```java
+@RateLimit(key = "#userId", limit = 100, window = 60, algorithm = RateLimitAlgorithm.TOKEN_BUCKET)
+public Result<?> getData(@PathVariable Long userId) {
+    // 每用户每分钟最多 100 次请求
+}
 ```
 
-### Redis配置
-在 `basebackend-cache/src/main/resources/application-cache.yml` 中配置：
-```yaml
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
+### 双 Token 认证
+
+```java
+@Autowired
+private JwtUtil jwtUtil;
+
+// 登录 → 签发双 Token
+String accessToken = jwtUtil.generateAccessToken(userId, claims);   // 30 分钟
+String refreshToken = jwtUtil.generateRefreshToken(userId);         // 7 天
+
+// 刷新 → 用 Refresh Token 换新的 Access Token
+String newAccessToken = jwtUtil.refreshAccessToken(refreshToken);
+
+// 退出 → 吊销 Token
+jwtUtil.revokeToken(accessToken);
 ```
 
-### JWT配置
-在 `basebackend-security/src/main/resources/application-security.yml` 中配置：
-```yaml
-jwt:
-  secret: your-secret-key
-  expiration: 86400000  # 24小时
+### 数据导出
+
+```java
+@Autowired
+private ExportManager exportManager;
+
+// 同步导出 Excel
+ExportResult result = exportManager.export(userList, UserDTO.class, ExportFormat.EXCEL);
+
+// 异步大数据量导出
+String taskId = asyncExportService.exportAsync(() -> fetchBigData(), UserDTO.class, ExportFormat.EXCEL);
+ExportTaskStatus status = asyncExportService.getExportStatus(taskId);
 ```
 
-## 使用示例
+### 可靠事件发布
 
-### 1. 创建实体类
+```java
+@Autowired
+private ReliableDomainEventPublisher publisher;
+
+// 事务提交后自动发布，失败指数退避重试
+publisher.publish(new OrderCreatedEvent(orderId, userId));
+```
+
+### 敏感数据加密
+
 ```java
 @Data
 @TableName("sys_user")
 public class User extends BaseEntity {
     private String username;
-    private String password;
-    private String email;
+
+    @Sensitive(SensitiveType.PHONE)  // 自动 AES 加密存储，读取时解密
+    private String phone;
+
+    @Sensitive(SensitiveType.ID_CARD)
+    private String idCard;
 }
 ```
 
-### 2. 使用缓存服务
-```java
-@Autowired
-private RedisService redisService;
+---
 
-// 设置缓存
-redisService.set("key", "value", 60, TimeUnit.SECONDS);
+## 🌐 API 网关过滤器链
 
-// 获取缓存
-Object value = redisService.get("key");
+请求经过 Gateway 的完整过滤器链：
+
+```
+请求 → AuthenticationFilter       # JWT 认证
+     → HeaderSanitizationFilter   # 请求头清洗
+     → SecurityHeadersFilter      # 安全响应头
+     → SignatureVerifyFilter      # 接口签名验证
+     → RequestSizeLimitFilter     # 请求体大小限制
+     → IdempotencyFilter          # 幂等性检查
+     → ApiVersionFilter           # API 版本路由
+     → SlowRequestFilter          # 慢请求检测
+     → TraceIdFilter              # 链路追踪 ID
+     → AccessLogFilter            # 访问日志
+     → ResponseCacheFilter        # 响应缓存
+     → 后端微服务
 ```
 
-### 3. 使用分布式锁
-```java
-@Autowired
-private RedissonLockUtil lockUtil;
+---
 
-String lockKey = "resource:lock";
-if (lockUtil.tryLock(lockKey, 10, 30, TimeUnit.SECONDS)) {
-    try {
-        // 执行业务逻辑
-    } finally {
-        lockUtil.unlock(lockKey);
-    }
-}
+## 🐳 Docker 部署
+
+```bash
+# 一键启动全部基础设施 + 微服务
+docker/compose/start-all.sh
+
+# 或分层启动
+docker-compose -f docker/compose/base/docker-compose.base.yml up -d           # MySQL + Redis
+docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d # Nacos + RocketMQ + Seata
+docker-compose -f docker/compose/observability/docker-compose.yml up -d        # Prometheus + Loki + Tempo + Grafana
+docker-compose -f docker/compose/services/docker-compose.yml up -d             # 全部微服务
 ```
 
-### 4. 发送消息
-```java
-@Autowired
-private MessageProducer messageProducer;
+### 端口规划
 
-messageProducer.sendSyncMessage("topic", messageObject);
-```
+| 服务 | 端口 |
+|------|------|
+| API Gateway | 8180 |
+| User API | 8081 |
+| System API | 8082 |
+| Nacos | 8848 |
+| MySQL | 3306 |
+| Redis | 6379 |
+| RocketMQ Console | 8080 |
+| Prometheus | 9090 |
+| Grafana | 3000 |
 
-### 5. 上传文件
-```java
-@Autowired
-private FileService fileService;
+---
 
-String filePath = fileService.uploadFile(multipartFile);
-```
+## 📊 可观测性
 
-## API端点
+- **指标**: Prometheus 采集 → Grafana 可视化
+- **日志**: Loki 聚合 → Grafana 查询
+- **链路追踪**: OpenTelemetry → Tempo → Grafana
+- **健康检查**: `/actuator/health`
+- **指标端点**: `/actuator/prometheus`
 
-### 网关端口
-- 默认端口: `8080`
+---
 
-### Actuator监控端点
-- 健康检查: `/actuator/health`
-- 监控指标: `/actuator/prometheus`
-- 所有端点: `/actuator`
+## 📖 文档
 
-## 开发指南
+| 文档 | 链接 |
+|------|------|
+| 📖 **完整 Wiki** | [GitHub Wiki](https://github.com/wuan1250276415/basebackend/wiki) |
+| 🚀 快速启动 | [快速启动指南](https://github.com/wuan1250276415/basebackend/wiki/快速启动指南) |
+| 🏗️ 架构设计 | [整体架构](https://github.com/wuan1250276415/basebackend/wiki/整体架构) |
+| 🔐 JWT 认证 | [JWT 认证体系](https://github.com/wuan1250276415/basebackend/wiki/JWT认证体系) |
+| 📦 Common 模块 | [Common 公共模块详解](https://github.com/wuan1250276415/basebackend/wiki/Common公共模块详解) |
+| 📝 注解速查 | [常用注解速查](https://github.com/wuan1250276415/basebackend/wiki/常用注解速查) |
+| ⚙️ 配置参考 | [配置参考](https://github.com/wuan1250276415/basebackend/wiki/配置参考) |
+| 🆕 新增微服务 | [新增微服务指南](https://github.com/wuan1250276415/basebackend/wiki/新增微服务指南) |
 
-### 添加新的微服务模块
+---
 
-1. 在父POM中添加模块声明
-2. 创建模块目录和pom.xml
-3. 在网关配置中添加路由规则
-4. 在需要的模块中引入依赖
+## 🤝 贡献
 
-### 扩展数据库实体
+欢迎提交 Issue 和 Pull Request！
 
-继承 `BaseEntity` 类即可自动获得：
-- id（主键）
-- createTime（创建时间）
-- updateTime（更新时间）
-- createBy（创建人）
-- updateBy（更新人）
-- deleted（逻辑删除标记）
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feat/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: 添加新功能'`)
+4. 推送分支 (`git push origin feat/amazing-feature`)
+5. 发起 Pull Request
 
-## 监控和运维
+---
 
-### 日志目录
-- 默认日志路径: `./logs`
-- 日志文件: `info.log`, `warn.log`, `error.log`
+## 📄 License
 
-### 监控指标
-- 通过 Prometheus 采集 `/actuator/prometheus` 端点
-- 使用 Grafana 可视化监控指标
-
-### 链路追踪
-- Zipkin Server: `http://localhost:9411`
-- 自动追踪HTTP请求链路
-
-## 注意事项
-
-1. **JWT密钥**: 生产环境必须修改默认密钥，建议从环境变量或配置中心获取
-2. **数据库连接**: 请根据实际环境配置数据库连接信息
-3. **文件上传路径**: 确保应用有权限访问配置的上传目录
-4. **消息队列**: 如不使用RocketMQ，可以移除相关依赖
-
-## 最佳实践
-
-1. 使用 `Result` 统一包装响应结果
-2. 继承 `BaseEntity` 减少重复字段定义
-3. 使用全局异常处理器处理业务异常
-4. 敏感配置使用环境变量或配置中心
-5. 定期清理过期日志文件
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，请提交 Issue 或 Pull Request。
+[MIT License](LICENSE)
