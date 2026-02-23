@@ -59,6 +59,19 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Jackson（Spring Boot 4 不再通过 starter-web 传递） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Jakarta Validation API（用于参数校验异常处理） -->
         <dependency>
             <groupId>jakarta.validation</groupId>
