@@ -4,7 +4,8 @@ import com.basebackend.common.model.Result;
 import com.basebackend.feign.client.scheduler.TaskFeignClient;
 import com.basebackend.feign.dto.scheduler.TaskActionRequest;
 import com.basebackend.feign.dto.scheduler.TaskFeignDTO;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +19,10 @@ import java.util.Map;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Slf4j
 @Component
 public class TaskFeignFallbackFactory implements FallbackFactory<TaskFeignClient> {
+
+    private static final Logger log = LoggerFactory.getLogger(TaskFeignFallbackFactory.class);
 
     @Override
     public TaskFeignClient create(Throwable cause) {
