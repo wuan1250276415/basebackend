@@ -38,7 +38,7 @@ class DatabaseAuditStorageTest {
     void save_shouldConvertAndInsert() throws AuditStorage.StorageException {
         AuditLogEntry entry = buildTestEntry();
 
-        when(mapper.insert(any())).thenReturn(1);
+        when(mapper.insert(any(SysAuditLog.class))).thenReturn(1);
 
         storage.save(entry);
 
@@ -57,7 +57,7 @@ class DatabaseAuditStorageTest {
     @Test
     void save_mapperThrows_shouldWrapInStorageException() {
         AuditLogEntry entry = buildTestEntry();
-        when(mapper.insert(any())).thenThrow(new RuntimeException("DB error"));
+        when(mapper.insert(any(SysAuditLog.class))).thenThrow(new RuntimeException("DB error"));
 
         assertThatThrownBy(() -> storage.save(entry))
                 .isInstanceOf(AuditStorage.StorageException.class)
@@ -72,7 +72,7 @@ class DatabaseAuditStorageTest {
                 buildEntry("id-3", AuditEventType.CREATE)
         );
 
-        when(mapper.insert(any())).thenReturn(1);
+        when(mapper.insert(any(SysAuditLog.class))).thenReturn(1);
 
         storage.batchSave(entries);
 

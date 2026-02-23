@@ -3,8 +3,8 @@ package com.basebackend.security.zerotrust;
 import com.basebackend.security.zerotrust.policy.ZeroTrustPolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 import java.lang.management.ManagementFactory;

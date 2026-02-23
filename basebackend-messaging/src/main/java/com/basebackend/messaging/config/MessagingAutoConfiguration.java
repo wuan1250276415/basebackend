@@ -27,7 +27,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -49,8 +49,8 @@ public class MessagingAutoConfiguration {
     @ConditionalOnMissingBean
     public RestTemplate messagingRestTemplate(RestTemplateBuilder builder) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(10))
-                .setReadTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(10))
+                .readTimeout(Duration.ofSeconds(30))
                 .build();
     }
 
@@ -74,9 +74,9 @@ public class MessagingAutoConfiguration {
     @ConditionalOnMissingBean(MessageProducer.class)
     @ConditionalOnBean(RocketMQTemplate.class)
     public RocketMQProducer rocketMQProducer(RocketMQTemplate rocketMQTemplate,
-                                              MessagingProperties messagingProperties,
-                                              TransactionalMessageService transactionalMessageService,
-                                              @Qualifier("messageSenderExecutor") ThreadPoolTaskExecutor senderExecutor) {
+            MessagingProperties messagingProperties,
+            TransactionalMessageService transactionalMessageService,
+            @Qualifier("messageSenderExecutor") ThreadPoolTaskExecutor senderExecutor) {
         return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService, senderExecutor);
     }
 
@@ -96,8 +96,8 @@ public class MessagingAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public WebhookInvoker webhookInvoker(RestTemplate messagingRestTemplate,
-                                          WebhookSignatureService signatureService,
-                                          MessageProducer messageProducer) {
+            WebhookSignatureService signatureService,
+            MessageProducer messageProducer) {
         return new WebhookInvoker(messagingRestTemplate, signatureService, messageProducer);
     }
 

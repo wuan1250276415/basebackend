@@ -27,8 +27,8 @@ import static org.mockito.Mockito.mock;
 class SecurityConfigTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-        .withConfiguration(AutoConfigurations.of(SecurityConfig.class, SecurityBaselineConfiguration.class))
-        .withUserConfiguration(TestSecurityBeans.class);
+            .withConfiguration(AutoConfigurations.of(SecurityConfig.class, SecurityBaselineConfiguration.class))
+            .withUserConfiguration(TestSecurityBeans.class);
 
     @Test
     @DisplayName("SecurityConfig应该被自动配置")
@@ -66,20 +66,21 @@ class SecurityConfigTest {
             @Bean
             public SecurityFilterChain customFilterChain(HttpSecurity http) throws Exception {
                 return http
-                    .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                    )
-                    .csrf(csrf -> csrf.disable())
-                    .build();
+                        .authorizeHttpRequests(auth -> auth
+                                .anyRequest().permitAll())
+                        .csrf(csrf -> csrf.disable())
+                        .build();
             }
         }
 
-        // When
-        contextRunner.withUserConfiguration(CustomSecurityConfig.class)
-            .run(context -> {
-                // Then - 应该至少有一个SecurityFilterChain bean
-                assertThat(context).hasBean("customFilterChain");
-            });
+        // When - 使用独立的 context runner，不包含默认 SecurityConfig，避免两个 "any request" 过滤器链冲突
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(SecurityBaselineConfiguration.class))
+                .withUserConfiguration(CustomSecurityConfig.class)
+                .run(context -> {
+                    // Then - 应该至少有一个SecurityFilterChain bean
+                    assertThat(context).hasBean("customFilterChain");
+                });
     }
 
     @Test

@@ -51,7 +51,8 @@ class CacheServiceImplTest {
         // Create cache service instance
         cacheService = new CacheServiceImpl(redisService, cacheProperties, metricsService, evictionManager);
 
-        // Set multiLevelCacheManager to null via reflection to ensure Redis path is used
+        // Set multiLevelCacheManager to null via reflection to ensure Redis path is
+        // used
         try {
             var field = CacheServiceImpl.class.getDeclaredField("multiLevelCacheManager");
             field.setAccessible(true);
@@ -308,14 +309,14 @@ class CacheServiceImplTest {
         // Given
         String pattern = "user:*";
         Set<String> expected = Set.of("user:1", "user:2");
-        when(redisService.keys(pattern)).thenReturn(expected);
+        when(redisService.scan(pattern)).thenReturn(expected);
 
         // When
         Set<String> result = cacheService.keys(pattern);
 
         // Then
         assertEquals(expected, result);
-        verify(redisService).keys(pattern);
+        verify(redisService).scan(pattern);
     }
 
     @Test
@@ -374,15 +375,15 @@ class CacheServiceImplTest {
 
     @Test
     void testClearAllCaches() {
-        // Given
-        when(evictionManager.clearAll()).thenReturn(100L);
+        // Given - clearAllCaches(true) delegates to evictionManager.clearAll(true)
+        when(evictionManager.clearAll(true)).thenReturn(100L);
 
-        // When
-        long result = cacheService.clearAllCaches();
+        // When - must pass confirmed=true to actually clear
+        long result = cacheService.clearAllCaches(true);
 
         // Then
         assertEquals(100L, result);
-        verify(evictionManager).clearAll();
+        verify(evictionManager).clearAll(true);
     }
 
     @Test

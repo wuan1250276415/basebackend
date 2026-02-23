@@ -2,6 +2,7 @@ package com.basebackend.security.filter;
 
 import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.model.Result;
+import com.basebackend.jwt.JwtUserDetails;
 import com.basebackend.jwt.JwtUtil;
 import com.basebackend.security.exception.TokenBlacklistException;
 import com.basebackend.security.service.TokenBlacklistService;
@@ -61,11 +62,13 @@ class JwtAuthenticationFilterTest {
         String token = "valid-jwt-token";
         Long userId = 123L;
         String username = "testuser";
+        Long deptId = 10L;
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(jwtUtil.validateToken(token)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(token)).thenReturn(userId);
-        when(jwtUtil.getSubjectFromToken(token)).thenReturn(username);
+        when(jwtUtil.getUsernameFromToken(token)).thenReturn(username);
+        when(jwtUtil.getDeptIdFromToken(token)).thenReturn(deptId);
         when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
 
         // When
@@ -74,14 +77,19 @@ class JwtAuthenticationFilterTest {
         // Then
         verify(jwtUtil, times(1)).validateToken(token);
         verify(jwtUtil, times(1)).getUserIdFromToken(token);
-        verify(jwtUtil, times(1)).getSubjectFromToken(token);
+        verify(jwtUtil, times(1)).getUsernameFromToken(token);
+        verify(jwtUtil, times(1)).getDeptIdFromToken(token);
         verify(tokenBlacklistService, times(1)).isBlacklisted(token);
         verify(filterChain, times(1)).doFilter(request, response);
 
-        // 验证SecurityContext中的认证信息
+        // 验证SecurityContext中的认证信息 - principal是JwtUserDetails
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         assertThat(authentication).isNotNull();
-        assertThat(authentication.getPrincipal()).isEqualTo(userId);
+        assertThat(authentication.getPrincipal()).isInstanceOf(JwtUserDetails.class);
+        JwtUserDetails userDetails = (JwtUserDetails) authentication.getPrincipal();
+        assertThat(userDetails.getUserId()).isEqualTo(userId);
+        assertThat(userDetails.getUsername()).isEqualTo(username);
+        assertThat(userDetails.getDeptId()).isEqualTo(deptId);
     }
 
     @Test
@@ -193,17 +201,19 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("使用userId作为principal")
+    @DisplayName("使用JwtUserDetails作为principal")
     void shouldUseUserIdAsPrincipal() throws Exception {
         // Given
         String token = "valid-token";
         Long userId = 456L;
         String username = "anotheruser";
+        Long deptId = 20L;
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(jwtUtil.validateToken(token)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(token)).thenReturn(userId);
-        when(jwtUtil.getSubjectFromToken(token)).thenReturn(username);
+        when(jwtUtil.getUsernameFromToken(token)).thenReturn(username);
+        when(jwtUtil.getDeptIdFromToken(token)).thenReturn(deptId);
         when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
 
         // When
@@ -211,11 +221,13 @@ class JwtAuthenticationFilterTest {
 
         // Then
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        assertThat(authentication.getPrincipal()).isEqualTo(userId);
+        assertThat(authentication.getPrincipal()).isInstanceOf(JwtUserDetails.class);
+        JwtUserDetails userDetails = (JwtUserDetails) authentication.getPrincipal();
+        assertThat(userDetails.getUserId()).isEqualTo(userId);
     }
 
     @Test
-    @DisplayName("userId为null时使用username作为principal")
+    @DisplayName("userId为null时JwtUserDetails仍包含username")
     void shouldUseUsernameAsPrincipalWhenUserIdIsNull() throws Exception {
         // Given
         SecurityContextHolder.clearContext(); // 清理之前的认证信息
@@ -226,14 +238,18 @@ class JwtAuthenticationFilterTest {
         when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
         when(jwtUtil.validateToken(token)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(token)).thenReturn(null);
-        when(jwtUtil.getSubjectFromToken(token)).thenReturn(username);
+        when(jwtUtil.getUsernameFromToken(token)).thenReturn(username);
+        when(jwtUtil.getDeptIdFromToken(token)).thenReturn(null);
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // Then
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        assertThat(authentication.getPrincipal()).isEqualTo(username);
+        assertThat(authentication.getPrincipal()).isInstanceOf(JwtUserDetails.class);
+        JwtUserDetails userDetails = (JwtUserDetails) authentication.getPrincipal();
+        assertThat(userDetails.getUsername()).isEqualTo(username);
+        assertThat(userDetails.getUserId()).isNull();
     }
 
     @Test
@@ -244,7 +260,8 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(jwtUtil.validateToken(token)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(token)).thenReturn(789L);
-        when(jwtUtil.getSubjectFromToken(token)).thenReturn("user789");
+        when(jwtUtil.getUsernameFromToken(token)).thenReturn("user789");
+        when(jwtUtil.getDeptIdFromToken(token)).thenReturn(null);
         when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
 
         // When
@@ -279,7 +296,8 @@ class JwtAuthenticationFilterTest {
         lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         lenient().when(jwtUtil.validateToken(token)).thenReturn(true);
         lenient().when(jwtUtil.getUserIdFromToken(token)).thenReturn(100L);
-        lenient().when(jwtUtil.getSubjectFromToken(token)).thenReturn("user100");
+        lenient().when(jwtUtil.getUsernameFromToken(token)).thenReturn("user100");
+        lenient().when(jwtUtil.getDeptIdFromToken(token)).thenReturn(null);
         lenient().when(tokenBlacklistService.isBlacklisted(token)).thenReturn(false);
 
         // When
@@ -304,14 +322,16 @@ class JwtAuthenticationFilterTest {
         lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + token1);
         lenient().when(jwtUtil.validateToken(token1)).thenReturn(true);
         lenient().when(jwtUtil.getUserIdFromToken(token1)).thenReturn(200L);
-        lenient().when(jwtUtil.getSubjectFromToken(token1)).thenReturn("user200");
+        lenient().when(jwtUtil.getUsernameFromToken(token1)).thenReturn("user200");
+        lenient().when(jwtUtil.getDeptIdFromToken(token1)).thenReturn(null);
         lenient().when(tokenBlacklistService.isBlacklisted(token1)).thenReturn(false);
 
         // 第二次请求
         lenient().when(request.getHeader("Authorization")).thenReturn("Bearer " + token2);
         lenient().when(jwtUtil.validateToken(token2)).thenReturn(true);
         lenient().when(jwtUtil.getUserIdFromToken(token2)).thenReturn(300L);
-        lenient().when(jwtUtil.getSubjectFromToken(token2)).thenReturn("user300");
+        lenient().when(jwtUtil.getUsernameFromToken(token2)).thenReturn("user300");
+        lenient().when(jwtUtil.getDeptIdFromToken(token2)).thenReturn(null);
         lenient().when(tokenBlacklistService.isBlacklisted(token2)).thenReturn(false);
 
         // When - 第一次请求
@@ -327,7 +347,9 @@ class JwtAuthenticationFilterTest {
 
         // Then
         assertThat(auth2).isNotNull();
-        assertThat(auth2.getPrincipal()).isEqualTo(300L);
+        assertThat(auth2.getPrincipal()).isInstanceOf(JwtUserDetails.class);
+        JwtUserDetails userDetails = (JwtUserDetails) auth2.getPrincipal();
+        assertThat(userDetails.getUserId()).isEqualTo(300L);
     }
 
     @Test
@@ -443,8 +465,7 @@ class JwtAuthenticationFilterTest {
         // Given
         // 设置已有的认证信息
         SecurityContextHolder.getContext().setAuthentication(
-            new UsernamePasswordAuthenticationToken("existing-user", null, Collections.emptyList())
-        );
+                new UsernamePasswordAuthenticationToken("existing-user", null, Collections.emptyList()));
         lenient().when(request.getHeader("Authorization")).thenReturn("Bearer token");
 
         // When

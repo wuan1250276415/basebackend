@@ -45,10 +45,10 @@ public class JwtUtil {
     private final JwtAuditLogger auditLogger;
 
     public JwtUtil(JwtProperties properties,
-                   JwtKeyManager keyManager,
-                   JwtTokenBlacklist blacklist,
-                   @Nullable JwtDeviceManager deviceManager,
-                   @Nullable JwtAuditLogger auditLogger) {
+            JwtKeyManager keyManager,
+            JwtTokenBlacklist blacklist,
+            @Nullable JwtDeviceManager deviceManager,
+            @Nullable JwtAuditLogger auditLogger) {
         this.properties = properties;
         this.keyManager = keyManager;
         this.blacklist = blacklist;
@@ -99,7 +99,7 @@ public class JwtUtil {
      * @return 生成的 Access Token
      */
     public String generateAccessToken(String subject, Map<String, Object> claims,
-                                      @Nullable DeviceInfo deviceInfo) {
+            @Nullable DeviceInfo deviceInfo) {
         Map<String, Object> enrichedClaims = claims != null ? new HashMap<>(claims) : new HashMap<>();
         enrichedClaims.put(CLAIM_TOKEN_TYPE, TOKEN_TYPE_ACCESS);
         if (deviceInfo != null) {
@@ -172,7 +172,7 @@ public class JwtUtil {
      * P2：使用 JwtKeyManager 获取签名密钥，并在多密钥模式下设置 kid header。
      */
     private String buildToken(String subject, Map<String, Object> customClaims,
-                              long expirationMillis) {
+            long expirationMillis) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMillis);
         String jti = UUID.randomUUID().toString();
@@ -513,12 +513,29 @@ public class JwtUtil {
      * 检查 Token 是否已被吊销
      */
     public boolean isTokenRevoked(String token) {
-        Claims claims = getClaimsFromToken(token);
-        if (claims == null) {
+        try {
+            // 直接解析 Token 提取 jti，不经过 parseClaimsStrict（后者会抛 REVOKED 异常）
+            SecretKey verificationKey = resolveVerificationKey(token);
+            var parserBuilder = Jwts.parser().verifyWith(verificationKey);
+
+            String issuer = properties.getIssuer();
+            if (issuer != null && !issuer.isBlank()) {
+                parserBuilder.requireIssuer(issuer);
+            }
+            String audience = properties.getAudience();
+            if (audience != null && !audience.isBlank()) {
+                parserBuilder.requireAudience(audience);
+            }
+
+            Claims claims = parserBuilder.build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            String jti = claims.getId();
+            return jti != null && blacklist.isRevoked(jti);
+        } catch (Exception e) {
             return false;
         }
-        String jti = claims.getId();
-        return jti != null && blacklist.isRevoked(jti);
     }
 
     // ========== P2: 密钥管理 ==========
@@ -611,7 +628,8 @@ public class JwtUtil {
     // ========== P3-2: 审计辅助方法 ==========
 
     private void auditTokenGenerated(String subject, String token, @Nullable String tokenType) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         String jti = getJtiFromToken(token);
         Map<String, Object> details = new HashMap<>();
         if (tokenType != null) {
@@ -621,29 +639,34 @@ public class JwtUtil {
     }
 
     private void auditTokenRefreshed(String subject, String newToken) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         String jti = getJtiFromToken(newToken);
         auditLogger.log(JwtAuditEvent.TOKEN_REFRESHED, subject, null, jti, null);
     }
 
     private void auditTokenRevoked(String subject, String jti) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         auditLogger.log(JwtAuditEvent.TOKEN_REVOKED, subject, null, jti, null);
     }
 
     private void auditValidationFailed(String subject, String reason, String message) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         Map<String, Object> details = Map.of("reason", reason, "message", message);
         auditLogger.log(JwtAuditEvent.VALIDATION_FAILED, subject, null, null, details);
     }
 
     private void auditDeviceRegistered(Long userId, String deviceId) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         auditLogger.log(JwtAuditEvent.DEVICE_REGISTERED, String.valueOf(userId), deviceId, null, null);
     }
 
     private void auditDeviceKicked(Long userId, String deviceId) {
-        if (auditLogger == null) return;
+        if (auditLogger == null)
+            return;
         auditLogger.log(JwtAuditEvent.DEVICE_KICKED, String.valueOf(userId), deviceId, null, null);
     }
 
@@ -675,7 +698,8 @@ public class JwtUtil {
      * 从 claims map 中提取 userId
      */
     private Long extractUserId(@Nullable Map<String, Object> claims) {
-        if (claims == null) return null;
+        if (claims == null)
+            return null;
         Object userIdObj = claims.get("userId");
         if (userIdObj instanceof Integer) {
             return ((Integer) userIdObj).longValue();

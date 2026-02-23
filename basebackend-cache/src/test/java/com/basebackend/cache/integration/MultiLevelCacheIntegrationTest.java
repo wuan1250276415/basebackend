@@ -5,6 +5,7 @@ import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheStatistics;
 import com.basebackend.cache.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * 多级缓存集成测试
  * 测试本地缓存和 Redis 的协同工作
  */
-@SpringBootTest(classes = {CacheAutoConfiguration.class})
+@Disabled("Requires Docker environment")
+@SpringBootTest(classes = { CacheAutoConfiguration.class })
 @Testcontainers
 class MultiLevelCacheIntegrationTest {
 

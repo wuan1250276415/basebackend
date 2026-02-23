@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.Duration;
 import java.util.Set;
@@ -20,6 +22,7 @@ import static org.mockito.Mockito.*;
  * 缓存淘汰管理器单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CacheEvictionManagerTest {
 
     @Mock
@@ -110,15 +113,19 @@ class CacheEvictionManagerTest {
     @Test
     void testGetCacheSize() {
         // Given
+        CacheProperties.Key key = new CacheProperties.Key();
+        key.setPrefix("basebackend");
+        key.setSeparator(":");
+        when(cacheProperties.getKey()).thenReturn(key);
         Set<String> keys = Set.of("key1", "key2", "key3");
-        when(redisService.keys("*")).thenReturn(keys);
+        when(redisService.scan("basebackend:*")).thenReturn(keys);
 
         // When
         long size = evictionManager.getCacheSize();
 
         // Then
         assertEquals(3L, size);
-        verify(redisService).keys("*");
+        verify(redisService).scan("basebackend:*");
     }
 
     @Test
@@ -126,14 +133,14 @@ class CacheEvictionManagerTest {
         // Given
         String pattern = "user:*";
         Set<String> keys = Set.of("user:1", "user:2");
-        when(redisService.keys(pattern)).thenReturn(keys);
+        when(redisService.scan(pattern)).thenReturn(keys);
 
         // When
         long size = evictionManager.getCacheSize(pattern);
 
         // Then
         assertEquals(2L, size);
-        verify(redisService).keys(pattern);
+        verify(redisService).scan(pattern);
     }
 
     @Test
@@ -156,17 +163,21 @@ class CacheEvictionManagerTest {
 
     @Test
     void testClearAll() {
-        // Given
+        // Given - clearAll(true) uses scan() with prefix pattern
+        CacheProperties.Key key = new CacheProperties.Key();
+        key.setPrefix("basebackend");
+        key.setSeparator(":");
+        when(cacheProperties.getKey()).thenReturn(key);
         Set<String> keys = Set.of("key1", "key2", "key3");
-        when(redisService.keys("*")).thenReturn(keys);
+        when(redisService.scan("basebackend:*")).thenReturn(keys);
         when(redisService.delete(keys)).thenReturn(3L);
 
-        // When
-        long deleted = evictionManager.clearAll();
+        // When - must pass confirmed=true
+        long deleted = evictionManager.clearAll(true);
 
         // Then
         assertEquals(3L, deleted);
-        verify(redisService).keys("*");
+        verify(redisService).scan("basebackend:*");
         verify(redisService).delete(keys);
     }
 
@@ -269,8 +280,12 @@ class CacheEvictionManagerTest {
     void testEnforceCapacity_WithinLimit() {
         // Given
         evictionManager.setMaxCacheSize(100);
+        CacheProperties.Key key = new CacheProperties.Key();
+        key.setPrefix("basebackend");
+        key.setSeparator(":");
+        when(cacheProperties.getKey()).thenReturn(key);
         Set<String> keys = Set.of("key1", "key2");
-        when(redisService.keys("*")).thenReturn(keys);
+        when(redisService.scan("basebackend:*")).thenReturn(keys);
 
         // When
         long evicted = evictionManager.enforceCapacity();

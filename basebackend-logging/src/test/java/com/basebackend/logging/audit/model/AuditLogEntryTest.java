@@ -105,7 +105,8 @@ class AuditLogEntryTest {
             "prevHash123",
             "entryHash123",
             "signature123",
-            "cert123"
+            "cert123",
+            "tenant-1"
         );
 
         // Then

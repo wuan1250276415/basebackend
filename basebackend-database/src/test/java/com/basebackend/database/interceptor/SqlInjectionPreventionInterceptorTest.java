@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.sql.Connection;
 
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -68,9 +68,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(sqlWithComment);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
 
         // Given - 多行注释
         String sqlWithMultiLineComment = "SELECT * /* comment */ FROM users";
@@ -78,9 +78,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(sqlWithMultiLineComment);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -92,9 +92,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(dropDbSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
 
         // Given - DROP TABLE
         String dropTableSql = "DROP TABLE users";
@@ -102,9 +102,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(dropTableSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
 
         // Given - DROP INDEX
         String dropIndexSql = "DROP INDEX idx_users";
@@ -112,9 +112,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(dropIndexSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -126,9 +126,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(alterSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -140,9 +140,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(truncateSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -154,9 +154,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(or111Sql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -168,9 +168,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(unionSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -182,9 +182,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(multiStmtSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test
@@ -196,9 +196,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(upperCaseSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
 
         // Given - 小写
         String lowerCaseSql = "select * from users drop table admin";
@@ -206,9 +206,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(lowerCaseSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
 
         // Given - 混合大小写
         String mixedCaseSql = "SeLeCt * FrOm users DrOp TaBlE aDmIn";
@@ -216,9 +216,9 @@ class SqlInjectionPreventionInterceptorTest {
         when(boundSql.getSql()).thenReturn(mixedCaseSql);
 
         // When & Then - 应该抛出异常
-        assertThatIllegalArgumentException()
-            .isThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
-            .withMessage("Potentially dangerous SQL detected");
+        assertThatThrownBy(() -> interceptor.beforePrepare(statementHandler, connection, 30))
+                .isInstanceOf(SqlInjectionPreventionInterceptor.SqlInjectionException.class)
+                .hasMessageContaining("Potentially dangerous SQL detected");
     }
 
     @Test

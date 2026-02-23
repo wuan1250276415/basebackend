@@ -11,7 +11,7 @@ import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -63,8 +63,8 @@ public class OpenApiController {
 
     public OpenApiController(RestTemplateBuilder restTemplateBuilder, ObjectMapper objectMapper) {
         this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .setReadTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(30))
                 .build();
         this.objectMapper = objectMapper;
     }
@@ -160,7 +160,8 @@ public class OpenApiController {
         String apiDocsUrl = resolveApiDocsUrl(request);
         ResponseEntity<String> response = restTemplate.getForEntity(apiDocsUrl, String.class);
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IOException("Failed to load OpenAPI spec from " + apiDocsUrl + ", status: " + response.getStatusCode());
+            throw new IOException(
+                    "Failed to load OpenAPI spec from " + apiDocsUrl + ", status: " + response.getStatusCode());
         }
         return response.getBody();
     }
@@ -193,7 +194,7 @@ public class OpenApiController {
 
     private byte[] createZipArchive(Path sourceDirectory) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ZipOutputStream zipOutputStream = new ZipOutputStream(baos)) {
+                ZipOutputStream zipOutputStream = new ZipOutputStream(baos)) {
 
             Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<>() {
                 @Override

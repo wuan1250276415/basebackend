@@ -2,7 +2,7 @@ package com.basebackend.observability.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -43,8 +43,8 @@ public class EnhancedRestTemplateConfig {
         factory.setReadTimeout(httpConfig.getReadTimeout() * 1000);
 
         RestTemplate restTemplate = builder
-                .setConnectTimeout(Duration.ofSeconds(httpConfig.getConnectTimeout()))
-                .setReadTimeout(Duration.ofSeconds(httpConfig.getReadTimeout()))
+                .connectTimeout(Duration.ofSeconds(httpConfig.getConnectTimeout()))
+                .readTimeout(Duration.ofSeconds(httpConfig.getReadTimeout()))
                 .build();
 
         log.info("Enhanced RestTemplate initialized: connectTimeout={}s, readTimeout={}s",

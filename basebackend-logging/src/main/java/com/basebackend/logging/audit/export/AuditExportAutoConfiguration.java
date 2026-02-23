@@ -44,10 +44,19 @@ public class AuditExportAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public LeefExporter leefExporter(AuditExportProperties properties) {
+        AuditExportProperties.CefConfig cef = properties.getCef();
+        log.info("初始化 LEEF 导出器");
+        return new LeefExporter(cef.getVendor(), cef.getProduct(), cef.getVersion());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public AuditExportService auditExportService(CefExporter cefExporter,
                                                   OcsfExporter ocsfExporter,
-                                                  CsvExporter csvExporter) {
+                                                  CsvExporter csvExporter,
+                                                  LeefExporter leefExporter) {
         log.info("初始化审计导出服务");
-        return new AuditExportService(cefExporter, ocsfExporter, csvExporter);
+        return new AuditExportService(cefExporter, ocsfExporter, csvExporter, leefExporter);
     }
 }
