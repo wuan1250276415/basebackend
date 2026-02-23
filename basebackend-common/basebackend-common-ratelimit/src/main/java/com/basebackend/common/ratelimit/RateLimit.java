@@ -15,6 +15,11 @@ public @interface RateLimit {
 
     int window() default 60;
 
+    /**
+     * 限流算法，默认使用配置文件中的全局算法
+     */
+    RateLimitAlgorithm algorithm() default RateLimitAlgorithm.DEFAULT;
+
     String fallbackMethod() default "";
 
     String message() default "请求过于频繁";
