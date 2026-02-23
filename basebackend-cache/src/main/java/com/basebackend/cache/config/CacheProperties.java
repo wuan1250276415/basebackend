@@ -73,6 +73,26 @@ public class CacheProperties {
     private HotKey hotKey = new HotKey();
 
     /**
+     * 跨服务缓存失效配置
+     */
+    private Invalidation invalidation = new Invalidation();
+
+    /**
+     * Redis Pipeline 配置
+     */
+    private Pipeline pipeline = new Pipeline();
+
+    /**
+     * 分布式限流配置
+     */
+    private RateLimiter rateLimiter = new RateLimiter();
+
+    /**
+     * 近过期缓存刷新配置
+     */
+    private Refresh refresh = new Refresh();
+
+    /**
      * 多级缓存配置
      */
     @Data
@@ -411,16 +431,31 @@ public class CacheProperties {
         private boolean enabled = false;
 
         /**
+         * 淘汰线程池大小
+         */
+        private int poolSize = 2;
+
+        /**
          * 定时淘汰规则
          */
-        private List<ScheduledRule> scheduledRules = new ArrayList<>();
+        private List<ScheduledRule> scheduled = new ArrayList<>();
 
         @Data
         public static class ScheduledRule {
             /**
+             * 是否启用该规则
+             */
+            private boolean enabled = true;
+
+            /**
+             * 规则名称
+             */
+            private String name;
+
+            /**
              * 缓存名称模式
              */
-            private String cachePattern;
+            private String pattern;
 
             /**
              * cron 表达式
@@ -450,14 +485,29 @@ public class CacheProperties {
         private int threshold = 100;
 
         /**
-         * 检测窗口
+         * 检测窗口大小
          */
-        private Duration window = Duration.ofSeconds(10);
+        private Duration windowSize = Duration.ofSeconds(10);
+
+        /**
+         * Top-K 排行榜大小
+         */
+        private int topK = 50;
+
+        /**
+         * 本地缓存最大条目数
+         */
+        private int localCacheMaxSize = 1000;
 
         /**
          * 本地缓存TTL（热Key本地缓存时间）
          */
         private Duration localCacheTtl = Duration.ofSeconds(5);
+
+        /**
+         * TTL 抖动百分比（防止缓存雪崩）
+         */
+        private int jitterPercent = 10;
 
         /**
          * 缓解策略
@@ -471,5 +521,89 @@ public class CacheProperties {
              */
             private String strategy = "LOCAL_CACHE";
         }
+    }
+
+    /**
+     * 跨服务缓存失效配置
+     */
+    @Data
+    public static class Invalidation {
+        /**
+         * 是否启用跨服务缓存失效
+         */
+        private boolean enabled = false;
+
+        /**
+         * Redis Pub/Sub 通道名称
+         */
+        private String channel = "cache:invalidation";
+
+        /**
+         * 当前服务名称（用于区分事件来源）
+         */
+        private String serviceName = "default";
+    }
+
+    /**
+     * Redis Pipeline 配置
+     */
+    @Data
+    public static class Pipeline {
+        /**
+         * 单次 Pipeline 最大批量操作数
+         */
+        private int maxBatchSize = 500;
+    }
+
+    /**
+     * 分布式限流配置
+     */
+    @Data
+    public static class RateLimiter {
+        /**
+         * 是否启用限流
+         */
+        private boolean enabled = true;
+
+        /**
+         * Redis 不可用时是否放行（fail-open）
+         */
+        private boolean failOpen = true;
+
+        /**
+         * 限流键前缀
+         */
+        private String keyPrefix = "rate_limiter:";
+    }
+
+    /**
+     * 近过期缓存刷新配置
+     */
+    @Data
+    public static class Refresh {
+        /**
+         * 是否启用近过期刷新
+         */
+        private boolean enabled = false;
+
+        /**
+         * 刷新线程池大小
+         */
+        private int poolSize = 2;
+
+        /**
+         * 触发刷新的 TTL 剩余比例阈值（0.0~1.0）
+         */
+        private double thresholdRatio = 0.3;
+
+        /**
+         * 刷新分布式锁等待时间
+         */
+        private Duration lockWaitTime = Duration.ofSeconds(3);
+
+        /**
+         * 刷新分布式锁租约时间
+         */
+        private Duration lockLeaseTime = Duration.ofSeconds(30);
     }
 }

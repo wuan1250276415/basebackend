@@ -39,7 +39,7 @@ public class SecurityHeaderFilter implements Filter {
         // 否则进行包装（以支持某些特定功能）
         ServletRequest wrappedRequest = request;
         if (!(request instanceof ContentCachingRequestWrapper)) {
-            wrappedRequest = new ContentCachingRequestWrapper((HttpServletRequest) request);
+            wrappedRequest = new ContentCachingRequestWrapper((HttpServletRequest) request, 10240);
         }
 
         HttpServletResponse httpResponse = (HttpServletResponse) response;

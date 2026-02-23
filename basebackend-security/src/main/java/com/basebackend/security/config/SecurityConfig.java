@@ -22,7 +22,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * Spring Security 配置
@@ -58,17 +58,17 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/api/auth/**"),
-                                new AntPathRequestMatcher("/api/user/**"),
-                                new AntPathRequestMatcher("/api/public/**"),
-                                new AntPathRequestMatcher("/actuator/**"),
-                                new AntPathRequestMatcher("/v3/api-docs/**"),
-                                new AntPathRequestMatcher("/doc.html"),
-                                new AntPathRequestMatcher("/api/files/**"),
-                                new AntPathRequestMatcher("/api/auth/wechat/**"),
-                                new AntPathRequestMatcher("/swagger-ui/**"),
-                                new AntPathRequestMatcher("/druid/**"),
-                                new AntPathRequestMatcher("/api/notifications/stream")
+                                new PathPatternRequestMatcher(null, "/api/auth/**"),
+                                new PathPatternRequestMatcher(null, "/api/user/**"),
+                                new PathPatternRequestMatcher(null, "/api/public/**"),
+                                new PathPatternRequestMatcher(null, "/actuator/**"),
+                                new PathPatternRequestMatcher(null, "/v3/api-docs/**"),
+                                new PathPatternRequestMatcher(null, "/doc.html"),
+                                new PathPatternRequestMatcher(null, "/api/files/**"),
+                                new PathPatternRequestMatcher(null, "/api/auth/wechat/**"),
+                                new PathPatternRequestMatcher(null, "/swagger-ui/**"),
+                                new PathPatternRequestMatcher(null, "/druid/**"),
+                                new PathPatternRequestMatcher(null, "/api/notifications/stream")
                         )
                 )
                 // 禁用表单登录
@@ -91,19 +91,19 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
                         .requestMatchers(
-                                new AntPathRequestMatcher("/api/auth/**"),
-                                new AntPathRequestMatcher("/api/user/auth/**"),
-                                new AntPathRequestMatcher("/api/public/**"),
-                                new AntPathRequestMatcher("/api/files/**"),
-                                new AntPathRequestMatcher("/api/auth/wechat/**"),  // 文件上传接口临时开放用于测试
-                                new AntPathRequestMatcher("/actuator/**"),
-                                new AntPathRequestMatcher("/swagger-ui/**"),
-                                new AntPathRequestMatcher("/v3/api-docs/**"),
-                                new AntPathRequestMatcher("/doc.html"),
-                                new AntPathRequestMatcher("/webjars/**"),
-                                new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/druid/**"),
-                                new AntPathRequestMatcher("/api/notifications/stream")
+                                new PathPatternRequestMatcher(null, "/api/auth/**"),
+                                new PathPatternRequestMatcher(null, "/api/user/auth/**"),
+                                new PathPatternRequestMatcher(null, "/api/public/**"),
+                                new PathPatternRequestMatcher(null, "/api/files/**"),
+                                new PathPatternRequestMatcher(null, "/api/auth/wechat/**"),  // 文件上传接口临时开放用于测试
+                                new PathPatternRequestMatcher(null, "/actuator/**"),
+                                new PathPatternRequestMatcher(null, "/swagger-ui/**"),
+                                new PathPatternRequestMatcher(null, "/v3/api-docs/**"),
+                                new PathPatternRequestMatcher(null, "/doc.html"),
+                                new PathPatternRequestMatcher(null, "/webjars/**"),
+                                new PathPatternRequestMatcher(null, "/favicon.ico"),
+                                new PathPatternRequestMatcher(null, "/druid/**"),
+                                new PathPatternRequestMatcher(null, "/api/notifications/stream")
                         ).permitAll()
                         // 内部 Feign 调用（由 FeignAuthRequestInterceptor 注入标记）
                         .requestMatchers(new RequestHeaderRequestMatcher("X-Internal-Call", "true")).permitAll()
