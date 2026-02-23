@@ -1,0 +1,190 @@
+# 文件存储配置示例
+# 此文件展示了所有支持的存储类型配置选项
+# 请根据实际需求选择配置并重命名为 application-file-storage.yml
+
+# ===============================
+# 1. 本地存储配置（默认）
+# ===============================
+file:
+  storage:
+    # 默认存储类型：local, minio, aliyun_oss, aws_s3
+    type: local
+    # 默认存储桶名称
+    default-bucket: basebackend-files
+
+    # 本地存储配置
+    local:
+      enabled: true
+      upload-path: ./uploads
+      access-prefix: /files
+      max-size: 10485760  # 10MB
+
+    # MinIO配置
+    minio:
+      enabled: false
+      endpoint: http://127.0.0.1:9000
+      access-key: your-minio-access-key
+      secret-key: your-minio-secret-key
+      bucket-name: basebackend-files
+      region: us-east-1
+      path-prefix: files
+      secure: false
+
+    # 阿里云OSS配置
+    oss:
+      enabled: false
+      endpoint: https://oss-cn-hangzhou.aliyuncs.com
+      access-key-id: your-oss-access-key-id
+      access-key-secret: your-oss-access-key-secret
+      bucket-name: your-oss-bucket
+      region: oss-cn-hangzhou
+      custom-domain: your-custom-domain.com  # 可选，使用自定义域名
+
+    # AWS S3配置
+    s3:
+      enabled: false
+      endpoint: https://s3.amazonaws.com
+      access-key-id: your-s3-access-key-id
+      secret-access-key: your-s3-secret-access-key
+      bucket-name: your-s3-bucket
+      region: us-east-1
+      custom-domain: your-cloudfront-domain.com  # 可选，使用CloudFront等
+  access-url-prefix: http://localhost:8080
+  preview: # 默认缩略图大小
+      thumbnail-width: 200
+      thumbnail-height: 200
+      # 图片质量（0.0-1.0）
+      image-quality: 0.8
+      # 缓存时间（分钟）
+      cache-expire-time: 60
+  upload: # 分片大小（MB）
+      chunk-size: 5
+      # 大文件阈值（MB）
+      large-file-threshold: 10
+      # 并行上传线程数
+      concurrent-threads: 3
+  security: # 允许的文件扩展名
+      allowed-extensions:
+        - jpg
+        - jpeg
+        - png
+        - gif
+        - pdf
+        - doc
+        - docx
+        - txt
+      # 禁止的文件扩展名
+      forbidden-extensions:
+        - exe
+        - bat
+        - sh
+        - com
+        - pif
+      # 最大文件大小（字节）
+      max-file-size: 104857600  # 100MB
+  upload-path: ./uploads
+  access-prefix: /files
+  allowed-types:
+    - jpg
+        - jpeg
+        - png
+        - gif
+        - bmp
+        - pdf
+        - doc
+        - docx
+        - xls
+        - xlsx
+        - ppt
+        - pptx
+        - txt
+        - zip
+        - rar
+  max-size: 10485760
+
+# ====================================
+# 2. MinIO存储配置示例
+# ====================================
+# file:
+#   storage:
+#     type: minio
+#     default-bucket: basebackend-files
+#     minio:
+#       enabled: true
+#       endpoint: http://127.0.0.1:9000
+#       access-key: admin
+#       secret-key: admin123
+#       bucket-name: basebackend-files
+#       region: us-east-1
+#       path-prefix: files
+#       secure: false
+
+# ====================================
+# 3. 阿里云OSS配置示例
+# ====================================
+# file:
+#   storage:
+#     type: aliyun_oss
+#     default-bucket: my-company-files
+#     oss:
+#       enabled: true
+#       endpoint: https://oss-cn-hangzhou.aliyuncs.com
+#       access-key-id: LTAI4Fxxxxxxxxxxxxxxxxxxxxxx
+#       access-key-secret: yyyyyyyyyyyyyyyyyyyyyyyyyyy
+#       bucket-name: my-company-files
+#       region: oss-cn-hangzhou
+#       custom-domain: files.mycompany.com  # 可选
+
+# ====================================
+# 4. AWS S3配置示例
+# ====================================
+# file:
+#   storage:
+#     type: aws_s3
+#     default-bucket: my-company-bucket
+#     s3:
+#       enabled: true
+#       endpoint: https://s3.amazonaws.com
+#       access-key-id: AKIAxxxxxxxxxxxxxxxx
+#       secret-access-key: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+#       bucket-name: my-company-bucket
+#       region: us-east-1
+#       custom-domain: d1234567890.cloudfront.net  # 可选
+
+# ====================================
+# 5. 缓存配置（图片预览等）
+# ====================================
+spring:
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 500MB   # 请求最大大小
+      file-size-threshold: 2KB
+      max-file-size: 10MB
+
+
+# ====================================
+# 6. 日志配置
+# ====================================
+logging:
+  level:
+    com.basebackend.file: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/basebackend-file-service.log
+
+# ====================================
+# 7. 其他配置
+# ====================================
+# 文件服务配置
+
+# Spring 文件上传配置

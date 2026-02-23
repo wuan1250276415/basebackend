@@ -1,0 +1,112 @@
+# 数据库增强配置示例
+database:
+  enhanced:
+    # 审计系统配置
+    audit:
+      enabled: true
+      # 异步处理
+      async: true
+      # 线程池配置
+      thread-pool:
+        core-size: 2
+        max-size: 5
+        queue-capacity: 1000
+      # 日志保留天数
+      retention-days: 90
+      # 排除的表（不记录审计日志）
+      excluded-tables:
+        - sys_audit_log
+        - sys_audit_log_archive
+        - sys_sql_statistics
+      # 归档配置
+      archive:
+        # 是否启用归档（如果禁用，则直接删除过期日志）
+        enabled: true
+        # 归档数据保留天数（归档表中的数据保留时间）
+        archive-retention-days: 365
+        # 自动清理定时任务的cron表达式（默认每天凌晨2点执行）
+        cleanup-cron: "0 0 2 * * ?"
+        # 是否启用自动清理定时任务
+        auto-cleanup-enabled: true
+
+    # 多租户配置
+    multi-tenancy:
+      enabled: false
+      # 隔离模式: SHARED_DB, SEPARATE_DB, SEPARATE_SCHEMA
+      isolation-mode: SHARED_DB
+      # 租户字段名
+      tenant-column: tenant_id
+      # 排除的表（不添加租户过滤）
+      excluded-tables:
+        - sys_tenant_config
+        - sys_dict
+
+    # 数据安全配置
+    security:
+      # 加密配置
+      encryption:
+        enabled: false
+        # 加密算法: AES, SM4
+        algorithm: AES
+        # 密钥（生产环境应从密钥管理服务获取）
+        secret-key: ${ENCRYPTION_KEY:your-secret-key-here}
+
+      # 脱敏配置
+      masking:
+        enabled: false
+        # 脱敏规则
+        rules:
+          phone: "***-****-####"  # 保留后4位
+          id-card: "######********####"  # 保留前6位和后4位
+          bank-card: "#### **** **** ####"  # 保留前4位和后4位
+
+    # 健康监控配置
+    health:
+      enabled: true
+      # 检查间隔（秒）
+      check-interval: 30
+      # 慢查询阈值（毫秒）
+      slow-query-threshold: 1000
+      # 连接池告警阈值（百分比）
+      pool-usage-threshold: 80
+
+    # 动态数据源配置
+    dynamic-datasource:
+      enabled: false
+      # 默认数据源
+      primary: master
+      # 严格模式（数据源不存在时抛异常）
+      strict: true
+
+    # 故障转移配置
+    failover:
+      enabled: true
+      # 重连尝试次数
+      max-retry: 3
+      # 重连间隔（毫秒）
+      retry-interval: 5000
+      # 主库降级（主库不可用时是否降级到只读）
+      master-degradation: false
+
+    # SQL 统计配置
+    sql-statistics:
+      enabled: false
+      # 统计数据保留天数
+      retention-days: 30
+      # 是否启用执行计划分析
+      explain-enabled: false
+
+# Flyway 配置
+spring:
+  flyway:
+    enabled: false
+    # 迁移脚本位置
+    locations: classpath:db/migration
+    # 基线版本
+    baseline-version: 1.0.0
+    # 基线迁移
+    baseline-on-migrate: true
+    # 验证迁移
+    validate-on-migrate: true
+    # 生产环境需要确认
+    out-of-order: false
