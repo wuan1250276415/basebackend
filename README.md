@@ -43,7 +43,7 @@
 
 | 依赖 | 版本 |
 |------|------|
-| JDK | 17+ |
+| JDK | 25+ |
 | Maven | 3.8+ |
 | MySQL | 8.0+ |
 | Redis | 7.0+ |
@@ -81,9 +81,9 @@ mvn clean package -DskipTests
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| **语言** | Java | 17 |
-| **框架** | Spring Boot | 3.1.5 |
-| **微服务** | Spring Cloud | 2022.0.4 |
+| **语言** | Java | 25 |
+| **框架** | Spring Boot | 4.0.3 |
+| **微服务** | Spring Cloud | 2025.1.1 |
 | **前端** | React + TypeScript + Ant Design 5 | 18 |
 | **ORM** | MyBatis Plus | 3.5.x |
 | **数据库** | MySQL | 8.0 |

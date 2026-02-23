@@ -91,7 +91,7 @@ RUN mvn -Dmaven.test.skip=true clean package -B
 # ==========================================
 # Stage 2: Runtime
 # ==========================================
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 # 元数据标签
 LABEL maintainer="basebackend-team"
