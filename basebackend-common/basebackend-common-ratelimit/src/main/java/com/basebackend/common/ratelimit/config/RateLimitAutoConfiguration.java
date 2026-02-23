@@ -16,8 +16,8 @@ public class RateLimitAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RateLimiter rateLimiter() {
-        return new SlidingWindowRateLimiter();
+    public RateLimiter rateLimiter(RateLimitProperties properties) {
+        return new SlidingWindowRateLimiter(properties.getMaxKeys(), properties.getCleanupIntervalMinutes());
     }
 
     @Bean
