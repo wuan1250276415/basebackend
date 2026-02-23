@@ -296,11 +296,6 @@ public class HttpClientTracingInterceptor implements ClientHttpRequestIntercepto
         }
 
         @Override
-        public int getRawStatusCode() throws IOException {
-            return delegate.getRawStatusCode();
-        }
-
-        @Override
         public String getStatusText() throws IOException {
             return delegate.getStatusText();
         }

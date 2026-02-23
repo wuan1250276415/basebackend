@@ -63,6 +63,16 @@ public class CacheProperties {
     private Lock lock = new Lock();
 
     /**
+     * 缓存淘汰配置
+     */
+    private Eviction eviction = new Eviction();
+
+    /**
+     * 热Key检测配置
+     */
+    private HotKey hotKey = new HotKey();
+
+    /**
      * 多级缓存配置
      */
     @Data
@@ -388,5 +398,78 @@ public class CacheProperties {
          * 是否启用红锁
          */
         private boolean redLockEnabled = false;
+    }
+
+    /**
+     * 缓存淘汰配置
+     */
+    @Data
+    public static class Eviction {
+        /**
+         * 是否启用定时淘汰
+         */
+        private boolean enabled = false;
+
+        /**
+         * 定时淘汰规则
+         */
+        private List<ScheduledRule> scheduledRules = new ArrayList<>();
+
+        @Data
+        public static class ScheduledRule {
+            /**
+             * 缓存名称模式
+             */
+            private String cachePattern;
+
+            /**
+             * cron 表达式
+             */
+            private String cron;
+
+            /**
+             * 淘汰策略
+             */
+            private String strategy = "expired";
+        }
+    }
+
+    /**
+     * 热Key检测配置
+     */
+    @Data
+    public static class HotKey {
+        /**
+         * 是否启用热Key检测
+         */
+        private boolean enabled = false;
+
+        /**
+         * 热Key阈值（窗口内访问次数）
+         */
+        private int threshold = 100;
+
+        /**
+         * 检测窗口
+         */
+        private Duration window = Duration.ofSeconds(10);
+
+        /**
+         * 本地缓存TTL（热Key本地缓存时间）
+         */
+        private Duration localCacheTtl = Duration.ofSeconds(5);
+
+        /**
+         * 缓解策略
+         */
+        private MitigationConfig mitigation = new MitigationConfig();
+
+        @Data
+        public static class MitigationConfig {
+            /**
+             * 缓解策略：LOCAL_CACHE, RATE_LIMIT, SHARD
+             */
+            private String strategy = "LOCAL_CACHE";
+        }
     }
 }
