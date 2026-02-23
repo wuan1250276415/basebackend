@@ -24,6 +24,9 @@
         <module>basebackend-common-security</module>
         <module>basebackend-common-starter</module>
         <module>basebackend-common-storage</module>
+        <module>basebackend-common-lock</module>
+        <module>basebackend-common-idempotent</module>
+        <module>basebackend-common-datascope</module>
     </modules>
 
     <!-- 依赖版本管理（供子模块继承） -->
@@ -63,6 +66,24 @@
             <dependency>
                 <groupId>com.basebackend</groupId>
                 <artifactId>basebackend-common-storage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-lock</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-idempotent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-datascope</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
