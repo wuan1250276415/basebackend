@@ -48,7 +48,7 @@
         <!-- Spring Boot Starter AOP (切面支持) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
 
         <!-- Spring Boot Starter Actuator (监控端点) -->
