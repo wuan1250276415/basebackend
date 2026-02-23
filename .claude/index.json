@@ -1,0 +1,278 @@
+{
+  "timestamp": "2026-02-20T13:17:55+08:00",
+  "version": "1.0.0",
+  "rootClaude": "CLAUDE.md",
+  "modules": [
+    {
+      "path": "basebackend-common",
+      "type": "aggregate-library",
+      "language": "Java",
+      "claude": "basebackend-common/CLAUDE.md",
+      "entry": null,
+      "submodules": ["common-core", "common-dto", "common-util", "common-context", "common-security", "common-starter", "common-storage"],
+      "tests": ["basebackend-common/basebackend-common-security/src/test/java"],
+      "testCount": 3,
+      "config": ["basebackend-common/pom.xml"]
+    },
+    {
+      "path": "basebackend-admin-api",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-admin-api/CLAUDE.md",
+      "entry": "basebackend-admin-api/src/main/java/com/basebackend/admin/AdminApiApplication.java",
+      "api": "basebackend-admin-api/src/main/java/com/basebackend/admin/controller/",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-admin-api/src/main/resources/application.yml", "basebackend-admin-api/src/main/resources/bootstrap.yml"],
+      "migrations": "basebackend-admin-api/src/main/resources/db/migration/",
+      "dockerfile": "basebackend-admin-api/Dockerfile"
+    },
+    {
+      "path": "basebackend-admin-web",
+      "type": "frontend",
+      "language": "TypeScript",
+      "claude": "basebackend-admin-web/CLAUDE.md",
+      "entry": "basebackend-admin-web/src/main.tsx",
+      "api": "basebackend-admin-web/src/api/",
+      "router": "basebackend-admin-web/src/router/index.tsx",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-admin-web/package.json", "basebackend-admin-web/vite.config.mts", "basebackend-admin-web/tsconfig.json"]
+    },
+    {
+      "path": "basebackend-cache",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-cache/CLAUDE.md",
+      "tests": ["basebackend-cache/src/test/java"],
+      "testCount": 11,
+      "config": ["basebackend-cache/pom.xml"]
+    },
+    {
+      "path": "basebackend-database",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-database/CLAUDE.md",
+      "tests": ["basebackend-database/src/test/java"],
+      "testCount": 5,
+      "config": ["basebackend-database/pom.xml"],
+      "migrations": "basebackend-database/src/main/resources/db/migration/"
+    },
+    {
+      "path": "basebackend-backup",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-backup/CLAUDE.md",
+      "tests": ["basebackend-backup/src/test/java"],
+      "testCount": 5,
+      "config": ["basebackend-backup/pom.xml"]
+    },
+    {
+      "path": "basebackend-messaging",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-messaging/CLAUDE.md",
+      "tests": ["basebackend-messaging/src/test/java"],
+      "testCount": 5,
+      "config": ["basebackend-messaging/pom.xml"]
+    },
+    {
+      "path": "basebackend-observability",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-observability/CLAUDE.md",
+      "tests": ["basebackend-observability/src/test/java"],
+      "testCount": 6,
+      "config": ["basebackend-observability/pom.xml"]
+    },
+    {
+      "path": "basebackend-nacos",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-nacos/CLAUDE.md",
+      "tests": ["basebackend-nacos/src/test/java"],
+      "testCount": 5,
+      "config": ["basebackend-nacos/pom.xml"]
+    },
+    {
+      "path": "basebackend-feature-toggle",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-feature-toggle/CLAUDE.md",
+      "tests": ["basebackend-feature-toggle/src/test/java"],
+      "testCount": 3,
+      "config": ["basebackend-feature-toggle/pom.xml"]
+    },
+    {
+      "path": "basebackend-gateway",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-gateway/CLAUDE.md",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-gateway/pom.xml"],
+      "dockerfile": "basebackend-gateway/Dockerfile"
+    },
+    {
+      "path": "basebackend-scheduler-parent",
+      "type": "aggregate-service",
+      "language": "Java",
+      "claude": "basebackend-scheduler-parent/CLAUDE.md",
+      "submodules": ["scheduler-core", "scheduler-workflow", "scheduler-processor", "scheduler-metrics", "scheduler-integration"],
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-scheduler-parent/pom.xml"]
+    },
+    {
+      "path": "basebackend-file-service",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-file-service/CLAUDE.md",
+      "tests": ["basebackend-file-service/src/test/java"],
+      "testCount": 4,
+      "config": ["basebackend-file-service/pom.xml"],
+      "migrations": "basebackend-file-service/src/main/resources/db/migration/",
+      "dockerfile": "basebackend-file-service/Dockerfile"
+    },
+    {
+      "path": "basebackend-user-api",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-user-api/CLAUDE.md",
+      "tests": ["basebackend-user-api/src/test/java"],
+      "testCount": 1,
+      "config": ["basebackend-user-api/pom.xml"],
+      "dockerfile": "basebackend-user-api/Dockerfile"
+    },
+    {
+      "path": "basebackend-system-api",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-system-api/CLAUDE.md",
+      "tests": ["basebackend-system-api/src/test/java"],
+      "testCount": 14,
+      "config": ["basebackend-system-api/pom.xml"],
+      "dockerfile": "basebackend-system-api/Dockerfile"
+    },
+    {
+      "path": "basebackend-notification-service",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-notification-service/CLAUDE.md",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-notification-service/pom.xml"],
+      "dockerfile": "basebackend-notification-service/Dockerfile"
+    },
+    {
+      "path": "basebackend-observability-service",
+      "type": "service",
+      "language": "Java",
+      "claude": "basebackend-observability-service/CLAUDE.md",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-observability-service/pom.xml"],
+      "dockerfile": "basebackend-observability-service/Dockerfile"
+    },
+    {
+      "path": "basebackend-logging",
+      "type": "library",
+      "language": "Java",
+      "claude": "basebackend-logging/CLAUDE.md",
+      "tests": ["basebackend-logging/src/test/java"],
+      "testCount": 1,
+      "config": ["basebackend-logging/pom.xml"]
+    },
+    {
+      "path": "basebackend-code-generator",
+      "type": "tool",
+      "language": "Java",
+      "claude": "basebackend-code-generator/CLAUDE.md",
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-code-generator/pom.xml"],
+      "migrations": "basebackend-code-generator/src/main/resources/db/migration/"
+    },
+    {
+      "path": "basebackend-jwt",
+      "type": "library",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-jwt/pom.xml"]
+    },
+    {
+      "path": "basebackend-security",
+      "type": "library",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-security/pom.xml"]
+    },
+    {
+      "path": "basebackend-security-starter",
+      "type": "starter",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-security-starter/pom.xml"]
+    },
+    {
+      "path": "basebackend-transaction",
+      "type": "library",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-transaction/pom.xml"]
+    },
+    {
+      "path": "basebackend-web",
+      "type": "library",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-web/pom.xml"]
+    },
+    {
+      "path": "basebackend-feign-api",
+      "type": "library",
+      "language": "Java",
+      "claude": null,
+      "tests": null,
+      "testCount": 0,
+      "config": ["basebackend-feign-api/pom.xml"]
+    }
+  ],
+  "coverage": {
+    "totalModules": 25,
+    "scannedModules": 25,
+    "claudeMdGenerated": 19,
+    "claudeMdSkipped": 6,
+    "skippedModules": ["basebackend-jwt", "basebackend-security", "basebackend-security-starter", "basebackend-transaction", "basebackend-web", "basebackend-feign-api"],
+    "skippedReason": "Small utility/wrapper modules with minimal unique logic; CLAUDE.md not cost-effective",
+    "coveragePercent": 85,
+    "totalTestFiles": 95,
+    "legacyModules": ["basebackend-scheduler-old", "basebackend-scheduler-backup"]
+  },
+  "gaps": [
+    {"module": "basebackend-admin-api", "missing": ["tests"], "note": "Tests migrated to user-api/system-api"},
+    {"module": "basebackend-admin-web", "missing": ["tests"], "note": "No automated frontend tests"},
+    {"module": "basebackend-gateway", "missing": ["tests", "detailed-api-scan"], "note": "Gateway route configuration not deeply scanned"},
+    {"module": "basebackend-notification-service", "missing": ["tests", "api-scan"], "note": "New microservice, needs deeper scan"},
+    {"module": "basebackend-observability-service", "missing": ["tests", "api-scan"], "note": "New microservice, needs deeper scan"},
+    {"module": "basebackend-scheduler-parent", "missing": ["detailed-submodule-scan"], "note": "Submodule internals not deeply scanned"},
+    {"module": "basebackend-jwt", "missing": ["claude-md"], "note": "Small module, skipped"},
+    {"module": "basebackend-security", "missing": ["claude-md"], "note": "Small module, skipped"},
+    {"module": "basebackend-transaction", "missing": ["claude-md"], "note": "Small module, skipped"}
+  ],
+  "ignored": {
+    "directories": ["node_modules", "target", ".idea", ".git", "dist", "build"],
+    "reason": "Build artifacts, IDE config, dependencies"
+  },
+  "truncated": false
+}

@@ -18,20 +18,13 @@
     <description>任务调度与工作流服务 - 父模块</description>
 
     <modules>
-        <module>scheduler-core</module>
-        <module>scheduler-workflow</module>
-        <module>scheduler-processor</module>
-        <module>scheduler-metrics</module>
-        <module>scheduler-integration</module>
+        <module>scheduler-camunda</module>
     </modules>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- PowerJob -->
-        <powerjob.version>4.3.8</powerjob.version>
     </properties>
 
     <build>

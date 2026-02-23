@@ -17,7 +17,10 @@ import com.basebackend.file.model.FileShareRequest;
 import com.basebackend.file.model.FileStatistics;
 import com.basebackend.file.model.StorageUsageSummary;
 import com.basebackend.file.service.FileManagementService;
+import com.basebackend.file.limit.RateLimiter;
+import com.basebackend.file.limit.RateLimitPolicy;
 import com.basebackend.file.service.FileService;
+import com.basebackend.common.exception.BusinessException;
 import org.springframework.beans.BeanUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 文件控制器
@@ -50,12 +54,20 @@ public class FileController {
 
     private final FileService fileService;
     private final FileManagementService fileManagementService;
+    private final RateLimiter rateLimiter;
+
+    private static final RateLimitPolicy UPLOAD_RATE_LIMIT =
+            RateLimitPolicy.slidingWindowLimit(60, 10, TimeUnit.SECONDS);
+
+    private static final RateLimitPolicy DOWNLOAD_RATE_LIMIT =
+            RateLimitPolicy.slidingWindowLimit(60, 60, TimeUnit.SECONDS);
 
     /**
      * 上传文件 (简单版本 - 兼容旧接口)
      */
     @PostMapping("/upload")
     public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
+        checkRateLimit("upload:" + UserContextHolder.getUserId(), UPLOAD_RATE_LIMIT);
         String filePath = fileService.uploadFile(file);
         return Result.success("文件上传成功", filePath);
     }
@@ -69,6 +81,7 @@ public class FileController {
         @RequestParam(value = "folderId", required = false) Long folderId
     ) {
         Long userId = UserContextHolder.getUserId();
+        checkRateLimit("upload:" + userId, UPLOAD_RATE_LIMIT);
         String userName = UserContextHolder.getUsername();
 
         FileMetadata metadata = fileManagementService.uploadFile(file, folderId, userId, userName);
@@ -140,6 +153,7 @@ public class FileController {
     @GetMapping("/download-v2/{fileId}")
     public ResponseEntity<InputStreamResource> downloadFileV2(@PathVariable String fileId) {
         Long userId = UserContextHolder.getUserId();
+        checkRateLimit("download:" + userId, DOWNLOAD_RATE_LIMIT);
 
         FileManagementService.FileDownloadInfo downloadInfo =
             fileManagementService.downloadFile(fileId, userId);
@@ -583,5 +597,11 @@ public class FileController {
     public Result<String> getThumbnailUrl(@PathVariable String fileId) {
         String url = fileManagementService.getThumbnailUrl(fileId);
         return Result.success(url);
+    }
+
+    private void checkRateLimit(String key, RateLimitPolicy policy) {
+        if (!rateLimiter.isAllowed(key, policy)) {
+            throw new BusinessException("请求过于频繁，请稍后重试");
+        }
     }
 }

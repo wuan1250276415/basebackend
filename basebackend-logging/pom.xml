@@ -24,12 +24,6 @@
             <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.gnu/gnu-crypto -->
-        <dependency>
-            <groupId>org.gnu</groupId>
-            <artifactId>gnu-crypto</artifactId>
-            <version>2.0.1</version>
-        </dependency>
         <!-- Spring Boot AOP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -62,6 +56,28 @@
             <version>1.5.1</version>
         </dependency>
 
+        <!-- MyBatis Plus (optional, for DatabaseAuditStorage) -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>${mybatis-plus.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- MySQL Connector (optional, for DatabaseAuditStorage) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Boot Actuator (optional, for DynamicLogLevelEndpoint) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Nacos Config (optional) -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
@@ -70,13 +86,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Apollo Config (optional) -->
-        <dependency>
-            <groupId>com.ctrip.framework.apollo</groupId>
-            <artifactId>apollo-client</artifactId>
-            <version>2.1.0</version>
-            <optional>true</optional>
-        </dependency>
 
         <!-- SpringDoc OpenAPI (optional) -->
         <dependency>
@@ -101,7 +110,13 @@
         </dependency>
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
+            <artifactId>hutool-core</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+            <version>${hutool.version}</version>
         </dependency>
 
         <!-- Jackson JSR310 - Java 8 Date/Time API support -->

@@ -7,7 +7,7 @@ import com.basebackend.logging.audit.metrics.AuditMetrics;
 import com.basebackend.logging.audit.model.AuditLogEntry;
 import com.basebackend.logging.audit.storage.AuditStorage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.DisposableBean;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 2025-11-22
  */
 @Slf4j
-public class AuditService {
+public class AuditService implements DisposableBean {
 
     private final AuditStorage storage;
     private final HashChainCalculator hashChainCalculator;
@@ -113,7 +113,9 @@ public class AuditService {
                     .details(details)
                     .build();
 
-            // P0优化：使用AtomicReference的CAS操作替代synchronized
+            // CAS loop: each retry reads fresh prevHash and sets it on the entry
+            // before computing the hash. This is safe because each record() call
+            // creates its own local entry — no cross-thread sharing of the entry object.
             String prevHash;
             String entryHash;
             do {
@@ -198,7 +200,6 @@ public class AuditService {
     /**
      * 定时刷盘任务
      */
-    @Scheduled(fixedDelayString = "${basebackend.logging.audit.flush-interval:500}")
     private void scheduledFlush() {
         if (!isShuttingDown.get()) {
             try {
@@ -225,6 +226,11 @@ public class AuditService {
                 .droppedEntries(droppedEntries.get())
                 .needsFlush(currentSize >= batchSize / 2)
                 .build();
+    }
+
+    @Override
+    public void destroy() {
+        shutdown();
     }
 
     /**

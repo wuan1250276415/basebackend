@@ -1,0 +1,5 @@
+com\basebackend\common\validation\SafeStringValidatorTest$RequiredBean.class
+com\basebackend\common\validation\SafeStringValidatorTest.class
+com\basebackend\common\validation\SafeStringValidatorTest$SampleBean.class
+com\basebackend\common\security\SecretManagerTest.class
+com\basebackend\common\util\SanitizationUtilsTest.class

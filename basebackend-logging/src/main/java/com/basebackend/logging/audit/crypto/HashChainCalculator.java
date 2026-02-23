@@ -56,9 +56,26 @@ public class HashChainCalculator {
                 digest.update(new byte[0]);
             }
 
-            // 添加当前条目的 JSON 序列化内容
-            byte[] jsonBytes = objectMapper.writeValueAsString(entry).getBytes(StandardCharsets.UTF_8);
-            digest.update(jsonBytes);
+            // 临时清除哈希链元数据字段，避免循环依赖：
+            // entryHash / signature / certificateId 是哈希计算的输出，不能参与输入。
+            // 这些字段在写入时为 null（被 @JsonInclude(NON_NULL) 排除），
+            // 但验证时已赋值，会导致 JSON 不一致从而哈希不匹配。
+            String savedEntryHash = entry.getEntryHash();
+            String savedSignature = entry.getSignature();
+            String savedCertificateId = entry.getCertificateId();
+            entry.setEntryHash(null);
+            entry.setSignature(null);
+            entry.setCertificateId(null);
+
+            try {
+                byte[] jsonBytes = objectMapper.writeValueAsString(entry).getBytes(StandardCharsets.UTF_8);
+                digest.update(jsonBytes);
+            } finally {
+                // 恢复原始值
+                entry.setEntryHash(savedEntryHash);
+                entry.setSignature(savedSignature);
+                entry.setCertificateId(savedCertificateId);
+            }
 
             // 返回十六进制编码的哈希值
             return bytesToHex(digest.digest());

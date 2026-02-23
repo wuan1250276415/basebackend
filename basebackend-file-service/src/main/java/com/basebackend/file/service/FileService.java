@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 /**
- * 文件服务
+ * 文件服务（旧版，兼容接口）
  */
 @Slf4j
 @Service
@@ -29,6 +29,32 @@ import java.util.Arrays;
 public class FileService {
 
     private final FileProperties fileProperties;
+
+    /**
+     * 校验并解析用户输入的文件路径，防止路径遍历攻击。
+     * 将用户路径规范化后确认仍在 uploadPath 基目录之下。
+     *
+     * @param userPath 用户传入的路径（可能含访问前缀）
+     * @return 规范化后的安全绝对路径
+     */
+    private Path resolveAndValidatePath(String userPath) {
+        if (userPath == null || userPath.trim().isEmpty()) {
+            throw new BusinessException("文件路径不能为空");
+        }
+
+        // 移除访问前缀
+        String realPath = userPath.replace(fileProperties.getAccessPrefix() + "/", "");
+
+        Path basePath = Paths.get(fileProperties.getUploadPath()).toAbsolutePath().normalize();
+        Path resolved = basePath.resolve(realPath).normalize();
+
+        if (!resolved.startsWith(basePath)) {
+            log.warn("检测到路径遍历攻击: userPath={}", Integer.toHexString(userPath.hashCode()));
+            throw new BusinessException("非法的文件路径");
+        }
+
+        return resolved;
+    }
 
     /**
      * 上传文件
@@ -93,9 +119,7 @@ public class FileService {
      */
     public void deleteFile(String filePath) {
         try {
-            // 移除访问前缀
-            String realPath = filePath.replace(fileProperties.getAccessPrefix() + "/", "");
-            Path path = Paths.get(fileProperties.getUploadPath(), realPath);
+            Path path = resolveAndValidatePath(filePath);
 
             if (Files.exists(path)) {
                 Files.delete(path);
@@ -116,9 +140,7 @@ public class FileService {
      * @return 文件
      */
     public File getFile(String filePath) {
-        // 移除访问前缀
-        String realPath = filePath.replace(fileProperties.getAccessPrefix() + "/", "");
-        Path path = Paths.get(fileProperties.getUploadPath(), realPath);
+        Path path = resolveAndValidatePath(filePath);
 
         if (!Files.exists(path)) {
             throw new BusinessException("文件不存在");

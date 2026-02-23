@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.observability.alert.mapper.AlertRuleMapper">
+
+    <resultMap id="AlertRuleResultMap" type="com.basebackend.observability.alert.AlertRule">
+        <id property="id" column="id"/>
+        <result property="ruleName" column="rule_name"/>
+        <result property="ruleType" column="rule_type"
+                typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="metricName" column="metric_name"/>
+        <result property="thresholdValue" column="threshold_value"/>
+        <result property="comparisonOperator" column="comparison_operator"/>
+        <result property="durationSeconds" column="duration_seconds"/>
+        <result property="severity" column="severity"
+                typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="enabled" column="enabled"/>
+        <result property="notifyChannels" column="notify_channels"/>
+        <result property="description" column="description"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, rule_name, rule_type, metric_name, threshold_value, comparison_operator,
+        duration_seconds, severity, enabled, notify_channels, description,
+        create_time, update_time, create_by, update_by, deleted
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_alert_rule (rule_name, rule_type, metric_name, threshold_value,
+            comparison_operator, duration_seconds, severity, enabled, notify_channels,
+            description, create_by)
+        VALUES (#{ruleName}, #{ruleType}, #{metricName}, #{thresholdValue},
+            #{comparisonOperator}, #{durationSeconds}, #{severity}, #{enabled},
+            #{notifyChannels}, #{description}, #{createBy})
+    </insert>
+
+    <update id="update">
+        UPDATE sys_alert_rule
+        SET rule_name = #{ruleName},
+            rule_type = #{ruleType},
+            metric_name = #{metricName},
+            threshold_value = #{thresholdValue},
+            comparison_operator = #{comparisonOperator},
+            duration_seconds = #{durationSeconds},
+            severity = #{severity},
+            enabled = #{enabled},
+            notify_channels = #{notifyChannels},
+            description = #{description},
+            update_by = #{updateBy}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectById" resultMap="AlertRuleResultMap">
+        SELECT <include refid="columns"/>
+        FROM sys_alert_rule
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectAll" resultMap="AlertRuleResultMap">
+        SELECT <include refid="columns"/>
+        FROM sys_alert_rule
+        WHERE deleted = 0
+        ORDER BY id
+    </select>
+
+    <select id="selectByEnabled" resultMap="AlertRuleResultMap">
+        SELECT <include refid="columns"/>
+        FROM sys_alert_rule
+        WHERE enabled = #{enabled} AND deleted = 0
+        ORDER BY id
+    </select>
+
+    <select id="selectBySeverity" resultMap="AlertRuleResultMap">
+        SELECT <include refid="columns"/>
+        FROM sys_alert_rule
+        WHERE severity = #{severity} AND deleted = 0
+        ORDER BY id
+    </select>
+
+    <select id="selectByRuleName" resultMap="AlertRuleResultMap">
+        SELECT <include refid="columns"/>
+        FROM sys_alert_rule
+        WHERE rule_name = #{ruleName} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="deleteById">
+        UPDATE sys_alert_rule SET deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM sys_alert_rule WHERE deleted = 0
+    </select>
+
+</mapper>

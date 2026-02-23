@@ -1,10 +1,13 @@
 package com.basebackend.file.storage;
 
+import com.basebackend.file.config.FileStorageProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class StorageServiceRegistry {
 
+    private final FileStorageProperties fileStorageProperties;
     private final Map<StorageService.StorageType, StorageService> storageServiceMap = new ConcurrentHashMap<>();
 
     /**
@@ -65,12 +69,13 @@ public class StorageServiceRegistry {
      *
      * @return 存储类型列表
      */
-    public java.util.List<StorageService.StorageType> getRegisteredTypes() {
-        return new java.util.ArrayList<>(storageServiceMap.keySet());
+    public List<StorageService.StorageType> getRegisteredTypes() {
+        return new ArrayList<>(storageServiceMap.keySet());
     }
 
     /**
-     * 获取默认存储服务（第一个注册的服务）
+     * 获取默认存储服务。
+     * 优先使用 file.storage.type 配置指定的类型，确保多实例部署时行为一致。
      *
      * @return 默认存储服务
      */
@@ -79,8 +84,23 @@ public class StorageServiceRegistry {
             log.error("没有已注册的存储服务");
             throw new IllegalStateException("没有已注册的存储服务");
         }
+
+        StorageService.StorageType configuredType = fileStorageProperties.getType();
+        if (configuredType != null && storageServiceMap.containsKey(configuredType)) {
+            StorageService service = storageServiceMap.get(configuredType);
+            log.debug("使用配置的默认存储服务: {}", configuredType.getDescription());
+            return service;
+        }
+
+        // 回退：配置的类型未注册时使用 LOCAL
+        if (storageServiceMap.containsKey(StorageService.StorageType.LOCAL)) {
+            log.warn("配置的存储类型 {} 未注册，回退到本地存储", configuredType);
+            return storageServiceMap.get(StorageService.StorageType.LOCAL);
+        }
+
+        // 最终回退：取任意一个已注册的服务
         StorageService service = storageServiceMap.values().iterator().next();
-        log.info("获取默认存储服务: {}", service.getStorageType().getDescription());
+        log.warn("回退使用第一个已注册的存储服务: {}", service.getStorageType().getDescription());
         return service;
     }
 
@@ -95,5 +115,6 @@ public class StorageServiceRegistry {
         for (StorageService.StorageType type : getRegisteredTypes()) {
             log.info("- {}", type.getDescription());
         }
+        log.info("配置的默认存储类型: {}", fileStorageProperties.getType());
     }
 }

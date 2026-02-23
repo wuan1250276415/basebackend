@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                 xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                 xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                 id="Definitions_MicroserviceOrchestration"
+                 targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="microserviceOrchestrationProcess" name="微服务编排流程" isExecutable="true">
+    <bpmn:documentation>
+      微服务编排工作流程
+      支持顺序调用多个微服务
+      具有重试机制和异常处理
+      可配置调用参数和响应处理
+    </bpmn:documentation>
+
+    <bpmn:startEvent id="StartEvent_MicroService" name="开始微服务编排">
+      <bpmn:outgoing>Flow_MicroService_Start</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_MicroService_Call1" name="调用微服务1"
+                     camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:documentation>
+        第一次微服务调用
+        输入变量：
+        - remoteService: 服务名称或URL
+        - remotePath: 接口路径
+        - remoteMethod: HTTP方法（GET/POST/PUT/DELETE）
+        - remoteBody: 请求体（可选）
+        - remoteHeaders: 请求头（可选）
+        - remoteMaxAttempts: 最大重试次数
+        - remoteRetryDelaySeconds: 重试延迟
+
+        输出变量：
+        - remoteCallStatus: 调用状态
+        - remoteCallResult: 调用结果
+        - remoteCallError: 错误消息
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_MicroService_Start</bpmn:incoming>
+      <bpmn:outgoing>Flow_MicroService_Check1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MicroService_Result1" name="服务1调用结果"/>
+    <bpmn:incoming>Flow_MicroService_Check1</bpmn:incoming>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Start" sourceRef="StartEvent_MicroService"
+                      targetRef="Task_MicroService_Call1"/>
+    <bpmn:sequenceFlow id="Flow_MicroService_Check1" sourceRef="Task_MicroService_Call1"
+                      targetRef="Gateway_MicroService_Result1"/>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Success1" name="调用成功"
+                      sourceRef="Gateway_MicroService_Result1" targetRef="Task_MicroService_Call2">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${remoteCallStatus == 'SUCCESS'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Failed1" name="调用失败"
+                      sourceRef="Gateway_MicroService_Result1" targetRef="Task_MicroService_Error">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${remoteCallStatus == 'FAILED'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_MicroService_Call2" name="调用微服务2"
+                     camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:documentation>
+        第二次微服务调用（可选）
+        可以使用第一次调用的结果作为输入
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_MicroService_Success1</bpmn:incoming>
+      <bpmn:outgoing>Flow_MicroService_Check2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MicroService_Result2" name="服务2调用结果"/>
+    <bpmn:incoming>Flow_MicroService_Check2</bpmn:incoming>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Check2" sourceRef="Task_MicroService_Call2"
+                      targetRef="Gateway_MicroService_Result2"/>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Success2" name="调用成功"
+                      sourceRef="Gateway_MicroService_Result2" targetRef="Task_MicroService_Aggregate">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${remoteCallStatus == 'SUCCESS'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_Failed2" name="调用失败"
+                      sourceRef="Gateway_MicroService_Result2" targetRef="Task_MicroService_Error">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${remoteCallStatus == 'FAILED'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_MicroService_Aggregate" name="聚合结果"
+                     camunda:delegateExpression="${dataSyncDelegate}">
+      <bpmn:documentation>
+        聚合多个微服务的调用结果
+        输入变量：
+        - syncSourceType: 使用"api"类型
+        - syncPayload: 包含所有调用结果的聚合数据
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_MicroService_Success2</bpmn:incoming>
+      <bpmn:outgoing>Flow_MicroService_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_MicroService_Error" name="处理错误"
+                     camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:documentation>
+        发送微服务调用失败通知
+        输入变量：
+        - emailTo: 收件人邮箱
+        - emailSubject: 错误主题
+        - emailContent: 错误详情
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_MicroService_Failed1</bpmn:incoming>
+      <bpmn:incoming>Flow_MicroService_Failed2</bpmn:incoming>
+      <bpmn:outgoing>Flow_MicroService_End_Error</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_MicroService_Success" name="编排完成">
+      <bpmn:incoming>Flow_MicroService_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_MicroService_Failed" name="编排失败">
+      <bpmn:incoming>Flow_MicroService_End_Error</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_MicroService_End" sourceRef="Task_MicroService_Aggregate"
+                      targetRef="EndEvent_MicroService_Success"/>
+    <bpmn:sequenceFlow id="Flow_MicroService_End_Error" sourceRef="Task_MicroService_Error"
+                      targetRef="EndEvent_MicroService_Failed"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_MicroService">
+    <bpmndi:BPMNPlane id="BPMNPlane_MicroService" bpmnElement="microserviceOrchestrationProcess">
+      <!-- 可视化元素定义 -->
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
