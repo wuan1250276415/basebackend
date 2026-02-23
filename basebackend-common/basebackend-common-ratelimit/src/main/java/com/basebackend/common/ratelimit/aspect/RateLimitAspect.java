@@ -3,6 +3,7 @@ package com.basebackend.common.ratelimit.aspect;
 import com.basebackend.common.ratelimit.RateLimit;
 import com.basebackend.common.ratelimit.RateLimitExceededException;
 import com.basebackend.common.ratelimit.RateLimiter;
+import com.basebackend.common.ratelimit.RateLimiterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -15,11 +16,12 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class RateLimitAspect {
 
-    private final RateLimiter rateLimiter;
+    private final RateLimiterRegistry rateLimiterRegistry;
 
     @Around("@annotation(rateLimit)")
     public Object around(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
         String key = resolveKey(joinPoint, rateLimit);
+        RateLimiter rateLimiter = rateLimiterRegistry.getLimiter(rateLimit.algorithm());
 
         if (!rateLimiter.tryAcquire(key, rateLimit.limit(), rateLimit.window())) {
             String fallback = rateLimit.fallbackMethod();
