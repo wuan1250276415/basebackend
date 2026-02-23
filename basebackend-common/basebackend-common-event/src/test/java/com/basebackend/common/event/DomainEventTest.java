@@ -30,7 +30,7 @@ class DomainEventTest {
     @Test
     void publish_shouldPersistAndPublishEvent() {
         AtomicReference<DomainEvent> published = new AtomicReference<>();
-        ApplicationEventPublisher mockPublisher = published::set;
+        ApplicationEventPublisher mockPublisher = event -> published.set((DomainEvent) event);
 
         ReliableDomainEventPublisher publisher =
                 new ReliableDomainEventPublisher(mockPublisher, eventStore);
