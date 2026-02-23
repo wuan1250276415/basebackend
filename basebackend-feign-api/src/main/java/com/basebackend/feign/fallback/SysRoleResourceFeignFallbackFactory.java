@@ -2,7 +2,8 @@ package com.basebackend.feign.fallback;
 
 import com.basebackend.common.model.Result;
 import com.basebackend.feign.client.SysRoleResourceFeignClient;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +16,10 @@ import java.util.List;
  * @author Kiro AI
  * @since 2025-11-23
  */
-@Slf4j
 @Component
 public class SysRoleResourceFeignFallbackFactory implements FallbackFactory<SysRoleResourceFeignClient> {
+
+    private static final Logger log = LoggerFactory.getLogger(SysRoleResourceFeignFallbackFactory.class);
 
     @Override
     public SysRoleResourceFeignClient create(Throwable cause) {

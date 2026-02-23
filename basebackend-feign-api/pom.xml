@@ -45,6 +45,18 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Jackson (Boot 4 不再传递) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-json</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4: HttpMessageConverters 迁移到独立模块 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-http-converter</artifactId>
+        </dependency>
+
         <!-- Common Module -->
         <dependency>
             <groupId>com.basebackend</groupId>

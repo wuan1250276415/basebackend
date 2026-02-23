@@ -3,7 +3,8 @@ package com.basebackend.feign.fallback;
 import com.basebackend.common.model.Result;
 import com.basebackend.feign.client.DeptFeignClient;
 import com.basebackend.feign.dto.dept.DeptBasicDTO;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +17,10 @@ import java.util.List;
  * @author Claude Code
  * @since 2025-11-08
  */
-@Slf4j
 @Component
 public class DeptFeignFallbackFactory implements FallbackFactory<DeptFeignClient> {
+
+    private static final Logger log = LoggerFactory.getLogger(DeptFeignFallbackFactory.class);
 
     @Override
     public DeptFeignClient create(Throwable cause) {

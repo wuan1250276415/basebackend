@@ -94,6 +94,11 @@ public class NacosConfigProperties {
         private Boolean refreshEnabled;
 
         /**
+         * 刷新线程池大小
+         */
+        private int refreshThreadPoolSize = 2;
+
+        /**
          * 用户名
          */
         private String username = "nacos";

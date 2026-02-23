@@ -1,18 +1,13 @@
 package com.basebackend.feign.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.Request;
 import feign.codec.Encoder;
 import feign.form.spring.SpringFormEncoder;
-import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cloud.openfeign.support.FeignHttpMessageConverters;
 import org.springframework.cloud.openfeign.support.SpringEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.util.concurrent.TimeUnit;
 
@@ -37,11 +32,11 @@ public class FileFeignConfig {
      * 以支持 MultipartFile 类型参数的编码。
      * </p>
      *
-     * @param messageConverters Spring HTTP 消息转换器工厂
+     * @param messageConverters Spring Feign HTTP 消息转换器
      * @return Feign 编码器
      */
     @Bean
-    public Encoder multipartFormEncoder(ObjectFactory<HttpMessageConverters> messageConverters) {
+    public Encoder multipartFormEncoder(ObjectProvider<FeignHttpMessageConverters> messageConverters) {
         return new SpringFormEncoder(new SpringEncoder(messageConverters));
     }
 

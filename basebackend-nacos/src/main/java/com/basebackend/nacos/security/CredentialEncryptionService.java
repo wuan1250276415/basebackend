@@ -46,12 +46,23 @@ public class CredentialEncryptionService {
     private final SecureRandom secureRandom;
 
     public CredentialEncryptionService() {
-        // 从环境变量获取密钥种子，如果没有则使用默认值
-        String keySeed = System.getenv("NACOS_ENCRYPTION_KEY");
+        this(null);
+    }
+
+    /**
+     * 使用指定密钥种子构造加密服务
+     *
+     * @param keySeed 密钥种子，为null或空时从环境变量/系统属性获取
+     */
+    public CredentialEncryptionService(String keySeed) {
         if (keySeed == null || keySeed.isEmpty()) {
-            keySeed = System.getProperty("nacos.encryption.key", DEFAULT_KEY_SEED);
-            log.warn(
-                    "Using default encryption key seed. Set NACOS_ENCRYPTION_KEY environment variable for production!");
+            // 从环境变量获取密钥种子，如果没有则使用默认值
+            keySeed = System.getenv("NACOS_ENCRYPTION_KEY");
+            if (keySeed == null || keySeed.isEmpty()) {
+                keySeed = System.getProperty("nacos.encryption.key", DEFAULT_KEY_SEED);
+                log.warn(
+                        "Using default encryption key seed. Set NACOS_ENCRYPTION_KEY environment variable for production!");
+            }
         }
 
         this.secretKey = deriveKey(keySeed);

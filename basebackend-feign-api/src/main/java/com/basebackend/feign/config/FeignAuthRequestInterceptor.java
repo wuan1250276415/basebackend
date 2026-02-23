@@ -3,7 +3,8 @@ package com.basebackend.feign.config;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -15,9 +16,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * @author Claude Code
  * @since 2025-12-09
  */
-@Slf4j
 @Configuration
 public class FeignAuthRequestInterceptor implements RequestInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(FeignAuthRequestInterceptor.class);
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String X_TRACE_ID = "X-Trace-Id";

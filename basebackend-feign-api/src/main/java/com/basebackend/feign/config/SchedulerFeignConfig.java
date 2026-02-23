@@ -2,7 +2,8 @@ package com.basebackend.feign.config;
 
 import feign.Request;
 import feign.codec.ErrorDecoder;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,9 +15,10 @@ import java.util.concurrent.TimeUnit;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Slf4j
 @Configuration
 public class SchedulerFeignConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SchedulerFeignConfig.class);
 
     /**
      * 配置默认的连接和读取超时

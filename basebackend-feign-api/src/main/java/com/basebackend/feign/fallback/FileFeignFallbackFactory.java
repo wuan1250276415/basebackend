@@ -4,7 +4,8 @@ import com.basebackend.common.model.Result;
 import com.basebackend.feign.client.FileFeignClient;
 import com.basebackend.feign.dto.file.FileMetadataDTO;
 import com.basebackend.feign.dto.file.FileVersionDTO;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,9 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
  * @author Claude Code
  * @since 2025-01-07
  */
-@Slf4j
 @Component
 public class FileFeignFallbackFactory implements FallbackFactory<FileFeignClient> {
+
+    private static final Logger log = LoggerFactory.getLogger(FileFeignFallbackFactory.class);
 
     @Override
     public FileFeignClient create(Throwable cause) {

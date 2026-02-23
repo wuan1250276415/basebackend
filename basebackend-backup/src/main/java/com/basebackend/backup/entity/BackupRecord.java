@@ -61,6 +61,16 @@ public class BackupRecord {
     private Long binlogPosition;
 
     /**
+     * Binlog起始位置（仅PostgreSQL增量备份，WAL LSN）
+     */
+    private String binlogStartPosition;
+
+    /**
+     * Binlog结束位置（仅PostgreSQL增量备份，WAL LSN）
+     */
+    private String binlogEndPosition;
+
+    /**
      * 备份开始时间
      */
     private LocalDateTime startTime;
