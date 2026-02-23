@@ -1,10 +1,9 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.camunda.bpm.engine.repository.ProcessDefinition;
 
 /**
@@ -15,9 +14,8 @@ import org.camunda.bpm.engine.repository.ProcessDefinition;
  * @since 2025-01-01
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @Schema(name = "ProcessDefinitionDTO", description = "流程定义信息")
 public class ProcessDefinitionDTO {
 

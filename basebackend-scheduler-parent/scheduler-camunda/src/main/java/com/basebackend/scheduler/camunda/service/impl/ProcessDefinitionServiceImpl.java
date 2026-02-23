@@ -491,8 +491,9 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
                 .deploymentId(definition.getDeploymentId())
                 .singleResult();
         if (deployment != null) {
-            dto.setDeploymentTime(
+            dto.setDetailDeploymentTime(
                     com.basebackend.scheduler.util.DateTimeUtil.toLocalDateTime(deployment.getDeploymentTime()));
+            dto.setDeploymentTime(deployment.getDeploymentTime());
             dto.setDeploymentSource(deployment.getSource());
         }
 

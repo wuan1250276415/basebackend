@@ -1,10 +1,10 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.camunda.bpm.engine.task.Task;
 
 import java.util.Date;
@@ -17,9 +17,9 @@ import java.util.Date;
  * @since 2025-01-01
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@EqualsAndHashCode
 @Schema(name = "TaskSummaryDTO", description = "任务摘要信息")
 public class TaskSummaryDTO {
 

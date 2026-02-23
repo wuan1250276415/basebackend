@@ -1,102 +1,30 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.camunda.bpm.engine.history.HistoricProcessInstance;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * 历史流程实例详情数据传输对象
  *
+ * <p>继承 {@link HistoricProcessInstanceDTO}，在摘要信息基础上增加活动轨迹、变量等详情字段。</p>
+ *
  * @author BaseBackend Team
  * @version 1.0.0
  * @since 2025-01-01
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Schema(name = "HistoricProcessInstanceDetailDTO", description = "历史流程实例详情（含变量和活动轨迹）")
-public class HistoricProcessInstanceDetailDTO {
-
-    /**
-     * 流程实例 ID
-     */
-    @Schema(description = "流程实例 ID", example = "12345")
-    private String id;
-
-    /**
-     * 流程定义 ID
-     */
-    @Schema(description = "流程定义 ID", example = "order_approval:1:67890")
-    private String processDefinitionId;
-
-    /**
-     * 流程定义 Key
-     */
-    @Schema(description = "流程定义 Key", example = "order_approval")
-    private String processDefinitionKey;
-
-    /**
-     * 业务键
-     */
-    @Schema(description = "业务键", example = "ORDER_20250101_001")
-    private String businessKey;
-
-    /**
-     * 租户 ID
-     */
-    @Schema(description = "租户 ID", example = "tenant_001")
-    private String tenantId;
-
-    /**
-     * 启动人
-     */
-    @Schema(description = "启动人", example = "alice")
-    private String startUserId;
-
-    /**
-     * 启动时间
-     */
-    @Schema(description = "启动时间", example = "2025-01-01T10:00:00Z")
-    private Instant startTime;
-
-    /**
-     * 结束时间
-     */
-    @Schema(description = "结束时间", example = "2025-01-01T11:00:00Z")
-    private Instant endTime;
-
-    /**
-     * 持续时长（毫秒）
-     */
-    @Schema(description = "持续时长（毫秒）", example = "3600000")
-    private Long durationInMillis;
-
-    /**
-     * 状态
-     */
-    @Schema(description = "状态", example = "COMPLETED")
-    private String state;
-
-    /**
-     * 删除原因
-     */
-    @Schema(description = "删除原因", example = "Cancelled by user")
-    private String deleteReason;
-
-    /**
-     * 流程定义名称
-     */
-    @Schema(description = "流程定义名称", example = "Order Approval Process")
-    private String processDefinitionName;
+public class HistoricProcessInstanceDetailDTO extends HistoricProcessInstanceDTO {
 
     /**
      * 流程定义版本
@@ -138,21 +66,19 @@ public class HistoricProcessInstanceDetailDTO {
      * 流程变量列表
      */
     @Schema(description = "流程变量列表")
-    @Builder.Default
-    private List<HistoricVariableInstanceDTO> variables = Collections.emptyList();
+    private List<HistoricVariableInstanceDTO> variables;
 
     /**
      * 活动执行历史
      */
     @Schema(description = "活动执行历史")
-    @Builder.Default
-    private List<HistoricActivityInstanceDTO> activities = Collections.emptyList();
+    private List<HistoricActivityInstanceDTO> activities;
 
     /**
      * 从 Camunda HistoricProcessInstance 转换为 DTO
      *
-     * @param instance Camunda 历史流程实例
-     * @param variables 流程变量列表
+     * @param instance   Camunda 历史流程实例
+     * @param variables  流程变量列表
      * @param activities 活动历史列表
      * @return DTO 对象
      */
@@ -181,22 +107,19 @@ public class HistoricProcessInstanceDetailDTO {
     }
 
     /**
-     * 将 Date 转换为 Instant
-     *
-     * @param date 日期
-     * @return Instant
+     * 获取变量，保证非空
      */
-    private static Instant toInstant(java.util.Date date) {
-        return date == null ? null : date.toInstant();
+    public List<HistoricVariableInstanceDTO> getVariables() {
+        return variables == null ? Collections.emptyList() : variables;
     }
 
     /**
-     * 默认列表处理
-     *
-     * @param source 源列表
-     * @param <T> 泛型类型
-     * @return 非空列表
+     * 获取活动历史，保证非空
      */
+    public List<HistoricActivityInstanceDTO> getActivities() {
+        return activities == null ? Collections.emptyList() : activities;
+    }
+
     private static <T> List<T> defaultList(List<T> source) {
         return source == null ? Collections.emptyList() : source;
     }

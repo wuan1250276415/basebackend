@@ -1,10 +1,9 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.camunda.bpm.engine.runtime.Job;
 
 import java.util.Date;
@@ -20,9 +19,8 @@ import java.util.Date;
  * @since 2025-01-01
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @Schema(name = "JobDTO", description = "作业信息")
 public class JobDTO {
 

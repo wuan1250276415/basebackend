@@ -1,10 +1,9 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.camunda.bpm.engine.history.HistoricProcessInstance;
 
 import java.time.Instant;
@@ -17,9 +16,8 @@ import java.time.Instant;
  * @since 2025-01-01
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @Schema(name = "HistoricProcessInstanceDTO", description = "历史流程实例信息")
 public class HistoricProcessInstanceDTO {
 
@@ -126,7 +124,7 @@ public class HistoricProcessInstanceDTO {
      * @param date 日期
      * @return Instant
      */
-    private static Instant toInstant(java.util.Date date) {
+    protected static Instant toInstant(java.util.Date date) {
         return date == null ? null : date.toInstant();
     }
 }
