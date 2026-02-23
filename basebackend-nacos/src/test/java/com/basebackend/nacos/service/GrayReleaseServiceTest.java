@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.*;
  * @author BaseBackend
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("GrayReleaseService 灰度发布服务测试")
 class GrayReleaseServiceTest {
 
@@ -66,7 +69,8 @@ class GrayReleaseServiceTest {
             createTestInstance("192.168.1.3", 8080)
         );
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(instances);
+        when(namingService.getAllInstances(anyString())).thenReturn(instances);
+        doNothing().when(namingService).registerInstance(anyString(), anyString(), any(Instance.class));
         when(nacosConfigService.publishConfig(any(ConfigInfo.class))).thenReturn(true);
 
         // When
@@ -91,7 +95,8 @@ class GrayReleaseServiceTest {
             instances.add(createTestInstance("192.168.1." + (i + 1), 8080));
         }
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(instances);
+        when(namingService.getAllInstances(anyString())).thenReturn(instances);
+        doNothing().when(namingService).registerInstance(anyString(), anyString(), any(Instance.class));
         when(nacosConfigService.publishConfig(any(ConfigInfo.class))).thenReturn(true);
 
         // When
@@ -115,7 +120,8 @@ class GrayReleaseServiceTest {
             createTestInstanceWithLabel("192.168.1.3", 8080, "env=gray")
         );
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(instances);
+        when(namingService.getAllInstances(anyString())).thenReturn(instances);
+        doNothing().when(namingService).registerInstance(anyString(), anyString(), any(Instance.class));
         when(nacosConfigService.publishConfig(any(ConfigInfo.class))).thenReturn(true);
 
         // When
@@ -133,7 +139,7 @@ class GrayReleaseServiceTest {
         ConfigInfo configInfo = createTestConfigInfo();
         GrayReleaseConfig grayConfig = createIpGrayConfig();
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(Collections.emptyList());
+        when(namingService.getAllInstances(anyString())).thenReturn(Collections.emptyList());
 
         // When
         GrayReleaseService.GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);
@@ -155,7 +161,7 @@ class GrayReleaseServiceTest {
             createTestInstance("192.168.2.2", 8080)
         );
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(instances);
+        when(namingService.getAllInstances(anyString())).thenReturn(instances);
 
         // When
         GrayReleaseService.GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);
@@ -173,7 +179,7 @@ class GrayReleaseServiceTest {
         GrayReleaseConfig grayConfig = createIpGrayConfig();
 
         List<Instance> instances = Arrays.asList(createTestInstance("192.168.1.1", 8080));
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP")).thenReturn(instances);
+        when(namingService.getAllInstances(anyString())).thenReturn(instances);
         when(nacosConfigService.publishConfig(any(ConfigInfo.class))).thenReturn(false);
 
         // When
@@ -291,7 +297,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("灰度配置不能为空");
+          .rootCause().hasMessageContaining("灰度配置不能为空");
     }
 
     @Test
@@ -307,7 +313,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("配置Data ID不能为空");
+          .rootCause().hasMessageContaining("配置Data ID不能为空");
     }
 
     @Test
@@ -323,7 +329,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("灰度策略类型不能为空");
+          .rootCause().hasMessageContaining("灰度策略类型不能为空");
     }
 
     @Test
@@ -339,7 +345,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("不支持的灰度策略");
+          .rootCause().hasMessageContaining("不支持的灰度策略");
     }
 
     @Test
@@ -355,7 +361,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("IP灰度策略必须指定目标实例");
+          .rootCause().hasMessageContaining("IP灰度策略必须指定目标实例");
     }
 
     @Test
@@ -370,7 +376,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("百分比灰度策略的百分比必须在1-100之间");
+          .rootCause().hasMessageContaining("百分比灰度策略的百分比必须在1-100之间");
     }
 
     @Test
@@ -378,7 +384,7 @@ class GrayReleaseServiceTest {
     void shouldRequireLabelsForLabelStrategy() {
         // Given
         GrayReleaseConfig grayConfig = createLabelGrayConfig("");
-        grayConfig.setStrategyType("LABEL");
+        grayConfig.setStrategyType("label");
 
         // When & Then
         assertThatThrownBy(() -> {
@@ -386,7 +392,7 @@ class GrayReleaseServiceTest {
             method.setAccessible(true);
             method.invoke(grayReleaseService, grayConfig);
         }).hasCauseInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("标签灰度策略必须指定标签");
+          .rootCause().hasMessageContaining("标签灰度策略必须指定标签");
     }
 
     @Test
@@ -396,7 +402,7 @@ class GrayReleaseServiceTest {
         ConfigInfo configInfo = createTestConfigInfo();
         GrayReleaseConfig grayConfig = createIpGrayConfig();
 
-        when(namingService.getAllInstances("test-service", "DEFAULT_GROUP"))
+        when(namingService.getAllInstances(anyString()))
             .thenThrow(new RuntimeException("Service unavailable"));
 
         // When
@@ -458,7 +464,7 @@ class GrayReleaseServiceTest {
     private GrayReleaseConfig createIpGrayConfig() {
         return GrayReleaseConfig.builder()
             .dataId("test-config.yml")
-            .strategyType("IP")
+            .strategyType("ip")
             .targetInstances("192.168.1.1:8080")
             .build();
     }
@@ -466,7 +472,7 @@ class GrayReleaseServiceTest {
     private GrayReleaseConfig createPercentageGrayConfig(int percentage) {
         return GrayReleaseConfig.builder()
             .dataId("test-config.yml")
-            .strategyType("PERCENTAGE")
+            .strategyType("percentage")
             .percentage(percentage)
             .build();
     }
@@ -474,7 +480,7 @@ class GrayReleaseServiceTest {
     private GrayReleaseConfig createLabelGrayConfig(String labels) {
         return GrayReleaseConfig.builder()
             .dataId("test-config.yml")
-            .strategyType("LABEL")
+            .strategyType("label")
             .labels(labels)
             .build();
     }

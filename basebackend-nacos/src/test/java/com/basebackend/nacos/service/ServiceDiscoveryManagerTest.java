@@ -42,7 +42,10 @@ class ServiceDiscoveryManagerTest {
     void shouldGetAllServicesSuccessfully() throws Exception {
         // Given
         List<String> serviceList = Arrays.asList("service1", "service2", "service3");
-        when(namingService.getServicesOfServer(1, 10)).thenReturn((ListView<String>) serviceList);
+        ListView<String> listView = new ListView<>();
+        listView.setData(serviceList);
+        listView.setCount(serviceList.size());
+        when(namingService.getServicesOfServer(1, 10)).thenReturn(listView);
 
         // When
         List<String> services = serviceDiscoveryManager.getAllServices(1, 10);

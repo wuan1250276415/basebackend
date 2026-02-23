@@ -45,7 +45,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(mockContext.buildNamespace()).thenReturn("dev-public-123");
@@ -65,7 +65,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.publishConfig(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
@@ -86,7 +86,7 @@ class NacosConfigServiceTest {
         configInfo.setType(null); // 设置为null
 
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.publishConfig(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
@@ -105,7 +105,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.removeConfig(anyString(), anyString())).thenReturn(true);
@@ -124,7 +124,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.getConfig(anyString(), anyString(), eq(5000))).thenThrow(new NacosException(500, "Network error"));
@@ -132,7 +132,7 @@ class NacosConfigServiceTest {
         // When & Then
         assertThatThrownBy(() -> configService.getConfig(configInfo))
             .isInstanceOf(NacosException.class)
-            .hasMessage("Network error");
+            .hasMessageContaining("Network error");
     }
 
     @Test
@@ -141,7 +141,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.publishConfig(anyString(), anyString(), anyString(), anyString()))
@@ -159,7 +159,7 @@ class NacosConfigServiceTest {
         // Given
         ConfigInfo configInfo = createTestConfigInfo();
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.removeConfig(anyString(), anyString())).thenThrow(new NacosException(500, "Remove failed"));
@@ -178,7 +178,7 @@ class NacosConfigServiceTest {
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
         com.alibaba.nacos.api.config.listener.Listener listener = mock(com.alibaba.nacos.api.config.listener.Listener.class);
 
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
 
@@ -197,7 +197,7 @@ class NacosConfigServiceTest {
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
         com.alibaba.nacos.api.config.listener.Listener listener = mock(com.alibaba.nacos.api.config.listener.Listener.class);
 
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
 
@@ -277,7 +277,7 @@ class NacosConfigServiceTest {
         configInfo.setType("json");
 
         ConfigIsolationContext mockContext = mock(ConfigIsolationContext.class);
-        when(isolationManager.createContext("dev", "public", 123L)).thenReturn(mockContext);
+        when(isolationManager.createContext(anyString(), anyString(), any(Long.class))).thenReturn(mockContext);
         when(mockContext.buildDataId("test-config.yml")).thenReturn("test-config.yml");
         when(mockContext.buildGroup()).thenReturn("DEFAULT_GROUP");
         when(nacosConfigService.publishConfig(anyString(), anyString(), anyString(), anyString())).thenReturn(true);

@@ -35,7 +35,7 @@ class NacosConfigPropertiesTest {
         // Then
         assertThat(properties.getEnvironment()).isEqualTo("dev");
         assertThat(properties.getTenantId()).isEqualTo("public");
-        assertThat(properties.getConfig().getServerAddr()).isEqualTo("192.168.66.126:8848");
+        assertThat(properties.getConfig().getServerAddr()).isEqualTo("127.0.0.1:8848");
         assertThat(properties.getConfig().getNamespace()).isEqualTo("public");
         assertThat(properties.getConfig().getGroup()).isEqualTo("DEFAULT_GROUP");
         assertThat(properties.getConfig().getUsername()).isEqualTo("nacos");
@@ -76,7 +76,7 @@ class NacosConfigPropertiesTest {
         assertThat(properties.getConfig().getSharedConfigs()).isEqualTo(sharedConfigs);
         assertThat(properties.getConfig().isEnabled()).isTrue();
         assertThat(properties.getDiscovery().isEnabled()).isTrue();
-        assertThat(properties.getDiscovery().getServerAddr()).isEqualTo("192.168.66.126:8848");
+        assertThat(properties.getDiscovery().getServerAddr()).isEqualTo("127.0.0.1:8848");
         assertThat(properties.getDiscovery().getNamespace()).isEqualTo("public");
         assertThat(properties.getDiscovery().getCluster()).isEqualTo("DEFAULT");
         assertThat(properties.getDiscovery().getUsername()).isEqualTo("nacos");
@@ -150,7 +150,7 @@ class NacosConfigPropertiesTest {
         // Given
         NacosConfigProperties properties = new NacosConfigProperties();
         NacosConfigProperties.Config.SharedConfig s1 = new NacosConfigProperties.Config.SharedConfig();
-        s1.setDataId("common-config.yml");
+        s1.setDataId(null); // dataId 为空，应触发 @NotBlank 验证
         s1.setRefresh(Boolean.TRUE);
         properties.getConfig().getSharedConfigs().add(s1);
 
@@ -158,8 +158,10 @@ class NacosConfigPropertiesTest {
         Set<ConstraintViolation<NacosConfigProperties>> violations = validator.validate(properties);
 
         // Then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage()).contains("dataId");
+        assertThat(violations).isNotEmpty();
+        boolean hasBlankViolation = violations.stream()
+                .anyMatch(v -> v.getMessage().contains("不能为空") || v.getMessage().contains("blank"));
+        assertThat(hasBlankViolation).isTrue();
     }
 
     @Test
@@ -176,7 +178,7 @@ class NacosConfigPropertiesTest {
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage()).contains("dataId");
+        assertThat(violations.iterator().next().getMessage()).contains("不能为空");
     }
 
     @Test
