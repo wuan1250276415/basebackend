@@ -2,7 +2,7 @@ package com.basebackend.file.controller;
 
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.context.UserContextHolder;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import com.basebackend.common.model.Result;
 import com.basebackend.feign.dto.file.FileMetadataDTO;
 import com.basebackend.feign.dto.file.FileVersionDTO;

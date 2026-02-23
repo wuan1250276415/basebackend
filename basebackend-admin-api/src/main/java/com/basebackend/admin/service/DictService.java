@@ -2,7 +2,7 @@ package com.basebackend.admin.service;
 
 import com.basebackend.admin.dto.DictDTO;
 import com.basebackend.admin.dto.DictDataDTO;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import com.basebackend.common.model.Result;
 
 import java.util.List;

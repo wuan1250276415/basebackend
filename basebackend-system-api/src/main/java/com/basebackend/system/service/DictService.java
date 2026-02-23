@@ -2,7 +2,7 @@ package com.basebackend.system.service;
 
 import com.basebackend.system.dto.DictDTO;
 import com.basebackend.system.dto.DictDataDTO;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 
 import java.util.List;
 

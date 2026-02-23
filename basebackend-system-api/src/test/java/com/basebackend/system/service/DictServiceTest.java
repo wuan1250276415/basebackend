@@ -14,7 +14,7 @@ import com.basebackend.system.entity.SysDictData;
 import com.basebackend.system.mapper.SysDictMapper;
 import com.basebackend.system.mapper.SysDictDataMapper;
 import com.basebackend.system.service.impl.DictServiceImpl;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
