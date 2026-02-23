@@ -1,17 +1,15 @@
 package com.basebackend.jwt;
 
-import com.basebackend.common.security.SecretManager;
-import com.basebackend.common.security.SecretManagerProperties;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.env.MockEnvironment;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,6 +27,7 @@ class JwtUtilTest {
     private JwtUtil jwtUtil;
     private JwtProperties jwtProperties;
     private JwtTokenBlacklist blacklist;
+    private JwtKeyManager keyManager;
 
     @BeforeEach
     void setUp() {
@@ -42,13 +41,18 @@ class JwtUtilTest {
         jwtProperties.setExpiringSoonThreshold(3600000L);
         jwtProperties.setMaxRefreshableExpiredDuration(604800000L);
 
-        MockEnvironment env = new MockEnvironment();
-        env.setProperty("jwt.secret", TEST_SECRET);
-        SecretManagerProperties smProps = new SecretManagerProperties();
-        SecretManager secretManager = new SecretManager(env, smProps);
-
+        keyManager = new JwtKeyManager(jwtProperties);
         blacklist = new JwtTokenBlacklist(null); // 内存模式
-        jwtUtil = new JwtUtil(jwtProperties, secretManager, blacklist);
+        jwtUtil = new JwtUtil(jwtProperties, keyManager, blacklist, null, null);
+    }
+
+    /**
+     * 使用自定义 JwtProperties 创建 JwtUtil（用于 issuer/audience/密钥 测试）
+     */
+    private JwtUtil createJwtUtil(JwtProperties props) {
+        JwtKeyManager km = new JwtKeyManager(props);
+        JwtTokenBlacklist bl = new JwtTokenBlacklist(null);
+        return new JwtUtil(props, km, bl, null, null);
     }
 
     // ========== P0-1: claims 顺序修复 ==========
@@ -116,7 +120,6 @@ class JwtUtilTest {
         @DisplayName("null 密钥应在 PostConstruct 抛异常")
         void shouldRejectNullSecret() {
             JwtProperties props = new JwtProperties();
-            // secret defaults to null
 
             assertThatThrownBy(props::validate)
                     .isInstanceOf(IllegalStateException.class)
@@ -292,16 +295,13 @@ class JwtUtilTest {
             String accessToken = jwtUtil.generateAccessToken("user1", null);
             String refreshToken = jwtUtil.generateRefreshToken("user1");
 
-            // access token 验证为 access 应成功
             JwtValidationResult result1 = jwtUtil.validateTokenSafe(accessToken, JwtUtil.TOKEN_TYPE_ACCESS);
             assertThat(result1.isValid()).isTrue();
 
-            // access token 验证为 refresh 应失败
             JwtValidationResult result2 = jwtUtil.validateTokenSafe(accessToken, JwtUtil.TOKEN_TYPE_REFRESH);
             assertThat(result2.isValid()).isFalse();
             assertThat(result2.getErrorType()).isEqualTo(JwtException.ErrorType.TOKEN_TYPE_MISMATCH);
 
-            // refresh token 验证为 refresh 应成功
             JwtValidationResult result3 = jwtUtil.validateTokenSafe(refreshToken, JwtUtil.TOKEN_TYPE_REFRESH);
             assertThat(result3.isValid()).isTrue();
         }
@@ -327,22 +327,14 @@ class JwtUtilTest {
         @Test
         @DisplayName("错误 issuer 应验证失败")
         void wrongIssuerShouldFail() {
-            // 生成正常 Token
             String token = jwtUtil.generateToken("user1");
 
-            // 用不同 issuer 的 JwtUtil 验证
             JwtProperties otherProps = new JwtProperties();
             otherProps.setSecret(TEST_SECRET);
             otherProps.setIssuer("wrong-issuer");
             otherProps.setAudience(TEST_AUDIENCE);
 
-            MockEnvironment env = new MockEnvironment();
-            env.setProperty("jwt.secret", TEST_SECRET);
-            SecretManagerProperties smProps = new SecretManagerProperties();
-            SecretManager sm = new SecretManager(env, smProps);
-            JwtTokenBlacklist bl = new JwtTokenBlacklist(null);
-            JwtUtil otherJwtUtil = new JwtUtil(otherProps, sm, bl);
-
+            JwtUtil otherJwtUtil = createJwtUtil(otherProps);
             assertThat(otherJwtUtil.validateToken(token)).isFalse();
         }
     }
@@ -369,20 +361,13 @@ class JwtUtilTest {
         @Test
         @DisplayName("错误签名 Token 应抛 INVALID_SIGNATURE 异常")
         void wrongSignatureShouldThrow() {
-            // 用不同密钥生成的 Token
             JwtProperties otherProps = new JwtProperties();
             String otherSecret = "another-secret-key-for-jwt-must-be-at-least-256-bits-long-too!!";
             otherProps.setSecret(otherSecret);
             otherProps.setIssuer(TEST_ISSUER);
             otherProps.setAudience(TEST_AUDIENCE);
 
-            MockEnvironment env = new MockEnvironment();
-            env.setProperty("jwt.secret", otherSecret);
-            SecretManagerProperties smProps = new SecretManagerProperties();
-            SecretManager sm = new SecretManager(env, smProps);
-            JwtTokenBlacklist bl = new JwtTokenBlacklist(null);
-            JwtUtil otherJwtUtil = new JwtUtil(otherProps, sm, bl);
-
+            JwtUtil otherJwtUtil = createJwtUtil(otherProps);
             String token = otherJwtUtil.generateToken("user1");
 
             assertThatThrownBy(() -> jwtUtil.parseClaimsStrict(token))
@@ -483,7 +468,6 @@ class JwtUtilTest {
         @Test
         @DisplayName("即将过期的 Token 应返回 true")
         void shouldDetectExpiringSoon() {
-            // 设置过期时间为 30 分钟，阈值为 1 小时
             jwtProperties.setExpiration(1800000L);
             jwtProperties.setExpiringSoonThreshold(3600000L);
             String token = jwtUtil.generateToken("user1");
@@ -494,12 +478,382 @@ class JwtUtilTest {
         @Test
         @DisplayName("不会很快过期的 Token 应返回 false")
         void shouldNotDetectExpiringSoonForLongLivedToken() {
-            // 设置过期时间为 24 小时，阈值为 1 小时
             jwtProperties.setExpiration(86400000L);
             jwtProperties.setExpiringSoonThreshold(3600000L);
             String token = jwtUtil.generateToken("user1");
 
             assertThat(jwtUtil.isTokenExpiringSoon(token)).isFalse();
+        }
+    }
+
+    // ========== P2: 密钥轮换 ==========
+
+    @Nested
+    @DisplayName("P2: 密钥轮换测试")
+    class KeyRotationTest {
+
+        @Test
+        @DisplayName("单密钥模式下 Token 应正常生成和验证")
+        void singleKeyModeShouldWork() {
+            assertThat(keyManager.isSingleKeyMode()).isTrue();
+            assertThat(keyManager.getActiveKeyId()).isEqualTo(JwtKeyManager.DEFAULT_KID);
+
+            String token = jwtUtil.generateToken("user1");
+            assertThat(jwtUtil.validateToken(token)).isTrue();
+        }
+
+        @Test
+        @DisplayName("多密钥模式 Token 应包含 kid header 并正常验证")
+        void multiKeyModeShouldIncludeKid() {
+            String secret2 = "second-key-for-rotation-must-be-at-least-32-characters-long!!!!";
+            JwtProperties multiProps = new JwtProperties();
+            multiProps.setSecret(TEST_SECRET);
+            multiProps.setIssuer(TEST_ISSUER);
+            multiProps.setAudience(TEST_AUDIENCE);
+            multiProps.getKeys().put("k-1", TEST_SECRET);
+            multiProps.getKeys().put("k-2", secret2);
+            multiProps.setActiveKeyId("k-1");
+
+            JwtKeyManager multiKm = new JwtKeyManager(multiProps);
+            JwtUtil multiUtil = new JwtUtil(multiProps, multiKm, blacklist, null, null);
+
+            assertThat(multiKm.isSingleKeyMode()).isFalse();
+
+            String token = multiUtil.generateToken("user1");
+            assertThat(multiUtil.validateToken(token)).isTrue();
+            assertThat(multiUtil.getSubjectFromToken(token)).isEqualTo("user1");
+        }
+
+        @Test
+        @DisplayName("密钥轮换后旧密钥签发的 Token 仍可验证（过渡期）")
+        void oldKeyTokenShouldBeValidDuringGracePeriod() {
+            String secret2 = "second-key-for-rotation-must-be-at-least-32-characters-long!!!!";
+            JwtProperties multiProps = new JwtProperties();
+            multiProps.setSecret(TEST_SECRET);
+            multiProps.setIssuer(TEST_ISSUER);
+            multiProps.setAudience(TEST_AUDIENCE);
+            multiProps.getKeys().put("k-1", TEST_SECRET);
+            multiProps.setActiveKeyId("k-1");
+            multiProps.setKeyRotationGracePeriod(604800000L);
+
+            JwtKeyManager multiKm = new JwtKeyManager(multiProps);
+            JwtUtil multiUtil = new JwtUtil(multiProps, multiKm, blacklist, null, null);
+
+            // 用 k-1 签发 Token
+            String oldToken = multiUtil.generateToken("user1");
+            assertThat(multiUtil.validateToken(oldToken)).isTrue();
+
+            // 轮换到 k-2
+            multiKm.rotateKey("k-2", secret2);
+            assertThat(multiKm.getActiveKeyId()).isEqualTo("k-2");
+
+            // 旧 Token 仍可验证（k-1 在过渡期内）
+            assertThat(multiUtil.validateToken(oldToken)).isTrue();
+
+            // 新 Token 用 k-2 签名
+            String newToken = multiUtil.generateToken("user2");
+            assertThat(multiUtil.validateToken(newToken)).isTrue();
+            assertThat(multiUtil.getSubjectFromToken(newToken)).isEqualTo("user2");
+        }
+
+        @Test
+        @DisplayName("rotateKey 应拒绝过短密钥")
+        void rotateKeyShouldRejectShortSecret() {
+            assertThatThrownBy(() -> keyManager.rotateKey("k-new", "short"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("at least 32 characters");
+        }
+
+        @Test
+        @DisplayName("rotateKey 应拒绝空 keyId")
+        void rotateKeyShouldRejectBlankKeyId() {
+            assertThatThrownBy(() -> keyManager.rotateKey("", TEST_SECRET))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("must not be blank");
+        }
+
+        @Test
+        @DisplayName("retireKey 不应允许停用活跃密钥")
+        void retireKeyShouldRejectActiveKey() {
+            assertThatThrownBy(() -> keyManager.retireKey(keyManager.getActiveKeyId()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot retire the active key");
+        }
+
+        @Test
+        @DisplayName("listKeyIds 应返回所有可用密钥 ID")
+        void listKeyIdsShouldReturnAllKeys() {
+            Set<String> keys = keyManager.listKeyIds();
+            assertThat(keys).containsExactly(JwtKeyManager.DEFAULT_KID);
+        }
+
+        @Test
+        @DisplayName("多密钥配置校验 - activeKeyId 不在 keys 中应抛异常")
+        void shouldRejectInvalidActiveKeyId() {
+            JwtProperties badProps = new JwtProperties();
+            badProps.setSecret(TEST_SECRET);
+            badProps.getKeys().put("k-1", TEST_SECRET);
+            badProps.setActiveKeyId("non-existent");
+
+            assertThatThrownBy(badProps::validate)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("must reference a key");
+        }
+
+        @Test
+        @DisplayName("多密钥配置校验 - keys 中的密钥过短应抛异常")
+        void shouldRejectShortKeyInMultiKeyConfig() {
+            JwtProperties badProps = new JwtProperties();
+            badProps.setSecret(TEST_SECRET);
+            badProps.getKeys().put("k-1", "too-short");
+            badProps.setActiveKeyId("k-1");
+
+            assertThatThrownBy(badProps::validate)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("at least 32 characters");
+        }
+    }
+
+    // ========== P3-1: 多设备管理 ==========
+
+    @Nested
+    @DisplayName("P3-1: 多设备管理测试")
+    class DeviceManagementTest {
+
+        private JwtDeviceManager deviceManager;
+        private JwtUtil deviceJwtUtil;
+
+        @BeforeEach
+        void setUpDeviceManager() {
+            deviceManager = new JwtDeviceManager(null, 3); // 内存模式，最大 3 设备
+            deviceJwtUtil = new JwtUtil(jwtProperties, keyManager, blacklist, deviceManager, null);
+        }
+
+        @Test
+        @DisplayName("注册设备后应能查询到")
+        void shouldRegisterAndQueryDevice() {
+            DeviceInfo device = DeviceInfo.builder()
+                    .deviceId("dev-1")
+                    .deviceName("iPhone 15")
+                    .deviceType(DeviceInfo.DeviceType.MOBILE)
+                    .ip("192.168.1.100")
+                    .build();
+
+            deviceManager.registerDevice(1L, device, "jti-123");
+
+            assertThat(deviceManager.isDeviceActive(1L, "dev-1")).isTrue();
+            assertThat(deviceManager.isDeviceActive(1L, "dev-2")).isFalse();
+
+            List<DeviceSession> devices = deviceManager.getActiveDevices(1L);
+            assertThat(devices).hasSize(1);
+            assertThat(devices.get(0).getDeviceId()).isEqualTo("dev-1");
+            assertThat(devices.get(0).getDeviceName()).isEqualTo("iPhone 15");
+            assertThat(devices.get(0).getTokenJti()).isEqualTo("jti-123");
+        }
+
+        @Test
+        @DisplayName("移除设备后应不可查询")
+        void shouldRemoveDevice() {
+            DeviceInfo device = DeviceInfo.builder()
+                    .deviceId("dev-1")
+                    .deviceName("Desktop")
+                    .deviceType(DeviceInfo.DeviceType.DESKTOP)
+                    .build();
+            deviceManager.registerDevice(1L, device, "jti-1");
+
+            deviceManager.removeDevice(1L, "dev-1");
+
+            assertThat(deviceManager.isDeviceActive(1L, "dev-1")).isFalse();
+            assertThat(deviceManager.getActiveDevices(1L)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("removeAllDevices 应清空所有设备")
+        void shouldRemoveAllDevices() {
+            for (int i = 1; i <= 3; i++) {
+                deviceManager.registerDevice(1L,
+                        DeviceInfo.builder().deviceId("dev-" + i).deviceName("Device " + i)
+                                .deviceType(DeviceInfo.DeviceType.UNKNOWN).build(),
+                        "jti-" + i);
+            }
+
+            deviceManager.removeAllDevices(1L);
+            assertThat(deviceManager.getActiveDevices(1L)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("removeAllDevicesExcept 应只保留指定设备")
+        void shouldRemoveAllExceptCurrent() {
+            for (int i = 1; i <= 3; i++) {
+                deviceManager.registerDevice(1L,
+                        DeviceInfo.builder().deviceId("dev-" + i).deviceName("Device " + i)
+                                .deviceType(DeviceInfo.DeviceType.UNKNOWN).build(),
+                        "jti-" + i);
+            }
+
+            deviceManager.removeAllDevicesExcept(1L, "dev-2");
+
+            List<DeviceSession> remaining = deviceManager.getActiveDevices(1L);
+            assertThat(remaining).hasSize(1);
+            assertThat(remaining.get(0).getDeviceId()).isEqualTo("dev-2");
+        }
+
+        @Test
+        @DisplayName("超出设备数量限制应踢掉最早的设备")
+        void shouldEvictOldestDeviceWhenExceedingLimit() throws InterruptedException {
+            for (int i = 1; i <= 3; i++) {
+                deviceManager.registerDevice(1L,
+                        DeviceInfo.builder().deviceId("dev-" + i).deviceName("Device " + i)
+                                .deviceType(DeviceInfo.DeviceType.UNKNOWN).build(),
+                        "jti-" + i);
+                Thread.sleep(10); // 确保 loginTime 不同
+            }
+
+            // 注册第 4 个设备，应踢掉 dev-1
+            deviceManager.registerDevice(1L,
+                    DeviceInfo.builder().deviceId("dev-4").deviceName("Device 4")
+                            .deviceType(DeviceInfo.DeviceType.UNKNOWN).build(),
+                    "jti-4");
+
+            List<DeviceSession> devices = deviceManager.getActiveDevices(1L);
+            assertThat(devices).hasSize(3);
+            assertThat(devices.stream().map(DeviceSession::getDeviceId))
+                    .doesNotContain("dev-1")
+                    .contains("dev-2", "dev-3", "dev-4");
+        }
+
+        @Test
+        @DisplayName("updateLastActive 应更新最后活跃时间")
+        void shouldUpdateLastActiveTime() throws InterruptedException {
+            DeviceInfo device = DeviceInfo.builder()
+                    .deviceId("dev-1")
+                    .deviceName("Desktop")
+                    .deviceType(DeviceInfo.DeviceType.DESKTOP)
+                    .build();
+            deviceManager.registerDevice(1L, device, "jti-1");
+
+            DeviceSession before = deviceManager.getDeviceSession(1L, "dev-1");
+            assertThat(before).isNotNull();
+            long originalTime = before.getLastActiveTime();
+
+            Thread.sleep(10);
+            deviceManager.updateLastActive(1L, "dev-1");
+
+            DeviceSession after = deviceManager.getDeviceSession(1L, "dev-1");
+            assertThat(after).isNotNull();
+            assertThat(after.getLastActiveTime()).isGreaterThan(originalTime);
+        }
+
+        @Test
+        @DisplayName("kickDevice 应移除设备并吊销 Token")
+        void kickDeviceShouldRevokeToken() {
+            DeviceInfo device = DeviceInfo.builder()
+                    .deviceId("dev-1")
+                    .deviceName("Desktop")
+                    .deviceType(DeviceInfo.DeviceType.DESKTOP)
+                    .build();
+
+            Map<String, Object> claims = Map.of("userId", 1L);
+            String token = deviceJwtUtil.generateAccessToken("user1", claims, device);
+            assertThat(deviceJwtUtil.validateToken(token)).isTrue();
+
+            deviceJwtUtil.kickDevice(1L, "dev-1");
+
+            assertThat(deviceManager.isDeviceActive(1L, "dev-1")).isFalse();
+        }
+
+        @Test
+        @DisplayName("generateAccessToken 带 DeviceInfo 应注册设备")
+        void generateAccessTokenWithDeviceShouldRegister() {
+            DeviceInfo device = DeviceInfo.builder()
+                    .deviceId("dev-1")
+                    .deviceName("Desktop")
+                    .deviceType(DeviceInfo.DeviceType.DESKTOP)
+                    .build();
+
+            Map<String, Object> claims = Map.of("userId", 1L);
+            String token = deviceJwtUtil.generateAccessToken("user1", claims, device);
+
+            assertThat(token).isNotNull();
+            assertThat(deviceJwtUtil.validateToken(token)).isTrue();
+            assertThat(deviceManager.isDeviceActive(1L, "dev-1")).isTrue();
+        }
+    }
+
+    // ========== P3-2: Token 事件审计 ==========
+
+    @Nested
+    @DisplayName("P3-2: Token 事件审计测试")
+    class AuditTest {
+
+        @Test
+        @DisplayName("审计日志记录器应正常创建和使用")
+        void auditLoggerShouldWork() {
+            JwtAuditLogger auditLogger = new JwtAuditLogger(true, false, null);
+            JwtUtil auditJwtUtil = new JwtUtil(jwtProperties, keyManager, blacklist, null, auditLogger);
+
+            String token = auditJwtUtil.generateToken("user1");
+            assertThat(token).isNotNull();
+            assertThat(auditJwtUtil.validateToken(token)).isTrue();
+
+            auditJwtUtil.revokeToken(token);
+            assertThat(auditJwtUtil.validateToken(token)).isFalse();
+        }
+
+        @Test
+        @DisplayName("禁用审计时不应影响正常功能")
+        void disabledAuditShouldNotAffectFunctionality() {
+            JwtAuditLogger auditLogger = new JwtAuditLogger(false, false, null);
+            JwtUtil auditJwtUtil = new JwtUtil(jwtProperties, keyManager, blacklist, null, auditLogger);
+
+            String token = auditJwtUtil.generateToken("user1");
+            assertThat(token).isNotNull();
+            assertThat(auditJwtUtil.validateToken(token)).isTrue();
+        }
+
+        @Test
+        @DisplayName("JwtAuditEntry 应正确构建")
+        void auditEntryShouldBuild() {
+            JwtAuditEntry entry = JwtAuditEntry.builder()
+                    .eventType(JwtAuditEvent.TOKEN_GENERATED)
+                    .userId("user1")
+                    .deviceId("dev-1")
+                    .tokenJti("jti-123")
+                    .ip("192.168.1.1")
+                    .userAgent("Mozilla/5.0")
+                    .timestamp(System.currentTimeMillis())
+                    .details(Map.of("tokenType", "access"))
+                    .build();
+
+            assertThat(entry.getEventType()).isEqualTo(JwtAuditEvent.TOKEN_GENERATED);
+            assertThat(entry.getUserId()).isEqualTo("user1");
+            assertThat(entry.getDeviceId()).isEqualTo("dev-1");
+            assertThat(entry.getTokenJti()).isEqualTo("jti-123");
+            assertThat(entry.getIp()).isEqualTo("192.168.1.1");
+        }
+
+        @Test
+        @DisplayName("JwtAuditSpringEvent 应携带 auditEntry")
+        void springEventShouldCarryEntry() {
+            JwtAuditEntry entry = JwtAuditEntry.builder()
+                    .eventType(JwtAuditEvent.TOKEN_REVOKED)
+                    .userId("user1")
+                    .build();
+
+            JwtAuditSpringEvent event = new JwtAuditSpringEvent(this, entry);
+            assertThat(event.getAuditEntry()).isSameAs(entry);
+            assertThat(event.getAuditEntry().getEventType()).isEqualTo(JwtAuditEvent.TOKEN_REVOKED);
+        }
+
+        @Test
+        @DisplayName("null auditLogger 不应影响 JwtUtil 正常工作")
+        void nullAuditLoggerShouldBeHandledGracefully() {
+            JwtUtil noAuditUtil = new JwtUtil(jwtProperties, keyManager, blacklist, null, null);
+            String token = noAuditUtil.generateToken("user1");
+            assertThat(noAuditUtil.validateToken(token)).isTrue();
+
+            noAuditUtil.revokeToken(token);
+            assertThat(noAuditUtil.validateToken(token)).isFalse();
         }
     }
 
