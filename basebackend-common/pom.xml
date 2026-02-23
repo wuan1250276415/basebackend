@@ -14,12 +14,11 @@
     <packaging>pom</packaging>
 
     <name>Base Backend Common</name>
-    <description>公共模块聚合父项目，拆分为 core/dto/util/context/security/starter 六个子模块，提供企业级通用能力</description>
+    <description>公共模块聚合父项目，拆分为 core/util/context/security/starter 五个子模块，提供企业级通用能力</description>
 
     <!-- 子模块声明 -->
     <modules>
         <module>basebackend-common-core</module>
-        <module>basebackend-common-dto</module>
         <module>basebackend-common-util</module>
         <module>basebackend-common-context</module>
         <module>basebackend-common-security</module>
@@ -34,12 +33,6 @@
             <dependency>
                 <groupId>com.basebackend</groupId>
                 <artifactId>basebackend-common-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.basebackend</groupId>
-                <artifactId>basebackend-common-dto</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

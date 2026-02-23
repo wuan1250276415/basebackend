@@ -4,7 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.common.exception.BusinessException;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import com.basebackend.file.entity.FileMetadata;
 import com.basebackend.file.entity.FileOperationLog;
 import com.basebackend.file.entity.FileShare;

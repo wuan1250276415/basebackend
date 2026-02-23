@@ -3,7 +3,7 @@ package com.basebackend.system.controller;
 import com.basebackend.system.dto.DictDTO;
 import com.basebackend.system.dto.DictDataDTO;
 import com.basebackend.system.service.DictService;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import com.basebackend.common.model.Result;
 import com.basebackend.security.annotation.RequiresPermission;
 import io.swagger.v3.oas.annotations.Operation;

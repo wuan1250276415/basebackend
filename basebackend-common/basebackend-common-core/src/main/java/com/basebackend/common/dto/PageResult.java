@@ -1,4 +1,4 @@
-package com.basebackend.common.model;
+package com.basebackend.common.dto;
 
 import lombok.Data;
 import java.io.Serializable;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * 分页响应对象
  * <p>
  * 用于封装分页查询的响应数据，包含分页元信息和数据列表。
- * 支持与 {@link com.basebackend.common.dto.PageQuery} 配合使用。
+ * 支持与 {@link PageQuery} 配合使用。
  * </p>
  *
  * <h3>使用示例：</h3>

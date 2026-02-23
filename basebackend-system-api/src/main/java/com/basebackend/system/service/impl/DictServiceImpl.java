@@ -10,7 +10,7 @@ import com.basebackend.system.mapper.SysDictDataMapper;
 import com.basebackend.system.mapper.SysDictMapper;
 import com.basebackend.system.service.DictService;
 import com.basebackend.cache.service.RedisService;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;

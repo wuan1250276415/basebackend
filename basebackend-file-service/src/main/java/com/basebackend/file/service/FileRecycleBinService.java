@@ -3,7 +3,7 @@ package com.basebackend.file.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.common.exception.BusinessException;
-import com.basebackend.common.model.PageResult;
+import com.basebackend.common.dto.PageResult;
 import com.basebackend.file.entity.*;
 import com.basebackend.file.mapper.*;
 import com.basebackend.file.storage.StorageService;

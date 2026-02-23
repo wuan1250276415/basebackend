@@ -26,11 +26,6 @@
 
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-common-dto</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common-util</artifactId>
         </dependency>
 
