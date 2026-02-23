@@ -145,22 +145,18 @@ public class TenantInterceptor implements InnerInterceptor {
         
         Statement statement = CCJSqlParserUtil.parse(sql);
         
-        if (statement instanceof Select) {
-            Select select = (Select) statement;
-            SelectBody selectBody = select.getSelectBody();
-            
-            if (selectBody instanceof PlainSelect) {
-                PlainSelect plainSelect = (PlainSelect) selectBody;
+        if (statement instanceof Select select) {
+            if (select instanceof PlainSelect plainSelect) {
                 Expression where = plainSelect.getWhere();
                 Expression tenantCondition = createTenantCondition(tenantId);
-                
+
                 if (where != null) {
                     plainSelect.setWhere(new AndExpression(where, tenantCondition));
                 } else {
                     plainSelect.setWhere(tenantCondition);
                 }
             }
-            
+
             return select.toString();
         }
         
@@ -246,11 +242,8 @@ public class TenantInterceptor implements InnerInterceptor {
         try {
             Statement statement = CCJSqlParserUtil.parse(sql);
             
-            if (statement instanceof Select) {
-                Select select = (Select) statement;
-                SelectBody selectBody = select.getSelectBody();
-                if (selectBody instanceof PlainSelect) {
-                    PlainSelect plainSelect = (PlainSelect) selectBody;
+            if (statement instanceof PlainSelect plainSelect) {
+                {
                     FromItem fromItem = plainSelect.getFromItem();
                     if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
                         return ((net.sf.jsqlparser.schema.Table) fromItem).getName();

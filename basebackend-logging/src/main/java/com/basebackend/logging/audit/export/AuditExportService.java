@@ -19,13 +19,16 @@ public class AuditExportService {
     private final CefExporter cefExporter;
     private final OcsfExporter ocsfExporter;
     private final CsvExporter csvExporter;
+    private final LeefExporter leefExporter;
 
     public AuditExportService(CefExporter cefExporter,
                               OcsfExporter ocsfExporter,
-                              CsvExporter csvExporter) {
+                              CsvExporter csvExporter,
+                              LeefExporter leefExporter) {
         this.cefExporter = cefExporter;
         this.ocsfExporter = ocsfExporter;
         this.csvExporter = csvExporter;
+        this.leefExporter = leefExporter;
     }
 
     /**
@@ -50,5 +53,13 @@ public class AuditExportService {
     public String exportToCsv(List<AuditLogEntry> entries) {
         log.debug("导出 {} 条审计日志为 CSV 格式", entries != null ? entries.size() : 0);
         return csvExporter.export(entries);
+    }
+
+    /**
+     * 导出为 LEEF 格式
+     */
+    public String exportToLeef(List<AuditLogEntry> entries) {
+        log.debug("导出 {} 条审计日志为 LEEF 格式", entries != null ? entries.size() : 0);
+        return leefExporter.export(entries);
     }
 }

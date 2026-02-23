@@ -144,6 +144,11 @@ public class AuditLogEntry {
     private String certificateId;
 
     /**
+     * 租户 ID（多租户场景）
+     */
+    private String tenantId;
+
+    /**
      * 创建审计日志条目
      */
     public static AuditLogEntry create() {

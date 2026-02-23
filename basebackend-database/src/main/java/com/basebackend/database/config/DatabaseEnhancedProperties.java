@@ -17,6 +17,12 @@ import java.util.Map;
 public class DatabaseEnhancedProperties {
 
     /**
+     * 数据库厂商: auto, MYSQL, POSTGRESQL, ORACLE, SQLSERVER
+     * auto 表示从 JDBC URL 自动检测
+     */
+    private String vendor = "auto";
+
+    /**
      * 审计系统配置
      */
     private AuditProperties audit = new AuditProperties();
