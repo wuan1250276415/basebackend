@@ -66,7 +66,7 @@ class FileServiceTest {
 
         // Then
         assertThat(result).contains("/files/");
-        verify(fileProperties, times(2)).getUploadPath();
+        verify(fileProperties, times(1)).getUploadPath();
         verify(fileProperties, times(1)).getAccessPrefix();
 
         // 验证文件确实被创建
@@ -157,7 +157,6 @@ class FileServiceTest {
 
         when(fileProperties.getMaxSize()).thenReturn(1000L);
         when(fileProperties.getAllowedTypes()).thenReturn(new String[]{"txt"});
-        when(fileProperties.getAccessPrefix()).thenReturn("/files");
         when(fileProperties.getUploadPath()).thenReturn("/invalid/path");
 
         // When & Then
