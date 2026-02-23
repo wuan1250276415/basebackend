@@ -27,6 +27,9 @@
         <module>basebackend-common-lock</module>
         <module>basebackend-common-idempotent</module>
         <module>basebackend-common-datascope</module>
+        <module>basebackend-common-ratelimit</module>
+        <module>basebackend-common-export</module>
+        <module>basebackend-common-event</module>
     </modules>
 
     <!-- 依赖版本管理（供子模块继承） -->
@@ -84,6 +87,24 @@
             <dependency>
                 <groupId>com.basebackend</groupId>
                 <artifactId>basebackend-common-datascope</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-ratelimit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-export</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-event</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
