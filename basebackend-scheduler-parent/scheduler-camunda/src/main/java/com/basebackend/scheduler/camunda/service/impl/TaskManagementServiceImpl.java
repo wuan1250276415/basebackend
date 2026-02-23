@@ -4,11 +4,9 @@ import com.basebackend.common.dto.PageResult;
 import com.basebackend.scheduler.camunda.config.PaginationConstants;
 import com.basebackend.scheduler.camunda.dto.AttachmentDTO;
 import com.basebackend.scheduler.camunda.dto.AttachmentRequest;
-import com.basebackend.scheduler.camunda.dto.ClaimTaskRequest;
 import com.basebackend.scheduler.camunda.dto.CommentDTO;
 import com.basebackend.scheduler.camunda.dto.CommentRequest;
 import com.basebackend.scheduler.camunda.dto.CompleteTaskRequest;
-import com.basebackend.scheduler.camunda.dto.DelegateTaskRequest;
 import com.basebackend.scheduler.camunda.dto.TaskDetailDTO;
 import com.basebackend.scheduler.camunda.dto.TaskPageQuery;
 import com.basebackend.scheduler.camunda.dto.TaskSummaryDTO;
@@ -125,11 +123,11 @@ public class TaskManagementServiceImpl implements TaskManagementService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void claim(String taskId, ClaimTaskRequest request) {
+    public void claim(String taskId, String userId) {
         try {
-            log.info("Claiming task, taskId={}, userId={}", taskId, request.getUserId());
+            log.info("Claiming task, taskId={}, userId={}", taskId, userId);
 
-            taskService.claim(taskId, request.getUserId());
+            taskService.claim(taskId, userId);
 
             log.info("Task claimed successfully, taskId={}", taskId);
         } catch (Exception ex) {
@@ -174,11 +172,11 @@ public class TaskManagementServiceImpl implements TaskManagementService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delegate(String taskId, DelegateTaskRequest request) {
+    public void delegate(String taskId, String assignee) {
         try {
-            log.info("Delegating task, taskId={}, userId={}", taskId, request.getUserId());
+            log.info("Delegating task, taskId={}, userId={}", taskId, assignee);
 
-            taskService.delegateTask(taskId, request.getUserId());
+            taskService.delegateTask(taskId, assignee);
 
             log.info("Task delegated successfully, taskId={}", taskId);
         } catch (Exception ex) {

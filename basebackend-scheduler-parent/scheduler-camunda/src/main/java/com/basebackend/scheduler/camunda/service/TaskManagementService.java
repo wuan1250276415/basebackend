@@ -3,11 +3,9 @@ package com.basebackend.scheduler.camunda.service;
 import com.basebackend.common.dto.PageResult;
 import com.basebackend.scheduler.camunda.dto.AttachmentDTO;
 import com.basebackend.scheduler.camunda.dto.AttachmentRequest;
-import com.basebackend.scheduler.camunda.dto.ClaimTaskRequest;
 import com.basebackend.scheduler.camunda.dto.CommentDTO;
 import com.basebackend.scheduler.camunda.dto.CommentRequest;
 import com.basebackend.scheduler.camunda.dto.CompleteTaskRequest;
-import com.basebackend.scheduler.camunda.dto.DelegateTaskRequest;
 import com.basebackend.scheduler.camunda.dto.TaskDetailDTO;
 import com.basebackend.scheduler.camunda.dto.TaskPageQuery;
 import com.basebackend.scheduler.camunda.dto.TaskSummaryDTO;
@@ -55,10 +53,10 @@ public interface TaskManagementService {
     /**
      * 认领任务
      *
-     * @param taskId  任务 ID
-     * @param request 认领请求参数
+     * @param taskId 任务 ID
+     * @param userId 用户 ID
      */
-    void claim(String taskId, ClaimTaskRequest request);
+    void claim(String taskId, String userId);
 
     /**
      * 释放任务
@@ -78,10 +76,10 @@ public interface TaskManagementService {
     /**
      * 委托任务
      *
-     * @param taskId  任务 ID
-     * @param request 委托请求参数
+     * @param taskId   任务 ID
+     * @param assignee 委托给的用户 ID
      */
-    void delegate(String taskId, DelegateTaskRequest request);
+    void delegate(String taskId, String assignee);
 
     /**
      * 获取任务变量

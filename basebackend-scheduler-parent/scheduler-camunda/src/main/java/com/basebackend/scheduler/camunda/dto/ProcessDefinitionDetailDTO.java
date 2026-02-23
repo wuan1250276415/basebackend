@@ -83,7 +83,7 @@ public class ProcessDefinitionDetailDTO {
     /**
      * 任务列表
      */
-    private List<TaskDTO> tasks;
+    private List<TaskSummaryDTO> tasks;
 
     /**
      * 活动列表

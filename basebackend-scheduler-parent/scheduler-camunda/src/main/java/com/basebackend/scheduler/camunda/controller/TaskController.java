@@ -4,11 +4,9 @@ import com.basebackend.common.dto.PageResult;
 import com.basebackend.common.model.Result;
 import com.basebackend.scheduler.camunda.dto.AttachmentDTO;
 import com.basebackend.scheduler.camunda.dto.AttachmentRequest;
-import com.basebackend.scheduler.camunda.dto.ClaimTaskRequest;
 import com.basebackend.scheduler.camunda.dto.CommentDTO;
 import com.basebackend.scheduler.camunda.dto.CommentRequest;
 import com.basebackend.scheduler.camunda.dto.CompleteTaskRequest;
-import com.basebackend.scheduler.camunda.dto.DelegateTaskRequest;
 import com.basebackend.scheduler.camunda.dto.TaskDetailDTO;
 import com.basebackend.scheduler.camunda.dto.TaskPageQuery;
 import com.basebackend.scheduler.camunda.dto.TaskSummaryDTO;
@@ -128,8 +126,8 @@ public class TaskController {
     @PostMapping("/{taskId}/claim")
     public Result<String> claim(
             @Parameter(description = "任务 ID") @PathVariable @NotBlank String taskId,
-            @Valid @RequestBody ClaimTaskRequest request) {
-        taskManagementService.claim(taskId, request);
+            @Parameter(description = "用户 ID") @RequestParam @NotBlank String userId) {
+        taskManagementService.claim(taskId, userId);
         return Result.success("任务认领成功");
     }
 
@@ -173,8 +171,8 @@ public class TaskController {
     @PostMapping("/{taskId}/delegate")
     public Result<String> delegate(
             @Parameter(description = "任务 ID") @PathVariable @NotBlank String taskId,
-            @Valid @RequestBody DelegateTaskRequest request) {
-        taskManagementService.delegate(taskId, request);
+            @Parameter(description = "委托给的用户 ID") @RequestParam @NotBlank String assignee) {
+        taskManagementService.delegate(taskId, assignee);
         return Result.success("任务委托成功");
     }
 
