@@ -18,7 +18,6 @@
     <description>任务调度与工作流服务 - 父模块</description>
 
     <modules>
-        <module>scheduler-core</module>
         <module>scheduler-camunda</module>
     </modules>
 

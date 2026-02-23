@@ -19,11 +19,21 @@
     <description>Camunda工作流集成模块 - 提供BPMN流程管理、任务调度、监控与性能优化</description>
 
     <dependencies>
-        <!-- ========== 调度核心模块 ========== -->
+        <!-- ========== 缓存模块 (from scheduler-core) ========== -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>scheduler-core</artifactId>
+            <artifactId>basebackend-cache</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>checker-qual</artifactId>
+                    <groupId>org.checkerframework</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>error_prone_annotations</artifactId>
+                    <groupId>com.google.errorprone</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- ========== 基础模块依赖 ========== -->
