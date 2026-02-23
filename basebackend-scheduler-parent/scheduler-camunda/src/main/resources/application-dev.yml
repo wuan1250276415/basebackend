@@ -47,9 +47,6 @@ logging:
     # Camunda日志级别 - INFO(开发环境需要看到流程执行细节)
     org.camunda.bpm: INFO
 
-    # PowerJob日志级别 - DEBUG
-    tech.powerjob: DEBUG
-
     # Spring框架日志级别 - INFO
     org.springframework: INFO
 
@@ -79,21 +76,6 @@ scheduler:
     # 开发环境减小默认页面大小(快速加载)
     default-page-size: 10
 
-  # ========== PowerJob配置覆盖 ==========
-  powerjob:
-    # 开发环境使用远程PowerJob服务器
-    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
-
-    # 开发环境使用简单Token(生产环境应使用加密Token)
-    token: ${POWERJOB_TOKEN:dev-token}
-
-    # 开发环境减少线程池大小
-    worker-core-pool-size: 2
-    worker-max-pool-size: 4
-
-    # 开发环境增加心跳间隔(减少网络开销)
-    heartbeat-interval-millis: 10000
-
 # ========== Management配置覆盖 ==========
 management:
   # 开发环境暴露所有端点,方便调试
@@ -113,5 +95,5 @@ management:
 # 2. 日志级别为DEBUG,会产生大量日志,仅适用于开发环境
 # 3. 允许查询所有数据(allow-query-all: true),生产环境禁止开启
 # 4. 暴露所有Actuator端点,生产环境必须限制
-# 5. PowerJob使用本地服务器和简单Token,生产环境必须配置正式地址和加密Token
+# 5. 暴露所有Actuator端点,生产环境必须限制
 # ========================================

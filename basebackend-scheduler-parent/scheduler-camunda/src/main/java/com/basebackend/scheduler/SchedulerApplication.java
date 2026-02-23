@@ -20,7 +20,6 @@ import org.springframework.core.env.Environment;
  *
  * <p>核心功能：
  * <ul>
- *   <li>PowerJob 分布式任务调度</li>
  *   <li>Camunda BPMN 工作流引擎</li>
  *   <li>延迟任务队列（Redis + RocketMQ）</li>
  *   <li>企业级治理特性（多租户、安全、监控、审计）</li>

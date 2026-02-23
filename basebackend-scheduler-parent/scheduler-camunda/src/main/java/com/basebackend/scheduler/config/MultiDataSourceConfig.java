@@ -6,7 +6,6 @@ import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,10 +16,9 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import javax.sql.DataSource;
 
 /**
- * 多数据源配置
+ * 数据源配置
  * <p>
- * 配置主数据源（Primary）用于应用业务数据，
- * 以及 PowerJob 数据源用于存储任务执行记录。
+ * 配置主数据源（Primary）用于应用业务数据。
  * </p>
  *
  * @author BaseBackend Team
@@ -38,17 +36,6 @@ public class MultiDataSourceConfig {
     @Primary
     @ConfigurationProperties(prefix = "spring.datasource.primary")
     public DataSource primaryDataSource() {
-        return new DruidDataSource();
-    }
-
-    /**
-     * PowerJob 数据源
-     * 用于存储 PowerJob 任务执行记录
-     */
-    @Bean(name = "powerjobDataSource")
-    @ConfigurationProperties(prefix = "spring.datasource.powerjob")
-    @ConditionalOnProperty(prefix = "spring.datasource.powerjob", name = "url")
-    public DataSource powerjobDataSource() {
         return new DruidDataSource();
     }
 

@@ -126,14 +126,6 @@ scheduler:
     max-page-size: ${SCHEDULER_PAGE_MAX_PAGE_SIZE:200}
     min-page-size: ${SCHEDULER_PAGE_MIN_PAGE_SIZE:1}
     allow-query-all: ${SCHEDULER_PAGE_ALLOW_QUERY_ALL:false}
-  powerjob:
-    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
-    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
-    token: ${POWERJOB_TOKEN:}
-    worker-core-pool-size: ${POWERJOB_WORKER_CORE_POOL_SIZE:4}
-    worker-max-pool-size: ${POWERJOB_WORKER_MAX_POOL_SIZE:8}
-    heartbeat-interval-millis: ${POWERJOB_HEARTBEAT_INTERVAL_MILLIS:5000}
-    max-task-execution-timeout-seconds: ${POWERJOB_MAX_TASK_EXECUTION_TIMEOUT_SECONDS:0}
   # Scheduler Core Configuration (P1优化：可配置的缓存和线程池)
   core:
     # 缓存配置
@@ -183,23 +175,6 @@ rocketmq:
     send-message-timeout: 3000
     retry-times-when-send-failed: 2
     retry-times-when-send-async-failed: 2
-
-# ========================================
-# PowerJob Worker 官方配置
-# ========================================
-# 注意：启用 PowerJob Worker 前，需要先在 PowerJob 控制台注册应用
-# 访问 http://192.168.66.126:7700 注册应用名称：basebackend-scheduler
-powerjob:
-  worker:
-    enabled: false
-    app-name: ${POWERJOB_APP_NAME:basebackend-scheduler}
-    server-address: ${POWERJOB_SERVER_ADDRESS:192.168.66.126:7700}
-    protocol: HTTP
-    port: 27777
-    store-strategy: DISK
-    max-lightweight-task-num: 1024
-    max-heavy-weight-task-num: 64
-    health-report-interval: 10
 
 # ========================================
 # Redisson 配置 (Fallback，优先使用Nacos配置)

@@ -23,19 +23,6 @@ spring:
         connection-timeout: 30000
         pool-name: HikariCP-Primary
 
-    powerjob:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://192.168.66.126:3306/powerjob-product?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      username: powerjob-product
-      password: 5kGYaE3adhQKzjRC
-      hikari:
-        minimum-idle: 5
-        maximum-pool-size: 10
-        idle-timeout: 300000
-        max-lifetime: 900000
-        connection-timeout: 30000
-        pool-name: HikariCP-PowerJob
-
   # ========== Flyway 配置 ==========
   flyway:
     enabled: true
@@ -76,20 +63,9 @@ logging:
     root: INFO
     com.basebackend.scheduler: DEBUG
     org.camunda: INFO
-    tech.powerjob: INFO
     org.springframework: WARN
 
 # ========== Scheduler 配置 ==========
-scheduler:
-  powerjob:
-    enabled: false  # 本地开发环境禁用 PowerJob
-    app-name: basebackend-scheduler
-    server-address: 192.168.66.126:7700
-    token: dev-token
-    worker-core-pool-size: 2
-    worker-max-pool-size: 4
-    heartbeat-interval-millis: 10000
-
 # ========== Management 配置 ==========
 management:
   endpoints:

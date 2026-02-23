@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Configuration;
  * <p>为 basebackend-scheduler 服务提供 API 文档功能，支持：
  * <ul>
  *   <li>Camunda 工作流 API 文档</li>
- *   <li>PowerJob 任务调度 API 文档</li>
  *   <li>延迟队列 API 文档</li>
  * </ul>
  *
@@ -59,7 +58,6 @@ public class SwaggerConfig {
                                 任务调度与工作流编排服务 API 文档
 
                                 **核心功能：**
-                                - PowerJob 分布式任务调度
                                 - Camunda BPMN 工作流引擎
                                 - 延迟任务队列（Redis + RocketMQ）
                                 - 企业级治理特性（多租户、安全、监控、审计）
@@ -100,25 +98,6 @@ public class SwaggerConfig {
     }
 
     /**
-     * PowerJob 任务调度 API 分组
-     *
-     * <p>包含任务注册、调度、执行、监控等相关 API。
-     *
-     * @return GroupedOpenApi 实例
-     */
-    @Bean
-    public GroupedOpenApi powerJobSchedulerApi() {
-        return GroupedOpenApi.builder()
-                .group("2. PowerJob 任务调度")
-                .pathsToMatch("/api/powerjob/**")
-                .addOperationCustomizer((operation, handlerMethod) -> {
-                    operation.addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
-                    return operation;
-                })
-                .build();
-    }
-
-    /**
      * 延迟队列 API 分组
      *
      * <p>包含延迟任务的创建、查询、取消等相关 API。
@@ -128,7 +107,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi delayQueueApi() {
         return GroupedOpenApi.builder()
-                .group("3. 延迟任务队列")
+                .group("2. 延迟任务队列")
                 .pathsToMatch("/api/delay/**")
                 .addOperationCustomizer((operation, handlerMethod) -> {
                     operation.addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
@@ -147,7 +126,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi publicApi() {
         return GroupedOpenApi.builder()
-                .group("4. 公共接口")
+                .group("3. 公共接口")
                 .pathsToMatch("/actuator/**", "/api/health/**", "/api/metrics/**")
                 .build();
     }
