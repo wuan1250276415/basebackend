@@ -10,7 +10,6 @@ import com.basebackend.scheduler.camunda.dto.ProcessInstanceDetailDTO;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceMigrationRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessInstanceVariablesRequest;
 import com.basebackend.scheduler.camunda.dto.ProcessVariableDTO;
-import com.basebackend.scheduler.camunda.dto.TerminateRequest;
 import com.basebackend.scheduler.camunda.service.ProcessInstanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -97,8 +96,7 @@ public class ProcessInstanceController {
     @PostMapping("/{instanceId}/terminate")
     public Result<String> terminate(
             @Parameter(description = "流程实例 ID") @PathVariable @NotBlank String instanceId,
-            @Parameter(description = "终止原因") @RequestBody(required = false) TerminateRequest request) {
-        String reason = request != null ? request.getReason() : null;
+            @Parameter(description = "终止原因") @RequestParam(value = "reason", required = false) String reason) {
         processInstanceService.terminate(instanceId, reason);
         return Result.success("流程实例终止成功");
     }
