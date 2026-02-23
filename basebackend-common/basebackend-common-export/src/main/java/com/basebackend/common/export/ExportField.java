@@ -13,7 +13,18 @@ public @interface ExportField {
 
     int order() default 0;
 
+    /**
+     * 列宽度（默认 20，仅 Excel 导出时生效）
+     */
+    int width() default 20;
+
+    /**
+     * 日期/数字格式化模式（如 "yyyy-MM-dd"、"#,##0.00"）
+     */
     String format() default "";
 
-    String converter() default "";
+    /**
+     * 自定义转换器类型
+     */
+    Class<? extends FieldConverter> converter() default FieldConverter.class;
 }
