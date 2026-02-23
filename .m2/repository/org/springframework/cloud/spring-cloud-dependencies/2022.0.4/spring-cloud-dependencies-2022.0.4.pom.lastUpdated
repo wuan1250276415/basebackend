@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Thu Nov 27 14:48:40 CST 2025
+@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1764226120589
+https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.springframework.cloud\:spring-cloud-dependencies\:pom\:2022.0.4 from/to central (https\://repo.maven.apache.org/maven2)\: transfer failed for https\://repo.maven.apache.org/maven2/org/springframework/cloud/spring-cloud-dependencies/2022.0.4/spring-cloud-dependencies-2022.0.4.pom

@@ -1,0 +1,100 @@
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[135,36] 找不到符号
+[ERROR]   符号:   方法 getDescription()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[136,33] 找不到符号
+[ERROR]   符号:   方法 getFormType()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[137,32] 找不到符号
+[ERROR]   符号:   方法 getContent()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[138,31] 找不到符号
+[ERROR]   符号:   方法 getSchema()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[139,33] 找不到符号
+[ERROR]   符号:   方法 getTenantId()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[140,31] 找不到符号
+[ERROR]   符号:   方法 getStatus()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[141,32] 找不到符号
+[ERROR]   符号:   方法 getVersion()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[142,34] 找不到符号
+[ERROR]   符号:   方法 getCreatedBy()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[143,34] 找不到符号
+[ERROR]   符号:   方法 getUpdatedBy()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[144,34] 找不到符号
+[ERROR]   符号:   方法 getCreatedAt()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[145,34] 找不到符号
+[ERROR]   符号:   方法 getUpdatedAt()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[146,33] 找不到符号
+[ERROR]   符号:   方法 getFormCode()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[147,33] 找不到符号
+[ERROR]   符号:   方法 getFormName()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/dto/FormTemplateDTO.java:[148,45] 找不到符号
+[ERROR]   符号:   方法 getProcessDefinitionKey()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.entity.FormTemplateEntity的变量 entity
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[58,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[82,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[91,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[109,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[118,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[142,16] 找不到符号
+[ERROR]   符号:   方法 setInstanceId(java.lang.String)
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceStatusDTO的变量 dto
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[143,16] 找不到符号
+[ERROR]   符号:   方法 setState(java.lang.String)
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceStatusDTO的变量 dto
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[145,16] 找不到符号
+[ERROR]   符号:   方法 setEndTime(java.time.Instant)
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceStatusDTO的变量 dto
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[147,16] 找不到符号
+[ERROR]   符号:   方法 setDeleteReason(java.lang.String)
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.HistoricProcessInstanceStatusDTO的变量 dto
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[155,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[169,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[192,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[206,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[229,13] 找不到符号
+[ERROR]   符号:   变量 log
+[ERROR]   位置: 类 com.basebackend.scheduler.camunda.service.impl.HistoricProcessInstanceServiceImpl
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[238,42] 找不到符号
+[ERROR]   符号:   方法 getProcessDefinitionKey()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.ProcessInstanceHistoryQuery的变量 pageQuery
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[239,49] 找不到符号
+[ERROR]   符号:   方法 getProcessDefinitionKey()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.ProcessInstanceHistoryQuery的变量 pageQuery
+[ERROR] /C:/Users/wuan1/IdeaProjects/basebackend/basebackend-scheduler/src/main/java/com/basebackend/scheduler/camunda/service/impl/HistoricProcessInstanceServiceImpl.java:[241,42] 找不到符号
+[ERROR]   符号:   方法 getBusinessKey()
+[ERROR]   位置: 类型为com.basebackend.scheduler.camunda.dto.ProcessInstanceHistoryQuery的变量 pageQuery
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

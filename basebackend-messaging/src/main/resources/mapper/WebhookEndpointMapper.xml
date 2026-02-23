@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.messaging.mapper.WebhookEndpointMapper">
+
+    <select id="selectSubscribed" resultType="com.basebackend.messaging.entity.WebhookEndpointEntity">
+        SELECT id, name, url, event_types, secret, signature_enabled,
+               method, headers, timeout, max_retries, retry_interval,
+               enabled, create_time, update_time, create_by, remark
+        FROM sys_webhook_config
+        WHERE enabled = 1
+          AND deleted = 0
+          AND (event_types = '*' OR FIND_IN_SET(#{eventType}, event_types))
+    </select>
+
+</mapper>

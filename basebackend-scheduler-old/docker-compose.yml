@@ -1,0 +1,351 @@
+# =====================================================
+# BaseBackend Scheduler - Docker Compose 配置
+# 版本: 1.0
+# 描述: 开发和测试环境的容器编排配置
+# 依赖: Docker, Docker Compose
+# =====================================================
+
+version: '3.8'
+
+# 网络配置
+networks:
+  backend-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 服务配置
+services:
+  # ===========================================
+  # Scheduler 微服务
+  # ===========================================
+  basebackend-scheduler:
+    image: basebackend-scheduler:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILD_DATE=${BUILD_DATE:-}
+        - VCS_REF=${VCS_REF:-}
+        - VERSION=${VERSION:-latest}
+    container_name: basebackend-scheduler
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "8080:8080"   # Spring Boot 应用端口
+      - "8090:8090"   # Camunda Web UI 端口
+
+    # 环境变量
+    environment:
+      # Spring 环境配置
+      - SPRING_PROFILES_ACTIVE=docker
+      - TZ=Asia/Shanghai
+
+      # JVM 配置
+      - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC
+
+      # 数据库配置
+      - SPRING_DATASOURCE_URL=jdbc:mysql://basebackend-mysql:3306/basebackend_scheduler?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-BaseBackend@123}
+      - SPRING_DATASOURCE_DRIVER-CLASS-NAME=com.mysql.cj.jdbc.Driver
+
+      # Flyway 配置
+      - SPRING_FLYWAY_ENABLED=true
+      - SPRING_FLYWAY_BASELINE-ON-MIGRATE=true
+
+      # Redis 配置
+      - SPRING_REDIS_HOST=basebackend-redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD:-}
+
+      # Camunda 配置
+      - CAMUNDA_DATASOURCE_URL=jdbc:mysql://basebackend-mysql:3306/basebackend_scheduler?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      - CAMUNDA_DATASOURCE_USERNAME=${DB_USERNAME:-root}
+      - CAMUNDA_DATASOURCE_PASSWORD=${DB_PASSWORD:-BaseBackend@123}
+
+      # Nacos 配置中心
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR=basebackend-nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER-ADDR=basebackend-nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_NAMESPACE=${NACOS_NAMESPACE:-public}
+      - SPRING_CLOUD_NACOS_CONFIG_GROUP=${NACOS_GROUP:-DEFAULT_GROUP}
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 依赖服务
+    depends_on:
+      basebackend-mysql:
+        condition: service_healthy
+      basebackend-redis:
+        condition: service_healthy
+      basebackend-nacos:
+        condition: service_healthy
+
+    # 网络配置
+    networks:
+      - backend-network
+
+    # 卷挂载
+    volumes:
+      - scheduler-logs:/app/logs
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ===========================================
+  # MySQL 数据库
+  # ===========================================
+  basebackend-mysql:
+    image: mysql:8.0.33
+    container_name: basebackend-mysql
+    restart: unless-stopped
+
+    ports:
+      - "3306:3306"
+
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-BaseBackend@123}
+      - MYSQL_DATABASE=basebackend_scheduler
+      - MYSQL_USER=${DB_USERNAME:-root}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-BaseBackend@123}
+      - TZ=Asia/Shanghai
+
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --lower_case_table_names=1
+      --max_connections=1000
+      --sql_mode=STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/conf:/etc/mysql/conf.d
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - backend-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # ===========================================
+  # Redis 缓存
+  # ===========================================
+  basebackend-redis:
+    image: redis:7.2.4-alpine
+    container_name: basebackend-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    environment:
+      - TZ=Asia/Shanghai
+
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+    networks:
+      - backend-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ===========================================
+  # Nacos 配置中心
+  # ===========================================
+  basebackend-nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: basebackend-nacos
+    restart: unless-stopped
+
+    ports:
+      - "8848:8848"   # HTTP 端口
+      - "9848:9848"   # GRPC 端口
+
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_DB_NAME=nacos_config
+      - MYSQL_SERVICE_HOST=basebackend-mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_USER=${DB_USERNAME:-root}
+      - MYSQL_SERVICE_PASSWORD=${DB_PASSWORD:-BaseBackend@123}
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
+      - NACOS_AUTH_TOKEN_EXPIRE_SECONDS=18000
+      - NACOS_AUTH_TOKEN_KEY=SecretKeyBaseBackend2024
+      - NACOS_AUTH_ENABLE_SYSTEM_HOOKS=true
+      - NACOS_AUTH_ENABLE_USER_HOOKS=true
+
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - backend-network
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # ===========================================
+  # Prometheus 监控 (可选)
+  # ===========================================
+  # basebackend-prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: basebackend-prometheus
+  #   restart: unless-stopped
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus-data:/prometheus
+  #   networks:
+  #     - backend-network
+
+  # ===========================================
+  # Grafana 可视化 (可选)
+  # ===========================================
+  # basebackend-grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: basebackend-grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #   networks:
+  #     - backend-network
+
+# 数据卷配置
+volumes:
+  # MySQL 数据卷
+  mysql-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./docker/mysql/data
+      o: bind
+
+  # Redis 数据卷
+  redis-data:
+    driver: local
+
+  # Nacos 数据卷
+  nacos-data:
+    driver: local
+  nacos-logs:
+    driver: local
+
+  # Scheduler 日志卷
+  scheduler-logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./docker/scheduler/logs
+      o: bind
+
+  # 监控数据卷 (可选)
+  # prometheus-data:
+  #   driver: local
+  # grafana-data:
+  #   driver: local
+
+# 说明文档
+# ===========================================
+# 使用方法:
+# ===========================================
+# 1. 启动所有服务:
+#    docker-compose up -d
+#
+# 2. 查看服务状态:
+#    docker-compose ps
+#
+# 3. 查看服务日志:
+#    docker-compose logs -f basebackend-scheduler
+#
+# 4. 停止所有服务:
+#    docker-compose down
+#
+# 5. 重新构建镜像:
+#    docker-compose up -d --build
+#
+# 6. 只启动 Scheduler 服务:
+#    docker-compose up -d basebackend-scheduler
+#
+# 7. 环境变量配置:
+#    创建 .env 文件并设置：
+#    DB_PASSWORD=YourPassword
+#    REDIS_PASSWORD=YourPassword
+#    NACOS_NAMESPACE=public
+#    NACOS_GROUP=DEFAULT_GROUP
+#
+# ===========================================
+# 访问地址:
+# ===========================================
+# - Scheduler 应用: http://localhost:8080
+# - Camunda Web UI: http://localhost:8090/camunda
+# - Nacos 控制台: http://localhost:8848/nacos
+# - MySQL: localhost:3306
+# - Redis: localhost:6379
+# - Prometheus (可选): http://localhost:9090
+# - Grafana (可选): http://localhost:3000
+#
+# ===========================================
+# 默认账号:
+# ===========================================
+# - Camunda: admin / admin
+# - Grafana: admin / admin (如果启用)
+# ===========================================

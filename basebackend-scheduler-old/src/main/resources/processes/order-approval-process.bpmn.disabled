@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                 xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                 xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                 id="Definitions_OrderApproval"
+                 targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="orderApprovalProcess" name="订单审批流程" isExecutable="true">
+    <bpmn:documentation>
+      订单审批工作流程
+      支持多级审批
+      审批结果会影响订单状态
+      自动发送通知邮件
+    </bpmn:documentation>
+
+    <bpmn:startEvent id="StartEvent_OrderApproval" name="开始审批">
+      <bpmn:outgoing>Flow_OrderApproval_Start</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_OrderApproval_Manager" name="经理审批"
+                  camunda:assignee="manager">
+      <bpmn:documentation>
+        经理审批节点
+        审批人：manager
+        任务表单包含：
+        - 订单详情
+        - 审批意见输入框
+        - 批准/拒绝选项
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_OrderApproval_Start</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderApproval_Manager_Done</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_OrderApproval_Process" name="执行审批处理"
+                     camunda:delegateExpression="${orderApprovalDelegate}">
+      <bpmn:documentation>
+        使用OrderApprovalDelegate处理审批结果
+        输入变量：
+        - orderId: 订单ID
+        - approved: 审批结果（true/false）
+        - approver: 审批人
+        - approvalComment: 审批意见
+
+        输出变量：
+        - orderStatus: 订单状态
+        - orderApproved: 审批结果
+        - approvalTime: 审批时间
+        - approvalHistory: 审批历史记录
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_OrderApproval_Manager_Done</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderApproval_CheckResult</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_OrderApproval_Result" name="审批结果判断"/>
+    <bpmn:incoming>Flow_OrderApproval_CheckResult</bpmn:incoming>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Start" sourceRef="StartEvent_OrderApproval"
+                      targetRef="Task_OrderApproval_Manager"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Manager_Done" sourceRef="Task_OrderApproval_Manager"
+                      targetRef="Task_OrderApproval_Process"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_CheckResult" sourceRef="Task_OrderApproval_Process"
+                      targetRef="Gateway_OrderApproval_Result"/>
+
+    <bpmn:parallelGateway id="Gateway_OrderApproval_Parallel" name="并行通知"/>
+    <bpmn:incoming>Flow_OrderApproval_Approved</bpmn:incoming>
+    <bpmn:incoming>Flow_OrderApproval_Rejected</bpmn:incoming>
+    <bpmn:outgoing>Flow_OrderApproval_Notify</bpmn:outgoing>
+    <bpmn:outgoing>Flow_OrderApproval_Notify2</bpmn:outgoing>
+    <bpmn:outgoing>Flow_OrderApproval_End</bpmn:outgoing>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Approved" name="审批通过"
+                      sourceRef="Gateway_OrderApproval_Result" targetRef="Gateway_OrderApproval_Parallel">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${orderApproved == true}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Rejected" name="审批拒绝"
+                      sourceRef="Gateway_OrderApproval_Result" targetRef="Gateway_OrderApproval_Parallel">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${orderApproved == false}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:serviceTask id="Task_OrderApproval_Notify_Applicant" name="通知申请人"
+                     camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:documentation>
+        发送通知给订单申请人
+        输入变量：
+        - emailTo: 申请人邮箱
+        - emailSubject: 审批结果通知
+        - emailContent: 审批详情
+        - emailTemplateParams: 模板参数（订单ID、审批结果、审批人等）
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_OrderApproval_Notify</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderApproval_Notify_Done1</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_OrderApproval_Notify_Manager" name="通知经理"
+                     camunda:delegateExpression="${sendEmailDelegate}">
+      <bpmn:documentation>
+        发送通知给审批经理
+        输入变量：
+        - emailTo: 经理邮箱
+        - emailSubject: 审批记录通知
+        - emailContent: 审批历史记录
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_OrderApproval_Notify2</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderApproval_Notify_Done2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_OrderApproval_UpdateSystem" name="更新系统状态"
+                     camunda:delegateExpression="${dataSyncDelegate}">
+      <bpmn:documentation>
+        更新系统中的订单状态
+        输入变量：
+        - syncSourceType: "database"
+        - syncPayload: 包含订单ID和更新后的状态
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_OrderApproval_End</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderApproval_System_Updated</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Notify" sourceRef="Gateway_OrderApproval_Parallel"
+                      targetRef="Task_OrderApproval_Notify_Applicant"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Notify2" sourceRef="Gateway_OrderApproval_Parallel"
+                      targetRef="Task_OrderApproval_Notify_Manager"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_End" sourceRef="Gateway_OrderApproval_Parallel"
+                      targetRef="Task_OrderApproval_UpdateSystem"/>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Notify_Done1" sourceRef="Task_OrderApproval_Notify_Applicant"
+                      targetRef="Gateway_OrderApproval_Final"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Notify_Done2" sourceRef="Task_OrderApproval_Notify_Manager"
+                      targetRef="Gateway_OrderApproval_Final"/>
+
+    <bpmn:parallelGateway id="Gateway_OrderApproval_Final" name="完成"/>
+    <bpmn:incoming>Flow_OrderApproval_Notify_Done1</bpmn:incoming>
+    <bpmn:incoming>Flow_OrderApproval_Notify_Done2</bpmn:incoming>
+    <bpmn:incoming>Flow_OrderApproval_System_Updated</bpmn:incoming>
+    <bpmn:outgoing>Flow_OrderApproval_Final_End</bpmn:outgoing>
+
+    <bpmn:sequenceFlow id="Flow_OrderApproval_System_Updated" sourceRef="Task_OrderApproval_UpdateSystem"
+                      targetRef="Gateway_OrderApproval_Final"/>
+    <bpmn:sequenceFlow id="Flow_OrderApproval_Final_End" sourceRef="Gateway_OrderApproval_Final"
+                      targetRef="EndEvent_OrderApproval_Complete"/>
+
+    <bpmn:endEvent id="EndEvent_OrderApproval_Complete" name="审批完成">
+      <bpmn:incoming>Flow_OrderApproval_Final_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_OrderApproval">
+    <bpmndi:BPMNPlane id="BPMNPlane_OrderApproval" bpmnElement="orderApprovalProcess">
+      <!-- 可视化元素定义 -->
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

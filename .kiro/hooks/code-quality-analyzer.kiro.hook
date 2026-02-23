@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "name": "Code Quality Analyzer",
+  "description": "Analyzes modified source code files for potential improvements including code smells, design patterns, and best practices. Provides suggestions for improving readability, maintainability, and performance while preserving existing functionality.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.java",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.py",
+      "**/*.go",
+      "**/*.rs",
+      "**/*.cpp",
+      "**/*.c",
+      "**/*.h",
+      "**/*.cs"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the modified code for potential improvements. Focus on:\n\n1. **Code Smells**: Identify issues like long methods, duplicate code, large classes, feature envy, data clumps, primitive obsession, and inappropriate intimacy.\n\n2. **Design Patterns**: Suggest applicable design patterns that could improve the code structure (e.g., Factory, Strategy, Observer, Builder, Singleton where appropriate).\n\n3. **Best Practices**: Check for adherence to SOLID principles, DRY (Don't Repeat Yourself), KISS (Keep It Simple), and language-specific conventions.\n\n4. **Readability**: Evaluate naming conventions, code organization, comments quality, and overall clarity.\n\n5. **Maintainability**: Assess modularity, coupling, cohesion, and ease of future modifications.\n\n6. **Performance**: Identify potential performance bottlenecks, inefficient algorithms, unnecessary object creation, or resource leaks.\n\nProvide specific, actionable suggestions with code examples where helpful. Prioritize suggestions by impact and ease of implementation. Ensure all suggestions maintain the existing functionality."
+  }
+}
