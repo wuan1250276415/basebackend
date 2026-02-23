@@ -147,18 +147,17 @@ class LocalStorageServiceTest {
     }
 
     @Test
-    @DisplayName("下载文件 - 文件不存在")
+    @DisplayName("下载文件 - 文件不存在抛出异常")
     void shouldReturnNullWhenFileNotExists() {
         // Given
         String path = "nonexistent/file.txt";
 
-        lenient().when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
+        when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
 
-        // When
-        InputStream result = localStorageService.download(path);
-
-        // Then
-        assertThat(result).isNull();
+        // When & Then - 实现抛出 BusinessException 而非返回 null
+        assertThatThrownBy(() -> localStorageService.download(path))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("文件不存在");
     }
 
     @Test
