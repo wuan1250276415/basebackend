@@ -18,15 +18,15 @@ public class BinaryPayload {
     /**
      * 文件名
      */
-    private String filename;
+    private String fileName;
 
     /**
      * 内容类型 (MIME type)
      */
-    private String contentType;
+    private String mimeType;
 
     /**
      * 二进制内容
      */
-    private byte[] content;
+    private byte[] data;
 }

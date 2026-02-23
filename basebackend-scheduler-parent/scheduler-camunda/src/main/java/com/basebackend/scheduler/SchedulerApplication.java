@@ -30,7 +30,7 @@ import org.springframework.core.env.Environment;
  * @since 2025-01-01
  */
 @SpringBootApplication(exclude = {
-        org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration.class
+        org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration.class
 })
 @ComponentScan(
         basePackages = {

@@ -270,7 +270,7 @@ public class MicroserviceCallDelegate implements JavaDelegate {
 
         // 构建结果
         Map<String, Object> result = new HashMap<>();
-        result.put("statusCode", response.getStatusCodeValue());
+        result.put("statusCode", response.getStatusCode().value());
         // Spring 6.x 中 HttpStatusCode 没有 getReasonPhrase()，改用 toString()
         result.put("statusText", response.getStatusCode().toString());
         result.put("body", response.getBody());

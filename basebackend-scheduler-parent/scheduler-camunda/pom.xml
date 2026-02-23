@@ -226,6 +226,12 @@
             <artifactId>testcontainers-mysql</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Spring Boot Flyway (Boot 4 modularized) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
     </dependencies>
 
     <!-- ========== Test Configuration ========== -->

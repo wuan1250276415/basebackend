@@ -35,4 +35,19 @@ public class ProcessVariableDTO {
      * 值信息（序列化相关）
      */
     private Map<String, Object> valueInfo;
+
+    /**
+     * 流程实例 ID
+     */
+    private String processInstanceId;
+
+    /**
+     * 执行 ID
+     */
+    private String executionId;
+
+    /**
+     * 任务 ID
+     */
+    private String taskId;
 }
