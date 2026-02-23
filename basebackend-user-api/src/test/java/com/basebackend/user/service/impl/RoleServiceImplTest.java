@@ -49,6 +49,9 @@ class RoleServiceImplTest {
     @Mock
     private SysRoleDataPermissionMapper roleDataPermissionMapper;
 
+    @Mock
+    private com.basebackend.user.util.AuditHelper auditHelper;
+
     @InjectMocks
     private RoleServiceImpl roleService;
 
