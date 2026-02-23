@@ -190,8 +190,8 @@ class WebhookSignatureServiceTest {
             signatureService.addSignatureHeaders(headers, payload, secret);
 
             // Assert
-            assertTrue(headers.containsKey("X-Webhook-Signature"));
-            assertTrue(headers.containsKey("X-Webhook-Timestamp"));
+            assertTrue(headers.containsHeader("X-Webhook-Signature"));
+            assertTrue(headers.containsHeader("X-Webhook-Timestamp"));
             assertNotNull(headers.getFirst("X-Webhook-Signature"));
             assertNotNull(headers.getFirst("X-Webhook-Timestamp"));
         }

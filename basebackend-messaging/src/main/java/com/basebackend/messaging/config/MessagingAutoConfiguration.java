@@ -1,13 +1,9 @@
 package com.basebackend.messaging.config;
 
-import com.basebackend.messaging.consumer.DeadLetterConsumer;
 import com.basebackend.messaging.encryption.AesGcmMessageEncryptor;
 import com.basebackend.messaging.encryption.MessageEncryptor;
 import com.basebackend.messaging.event.EventPublisher;
 import com.basebackend.messaging.idempotency.IdempotencyService;
-import com.basebackend.messaging.mapper.DeadLetterMapper;
-import com.basebackend.messaging.mapper.MessageLogMapper;
-import com.basebackend.messaging.mapper.WebhookEndpointMapper;
 import com.basebackend.messaging.metrics.MessagingMetrics;
 import com.basebackend.messaging.order.OrderedMessageConsumer;
 import com.basebackend.messaging.producer.MessageProducer;
@@ -20,7 +16,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -31,8 +26,8 @@ import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
@@ -64,10 +59,10 @@ public class MessagingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(MessageLogMapper.class)
+    @ConditionalOnBean(JdbcTemplate.class)
     @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TransactionalMessageService transactionalMessageService(MessageLogMapper messageLogMapper) {
-        return new TransactionalMessageService(messageLogMapper);
+    public TransactionalMessageService transactionalMessageService(JdbcTemplate jdbcTemplate) {
+        return new TransactionalMessageService(jdbcTemplate);
     }
 
     @Bean
@@ -75,16 +70,15 @@ public class MessagingAutoConfiguration {
     @ConditionalOnBean(RocketMQTemplate.class)
     public RocketMQProducer rocketMQProducer(RocketMQTemplate rocketMQTemplate,
             MessagingProperties messagingProperties,
-            TransactionalMessageService transactionalMessageService,
-            @Qualifier("messageSenderExecutor") ThreadPoolTaskExecutor senderExecutor) {
-        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService, senderExecutor);
+            TransactionalMessageService transactionalMessageService) {
+        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(WebhookEndpointMapper.class)
-    public EventPublisher eventPublisher(WebhookEndpointMapper webhookEndpointMapper, WebhookInvoker webhookInvoker) {
-        return new EventPublisher(webhookEndpointMapper, webhookInvoker);
+    @ConditionalOnBean(JdbcTemplate.class)
+    public EventPublisher eventPublisher(JdbcTemplate jdbcTemplate, WebhookInvoker webhookInvoker) {
+        return new EventPublisher(jdbcTemplate, webhookInvoker);
     }
 
     @Bean
