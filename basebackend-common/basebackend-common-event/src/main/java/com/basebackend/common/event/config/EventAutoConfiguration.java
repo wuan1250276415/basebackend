@@ -10,13 +10,13 @@ import com.basebackend.common.event.store.InMemoryEventStore;
 import com.basebackend.common.event.store.JdbcEventStore;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
@@ -42,11 +42,12 @@ public class EventAutoConfiguration {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(prefix = "basebackend.common.event.store", name = "type", havingValue = "jdbc")
-    @ConditionalOnBean(JdbcTemplate.class)
+    @ConditionalOnClass(name = "org.springframework.jdbc.core.JdbcTemplate")
+    @ConditionalOnBean(name = "jdbcTemplate")
     static class JdbcEventStoreConfiguration {
         @Bean
         @ConditionalOnMissingBean(EventStore.class)
-        public EventStore eventStore(JdbcTemplate jdbcTemplate) {
+        public EventStore eventStore(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
             return new JdbcEventStore(jdbcTemplate);
         }
     }
@@ -67,7 +68,7 @@ public class EventAutoConfiguration {
      * 简单事件发布器（EventStore 不可用时的降级）
      */
     @Bean
-    @ConditionalOnMissingBean({DomainEventPublisher.class, EventStore.class})
+    @ConditionalOnMissingBean({ DomainEventPublisher.class, EventStore.class })
     public DomainEventPublisher simpleDomainEventPublisher(
             ApplicationEventPublisher applicationEventPublisher) {
         return new SpringDomainEventPublisher(applicationEventPublisher);
