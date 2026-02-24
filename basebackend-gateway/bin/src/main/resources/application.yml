@@ -5,31 +5,138 @@
 server:
   port: 8080
 
+spring:
+  application:
+    name: basebackend-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:gateway}
+
+  # ========== Spring Config Import (替代 bootstrap.yml) ==========
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+
+  # ========== Spring Cloud 集成配置 ==========
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+        cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+        service-name: ${spring.application.name}
+        ip: ${NACOS_DISCOVERY_IP:}
+        port: ${NACOS_DISCOVERY_PORT:${server.port:8080}}
+        metadata:
+          version: ${APP_VERSION:1.0.0}
+          region: ${APP_REGION:beijing}
+          zone: ${APP_ZONE:zone-a}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+        shared-configs:
+          - data-id: common-config.yml
+            refresh: true
+#          - data-id: mysql-config.yml
+#            refresh: true
+#          - data-id: observability-config.yml
+#            refresh: true
+          - data-id: redis-config.yml
+            refresh: true
+#          - data-id: rocketmq-config.yml
+#            refresh: true
+#          - data-id: seata-config.yml
+#            refresh: true
+#          - data-id: backup-config.yml
+#            refresh: true
+          - data-id: security-config.yml
+            refresh: true
+#          - data-id: application-web-config.yml
+#            refresh: true
+        # 扩展配置（网关特有配置）
+        extension-configs:
+          - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            refresh: true
+
+nacos:
+  enabled: true
+  environment: ${spring.profiles.active:dev}
+  tenant-id: public
+  app-id: 10001
+  config:
+    enabled: true
+    server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+    namespace: ${NACOS_CONFIG_NAMESPACE:public}
+    group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+    file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+    username: ${NACOS_CONFIG_USERNAME:nacos}
+    password: ${NACOS_CONFIG_PASSWORD:nacos}
+    refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+    shared-configs:
+      - data-id: common-config.yml
+        refresh: true
+#          - data-id: mysql-config.yml
+#            refresh: true
+#          - data-id: observability-config.yml
+#            refresh: true
+      - data-id: redis-config.yml
+        refresh: true
+#          - data-id: rocketmq-config.yml
+#            refresh: true
+#          - data-id: seata-config.yml
+#            refresh: true
+#          - data-id: backup-config.yml
+#            refresh: true
+      - data-id: security-config.yml
+        refresh: true
+#          - data-id: application-web-config.yml
+#            refresh: true
+    extension-configs:
+      - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        refresh: true
+  discovery:
+    enabled: true
+    server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+    namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+    group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+    weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+    cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+    service-name: ${spring.application.name}
+    ip: ${NACOS_DISCOVERY_IP:}
+    port: ${NACOS_DISCOVERY_PORT:${server.port:8080}}
+    username: ${NACOS_DISCOVERY_USERNAME:nacos}
+    password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+    metadata:
+      version: ${APP_VERSION:1.0.0}
+      region: ${APP_REGION:beijing}
+      zone: ${APP_ZONE:zone-a}
+
 # ========================================
 # 网关安全配置
 # ========================================
 gateway:
   security:
-    # Redis 操作超时时间
     redis-timeout: 2s
-    
-    # 是否启用严格模式（未配置的路径都需要认证）
     strict-mode: true
-    
-    # 是否记录认证详细日志（生产环境建议关闭）
     debug-logging: ${GATEWAY_DEBUG_LOGGING:false}
-    
-    # 认证白名单路径（支持 Ant 风格路径匹配）
     whitelist:
-      # 用户认证相关
       - /basebackend-user-api/api/user/auth/**
-      # Swagger 文档（user-api）
       - /basebackend-user-api/swagger-ui/**
       - /basebackend-user-api/v3/api-docs/**
       - /basebackend-user-api/doc.html
       - /basebackend-user-api/webjars/**
       - /basebackend-user-api/favicon.ico
-      # System API 公开接口
       - /basebackend-system-api/api/system/depts/tree
       - /basebackend-system-api/api/system/depts/by-name
       - /basebackend-system-api/api/system/depts/by-code
@@ -39,60 +146,38 @@ gateway:
       - /basebackend-system-api/api/system/application/code/**
       - /basebackend-system-api/api/system/notifications/stream
       - /basebackend-system-api/api/dicts/**
-      # Swagger 文档（system-api）
       - /basebackend-system-api/swagger-ui/**
       - /basebackend-system-api/v3/api-docs/**
       - /basebackend-system-api/doc.html
       - /basebackend-system-api/webjars/**
-      # stream
       - /basebackend-notification-service/api/notifications/stream
-    # Actuator 端点白名单（安全限制，只开放必要端点）
-    # 注意：不要开放 /actuator/** 通配符，会暴露敏感信息
     actuator-whitelist:
       - /actuator/health
       - /actuator/health/**
       - /actuator/info
-    signature: # 是否启用签名验证
+    signature:
           enabled: ${GATEWAY_SIGNATURE_ENABLED:false}
-          # 签名密钥（生产环境从密钥管理服务获取）
           secret-key: ${GATEWAY_SIGNATURE_SECRET:your-secret-key-here}
-          # 时间戳有效期（毫秒）
           timestamp-validity: ${GATEWAY_SIGNATURE_VALIDITY:300000}
-          # 需要签名验证的路径
           paths:
             - /api/payment/**
             - /api/orders/**
-          # 签名验证白名单
           whitelist:
             - /api/payment/callback/**
-  idempotency: # 是否启用幂等性检查
+  idempotency:
       enabled: ${GATEWAY_IDEMPOTENCY_ENABLED:false}
-      # 幂等性键有效期（秒）
       ttl: ${GATEWAY_IDEMPOTENCY_TTL:300}
-      # 需要幂等性检查的路径
       paths:
         - /api/orders/create
         - /api/payment/**
-  monitor: # 慢请求阈值（毫秒）
+  monitor:
       slow-request-threshold: ${GATEWAY_SLOW_REQUEST_THRESHOLD:1000}
-      # 超慢请求阈值（毫秒）
       very-slow-request-threshold: ${GATEWAY_VERY_SLOW_REQUEST_THRESHOLD:3000}
-      # 是否启用慢请求详细日志
       slow-request-log-enabled: ${GATEWAY_SLOW_REQUEST_LOG:true}
 
-# ========================================
-# Seata 分布式事务配置
-# ========================================
 seata:
-  enabled: false  # 临时禁用 Seata，需要时改为 true 并启动 Seata Server
+  enabled: false
 
-# ========================================
-# 请求签名验证配置
-# ========================================
-
-# ========================================
-# 日志配置
-# ========================================
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:WARN}

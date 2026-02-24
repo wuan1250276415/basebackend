@@ -53,12 +53,7 @@
             <artifactId>basebackend-nacos</artifactId>
             <version>${project.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
-        <dependency>
+<dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-messaging</artifactId>
             <version>${project.version}</version>

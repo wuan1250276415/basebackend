@@ -50,9 +50,9 @@
         <spring-boot.version>4.0.3</spring-boot.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
 
-        <!-- Nacos — Spring Cloud Alibaba 最新GA为2023.0.3.3，尚无Boot 4官方适配版本 -->
-        <nacos.version>3.1.0</nacos.version>
-        <spring-cloud-alibaba.version>2023.0.3.3</spring-cloud-alibaba.version>
+        <!-- Nacos — Spring Cloud Alibaba 2025.1.0.0 正式适配 Boot 4 + Cloud 2025.1.x -->
+        <nacos.version>3.1.1</nacos.version>
+        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
 
         <!-- Database -->
         <mybatis-plus.version>3.5.7</mybatis-plus.version>

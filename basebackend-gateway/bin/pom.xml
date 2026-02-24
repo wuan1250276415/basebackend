@@ -33,11 +33,7 @@
         </dependency>
 
         <!-- Spring Cloud Bootstrap -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
-        <!-- JWT Module - 统一的JWT工具，不依赖Spring Security -->
+<!-- JWT Module - 统一的JWT工具，不依赖Spring Security -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-jwt</artifactId>
