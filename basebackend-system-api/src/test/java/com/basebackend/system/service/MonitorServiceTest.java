@@ -151,9 +151,9 @@ class MonitorServiceTest extends BaseServiceTest {
         assertThat(result).isInstanceOf(Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> stats = (Map<String, Object>) result;
-        assertThat(stats).containsKey("totalUsers");
+        assertThat(stats).containsKey("memory");
+        assertThat(stats).containsKey("system");
+        assertThat(stats).containsKey("threads");
         assertThat(stats).containsKey("onlineUsers");
-        assertThat(stats).containsKey("totalRequests");
-        assertThat(stats).containsKey("cacheHitRate");
     }
 }
