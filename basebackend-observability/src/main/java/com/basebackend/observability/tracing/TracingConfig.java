@@ -4,6 +4,7 @@ import brave.Tracer;
 import brave.sampler.Sampler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import zipkin2.reporter.urlconnection.URLConnectionSender;
  */
 @Slf4j
 @Configuration
+@ConditionalOnClass({ Tracer.class, Sampler.class })
 public class TracingConfig {
 
     @Value("${observability.tempo.endpoint:http://localhost:9411/api/v2/spans}")

@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,8 @@ import java.io.IOException;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 @RequiredArgsConstructor
+@ConditionalOnClass(Tracer.class)
+@ConditionalOnBean(Tracer.class)
 public class TracingFilter implements Filter {
 
     private final Tracer tracer;
@@ -34,8 +38,7 @@ public class TracingFilter implements Filter {
             HttpServletResponse httpResponse = (HttpServletResponse) response;
 
             // 获取当前 Span 的 TraceContext
-            TraceContext context = tracer.currentSpan() != null ?
-                    tracer.currentSpan().context() : null;
+            TraceContext context = tracer.currentSpan() != null ? tracer.currentSpan().context() : null;
 
             if (context != null) {
                 String traceId = context.traceIdString();

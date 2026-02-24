@@ -22,11 +22,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
 
@@ -58,27 +59,12 @@ public class MessagingAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(JdbcTemplate.class)
-    @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TransactionalMessageService transactionalMessageService(JdbcTemplate jdbcTemplate) {
-        return new TransactionalMessageService(jdbcTemplate);
-    }
-
-    @Bean
     @ConditionalOnMissingBean(MessageProducer.class)
     @ConditionalOnBean(RocketMQTemplate.class)
     public RocketMQProducer rocketMQProducer(RocketMQTemplate rocketMQTemplate,
             MessagingProperties messagingProperties,
             TransactionalMessageService transactionalMessageService) {
         return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(JdbcTemplate.class)
-    public EventPublisher eventPublisher(JdbcTemplate jdbcTemplate, WebhookInvoker webhookInvoker) {
-        return new EventPublisher(jdbcTemplate, webhookInvoker);
     }
 
     @Bean
@@ -91,8 +77,8 @@ public class MessagingAutoConfiguration {
     @ConditionalOnMissingBean
     public WebhookInvoker webhookInvoker(RestTemplate messagingRestTemplate,
             WebhookSignatureService signatureService,
-            MessageProducer messageProducer) {
-        return new WebhookInvoker(messagingRestTemplate, signatureService, messageProducer);
+            ObjectProvider<MessageProducer> messageProducerProvider) {
+        return new WebhookInvoker(messagingRestTemplate, signatureService, messageProducerProvider.getIfAvailable());
     }
 
     @Bean
@@ -121,5 +107,32 @@ public class MessagingAutoConfiguration {
     @ConditionalOnProperty(prefix = "messaging.encryption", name = "enabled", havingValue = "true")
     public AesGcmMessageEncryptor aesGcmMessageEncryptor(MessagingProperties properties) {
         return new AesGcmMessageEncryptor(properties);
+    }
+
+    /**
+     * JdbcTemplate 相关的 Bean 定义放在独立内部类中，
+     * 通过 @ConditionalOnClass 保护，避免 spring-jdbc 不在 classpath 时整个配置类加载失败。
+     */
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.jdbc.core.JdbcTemplate")
+    static class JdbcDependentConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(name = "jdbcTemplate")
+        @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
+        public TransactionalMessageService transactionalMessageService(
+                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+            return new TransactionalMessageService(jdbcTemplate);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(name = "jdbcTemplate")
+        public EventPublisher eventPublisher(
+                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+                WebhookInvoker webhookInvoker) {
+            return new EventPublisher(jdbcTemplate, webhookInvoker);
+        }
     }
 }

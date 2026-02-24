@@ -55,49 +55,51 @@ spring:
             password: nacos
 
     gateway:
-      # 动态路由从Nacos加载
-      discovery:
-        locator:
-          enabled: true  # 启用服务发现
-          lower-case-service-id: true  # 服务名小写
+      server:
+        webflux:
+          # 动态路由从Nacos加载
+          discovery:
+            locator:
+              enabled: true  # 启用服务发现
+              lower-case-service-id: true  # 服务名小写
 
-      # 全局CORS配置
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowed-origins: "*"
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowed-headers: "*"
-            allow-credentials: false
-            max-age: 3600
+          # 显式路由配置
+          routes:
+            # 用户服务路由
+            - id: user-api
+              uri: lb://basebackend-user-api
+              predicates:
+                - Path=/basebackend-user-api/**
+              filters:
+                - StripPrefix=1
 
-      # 默认过滤器
-      default-filters:
-        - AddResponseHeader=X-Response-Default,BaseBackend-Gateway
-#        - name: RequestRateLimiter
-#          args:
-#            redis-rate-limiter:
-#              replenishRate: 100  # 每秒补充的令牌数
-#              burstCapacity: 200  # 令牌桶容量
-#              requestedTokens: 1  # 每个请求消耗的令牌数
-  data:
-    redis:
-      host: ${spring.data.redis.host}
-      port: ${spring.data.redis.port}
-      password: ${spring.data.redis.password}
-      database: ${spring.data.redis.database}
-      timeout: ${spring.data.redis.timeout}
-      lettuce:
-        pool:
-          max-active: ${spring.data.redis.max-active}
-          max-wait: ${spring.data.redis.max-wait}
-          max-idle: ${spring.data.redis.max-idle}
-          min-idle: ${spring.data.redis.min-idle}
+            # 系统服务路由
+            - id: system-api
+              uri: lb://basebackend-system-api
+              predicates:
+                - Path=/basebackend-system-api/**
+              filters:
+                - StripPrefix=1
+
+          # 全局CORS配置
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "*"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: "*"
+                allow-credentials: false
+                max-age: 3600
+
+          # 默认过滤器
+          default-filters:
+            - AddResponseHeader=X-Response-Default,BaseBackend-Gateway
+  # Redis 配置由 Nacos redis-config.yml 通过 spring.config.import 提供，无需在此重复声明
 
 # 灰度路由配置
 gateway:

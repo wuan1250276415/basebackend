@@ -5,7 +5,6 @@ import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -16,7 +15,6 @@ import java.util.Map;
  * Webhook调用服务
  */
 @Slf4j
-@Service
 public class WebhookInvoker {
 
     private final RestTemplate restTemplate;
@@ -24,8 +22,8 @@ public class WebhookInvoker {
     private final MessageProducer messageProducer;
 
     public WebhookInvoker(RestTemplate restTemplate,
-                          WebhookSignatureService signatureService,
-                          MessageProducer messageProducer) {
+            WebhookSignatureService signatureService,
+            MessageProducer messageProducer) {
         this.restTemplate = restTemplate;
         this.signatureService = signatureService;
         this.messageProducer = messageProducer;
@@ -124,6 +122,12 @@ public class WebhookInvoker {
      * @param retryCount 重试次数
      */
     private void scheduleRetry(WebhookConfig config, WebhookEvent event, int retryCount) {
+        if (messageProducer == null) {
+            log.warn("MessageProducer not available, cannot schedule webhook retry: webhookId={}, eventId={}",
+                    config.getId(), event.getEventId());
+            return;
+        }
+
         // 计算重试延迟（指数退避）
         long delaySeconds = (long) (config.getRetryInterval() * Math.pow(2, retryCount - 1));
         long delayMillis = delaySeconds * 1000;
@@ -135,8 +139,7 @@ public class WebhookInvoker {
                 .payload(Map.of(
                         "config", config,
                         "event", event,
-                        "retryCount", retryCount
-                ))
+                        "retryCount", retryCount))
                 .build();
 
         // 发送延迟消息
@@ -153,13 +156,19 @@ public class WebhookInvoker {
      * @param event  事件数据
      */
     public void invokeAsync(WebhookConfig config, WebhookEvent event) {
+        if (messageProducer == null) {
+            log.warn("MessageProducer not available, falling back to sync invocation: webhookId={}, eventId={}",
+                    config.getId(), event.getEventId());
+            invoke(config, event);
+            return;
+        }
+
         Message<Map<String, Object>> message = Message.<Map<String, Object>>builder()
                 .topic("webhook.invoke")
                 .routingKey("webhook.invoke." + config.getId())
                 .payload(Map.of(
                         "config", config,
-                        "event", event
-                ))
+                        "event", event))
                 .build();
 
         messageProducer.send(message);

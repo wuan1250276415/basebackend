@@ -93,10 +93,9 @@ public class BackupAutoConfiguration {
      *
      * @return 本地存储提供者实例
      */
-    @Bean
+    @Bean("backupLocalStorageProvider")
     @Primary
     @ConditionalOnProperty(name = "backup.storage.local.enabled", havingValue = "true", matchIfMissing = true)
-    @ConditionalOnMissingBean(StorageProvider.class)
     public StorageProvider localStorageProvider() {
         log.info("初始化本地存储提供者，基础路径: {}", backupProperties.getStorage().getLocal().getBasePath());
         return new LocalStorageProvider(backupProperties);

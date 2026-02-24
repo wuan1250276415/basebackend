@@ -2,8 +2,11 @@ package com.basebackend.database.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+
+import javax.sql.DataSource;
 
 /**
  * 数据库增强自动配置类
@@ -19,6 +22,14 @@ public class DatabaseEnhancedAutoConfiguration {
     public DatabaseEnhancedAutoConfiguration(DatabaseEnhancedProperties properties) {
         log.info("Database Enhanced Module initialized");
         logEnabledFeatures(properties);
+    }
+
+    /**
+     * 注册 DatabaseVendorDetector Bean
+     */
+    @Bean
+    public DatabaseVendorDetector databaseVendorDetector(DatabaseEnhancedProperties properties, DataSource dataSource) {
+        return new DatabaseVendorDetector(properties, dataSource);
     }
 
     /**
