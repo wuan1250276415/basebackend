@@ -36,7 +36,7 @@ public class WebhookInvoker {
      * @param event  事件数据
      * @return 调用日志
      */
-    public WebhookLog invoke(WebhookConfig config, WebhookEvent event) {
+    public WebhookLog invoke(WebhookProperties config, WebhookEvent event) {
         WebhookLog webhookLog = new WebhookLog();
         webhookLog.setWebhookId(config.getId());
         webhookLog.setEventId(event.getEventId());
@@ -120,7 +120,7 @@ public class WebhookInvoker {
      * @param event      事件数据
      * @param retryCount 重试次数
      */
-    private void scheduleRetry(WebhookConfig config, WebhookEvent event, int retryCount) {
+    private void scheduleRetry(WebhookProperties config, WebhookEvent event, int retryCount) {
         if (messageProducer == null) {
             log.warn("MessageProducer not available, cannot schedule webhook retry: webhookId={}, eventId={}",
                     config.getId(), event.getEventId());
@@ -154,7 +154,7 @@ public class WebhookInvoker {
      * @param config Webhook配置
      * @param event  事件数据
      */
-    public void invokeAsync(WebhookConfig config, WebhookEvent event) {
+    public void invokeAsync(WebhookProperties config, WebhookEvent event) {
         if (messageProducer == null) {
             log.warn("MessageProducer not available, falling back to sync invocation: webhookId={}, eventId={}",
                     config.getId(), event.getEventId());

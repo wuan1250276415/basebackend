@@ -1,7 +1,7 @@
 package com.basebackend.messaging.event;
 
 import cn.hutool.core.util.IdUtil;
-import com.basebackend.messaging.webhook.WebhookConfig;
+import com.basebackend.messaging.webhook.WebhookProperties;
 import com.basebackend.messaging.webhook.WebhookEvent;
 import com.basebackend.messaging.webhook.WebhookInvoker;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +59,7 @@ public class EventPublisher {
                 .build();
 
         // 查询订阅了该事件类型的Webhook配置
-        List<WebhookConfig> configs = getSubscribedWebhooks(eventType);
+        List<WebhookProperties> configs = getSubscribedWebhooks(eventType);
 
         if (configs.isEmpty()) {
             log.debug("No webhooks subscribed to event type: {}", eventType);
@@ -67,7 +67,7 @@ public class EventPublisher {
         }
 
         // 异步调用所有订阅的Webhook
-        for (WebhookConfig config : configs) {
+        for (WebhookProperties config : configs) {
             try {
                 webhookInvoker.invokeAsync(config, event);
             } catch (Exception e) {
@@ -86,7 +86,7 @@ public class EventPublisher {
      * @param eventType 事件类型
      * @return Webhook配置列表
      */
-    private List<WebhookConfig> getSubscribedWebhooks(String eventType) {
+    private List<WebhookProperties> getSubscribedWebhooks(String eventType) {
         String sql = """
                 SELECT id, name, url, event_types, secret, signature_enabled,
                        method, headers, timeout, max_retries, retry_interval,
@@ -97,7 +97,7 @@ public class EventPublisher {
                 """;
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            WebhookConfig config = new WebhookConfig();
+            WebhookProperties config = new WebhookProperties();
             config.setId(rs.getLong("id"));
             config.setName(rs.getString("name"));
             config.setUrl(rs.getString("url"));

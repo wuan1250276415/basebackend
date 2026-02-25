@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WebhookConfig {
+public class WebhookProperties {
 
     /**
      * 配置ID
