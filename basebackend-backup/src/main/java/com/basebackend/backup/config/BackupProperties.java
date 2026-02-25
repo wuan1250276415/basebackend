@@ -2,7 +2,6 @@ package com.basebackend.backup.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import java.util.List;
  * 支持企业级备份功能：分布式锁、重试机制、校验、多副本存储、增量备份等
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "backup")
 public class BackupProperties {
 

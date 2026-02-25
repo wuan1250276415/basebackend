@@ -478,4 +478,9 @@ public class MySQLBackupServiceImpl implements MySQLBackupService {
         outputThread.setDaemon(true);
         outputThread.start();
     }
+
+    @Override
+    public String getDatasourceType() {
+        return "mysql";
+    }
 }

@@ -504,4 +504,9 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
         backupCache.put(record.getBackupId(), record);
         return record;
     }
+
+    @Override
+    public String getDatasourceType() {
+        return "postgresql";
+    }
 }

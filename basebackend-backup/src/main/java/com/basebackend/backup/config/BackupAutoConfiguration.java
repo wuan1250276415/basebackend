@@ -14,8 +14,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import com.basebackend.backup.infrastructure.executor.impl.IncrementalChainManager;
+import com.basebackend.backup.infrastructure.executor.impl.MySqlBackupExecutor;
+import com.basebackend.backup.infrastructure.executor.impl.MySqlBinlogParser;
+import com.basebackend.backup.infrastructure.executor.impl.PostgresWalParser;
+import com.basebackend.backup.infrastructure.executor.impl.RestoreService;
+import com.basebackend.backup.infrastructure.monitoring.BackupMetricsRegistrar;
+import com.basebackend.backup.infrastructure.monitoring.MetricsController;
+import com.basebackend.backup.infrastructure.notification.impl.CompositeNotificationService;
+import com.basebackend.backup.infrastructure.notification.impl.DingTalkNotificationSender;
+import com.basebackend.backup.infrastructure.notification.impl.EmailNotificationSender;
+import com.basebackend.backup.infrastructure.notification.impl.SlackNotificationSender;
+import com.basebackend.backup.infrastructure.storage.strategy.StorageStrategyExecutor;
+import com.basebackend.backup.scheduler.AutoBackupScheduler;
+import com.basebackend.backup.service.impl.MySQLBackupServiceImpl;
+import com.basebackend.backup.service.impl.PostgreSQLBackupServiceImpl;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -35,7 +50,23 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @AutoConfiguration
 @EnableScheduling
 @RequiredArgsConstructor
-@ComponentScan("com.basebackend.backup")
+@Import({
+    MySQLBackupServiceImpl.class,
+    PostgreSQLBackupServiceImpl.class,
+    MySqlBackupExecutor.class,
+    MySqlBinlogParser.class,
+    PostgresWalParser.class,
+    IncrementalChainManager.class,
+    RestoreService.class,
+    StorageStrategyExecutor.class,
+    BackupMetricsRegistrar.class,
+    MetricsController.class,
+    CompositeNotificationService.class,
+    DingTalkNotificationSender.class,
+    EmailNotificationSender.class,
+    SlackNotificationSender.class,
+    AutoBackupScheduler.class
+})
 @EnableConfigurationProperties(BackupProperties.class)
 @ConditionalOnProperty(prefix = "backup", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class BackupAutoConfiguration {
