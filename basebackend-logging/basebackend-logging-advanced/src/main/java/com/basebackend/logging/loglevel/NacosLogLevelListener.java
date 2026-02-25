@@ -46,11 +46,7 @@ public class NacosLogLevelListener {
         this.logLevelManager = logLevelManager;
         this.dataId = dataId;
         this.group = group;
-        this.executor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "nacos-log-level-listener");
-            t.setDaemon(true);
-            return t;
-        });
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @PostConstruct

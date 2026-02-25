@@ -30,7 +30,7 @@ public class CompositeAuditStorage implements AuditStorage {
     public CompositeAuditStorage(AuditStorage primary, List<AuditStorage> secondaries) {
         this.primary = primary;
         this.secondaries = secondaries != null ? secondaries : new ArrayList<>();
-        this.executorService = Executors.newFixedThreadPool(4);
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @Override

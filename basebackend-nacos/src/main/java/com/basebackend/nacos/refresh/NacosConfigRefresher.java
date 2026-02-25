@@ -38,7 +38,7 @@ public class NacosConfigRefresher implements InitializingBean {
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectProvider<SharedConfigListener[]> listenersProvider;
 
-    private final Executor executor = Executors.newFixedThreadPool(2);
+    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
 
     private volatile boolean destroyed = false;
 

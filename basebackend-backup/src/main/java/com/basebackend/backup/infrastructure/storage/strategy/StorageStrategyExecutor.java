@@ -32,7 +32,7 @@ public class StorageStrategyExecutor {
     private final BackupProperties backupProperties;
     private final LockManager lockManager;
     private final RetryTemplate retryTemplate;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, StorageProvider> providerMap;
 
     public StorageStrategyExecutor(BackupProperties backupProperties,

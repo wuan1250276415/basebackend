@@ -41,11 +41,7 @@ public class NacosConfigService {
     private final NacosConfigProperties nacosConfigProperties;
     private final ConcurrentHashMap<String, String> configCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Runnable> configChangeListeners = new ConcurrentHashMap<>();
-    private final Executor executor = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "nacos-config-refresh");
-        t.setDaemon(true);
-        return t;
-    });
+    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public NacosConfigService(ConfigService configService, NacosConfigProperties nacosConfigProperties) {
         this.configService = configService;

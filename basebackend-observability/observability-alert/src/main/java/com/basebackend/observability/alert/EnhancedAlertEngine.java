@@ -60,12 +60,8 @@ public class EnhancedAlertEngine {
         this.notifiers = notifiers != null ? notifiers : Collections.emptyList();
         this.ruleRepository = ruleRepository;
 
-        // 创建告警评估线程池
-        this.alertExecutor = Executors.newFixedThreadPool(4, r -> {
-            Thread t = new Thread(r, "alert-executor");
-            t.setDaemon(true);
-            return t;
-        });
+        // 创建告警评估执行器（虚拟线程）
+        this.alertExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
         log.info("EnhancedAlertEngine initialized with {} notifiers", this.notifiers.size());
     }

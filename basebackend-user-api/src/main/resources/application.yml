@@ -1,4 +1,8 @@
-spring:  # Redis 开发兜底配置（生产环境应从 Nacos redis-config.yml 获取）
+spring:
+  threads:
+    virtual:
+      enabled: true  # Java 21+ 虚拟线程：Tomcat、@Async、TaskExecutor 全部使用虚拟线程
+  # Redis 开发兜底配置（生产环境应从 Nacos redis-config.yml 获取）
   data:
     redis:
       host: ${REDIS_HOST:192.168.66.126}

@@ -43,11 +43,7 @@ public class AuditVerificationService {
                                     AuditSignatureService signatureService) {
         this.hashChainCalculator = hashChainCalculator;
         this.signatureService = signatureService;
-        this.verificationExecutor = Executors.newFixedThreadPool(4, r -> {
-            Thread t = new Thread(r, "audit-verification");
-            t.setDaemon(true);
-            return t;
-        });
+        this.verificationExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
         log.info("审计验证服务初始化完成");
     }

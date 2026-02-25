@@ -49,7 +49,7 @@ public class FileAuditStorage implements AuditStorage {
     private volatile long currentFileSize;
     private volatile long lastRollTime;
 
-    private final Object lock = new Object();
+    private final java.util.concurrent.locks.ReentrantLock lock = new java.util.concurrent.locks.ReentrantLock();
 
     public FileAuditStorage(Path baseDir, ObjectMapper objectMapper,
                             AesEncryptor encryptor, boolean enableCompression,
@@ -81,41 +81,42 @@ public class FileAuditStorage implements AuditStorage {
     }
 
     @Override
-    public synchronized void batchSave(List<AuditLogEntry> entries) throws StorageException {
+    public void batchSave(List<AuditLogEntry> entries) throws StorageException {
         if (entries == null || entries.isEmpty()) {
             return;
         }
 
-        synchronized (lock) {
-            try {
-                for (AuditLogEntry entry : entries) {
-                    rollIfNeeded();
+        lock.lock();
+        try {
+            for (AuditLogEntry entry : entries) {
+                rollIfNeeded();
 
-                    String json = objectMapper.writeValueAsString(entry);
+                String json = objectMapper.writeValueAsString(entry);
 
-                    // 加密（如果启用）
-                    if (encryptor != null) {
-                        json = encryptor.encrypt(json);
-                    }
-
-                    // 写入文件
-                    currentWriter.write(json);
-                    currentWriter.newLine();
-                    currentFileSize += json.getBytes(StandardCharsets.UTF_8).length + 1;
-
-                    // 强制刷盘（高性能场景下可优化）
-                    if (entries.size() < 10) {
-                        currentWriter.flush();
-                    }
+                // 加密（如果启用）
+                if (encryptor != null) {
+                    json = encryptor.encrypt(json);
                 }
 
-                // 批量刷盘
-                currentWriter.flush();
-                log.debug("批量保存审计日志完成，数量: {}", entries.size());
-            } catch (Exception e) {
-                log.error("批量保存审计日志失败", e);
-                throw new StorageException("批量保存审计日志失败", e);
+                // 写入文件
+                currentWriter.write(json);
+                currentWriter.newLine();
+                currentFileSize += json.getBytes(StandardCharsets.UTF_8).length + 1;
+
+                // 强制刷盘（高性能场景下可优化）
+                if (entries.size() < 10) {
+                    currentWriter.flush();
+                }
             }
+
+            // 批量刷盘
+            currentWriter.flush();
+            log.debug("批量保存审计日志完成，数量: {}", entries.size());
+        } catch (Exception e) {
+            log.error("批量保存审计日志失败", e);
+            throw new StorageException("批量保存审计日志失败", e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -274,15 +275,16 @@ public class FileAuditStorage implements AuditStorage {
 
     @Override
     public void close() {
-        synchronized (lock) {
-            try {
-                if (currentWriter != null) {
-                    currentWriter.close();
-                    currentWriter = null;
-                }
-            } catch (IOException e) {
-                log.error("关闭写入器失败", e);
+        lock.lock();
+        try {
+            if (currentWriter != null) {
+                currentWriter.close();
+                currentWriter = null;
             }
+        } catch (IOException e) {
+            log.error("关闭写入器失败", e);
+        } finally {
+            lock.unlock();
         }
     }
 

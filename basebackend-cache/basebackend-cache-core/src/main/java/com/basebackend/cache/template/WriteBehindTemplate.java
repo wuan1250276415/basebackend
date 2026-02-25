@@ -66,15 +66,7 @@ public class WriteBehindTemplate {
         this.redisService = redisService;
         this.multiLevelCacheManager = multiLevelCacheManager;
         this.metricsService = metricsService;
-        this.executorService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors(),
-                r -> {
-                    Thread thread = new Thread(r);
-                    thread.setName("write-behind-" + thread.getId());
-                    thread.setDaemon(true);
-                    return thread;
-                }
-        );
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     /**

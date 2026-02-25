@@ -4,7 +4,8 @@ import com.basebackend.cache.config.CacheProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -38,9 +39,9 @@ public class CacheWarmingManager {
     private final List<CacheWarmingTask> tasks = new CopyOnWriteArrayList<>();
     
     /**
-     * 异步执行线程池
+     * 异步执行线程池（虚拟线程）
      */
-    private ThreadPoolTaskExecutor taskExecutor;
+    private TaskExecutor taskExecutor;
     
     /**
      * 预热进度
@@ -59,14 +60,10 @@ public class CacheWarmingManager {
      * 初始化线程池
      */
     private void initializeThreadPool() {
-        taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(2);
-        taskExecutor.setMaxPoolSize(5);
-        taskExecutor.setQueueCapacity(100);
-        taskExecutor.setThreadNamePrefix("cache-warming-");
-        taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        taskExecutor.initialize();
-        log.info("Cache warming thread pool initialized");
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("cache-warming-");
+        executor.setVirtualThreads(true);
+        taskExecutor = executor;
+        log.info("Cache warming virtual thread executor initialized");
     }
 
     /**
@@ -328,17 +325,7 @@ public class CacheWarmingManager {
     @PreDestroy
     public void destroy() {
         log.info("Shutting down cache warming manager");
-        if (taskExecutor != null) {
-            taskExecutor.shutdown();
-            try {
-                if (!taskExecutor.getThreadPoolExecutor().awaitTermination(10, TimeUnit.SECONDS)) {
-                    taskExecutor.getThreadPoolExecutor().shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                taskExecutor.getThreadPoolExecutor().shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+        // SimpleAsyncTaskExecutor with virtual threads does not need explicit shutdown
         log.info("Cache warming manager shut down");
     }
 }

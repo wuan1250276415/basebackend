@@ -31,11 +31,7 @@ public class AsyncExportService {
 
     public AsyncExportService(ExportManager exportManager, int threadPoolSize, long taskTtlHours) {
         this.exportManager = exportManager;
-        this.executor = Executors.newFixedThreadPool(threadPoolSize, r -> {
-            Thread t = new Thread(r, "async-export-worker");
-            t.setDaemon(true);
-            return t;
-        });
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.taskTtlMillis = TimeUnit.HOURS.toMillis(taskTtlHours);
         this.cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "async-export-cleanup");

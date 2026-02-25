@@ -38,14 +38,8 @@ public class RocketMQProducer implements MessageProducer {
     private final MessagingProperties messagingProperties;
     private final TransactionalMessageService transactionalMessageService;
 
-    /** 异步发送线程池 */
-    private final ExecutorService asyncExecutor = Executors.newFixedThreadPool(
-            Runtime.getRuntime().availableProcessors() * 2,
-            r -> {
-                Thread t = new Thread(r, "msg-async-sender");
-                t.setDaemon(true);
-                return t;
-            });
+    /** 异步发送执行器（虚拟线程） */
+    private final ExecutorService asyncExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     @Override
     public <T> String send(Message<T> message) {

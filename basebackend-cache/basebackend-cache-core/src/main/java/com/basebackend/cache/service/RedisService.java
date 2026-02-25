@@ -49,11 +49,7 @@ public class RedisService {
         this.redisTemplate = redisTemplate;
         this.cacheProperties = cacheProperties;
         this.serializer = SerializerFactory.getSerializer(cacheProperties.getSerialization().getType());
-        this.timeoutExecutor = Executors.newCachedThreadPool(r -> {
-            Thread thread = new Thread(r, "redis-timeout-executor");
-            thread.setDaemon(true);
-            return thread;
-        });
+        this.timeoutExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     /**

@@ -77,11 +77,7 @@ public class AuditService implements DisposableBean {
             t.setDaemon(true);
             return t;
         });
-        this.ioExecutor = Executors.newFixedThreadPool(4, r -> {
-            Thread t = new Thread(r, "audit-io");
-            t.setDaemon(true);
-            return t;
-        });
+        this.ioExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
         // 启动定时刷新任务
         startScheduler();

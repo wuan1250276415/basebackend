@@ -19,6 +19,9 @@ server:
 
 # ========== Spring核心配置 ==========
 spring:
+  threads:
+    virtual:
+      enabled: true  # Java 21+ 虚拟线程：Tomcat、@Async、TaskExecutor 全部使用虚拟线程
   application:
     name: basebackend-scheduler
 
