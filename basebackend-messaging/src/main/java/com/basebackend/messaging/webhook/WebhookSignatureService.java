@@ -2,7 +2,7 @@ package com.basebackend.messaging.webhook;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;

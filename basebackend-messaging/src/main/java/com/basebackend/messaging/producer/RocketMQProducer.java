@@ -1,6 +1,6 @@
 package com.basebackend.messaging.producer;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.config.MessagingProperties;
 import com.basebackend.messaging.constants.RocketMQConstants;
 import com.basebackend.messaging.exception.MessageSendException;
@@ -48,7 +48,7 @@ public class RocketMQProducer implements MessageProducer {
 
         try {
             String destination = buildDestination(message.getTopic(), message.getTags());
-            String payload = JSON.toJSONString(message);
+            String payload = JsonUtils.toJsonString(message);
 
             org.springframework.messaging.Message<String> springMessage = MessageBuilder.withPayload(payload)
                     .setHeader("messageId", message.getMessageId())
@@ -134,7 +134,7 @@ public class RocketMQProducer implements MessageProducer {
 
         try {
             String destination = buildDestination(message.getTopic(), message.getTags());
-            String payload = JSON.toJSONString(message);
+            String payload = JsonUtils.toJsonString(message);
 
             // 转换延迟时间为RocketMQ延迟级别
             int delayLevel = RocketMQConstants.getDelayLevel(delayMillis);
@@ -196,7 +196,7 @@ public class RocketMQProducer implements MessageProducer {
 
         try {
             String destination = buildDestination(message.getTopic(), message.getTags());
-            String payload = JSON.toJSONString(message);
+            String payload = JsonUtils.toJsonString(message);
 
             org.springframework.messaging.Message<String> springMessage = MessageBuilder.withPayload(payload)
                     .setHeader("messageId", message.getMessageId())

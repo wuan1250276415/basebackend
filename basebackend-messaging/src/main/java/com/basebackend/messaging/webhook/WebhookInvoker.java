@@ -1,6 +1,6 @@
 package com.basebackend.messaging.webhook;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
@@ -53,12 +53,12 @@ public class WebhookInvoker {
 
             // 添加自定义请求头
             if (config.getHeaders() != null) {
-                Map<String, String> customHeaders = JSON.parseObject(config.getHeaders(), Map.class);
+                Map<String, String> customHeaders = JsonUtils.parseObject(config.getHeaders(), Map.class);
                 customHeaders.forEach(headers::set);
             }
 
             // 构建请求体
-            String requestBody = JSON.toJSONString(event);
+            String requestBody = JsonUtils.toJsonString(event);
             webhookLog.setRequestBody(requestBody);
 
             // 添加签名
@@ -66,7 +66,7 @@ public class WebhookInvoker {
                 signatureService.addSignatureHeaders(headers, requestBody, config.getSecret());
             }
 
-            webhookLog.setRequestHeaders(JSON.toJSONString(headers.toSingleValueMap()));
+            webhookLog.setRequestHeaders(JsonUtils.toJsonString(headers.toSingleValueMap()));
 
             // 发送请求
             long startTime = System.currentTimeMillis();

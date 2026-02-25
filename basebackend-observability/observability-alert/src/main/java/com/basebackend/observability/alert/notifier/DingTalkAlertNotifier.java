@@ -1,6 +1,6 @@
 package com.basebackend.observability.alert.notifier;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.observability.alert.AlertEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +44,7 @@ public class DingTalkAlertNotifier implements AlertNotifier {
             }
 
             Map<String, Object> message = buildDingTalkMessage(event);
-            String jsonMessage = JSON.toJSONString(message);
+            String jsonMessage = JsonUtils.toJsonString(message);
 
             String url = webhookUrl;
             if (secret != null && !secret.isEmpty()) {

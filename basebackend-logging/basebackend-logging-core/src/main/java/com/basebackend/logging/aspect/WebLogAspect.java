@@ -1,6 +1,6 @@
 package com.basebackend.logging.aspect;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.logging.context.LogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -68,7 +68,7 @@ public class WebLogAspect {
         logData.put("args", safeArgs);
 
         // 记录请求开始
-        log.info("API Request - {}", JSON.toJSONString(logData));
+        log.info("API Request - {}", JsonUtils.toJsonString(logData));
 
         // 执行方法
         Object result = null;
@@ -99,13 +99,13 @@ public class WebLogAspect {
                 } catch (Throwable ignore) {
                     responseLog.put("result", "Response too large or cannot be serialized");
                 }
-                log.info("API Response - {}", JSON.toJSONString(responseLog));
+                log.info("API Response - {}", JsonUtils.toJsonString(responseLog));
             } else {
                 // 异常响应
                 responseLog.put("status", "error");
                 responseLog.put("errorType", exception.getClass().getSimpleName());
                 responseLog.put("errorMessage", exception.getMessage());
-                log.error("API Error - {}", JSON.toJSONString(responseLog), exception);
+                log.error("API Error - {}", JsonUtils.toJsonString(responseLog), exception);
             }
 
             // 性能警告：响应时间超过1秒
@@ -165,7 +165,7 @@ public class WebLogAspect {
         }
 
         try {
-            String resultStr = JSON.toJSONString(result);
+            String resultStr = JsonUtils.toJsonString(result);
             // 如果响应超过 10KB，截断
             if (resultStr.length() > 10240) {
                 return "[Response too large: " + resultStr.length() + " characters]";

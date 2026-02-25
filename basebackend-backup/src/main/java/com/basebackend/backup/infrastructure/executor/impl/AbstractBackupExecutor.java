@@ -1,6 +1,6 @@
 package com.basebackend.backup.infrastructure.executor.impl;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.backup.domain.entity.BackupHistory;
 import com.basebackend.backup.domain.mapper.BackupHistoryMapper;
 import com.basebackend.backup.infrastructure.executor.BackupArtifact;
@@ -250,7 +250,7 @@ public abstract class AbstractBackupExecutor {
         history.setFileSize(artifact.getFileSize());
         history.setChecksumMd5(checksum.getMd5());
         history.setChecksumSha256(checksum.getSha256());
-        String storageJson = JSON.toJSONString(java.util.Collections.singletonList(storageResult));
+        String storageJson = JsonUtils.toJsonString(java.util.Collections.singletonList(storageResult));
         history.setStorageLocations(storageJson);
 
         backupHistoryMapper.updateById(history);

@@ -3,7 +3,7 @@ package com.basebackend.common.audit.aspect;
 import com.basebackend.common.audit.AuditEvent;
 import com.basebackend.common.audit.AuditEventPublisher;
 import com.basebackend.common.audit.AuditLog;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -120,7 +120,7 @@ public class AuditLogAspect {
 
     private String serializeSafe(Object obj) {
         try {
-            return JSON.toJSONString(obj);
+            return JsonUtils.toJsonString(obj);
         } catch (Exception e) {
             return "serialize_error";
         }

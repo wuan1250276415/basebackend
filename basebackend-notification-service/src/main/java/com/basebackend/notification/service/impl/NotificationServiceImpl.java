@@ -1,7 +1,7 @@
 package com.basebackend.notification.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -498,7 +498,7 @@ public class NotificationServiceImpl implements NotificationService {
             String destination = NotificationConstants.NOTIFICATION_TOPIC + ":" + tag;
 
             // 构建消息
-            String payload = JSON.toJSONString(messageDTO);
+            String payload = JsonUtils.toJsonString(messageDTO);
             org.springframework.messaging.Message<String> message = MessageBuilder
                     .withPayload(payload)
                     .setHeader("notificationId", notification.getId())

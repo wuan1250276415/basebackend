@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,8 +50,8 @@ public class TransactionalMessageService {
                 message.getTopic(),
                 message.getRoutingKey(),
                 message.getTags(),  // 使用 getTags()
-                JSON.toJSONString(message.getPayload()),
-                JSON.toJSONString(message.getHeaders()),
+                JsonUtils.toJsonString(message.getPayload()),
+                JsonUtils.toJsonString(message.getHeaders()),
                 message.getSendTime(),
                 message.getDelayMillis(),
                 message.getRetryCount(),

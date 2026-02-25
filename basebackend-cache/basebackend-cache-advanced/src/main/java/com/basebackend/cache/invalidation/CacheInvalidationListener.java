@@ -1,6 +1,6 @@
 package com.basebackend.cache.invalidation;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.cache.config.CacheProperties;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.service.CacheService;
@@ -52,7 +52,7 @@ public class CacheInvalidationListener implements MessageListener {
 
         CacheInvalidationEvent event;
         try {
-            event = JSON.parseObject(body, CacheInvalidationEvent.class);
+            event = JsonUtils.parseObject(body, CacheInvalidationEvent.class);
         } catch (Exception e) {
             log.warn("Failed to deserialize invalidation event: {}", body, e);
             return;

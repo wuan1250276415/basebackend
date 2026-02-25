@@ -1,6 +1,6 @@
 package com.basebackend.notification.service;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.notification.config.NotificationSecurityConfig;
@@ -155,7 +155,7 @@ public class SSENotificationService {
         }
 
         try {
-            String jsonData = JSON.toJSONString(notification);
+            String jsonData = JsonUtils.toJsonString(notification);
             emitter.send(SseEmitter.event()
                     .name("notification")
                     .data(jsonData));

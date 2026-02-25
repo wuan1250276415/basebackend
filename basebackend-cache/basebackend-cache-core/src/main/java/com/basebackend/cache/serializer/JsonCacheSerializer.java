@@ -1,8 +1,6 @@
 package com.basebackend.cache.serializer;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONReader;
-import com.alibaba.fastjson2.JSONWriter;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.cache.exception.CacheSerializationException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,7 +32,7 @@ public class JsonCacheSerializer implements CacheSerializer {
         try {
             // 安全修复：禁用 WriteClassName，不在 JSON 中写入类型信息
             // 这样可以防止反序列化时被恶意类型利用
-            String jsonString = JSON.toJSONString(obj);
+            String jsonString = JsonUtils.toJsonString(obj);
             return jsonString.getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("序列化对象到JSON失败: {}", obj.getClass().getName(), e);
@@ -53,7 +51,7 @@ public class JsonCacheSerializer implements CacheSerializer {
             String trimmed = jsonString.trim();
 
             // 验证是否为有效的 JSON
-            Object parsedCheck = JSON.parse(jsonString);
+            Object parsedCheck = JsonUtils.parse(jsonString);
             if (parsedCheck == null) {
                 return null;
             }
@@ -71,7 +69,7 @@ public class JsonCacheSerializer implements CacheSerializer {
 
             // 安全修复：禁用 SupportAutoType，只使用显式指定的目标类型进行反序列化
             // 这是防止 Fastjson 反序列化漏洞的关键措施
-            T result = JSON.parseObject(jsonString, type, JSONReader.Feature.ErrorOnEnumNotMatch);
+            T result = JsonUtils.parseObject(jsonString, type);
 
             // 字符串类型特殊检查
             if (type == String.class && result != null) {

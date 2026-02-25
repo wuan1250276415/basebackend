@@ -1,6 +1,6 @@
 package com.basebackend.cache.invalidation;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.cache.config.CacheProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -71,7 +71,7 @@ public class CacheInvalidationPublisher {
         event.setCorrelationId(UUID.randomUUID().toString());
 
         String channel = config.getChannel();
-        String json = JSON.toJSONString(event);
+        String json = JsonUtils.toJsonString(event);
 
         try {
             redisTemplate.convertAndSend(channel, json);
