@@ -40,7 +40,7 @@ public class TraceController {
     @PostMapping("/search")
     @Operation(summary = "搜索追踪")
     public Result<Map<String, Object>> searchTraces(@RequestBody TraceQueryRequest request) {
-        log.info("Searching traces for service: {}", request.getServiceName());
+        log.info("Searching traces for service: {}", request.serviceName());
         Map<String, Object> result = traceQueryService.searchTraces(request);
         return Result.success(result);
     }

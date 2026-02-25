@@ -108,7 +108,7 @@ public class MenuController {
     @PostMapping
     @Operation(summary = "创建菜单", description = "创建新菜单")
     public Result<String> create(@Validated @RequestBody MenuDTO menuDTO) {
-        log.info("创建菜单: {}", menuDTO.getMenuName());
+        log.info("创建菜单: {}", menuDTO.menuName());
         try {
             // 转换MenuDTO为ApplicationResourceDTO
             ApplicationResourceDTO resourceDTO = convertMenuToResource(menuDTO);
@@ -130,9 +130,8 @@ public class MenuController {
             @Validated @RequestBody MenuDTO menuDTO) {
         log.info("更新菜单: {}", id);
         try {
-            menuDTO.setId(id);
-            // 转换MenuDTO为ApplicationResourceDTO
-            ApplicationResourceDTO resourceDTO = convertMenuToResource(menuDTO);
+            // 转换MenuDTO为ApplicationResourceDTO，使用路径参数id
+            ApplicationResourceDTO resourceDTO = convertMenuToResource(menuDTO, id);
             boolean success = applicationResourceService.updateResource(resourceDTO);
             return success ? Result.success("菜单更新成功") : Result.error("菜单更新失败");
         } catch (Exception e) {
@@ -294,8 +293,8 @@ public class MenuController {
         }
         for (ApplicationResourceDTO resource : resources) {
             result.add(toMenuDTO(resource));
-            if (resource.getChildren() != null && !resource.getChildren().isEmpty()) {
-                flattenResourceTree(resource.getChildren(), result);
+            if (resource.children() != null && !resource.children().isEmpty()) {
+                flattenResourceTree(resource.children(), result);
             }
         }
     }
@@ -304,48 +303,59 @@ public class MenuController {
      * 单个资源转换为菜单DTO
      */
     private MenuDTO toMenuDTO(ApplicationResourceDTO resource) {
-        MenuDTO menu = new MenuDTO();
-        menu.setId(resource.getId());
-        menu.setAppId(resource.getAppId());
-        menu.setMenuName(resource.getResourceName());
-        menu.setParentId(resource.getParentId());
-        menu.setOrderNum(resource.getOrderNum());
-        menu.setPath(resource.getPath());
-        menu.setComponent(resource.getComponent());
-        menu.setMenuType(resource.getResourceType());
-        menu.setVisible(resource.getVisible());
-        menu.setStatus(resource.getStatus());
-        menu.setPerms(resource.getPerms());
-        menu.setIcon(resource.getIcon());
-        menu.setRemark(resource.getRemark());
+        List<MenuDTO> children = (resource.children() != null && !resource.children().isEmpty())
+                ? convertResourceToMenu(resource.children())
+                : null;
 
-        // 转换子资源
-        if (resource.getChildren() != null && !resource.getChildren().isEmpty()) {
-            menu.setChildren(convertResourceToMenu(resource.getChildren()));
-        }
-
-        return menu;
+        return new MenuDTO(
+                resource.id(),
+                resource.appId(),
+                resource.resourceName(),
+                resource.parentId(),
+                resource.orderNum(),
+                resource.path(),
+                resource.component(),
+                null, // query
+                null, // isFrame
+                null, // isCache
+                resource.resourceType(),
+                resource.visible(),
+                resource.status(),
+                resource.perms(),
+                resource.icon(),
+                resource.remark(),
+                children
+        );
     }
 
     /**
      * 将MenuDTO转换为ApplicationResourceDTO
      */
     private ApplicationResourceDTO convertMenuToResource(MenuDTO menu) {
-        ApplicationResourceDTO resource = new ApplicationResourceDTO();
-        resource.setId(menu.getId());
-        resource.setAppId(menu.getAppId());
-        resource.setResourceName(menu.getMenuName());
-        resource.setParentId(menu.getParentId());
-        resource.setResourceType(menu.getMenuType());
-        resource.setPath(menu.getPath());
-        resource.setComponent(menu.getComponent());
-        resource.setPerms(menu.getPerms());
-        resource.setIcon(menu.getIcon());
-        resource.setVisible(menu.getVisible());
-        resource.setOrderNum(menu.getOrderNum());
-        resource.setStatus(menu.getStatus());
-        resource.setRemark(menu.getRemark());
+        return convertMenuToResource(menu, menu.id());
+    }
 
-        return resource;
+    /**
+     * 将MenuDTO转换为ApplicationResourceDTO，指定ID
+     */
+    private ApplicationResourceDTO convertMenuToResource(MenuDTO menu, Long id) {
+        return new ApplicationResourceDTO(
+                id,
+                menu.appId(),
+                menu.menuName(),
+                menu.parentId(),
+                menu.menuType(),
+                menu.path(),
+                menu.component(),
+                menu.perms(),
+                menu.icon(),
+                menu.visible(),
+                null, // openType
+                menu.orderNum(),
+                menu.status(),
+                menu.remark(),
+                null, // children
+                null  // appName
+        );
     }
 }

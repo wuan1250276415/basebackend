@@ -36,18 +36,18 @@ public class NacosConfigManagementService {
      * 分页查询配置
      */
     public IPage<SysNacosConfig> queryConfigPage(NacosConfigQueryDTO queryDTO) {
-        Page<SysNacosConfig> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        Page<SysNacosConfig> page = new Page<>(queryDTO.pageNum(), queryDTO.pageSize());
 
         LambdaQueryWrapper<SysNacosConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StringUtils.hasText(queryDTO.getDataId()), SysNacosConfig::getDataId, queryDTO.getDataId())
-                .eq(StringUtils.hasText(queryDTO.getGroupName()), SysNacosConfig::getGroupName, queryDTO.getGroupName())
-                .eq(StringUtils.hasText(queryDTO.getNamespace()), SysNacosConfig::getNamespace, queryDTO.getNamespace())
-                .eq(StringUtils.hasText(queryDTO.getEnvironment()), SysNacosConfig::getEnvironment, queryDTO.getEnvironment())
-                .eq(StringUtils.hasText(queryDTO.getTenantId()), SysNacosConfig::getTenantId, queryDTO.getTenantId())
-                .eq(queryDTO.getAppId() != null, SysNacosConfig::getAppId, queryDTO.getAppId())
-                .eq(StringUtils.hasText(queryDTO.getStatus()), SysNacosConfig::getStatus, queryDTO.getStatus())
-                .eq(StringUtils.hasText(queryDTO.getType()), SysNacosConfig::getType, queryDTO.getType())
-                .eq(queryDTO.getIsCritical() != null, SysNacosConfig::getIsCritical, queryDTO.getIsCritical())
+        wrapper.like(StringUtils.hasText(queryDTO.dataId()), SysNacosConfig::getDataId, queryDTO.dataId())
+                .eq(StringUtils.hasText(queryDTO.groupName()), SysNacosConfig::getGroupName, queryDTO.groupName())
+                .eq(StringUtils.hasText(queryDTO.namespace()), SysNacosConfig::getNamespace, queryDTO.namespace())
+                .eq(StringUtils.hasText(queryDTO.environment()), SysNacosConfig::getEnvironment, queryDTO.environment())
+                .eq(StringUtils.hasText(queryDTO.tenantId()), SysNacosConfig::getTenantId, queryDTO.tenantId())
+                .eq(queryDTO.appId() != null, SysNacosConfig::getAppId, queryDTO.appId())
+                .eq(StringUtils.hasText(queryDTO.status()), SysNacosConfig::getStatus, queryDTO.status())
+                .eq(StringUtils.hasText(queryDTO.type()), SysNacosConfig::getType, queryDTO.type())
+                .eq(queryDTO.isCritical() != null, SysNacosConfig::getIsCritical, queryDTO.isCritical())
                 .orderByDesc(SysNacosConfig::getUpdateTime);
 
         return nacosConfigMapper.selectPage(page, wrapper);
@@ -71,12 +71,12 @@ public class NacosConfigManagementService {
     public Long createConfig(NacosConfigDTO configDTO) {
         // 检查配置是否已存在
         LambdaQueryWrapper<SysNacosConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysNacosConfig::getDataId, configDTO.getDataId())
-                .eq(SysNacosConfig::getGroupName, configDTO.getGroupName())
-                .eq(SysNacosConfig::getNamespace, configDTO.getNamespace())
-                .eq(StringUtils.hasText(configDTO.getEnvironment()), SysNacosConfig::getEnvironment, configDTO.getEnvironment())
-                .eq(StringUtils.hasText(configDTO.getTenantId()), SysNacosConfig::getTenantId, configDTO.getTenantId())
-                .eq(configDTO.getAppId() != null, SysNacosConfig::getAppId, configDTO.getAppId());
+        wrapper.eq(SysNacosConfig::getDataId, configDTO.dataId())
+                .eq(SysNacosConfig::getGroupName, configDTO.groupName())
+                .eq(SysNacosConfig::getNamespace, configDTO.namespace())
+                .eq(StringUtils.hasText(configDTO.environment()), SysNacosConfig::getEnvironment, configDTO.environment())
+                .eq(StringUtils.hasText(configDTO.tenantId()), SysNacosConfig::getTenantId, configDTO.tenantId())
+                .eq(configDTO.appId() != null, SysNacosConfig::getAppId, configDTO.appId());
 
         if (nacosConfigMapper.selectCount(wrapper) > 0) {
             throw new BusinessException("配置已存在");
@@ -150,7 +150,7 @@ public class NacosConfigManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void publishConfig(ConfigPublishDTO publishDTO) {
-        SysNacosConfig config = nacosConfigMapper.selectById(publishDTO.getConfigId());
+        SysNacosConfig config = nacosConfigMapper.selectById(publishDTO.configId());
         if (config == null) {
             throw new BusinessException("配置不存在");
         }
@@ -160,7 +160,7 @@ public class NacosConfigManagementService {
         // 发布配置
         ConfigPublisher.PublishResult result = configPublisher.publishConfig(
                 configInfo,
-                Boolean.TRUE.equals(publishDTO.getForce())
+                Boolean.TRUE.equals(publishDTO.force())
         );
 
         if ("success".equals(result.getStatus())) {
@@ -180,12 +180,12 @@ public class NacosConfigManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void rollbackConfig(ConfigRollbackDTO rollbackDTO) {
-        SysNacosConfig config = nacosConfigMapper.selectById(rollbackDTO.getConfigId());
+        SysNacosConfig config = nacosConfigMapper.selectById(rollbackDTO.configId());
         if (config == null) {
             throw new BusinessException("配置不存在");
         }
 
-        SysNacosConfigHistory history = configHistoryMapper.selectById(rollbackDTO.getHistoryId());
+        SysNacosConfigHistory history = configHistoryMapper.selectById(rollbackDTO.historyId());
         if (history == null) {
             throw new BusinessException("历史版本不存在");
         }

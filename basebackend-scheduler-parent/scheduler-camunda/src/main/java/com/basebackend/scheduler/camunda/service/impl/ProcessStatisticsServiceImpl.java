@@ -83,14 +83,14 @@ public class ProcessStatisticsServiceImpl implements ProcessStatisticsService {
             dto.setTotalDeployments(totalDeployments);
 
             // 如果指定了流程定义Key，获取该流程的详细统计
-            if (StringUtils.hasText(query.getProcessDefinitionKey())) {
+            if (StringUtils.hasText(query.processDefinitionKey())) {
                 long keyInstancesRunning = runtimeService.createProcessInstanceQuery()
-                        .processDefinitionKey(query.getProcessDefinitionKey())
+                        .processDefinitionKey(query.processDefinitionKey())
                         .count();
                 dto.setKeyInstancesRunning(keyInstancesRunning);
 
                 long keyInstancesCompleted = historyService.createHistoricProcessInstanceQuery()
-                        .processDefinitionKey(query.getProcessDefinitionKey())
+                        .processDefinitionKey(query.processDefinitionKey())
                         .finished()
                         .count();
                 dto.setKeyInstancesCompleted(keyInstancesCompleted);
@@ -149,16 +149,16 @@ public class ProcessStatisticsServiceImpl implements ProcessStatisticsService {
             dto.setTotalInstances(totalInstances);
 
             // 如果有时间范围，统计该时间范围内的数据
-            if (query.getStartTime() != null && query.getEndTime() != null) {
+            if (query.startTime() != null && query.endTime() != null) {
                 long periodInstances = historyService.createHistoricProcessInstanceQuery()
-                        .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                        .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                        .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                        .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                         .count();
                 dto.setPeriodInstances(periodInstances);
 
                 long periodCompleted = historyService.createHistoricProcessInstanceQuery()
-                        .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                        .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                        .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                        .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                         .finished()
                         .count();
                 dto.setPeriodCompletedInstances(periodCompleted);
@@ -172,8 +172,8 @@ public class ProcessStatisticsServiceImpl implements ProcessStatisticsService {
                 // 计算平均持续时间（限制在时间范围内，避免加载过多数据）
                 try {
                     List<Long> durations = historyService.createHistoricProcessInstanceQuery()
-                            .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                            .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                            .startedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                            .startedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                             .finished()
                             .listPage(0, PaginationConstants.MAX_PAGE_SIZE) // 限制最多200条
                             .stream()
@@ -234,30 +234,30 @@ public class ProcessStatisticsServiceImpl implements ProcessStatisticsService {
             dto.setCompletedTasks(completedTasks);
 
             // 如果指定了用户，统计该用户的任务
-            if (StringUtils.hasText(query.getAssignee())) {
+            if (StringUtils.hasText(query.assignee())) {
                 long userTasks = taskService.createTaskQuery()
-                        .taskAssignee(query.getAssignee())
+                        .taskAssignee(query.assignee())
                         .count();
                 dto.setUserTasks(userTasks);
 
                 long userCompletedTasks = historyService.createHistoricTaskInstanceQuery()
-                        .taskAssignee(query.getAssignee())
+                        .taskAssignee(query.assignee())
                         .finished()
                         .count();
                 dto.setUserCompletedTasks(userCompletedTasks);
             }
 
             // 如果有时间范围，统计该时间范围内的数据
-            if (query.getStartTime() != null && query.getEndTime() != null) {
+            if (query.startTime() != null && query.endTime() != null) {
                 long periodTasks = historyService.createHistoricTaskInstanceQuery()
-                        .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                        .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                        .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                        .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                         .count();
                 dto.setPeriodTasks(periodTasks);
 
                 long periodCompleted = historyService.createHistoricTaskInstanceQuery()
-                        .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                        .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                        .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                        .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                         .finished()
                         .count();
                 dto.setPeriodCompletedTasks(periodCompleted);
@@ -265,8 +265,8 @@ public class ProcessStatisticsServiceImpl implements ProcessStatisticsService {
                 // 计算平均处理时间（限制在时间范围内，避免加载过多数据）
                 try {
                     List<Long> durations = historyService.createHistoricTaskInstanceQuery()
-                            .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getStartTime()))
-                            .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.getEndTime()))
+                            .finishedAfter(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.startTime()))
+                            .finishedBefore(com.basebackend.scheduler.util.DateTimeUtil.toDate(query.endTime()))
                             .finished()
                             .listPage(0, PaginationConstants.MAX_PAGE_SIZE) // 限制最多200条
                             .stream()

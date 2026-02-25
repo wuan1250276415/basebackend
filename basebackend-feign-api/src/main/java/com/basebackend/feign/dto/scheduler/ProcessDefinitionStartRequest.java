@@ -1,7 +1,5 @@
 package com.basebackend.feign.dto.scheduler;
 
-import lombok.Data;
-
 import java.io.Serializable;
 import java.util.Map;
 
@@ -11,38 +9,23 @@ import java.util.Map;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Data
-public class ProcessDefinitionStartRequest implements Serializable {
+public record ProcessDefinitionStartRequest(
+        /** 流程定义键 */
+        String processDefinitionKey,
 
-    private static final long serialVersionUID = 1L;
+        /** 流程定义ID（优先级高于key） */
+        String processDefinitionId,
 
-    /**
-     * 流程定义键
-     */
-    private String processDefinitionKey;
+        /** 业务键 */
+        String businessKey,
 
-    /**
-     * 流程定义ID（优先级高于key）
-     */
-    private String processDefinitionId;
+        /** 租户ID */
+        String tenantId,
 
-    /**
-     * 业务键
-     */
-    private String businessKey;
+        /** 流程变量 */
+        Map<String, Object> variables,
 
-    /**
-     * 租户ID
-     */
-    private String tenantId;
-
-    /**
-     * 流程变量
-     */
-    private Map<String, Object> variables;
-
-    /**
-     * 启动人
-     */
-    private String starter;
+        /** 启动人 */
+        String starter
+) implements Serializable {
 }

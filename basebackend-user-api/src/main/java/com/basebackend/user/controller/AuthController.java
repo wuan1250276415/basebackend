@@ -38,17 +38,17 @@ public class AuthController {
     @Operation(summary = "用户登录", description = "用户登录接口")
     @OperationLog(operation="用户登录", businessType = BusinessType.SELECT)
     public Result<LoginResponse> login(@Validated @RequestBody LoginRequest loginRequest) {
-        log.info("用户登录请求: {}", loginRequest.getUsername());
+        log.info("用户登录请求: {}", loginRequest.username());
         try {
             LoginResponse response = authService.login(loginRequest);
             return Result.success("登录成功", response);
         } catch (BusinessException e) {
-            log.warn("用户登录业务异常，用户名：{}，错误：{}", loginRequest.getUsername(), e.getMessage());
+            log.warn("用户登录业务异常，用户名：{}，错误：{}", loginRequest.username(), e.getMessage());
             return e.getErrorCode() != null 
                     ? Result.error(e.getErrorCode(), e.getMessage()) 
                     : Result.error(e.getMessage());
         } catch (Exception e) {
-            log.error("用户登录系统异常，用户名：{}", loginRequest.getUsername(), e);
+            log.error("用户登录系统异常，用户名：{}", loginRequest.username(), e);
             return Result.error("系统繁忙，请稍后重试");
         }
     }

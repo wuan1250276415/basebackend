@@ -56,10 +56,10 @@ public class DeptServiceImpl implements DeptService {
     @Override
     @Transactional
     public void create(DeptDTO deptDTO) {
-        log.info("创建部门: {}", deptDTO.getDeptName());
+        log.info("创建部门: {}", deptDTO.deptName());
 
         // 检查部门名称是否唯一
-        if (!checkDeptNameUnique(deptDTO.getDeptName(), deptDTO.getParentId(), null)) {
+        if (!checkDeptNameUnique(deptDTO.deptName(), deptDTO.parentId(), null)) {
             throw new RuntimeException("部门名称已存在");
         }
 
@@ -83,15 +83,15 @@ public class DeptServiceImpl implements DeptService {
     @Override
     @Transactional
     public void update(DeptDTO deptDTO) {
-        log.info("更新部门: {}", deptDTO.getId());
+        log.info("更新部门: {}", deptDTO.id());
 
-        SysDept dept = deptMapper.selectById(deptDTO.getId());
+        SysDept dept = deptMapper.selectById(deptDTO.id());
         if (dept == null) {
             throw new RuntimeException("部门不存在");
         }
 
         // 检查部门名称是否唯一
-        if (!checkDeptNameUnique(deptDTO.getDeptName(), deptDTO.getParentId(), deptDTO.getId())) {
+        if (!checkDeptNameUnique(deptDTO.deptName(), deptDTO.parentId(), deptDTO.id())) {
             throw new RuntimeException("部门名称已存在");
         }
 
@@ -203,27 +203,40 @@ public class DeptServiceImpl implements DeptService {
      */
     private List<DeptDTO> buildDeptTree(List<SysDept> depts, Long parentId) {
         List<DeptDTO> tree = new ArrayList<>();
-        
+
         for (SysDept dept : depts) {
             if (parentId.equals(dept.getParentId())) {
-                DeptDTO dto = convertToDTO(dept);
                 List<DeptDTO> children = buildDeptTree(depts, dept.getId());
-                if (!children.isEmpty()) {
-                    dto.setChildren(children);
-                }
+                DeptDTO dto = convertToDTO(dept, children.isEmpty() ? null : children);
                 tree.add(dto);
             }
         }
-        
+
         return tree;
     }
 
     /**
-     * 转换为DTO
+     * 转换为DTO（不带子节点）
      */
     private DeptDTO convertToDTO(SysDept dept) {
-        DeptDTO dto = new DeptDTO();
-        BeanUtil.copyProperties(dept, dto);
-        return dto;
+        return convertToDTO(dept, null);
+    }
+
+    /**
+     * 转换为DTO（带子节点）
+     */
+    private DeptDTO convertToDTO(SysDept dept, List<DeptDTO> children) {
+        return new DeptDTO(
+                dept.getId(),
+                dept.getDeptName(),
+                dept.getParentId(),
+                dept.getOrderNum(),
+                dept.getLeader(),
+                dept.getPhone(),
+                dept.getEmail(),
+                dept.getStatus(),
+                dept.getRemark(),
+                children
+        );
     }
 }

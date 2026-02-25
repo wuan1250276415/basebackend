@@ -96,28 +96,18 @@ class UserServiceImplTest {
         testUser.setUpdateTime(LocalDateTime.now());
 
         // 初始化测试用户DTO
-        testUserDTO = new UserDTO();
-        testUserDTO.setId(1L);
-        testUserDTO.setUsername("testuser");
-        testUserDTO.setNickname("测试用户");
-        testUserDTO.setEmail("test@example.com");
-        testUserDTO.setPhone("13800138000");
-        testUserDTO.setDeptId(1L);
-        testUserDTO.setUserType(1);
-        testUserDTO.setStatus(1);
-        testUserDTO.setRoleIds(Arrays.asList(1L, 2L));
+        testUserDTO = new UserDTO(
+                1L, "testuser", "测试用户", "test@example.com", "13800138000",
+                null, null, null, 1L, null, 1, 1,
+                Arrays.asList(1L, 2L), null, null
+        );
 
         // 初始化创建用户DTO
-        testUserCreateDTO = new UserCreateDTO();
-        testUserCreateDTO.setUsername("newuser");
-        testUserCreateDTO.setPassword("password123");
-        testUserCreateDTO.setNickname("新用户");
-        testUserCreateDTO.setEmail("new@example.com");
-        testUserCreateDTO.setPhone("13900139000");
-        testUserCreateDTO.setDeptId(1L);
-        testUserCreateDTO.setUserType(2);
-        testUserCreateDTO.setStatus(1);
-        testUserCreateDTO.setRoleIds(Arrays.asList(1L));
+        testUserCreateDTO = new UserCreateDTO(
+                "newuser", "password123", "新用户", "new@example.com",
+                "13900139000", null, null, null, 1L, 2, 1,
+                Arrays.asList(1L), null
+        );
     }
 
     // ==================== 查询测试 ====================
@@ -139,8 +129,8 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals("testuser", result.getUsername());
-            assertEquals("测试用户", result.getNickname());
+            assertEquals("testuser", result.username());
+            assertEquals("测试用户", result.nickname());
             verify(userMapper).selectById(1L);
         }
 
@@ -169,7 +159,7 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals("testuser", result.getUsername());
+            assertEquals("testuser", result.username());
         }
 
         @Test
@@ -197,7 +187,7 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals("13800138000", result.getPhone());
+            assertEquals("13800138000", result.phone());
         }
 
         @Test
@@ -213,7 +203,7 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals("test@example.com", result.getEmail());
+            assertEquals("test@example.com", result.email());
         }
 
         @Test
@@ -231,8 +221,9 @@ class UserServiceImplTest {
                     .thenReturn(Collections.emptyList());
             doNothing().when(customMetrics).recordBusinessOperation(anyString(), anyString());
 
-            UserQueryDTO queryDTO = new UserQueryDTO();
-            queryDTO.setUsername("test");
+            UserQueryDTO queryDTO = new UserQueryDTO(
+                    "test", null, null, null, null, null, null, null, null
+            );
 
             // Act
             Page<UserDTO> result = userService.page(queryDTO, 1, 10);
@@ -386,7 +377,11 @@ class UserServiceImplTest {
         @DisplayName("创建用户 - 无角色分配")
         void testCreate_WithoutRoles() {
             // Arrange
-            testUserCreateDTO.setRoleIds(null);
+            testUserCreateDTO = new UserCreateDTO(
+                    "newuser", "password123", "新用户", "new@example.com",
+                    "13900139000", null, null, null, 1L, 2, 1,
+                    null, null
+            );
             when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
             when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
             when(userMapper.insert(any(SysUser.class))).thenReturn(1);
@@ -707,7 +702,9 @@ class UserServiceImplTest {
             when(userRoleMapper.selectList(any(LambdaQueryWrapper.class)))
                     .thenReturn(Collections.emptyList());
 
-            UserQueryDTO queryDTO = new UserQueryDTO();
+            UserQueryDTO queryDTO = new UserQueryDTO(
+                    null, null, null, null, null, null, null, null, null
+            );
 
             // Act
             List<UserDTO> result = userService.export(queryDTO);
@@ -732,8 +729,10 @@ class UserServiceImplTest {
             when(userRoleMapper.selectList(any(LambdaQueryWrapper.class)))
                     .thenReturn(Collections.emptyList());
 
-            DeptBasicDTO deptDTO = new DeptBasicDTO();
-            deptDTO.setDeptName("技术部");
+            DeptBasicDTO deptDTO = new DeptBasicDTO(
+                    null, null, "技术部", null, null, null, null, null,
+                    null, null, null, null, null, null, null
+            );
             Result<DeptBasicDTO> deptResult = Result.success(deptDTO);
             when(deptFeignClient.getById(1L)).thenReturn(deptResult);
 
@@ -742,7 +741,7 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals(null, result.getDeptName());
+            assertEquals(null, result.deptName());
         }
 
         @Test
@@ -759,7 +758,7 @@ class UserServiceImplTest {
 
             // Assert
             assertNotNull(result);
-            assertNull(result.getDeptName()); // 部门名称未填充时为null
+            assertNull(result.deptName()); // 部门名称未填充时为null
         }
     }
 
@@ -792,9 +791,9 @@ class UserServiceImplTest {
             // Assert
             assertNotNull(result);
             // 角色名在当前实现中可能未填充到DTO
-            if (result.getRoleNames() != null && !result.getRoleNames().isEmpty()) {
-                assertEquals(1, result.getRoleNames().size());
-                assertEquals("管理员", result.getRoleNames().get(0));
+            if (result.roleNames() != null && !result.roleNames().isEmpty()) {
+                assertEquals(1, result.roleNames().size());
+                assertEquals("管理员", result.roleNames().get(0));
             }
         }
     }

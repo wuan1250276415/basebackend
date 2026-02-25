@@ -155,22 +155,19 @@ public class SecurityServiceImpl implements SecurityService {
 
         if (user2FA == null) {
             // 返回默认配置
-            User2FADTO dto = new User2FADTO();
-            dto.setEnabled(0);
-            return dto;
+            return new User2FADTO(null, null, 0, null, null, null, null);
         }
 
-        User2FADTO dto = BeanUtil.copyProperties(user2FA, User2FADTO.class);
-
-        // 脱敏处理
-        if (user2FA.getVerifyPhone() != null) {
-            dto.setVerifyPhone(maskPhone(user2FA.getVerifyPhone()));
-        }
-        if (user2FA.getVerifyEmail() != null) {
-            dto.setVerifyEmail(maskEmail(user2FA.getVerifyEmail()));
-        }
-
-        return dto;
+        // 构建DTO，同时进行脱敏处理
+        return new User2FADTO(
+                user2FA.getId(),
+                user2FA.getType(),
+                user2FA.getEnabled(),
+                user2FA.getVerifyPhone() != null ? maskPhone(user2FA.getVerifyPhone()) : null,
+                user2FA.getVerifyEmail() != null ? maskEmail(user2FA.getVerifyEmail()) : null,
+                user2FA.getLastVerifyTime(),
+                user2FA.getCreateTime()
+        );
     }
 
     @Override

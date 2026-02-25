@@ -107,15 +107,16 @@ public class TaskCCServiceImpl extends ServiceImpl<TaskCCMapper, TaskCCEntity> i
 
         Page<TaskCCEntity> resultPage = this.page(page, wrapper);
 
-        List<TaskCCDTO> dtos = resultPage.getRecords().stream().map(entity -> {
-            TaskCCDTO dto = new TaskCCDTO();
-            BeanUtils.copyProperties(entity, dto);
-            // Convert createTime manually if type differs (LocalDateTime vs Date)
-            // BaseEntity uses LocalDateTime usually?
-            // Checking BaseEntity: it uses LocalDateTime usually in modern projects.
-            // Let's assume standardized.
-            return dto;
-        }).collect(Collectors.toList());
+        List<TaskCCDTO> dtos = resultPage.getRecords().stream().map(entity -> new TaskCCDTO(
+                entity.getId(),
+                entity.getTaskId(),
+                entity.getProcessInstanceId(),
+                entity.getProcessDefinitionKey(),
+                entity.getTaskName(),
+                entity.getInitiatorId(),
+                entity.getStatus(),
+                entity.getCreateTime()
+        )).collect(Collectors.toList());
 
         return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }

@@ -50,7 +50,7 @@ public class OperationLogInternalController {
     @PostMapping("/save")
     public Result<Void> saveOperationLog(@RequestBody UserOperationLogDTO operationLog) {
         log.debug("内部API - 保存操作日志: userId={}, operationType={}",
-                operationLog.getUserId(), operationLog.getOperationType());
+                operationLog.userId(), operationLog.operationType());
         operationLogService.saveOperationLog(operationLog);
         return Result.success();
     }

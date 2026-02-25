@@ -79,7 +79,7 @@ public class RoleController {
     @Operation(summary = "创建角色", description = "创建新角色")
     @OperationLog(operation="创建角色", businessType = BusinessType.INSERT)
     public Result<String> create(@Validated @RequestBody RoleDTO roleDTO) {
-        log.info("创建角色: {}", roleDTO.getRoleName());
+        log.info("创建角色: {}", roleDTO.roleName());
         try {
             roleService.create(roleDTO);
             return Result.success("角色创建成功");
@@ -100,8 +100,12 @@ public class RoleController {
             @Validated @RequestBody RoleDTO roleDTO) {
         log.info("更新角色: {}", id);
         try {
-            roleDTO.setId(id);
-            roleService.update(roleDTO);
+            RoleDTO updatedRoleDTO = new RoleDTO(
+                    id, roleDTO.appId(), roleDTO.roleName(), roleDTO.roleKey(),
+                    roleDTO.roleSort(), roleDTO.dataScope(), roleDTO.status(),
+                    roleDTO.remark(), roleDTO.menuIds(), roleDTO.permissionIds()
+            );
+            roleService.update(updatedRoleDTO);
             return Result.success("角色更新成功");
         } catch (Exception e) {
             log.error("更新角色失败: {}", e.getMessage());

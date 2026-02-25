@@ -1,103 +1,110 @@
 package com.basebackend.feign.dto.user;
 
-import lombok.Data;
-
 import java.util.List;
 
 /**
  * 登录响应DTO
  */
-@Data
-public class LoginResponse {
+public record LoginResponse(
+
+        /**
+         * 访问令牌
+         */
+        String accessToken,
+
+        /**
+         * 令牌类型
+         */
+        String tokenType,
+
+        /**
+         * 过期时间（秒）
+         */
+        Long expiresIn,
+
+        /**
+         * 用户信息
+         */
+        UserInfo userInfo,
+
+        /**
+         * 权限列表
+         */
+        List<String> permissions,
+
+        /**
+         * 角色列表
+         */
+        List<String> roles
+
+) {
 
     /**
-     * 访问令牌
+     * 便捷构造方法，默认 tokenType 为 "Bearer"
      */
-    private String accessToken;
+    public LoginResponse(String accessToken, Long expiresIn, UserInfo userInfo,
+                          List<String> permissions, List<String> roles) {
+        this(accessToken, "Bearer", expiresIn, userInfo, permissions, roles);
+    }
 
     /**
-     * 令牌类型
+     * 用户信息内部记录
      */
-    private String tokenType = "Bearer";
+    public record UserInfo(
+            /**
+             * 用户ID
+             */
+            Long userId,
 
-    /**
-     * 过期时间（秒）
-     */
-    private Long expiresIn;
+            /**
+             * 用户名
+             */
+            String username,
 
-    /**
-     * 用户信息
-     */
-    private UserInfo userInfo;
+            /**
+             * 昵称
+             */
+            String nickname,
 
-    /**
-     * 权限列表
-     */
-    private List<String> permissions;
+            /**
+             * 邮箱
+             */
+            String email,
 
-    /**
-     * 角色列表
-     */
-    private List<String> roles;
+            /**
+             * 手机号
+             */
+            String phone,
 
-    /**
-     * 用户信息内部类
-     */
-    @Data
-    public static class UserInfo {
-        /**
-         * 用户ID
-         */
-        private Long userId;
+            /**
+             * 头像
+             */
+            String avatar,
 
-        /**
-         * 用户名
-         */
-        private String username;
+            /**
+             * 性别
+             */
+            Integer gender,
 
-        /**
-         * 昵称
-         */
-        private String nickname;
+            /**
+             * 部门ID
+             */
+            Long deptId,
 
-        /**
-         * 邮箱
-         */
-        private String email;
+            /**
+             * 部门名称
+             */
+            String deptName,
 
-        /**
-         * 手机号
-         */
-        private String phone;
+            /**
+             * 用户类型
+             */
+            Integer userType,
 
-        /**
-         * 头像
-         */
-        private String avatar;
-
-        /**
-         * 性别
-         */
-        private Integer gender;
-
-        /**
-         * 部门ID
-         */
-        private Long deptId;
-
-        /**
-         * 部门名称
-         */
-        private String deptName;
-
-        /**
-         * 用户类型
-         */
-        private Integer userType;
-
-        /**
-         * 状态
-         */
-        private Integer status;
+            /**
+             * 状态
+             */
+            Integer status
+    ) {
     }
 }

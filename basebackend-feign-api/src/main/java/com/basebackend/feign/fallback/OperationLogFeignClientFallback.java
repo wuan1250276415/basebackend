@@ -30,7 +30,7 @@ public class OperationLogFeignClientFallback implements OperationLogFeignClient 
     @Override
     public Result<Void> saveOperationLog(UserOperationLogDTO operationLog) {
         log.warn("保存操作日志失败，触发熔断降级: operationType={}",
-                operationLog != null ? operationLog.getOperationType() : "null");
+                operationLog != null ? operationLog.operationType() : "null");
         return Result.success();
     }
 }

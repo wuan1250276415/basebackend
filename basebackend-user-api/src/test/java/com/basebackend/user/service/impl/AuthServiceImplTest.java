@@ -90,7 +90,7 @@ class AuthServiceImplTest {
         LoginResponse response = authService.login(loginRequest);
 
         assertNotNull(response);
-        assertEquals("jwt-token", response.getAccessToken());
+        assertEquals("jwt-token", response.accessToken());
         verify(redisService).set(anyString(), anyString(), anyLong());
     }
 
@@ -145,7 +145,7 @@ class AuthServiceImplTest {
         LoginResponse response = authService.refreshToken("valid-token");
 
         assertNotNull(response);
-        assertEquals("new-token", response.getAccessToken());
+        assertEquals("new-token", response.accessToken());
     }
 
     @Test

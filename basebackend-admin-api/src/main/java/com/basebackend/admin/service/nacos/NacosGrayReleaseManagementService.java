@@ -34,7 +34,7 @@ public class NacosGrayReleaseManagementService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Long createGrayRelease(GrayReleaseDTO grayDTO) {
-        SysNacosConfig config = nacosConfigMapper.selectById(grayDTO.getConfigId());
+        SysNacosConfig config = nacosConfigMapper.selectById(grayDTO.configId());
         if (config == null) {
             throw new BusinessException("配置不存在");
         }

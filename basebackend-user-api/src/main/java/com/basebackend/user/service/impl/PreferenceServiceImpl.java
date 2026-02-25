@@ -45,16 +45,30 @@ public class PreferenceServiceImpl implements PreferenceService {
 
         if (preference == null) {
             // 返回默认偏好设置
-            UserPreferenceDTO dto = new UserPreferenceDTO();
-            dto.setTheme("light");
-            dto.setLanguage("zh-CN");
-            dto.setEmailNotification(1);
-            dto.setSmsNotification(0);
-            dto.setSystemNotification(1);
-            return dto;
+            return new UserPreferenceDTO(
+                    "light", null, null, null,
+                    "zh-CN", null, null, null,
+                    1, 0, 1,
+                    null, null, null
+            );
         }
 
-        return BeanUtil.copyProperties(preference, UserPreferenceDTO.class);
+        return new UserPreferenceDTO(
+                preference.getTheme(),
+                preference.getPrimaryColor(),
+                preference.getLayout(),
+                preference.getMenuCollapse(),
+                preference.getLanguage(),
+                preference.getTimezone(),
+                preference.getDateFormat(),
+                preference.getTimeFormat(),
+                preference.getEmailNotification(),
+                preference.getSmsNotification(),
+                preference.getSystemNotification(),
+                preference.getPageSize(),
+                preference.getDashboardLayout(),
+                preference.getAutoSave()
+        );
     }
 
     @Override

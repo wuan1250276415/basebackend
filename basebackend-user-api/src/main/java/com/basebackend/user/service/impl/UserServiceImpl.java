@@ -57,32 +57,32 @@ public class UserServiceImpl implements UserService {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
 
         // 构建查询条件
-        if (StrUtil.isNotBlank(queryDTO.getUsername())) {
-            wrapper.like(SysUser::getUsername, queryDTO.getUsername());
+        if (StrUtil.isNotBlank(queryDTO.username())) {
+            wrapper.like(SysUser::getUsername, queryDTO.username());
         }
-        if (StrUtil.isNotBlank(queryDTO.getNickname())) {
-            wrapper.like(SysUser::getNickname, queryDTO.getNickname());
+        if (StrUtil.isNotBlank(queryDTO.nickname())) {
+            wrapper.like(SysUser::getNickname, queryDTO.nickname());
         }
-        if (StrUtil.isNotBlank(queryDTO.getEmail())) {
-            wrapper.like(SysUser::getEmail, queryDTO.getEmail());
+        if (StrUtil.isNotBlank(queryDTO.email())) {
+            wrapper.like(SysUser::getEmail, queryDTO.email());
         }
-        if (StrUtil.isNotBlank(queryDTO.getPhone())) {
-            wrapper.like(SysUser::getPhone, queryDTO.getPhone());
+        if (StrUtil.isNotBlank(queryDTO.phone())) {
+            wrapper.like(SysUser::getPhone, queryDTO.phone());
         }
-        if (queryDTO.getDeptId() != null) {
-            wrapper.eq(SysUser::getDeptId, queryDTO.getDeptId());
+        if (queryDTO.deptId() != null) {
+            wrapper.eq(SysUser::getDeptId, queryDTO.deptId());
         }
-        if (queryDTO.getUserType() != null) {
-            wrapper.eq(SysUser::getUserType, queryDTO.getUserType());
+        if (queryDTO.userType() != null) {
+            wrapper.eq(SysUser::getUserType, queryDTO.userType());
         }
-        if (queryDTO.getStatus() != null) {
-            wrapper.eq(SysUser::getStatus, queryDTO.getStatus());
+        if (queryDTO.status() != null) {
+            wrapper.eq(SysUser::getStatus, queryDTO.status());
         }
-        if (StrUtil.isNotBlank(queryDTO.getBeginTime())) {
-            wrapper.ge(SysUser::getCreateTime, queryDTO.getBeginTime());
+        if (StrUtil.isNotBlank(queryDTO.beginTime())) {
+            wrapper.ge(SysUser::getCreateTime, queryDTO.beginTime());
         }
-        if (StrUtil.isNotBlank(queryDTO.getEndTime())) {
-            wrapper.le(SysUser::getCreateTime, queryDTO.getEndTime());
+        if (StrUtil.isNotBlank(queryDTO.endTime())) {
+            wrapper.le(SysUser::getCreateTime, queryDTO.endTime());
         }
 
         wrapper.orderByDesc(SysUser::getCreateTime);
@@ -123,35 +123,35 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void create(UserCreateDTO userCreateDTO) {
-        log.info("创建用户: {}", userCreateDTO.getUsername());
+        log.info("创建用户: {}", userCreateDTO.username());
 
         // 检查用户名是否唯一
-        if (!checkUsernameUnique(userCreateDTO.getUsername(), null)) {
+        if (!checkUsernameUnique(userCreateDTO.username(), null)) {
             throw new RuntimeException("用户名已存在");
         }
 
         // 检查邮箱是否唯一
-        if (StrUtil.isNotBlank(userCreateDTO.getEmail()) && !checkEmailUnique(userCreateDTO.getEmail(), null)) {
+        if (StrUtil.isNotBlank(userCreateDTO.email()) && !checkEmailUnique(userCreateDTO.email(), null)) {
             throw new RuntimeException("邮箱已存在");
         }
 
         // 检查手机号是否唯一
-        if (StrUtil.isNotBlank(userCreateDTO.getPhone()) && !checkPhoneUnique(userCreateDTO.getPhone(), null)) {
+        if (StrUtil.isNotBlank(userCreateDTO.phone()) && !checkPhoneUnique(userCreateDTO.phone(), null)) {
             throw new RuntimeException("手机号已存在");
         }
 
         // 创建用户
         SysUser user = new SysUser();
         BeanUtil.copyProperties(userCreateDTO, user);
-        user.setPassword(passwordEncoder.encode(userCreateDTO.getPassword()));
+        user.setPassword(passwordEncoder.encode(userCreateDTO.password()));
         // 使用AuditHelper设置审计字段，从UserContextHolder获取当前用户ID
         auditHelper.setCreateAuditFields(user);
 
         userMapper.insert(user);
 
         // 分配角色
-        if (userCreateDTO.getRoleIds() != null && !userCreateDTO.getRoleIds().isEmpty()) {
-            assignRoles(user.getId(), userCreateDTO.getRoleIds());
+        if (userCreateDTO.roleIds() != null && !userCreateDTO.roleIds().isEmpty()) {
+            assignRoles(user.getId(), userCreateDTO.roleIds());
         }
 
         log.info("用户创建成功: {}", user.getUsername());
@@ -161,25 +161,25 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @CacheEvict(value = "user", key = "#userDTO.id")
     public void update(UserDTO userDTO) {
-        log.info("更新用户: {}", userDTO.getId());
+        log.info("更新用户: {}", userDTO.id());
 
-        SysUser user = userMapper.selectById(userDTO.getId());
+        SysUser user = userMapper.selectById(userDTO.id());
         if (user == null) {
             throw new RuntimeException("用户不存在");
         }
 
         // 检查用户名是否唯一
-        if (!checkUsernameUnique(userDTO.getUsername(), userDTO.getId())) {
+        if (!checkUsernameUnique(userDTO.username(), userDTO.id())) {
             throw new RuntimeException("用户名已存在");
         }
 
         // 检查邮箱是否唯一
-        if (StrUtil.isNotBlank(userDTO.getEmail()) && !checkEmailUnique(userDTO.getEmail(), userDTO.getId())) {
+        if (StrUtil.isNotBlank(userDTO.email()) && !checkEmailUnique(userDTO.email(), userDTO.id())) {
             throw new RuntimeException("邮箱已存在");
         }
 
         // 检查手机号是否唯一
-        if (StrUtil.isNotBlank(userDTO.getPhone()) && !checkPhoneUnique(userDTO.getPhone(), userDTO.getId())) {
+        if (StrUtil.isNotBlank(userDTO.phone()) && !checkPhoneUnique(userDTO.phone(), userDTO.id())) {
             throw new RuntimeException("手机号已存在");
         }
 
@@ -191,8 +191,8 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
 
         // 更新角色
-        if (userDTO.getRoleIds() != null) {
-            assignRoles(user.getId(), userDTO.getRoleIds());
+        if (userDTO.roleIds() != null) {
+            assignRoles(user.getId(), userDTO.roleIds());
         }
 
         log.info("用户更新成功: {}", user.getUsername());
@@ -301,26 +301,26 @@ public class UserServiceImpl implements UserService {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
 
         // 构建查询条件（同分页查询）
-        if (StrUtil.isNotBlank(queryDTO.getUsername())) {
-            wrapper.like(SysUser::getUsername, queryDTO.getUsername());
+        if (StrUtil.isNotBlank(queryDTO.username())) {
+            wrapper.like(SysUser::getUsername, queryDTO.username());
         }
-        if (StrUtil.isNotBlank(queryDTO.getNickname())) {
-            wrapper.like(SysUser::getNickname, queryDTO.getNickname());
+        if (StrUtil.isNotBlank(queryDTO.nickname())) {
+            wrapper.like(SysUser::getNickname, queryDTO.nickname());
         }
-        if (StrUtil.isNotBlank(queryDTO.getEmail())) {
-            wrapper.like(SysUser::getEmail, queryDTO.getEmail());
+        if (StrUtil.isNotBlank(queryDTO.email())) {
+            wrapper.like(SysUser::getEmail, queryDTO.email());
         }
-        if (StrUtil.isNotBlank(queryDTO.getPhone())) {
-            wrapper.like(SysUser::getPhone, queryDTO.getPhone());
+        if (StrUtil.isNotBlank(queryDTO.phone())) {
+            wrapper.like(SysUser::getPhone, queryDTO.phone());
         }
-        if (queryDTO.getDeptId() != null) {
-            wrapper.eq(SysUser::getDeptId, queryDTO.getDeptId());
+        if (queryDTO.deptId() != null) {
+            wrapper.eq(SysUser::getDeptId, queryDTO.deptId());
         }
-        if (queryDTO.getUserType() != null) {
-            wrapper.eq(SysUser::getUserType, queryDTO.getUserType());
+        if (queryDTO.userType() != null) {
+            wrapper.eq(SysUser::getUserType, queryDTO.userType());
         }
-        if (queryDTO.getStatus() != null) {
-            wrapper.eq(SysUser::getStatus, queryDTO.getStatus());
+        if (queryDTO.status() != null) {
+            wrapper.eq(SysUser::getStatus, queryDTO.status());
         }
 
         wrapper.orderByDesc(SysUser::getCreateTime);
@@ -474,28 +474,21 @@ public class UserServiceImpl implements UserService {
         // 5. 转换为DTO
         final Map<Long, String> finalRoleNameMap = roleNameMap;
         return users.stream().map(user -> {
-            UserDTO dto = new UserDTO();
-            BeanUtil.copyProperties(user, dto);
-
-            // 设置部门名称
-            if (user.getDeptId() != null) {
-                dto.setDeptName(deptNameMap.getOrDefault(user.getDeptId(), ""));
-            }
-
-            // 设置角色信息
             List<Long> roleIds = userRolesMap.getOrDefault(user.getId(), List.of());
-            dto.setRoleIds(roleIds);
-
-            // 设置角色名称
-            if (!roleIds.isEmpty()) {
-                List<String> roleNames = roleIds.stream()
-                        .map(finalRoleNameMap::get)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                dto.setRoleNames(roleNames);
-            }
-
-            return dto;
+            List<String> roleNames = roleIds.isEmpty() ? List.of() : roleIds.stream()
+                    .map(finalRoleNameMap::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            String deptName = user.getDeptId() != null
+                    ? deptNameMap.getOrDefault(user.getDeptId(), "")
+                    : null;
+            return new UserDTO(
+                    user.getId(), user.getUsername(), user.getNickname(),
+                    user.getEmail(), user.getPhone(), user.getAvatar(),
+                    user.getGender(), user.getBirthday(), user.getDeptId(),
+                    deptName, user.getUserType(), user.getStatus(),
+                    roleIds, roleNames, null
+            );
         }).collect(Collectors.toList());
     }
 
@@ -503,26 +496,22 @@ public class UserServiceImpl implements UserService {
      * 转换为DTO（单个用户，用于单条查询场景）
      */
     private UserDTO convertToDTO(SysUser user) {
-        UserDTO dto = new UserDTO();
-        BeanUtil.copyProperties(user, dto);
-
-        // 设置部门名称（使用DeptInfoHelper统一处理）
-        dto.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
-
-        // 设置角色信息
+        String deptName = deptInfoHelper.getDeptName(user.getDeptId());
         List<Long> roleIds = getUserRoles(user.getId());
-        dto.setRoleIds(roleIds);
-
-        // 设置角色名称
+        List<String> roleNames = List.of();
         if (!roleIds.isEmpty()) {
             List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
-            List<String> roleNames = roles.stream()
+            roleNames = roles.stream()
                     .map(SysRole::getRoleName)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            dto.setRoleNames(roleNames);
         }
-
-        return dto;
+        return new UserDTO(
+                user.getId(), user.getUsername(), user.getNickname(),
+                user.getEmail(), user.getPhone(), user.getAvatar(),
+                user.getGender(), user.getBirthday(), user.getDeptId(),
+                deptName, user.getUserType(), user.getStatus(),
+                roleIds, roleNames, null
+        );
     }
 }

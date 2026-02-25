@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
-        log.info("用户登录: {}", loginRequest.getUsername());
+        log.info("用户登录: {}", loginRequest.username());
 
         // 获取请求信息
         HttpServletRequest request = getHttpServletRequest();
@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         String os = UserAgentUtil.getOperatingSystem(request);
 
         LoginLogDTO loginLog = new LoginLogDTO();
-        loginLog.setUsername(loginRequest.getUsername());
+        loginLog.setUsername(loginRequest.username());
         loginLog.setIpAddress(ipAddress);
         loginLog.setLoginLocation(location);
         loginLog.setBrowser(browser);
@@ -71,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             // 查询用户
-            SysUser user = userMapper.selectByUsername(loginRequest.getUsername());
+            SysUser user = userMapper.selectByUsername(loginRequest.username());
             if (user == null) {
                 loginLog.setStatus(0);
                 loginLog.setMsg("用户不存在");
@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("用户不存在");
             }
             // 验证密码
-            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
                 loginLog.setUserId(user.getId());
                 loginLog.setStatus(0);
                 loginLog.setMsg("密码错误");
@@ -131,28 +131,18 @@ public class AuthServiceImpl implements AuthService {
             redisService.set(USER_ROLES_KEY + user.getId(), roles, 24 * 60 * 60);
 
             // 构建用户信息
-            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
-            userInfo.setUserId(user.getId());
-            userInfo.setUsername(user.getUsername());
-            userInfo.setNickname(user.getNickname());
-            userInfo.setEmail(user.getEmail());
-            userInfo.setPhone(user.getPhone());
-            userInfo.setAvatar(user.getAvatar());
-            userInfo.setGender(user.getGender());
-            userInfo.setDeptId(user.getDeptId());
-            userInfo.setUserType(user.getUserType());
-            userInfo.setStatus(user.getStatus());
-
-            // 获取部门名称（使用DeptInfoHelper统一处理）
-            userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
+            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+                    user.getId(), user.getUsername(), user.getNickname(),
+                    user.getEmail(), user.getPhone(), user.getAvatar(),
+                    user.getGender(), user.getDeptId(),
+                    deptInfoHelper.getDeptName(user.getDeptId()),
+                    user.getUserType(), user.getStatus()
+            );
 
             // 构建响应
-            LoginResponse response = new LoginResponse();
-            response.setAccessToken(token);
-            response.setExpiresIn(24 * 60 * 60L); // 24小时
-            response.setUserInfo(userInfo);
-            response.setPermissions(permissions);
-            response.setRoles(roles);
+            LoginResponse response = new LoginResponse(
+                    token, 24 * 60 * 60L, userInfo, permissions, roles
+            );
 
             // 记录登录日志
             recordLoginLog(loginLog);
@@ -210,28 +200,18 @@ public class AuthServiceImpl implements AuthService {
         List<String> roles = userMapper.selectUserRoles(user.getId());
 
         // 构建用户信息
-        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
-        userInfo.setUserId(user.getId());
-        userInfo.setUsername(user.getUsername());
-        userInfo.setNickname(user.getNickname());
-        userInfo.setEmail(user.getEmail());
-        userInfo.setPhone(user.getPhone());
-        userInfo.setAvatar(user.getAvatar());
-        userInfo.setGender(user.getGender());
-        userInfo.setDeptId(user.getDeptId());
-        userInfo.setUserType(user.getUserType());
-        userInfo.setStatus(user.getStatus());
-
-        // 获取部门名称（使用DeptInfoHelper统一处理）
-        userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+                user.getId(), user.getUsername(), user.getNickname(),
+                user.getEmail(), user.getPhone(), user.getAvatar(),
+                user.getGender(), user.getDeptId(),
+                deptInfoHelper.getDeptName(user.getDeptId()),
+                user.getUserType(), user.getStatus()
+        );
 
         // 构建响应
-        LoginResponse response = new LoginResponse();
-        response.setAccessToken(newToken);
-        response.setExpiresIn(24 * 60 * 60L);
-        response.setUserInfo(userInfo);
-        response.setPermissions(permissions);
-        response.setRoles(roles);
+        LoginResponse response = new LoginResponse(
+                newToken, 24 * 60 * 60L, userInfo, permissions, roles
+        );
 
         return response;
     }
@@ -245,7 +225,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void changePassword(PasswordChangeDTO passwordChangeDTO) {
         // 验证新密码和确认密码是否一致
-        if (!passwordChangeDTO.getNewPassword().equals(passwordChangeDTO.getConfirmPassword())) {
+        if (!passwordChangeDTO.newPassword().equals(passwordChangeDTO.confirmPassword())) {
             throw new RuntimeException("新密码和确认密码不一致");
         }
 
@@ -262,12 +242,12 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 验证旧密码
-        if (!passwordEncoder.matches(passwordChangeDTO.getOldPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(passwordChangeDTO.oldPassword(), user.getPassword())) {
             throw new RuntimeException("旧密码错误");
         }
 
         // 更新密码
-        user.setPassword(passwordEncoder.encode(passwordChangeDTO.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(passwordChangeDTO.newPassword()));
         userMapper.updateById(user);
 
         log.info("用户修改密码成功: {}", user.getUsername());
@@ -424,28 +404,18 @@ public class AuthServiceImpl implements AuthService {
             redisService.set(USER_ROLES_KEY + user.getId(), roles, 24 * 60 * 60);
 
             // 构建用户信息
-            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
-            userInfo.setUserId(user.getId());
-            userInfo.setUsername(user.getUsername());
-            userInfo.setNickname(user.getNickname());
-            userInfo.setEmail(user.getEmail());
-            userInfo.setPhone(user.getPhone());
-            userInfo.setAvatar(user.getAvatar());
-            userInfo.setGender(user.getGender());
-            userInfo.setDeptId(user.getDeptId());
-            userInfo.setUserType(user.getUserType());
-            userInfo.setStatus(user.getStatus());
-
-            // 获取部门名称
-            userInfo.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
+            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
+                    user.getId(), user.getUsername(), user.getNickname(),
+                    user.getEmail(), user.getPhone(), user.getAvatar(),
+                    user.getGender(), user.getDeptId(),
+                    deptInfoHelper.getDeptName(user.getDeptId()),
+                    user.getUserType(), user.getStatus()
+            );
 
             // 构建响应
-            LoginResponse response = new LoginResponse();
-            response.setAccessToken(token);
-            response.setExpiresIn(24 * 60 * 60L); // 24小时
-            response.setUserInfo(userInfo);
-            response.setPermissions(permissions);
-            response.setRoles(roles);
+            LoginResponse response = new LoginResponse(
+                    token, 24 * 60 * 60L, userInfo, permissions, roles
+            );
 
             // 记录登录日志
             recordLoginLog(loginLog);

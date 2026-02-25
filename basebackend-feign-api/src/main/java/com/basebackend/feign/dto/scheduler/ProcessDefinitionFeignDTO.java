@@ -1,7 +1,6 @@
 package com.basebackend.feign.dto.scheduler;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -12,116 +11,71 @@ import java.time.LocalDateTime;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Data
-public class ProcessDefinitionFeignDTO implements Serializable {
+public record ProcessDefinitionFeignDTO(
+        /** 流程定义ID */
+        String id,
 
-    private static final long serialVersionUID = 1L;
+        /** 流程定义键 */
+        String key,
 
-    /**
-     * 流程定义ID
-     */
-    private String id;
+        /** 流程名称 */
+        String name,
 
-    /**
-     * 流程定义键
-     */
-    private String key;
+        /** 版本号 */
+        Integer version,
 
-    /**
-     * 流程名称
-     */
-    private String name;
+        /** 流程定义类别 */
+        String category,
 
-    /**
-     * 版本号
-     */
-    private Integer version;
+        /** 部署ID */
+        String deploymentId,
 
-    /**
-     * 流程定义类别
-     */
-    private String category;
+        /** 是否Suspended（挂起） */
+        boolean suspended,
 
-    /**
-     * 部署ID
-     */
-    private String deploymentId;
+        /** 流程定义描述 */
+        String description,
 
-    /**
-     * 是否Suspended（挂起）
-     */
-    private boolean suspended;
+        /** BPMN 2.0 XML文件的唯一标识符 */
+        String resourceName,
 
-    /**
-     * 流程定义描述
-     */
-    private String description;
+        /** 流程图文件的名称 */
+        String diagramResourceName,
 
-    /**
-     * BPMN 2.0 XML文件的唯一标识符
-     */
-    private String resourceName;
+        /** DGRM规范的URI */
+        String startFormKey,
 
-    /**
-     * 流程图文件的名称
-     */
-    private String diagramResourceName;
+        /** 版本标签 */
+        String versionTag,
 
-    /**
-     * DGRM规范的URI
-     */
-    private String startFormKey;
+        /** 候选开始活动ID集合（多个ID用逗号分隔） */
+        String startableInTasklist,
 
-    /**
-     * 版本标签
-     */
-    private String versionTag;
+        /** 是否可由API启动 */
+        boolean startable,
 
-    /**
-     * 候选开始活动ID集合（多个ID用逗号分隔）
-     */
-    private String startableInTasklist;
+        /** 创建时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime created,
 
-    /**
-     * 是否可由API启动
-     */
-    private boolean startable;
+        /** 创建人 */
+        String createdBy,
 
-    /**
-     * 创建时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime created;
+        /** 最后修改时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime lastModified,
 
-    /**
-     * 创建人
-     */
-    private String createdBy;
+        /** 最后修改人 */
+        String lastModifiedBy,
 
-    /**
-     * 最后修改时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime lastModified;
+        /** 租户ID */
+        String tenantId,
 
-    /**
-     * 最后修改人
-     */
-    private String lastModifiedBy;
+        /** 候选开始活动信息 */
+        String startActivityId,
 
-    /**
-     * 租户ID
-     */
-    private String tenantId;
-
-    /**
-     * 候选开始活动信息
-     */
-    private String startActivityId;
-
-    /**
-     * 部署时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime deploymentTime;
+        /** 部署时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime deploymentTime
+) implements Serializable {
 }

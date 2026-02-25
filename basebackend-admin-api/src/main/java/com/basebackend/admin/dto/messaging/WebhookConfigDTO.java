@@ -1,40 +1,34 @@
 package com.basebackend.admin.dto.messaging;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
 
 /**
  * Webhook配置DTO
  */
-@Data
-public class WebhookConfigDTO {
-
-    private Long id;
-
+public record WebhookConfigDTO(
+    Long id,
     @NotBlank(message = "Webhook名称不能为空")
-    private String name;
-
+    String name,
     @NotBlank(message = "Webhook URL不能为空")
-    private String url;
-
+    String url,
     @NotBlank(message = "事件类型不能为空")
-    private String eventTypes;
-
-    private String secret;
-
-    private Boolean signatureEnabled = true;
-
-    private String method = "POST";
-
-    private String headers;
-
-    private Integer timeout = 30;
-
-    private Integer maxRetries = 3;
-
-    private Integer retryInterval = 60;
-
-    private Boolean enabled = true;
-
-    private String remark;
+    String eventTypes,
+    String secret,
+    Boolean signatureEnabled,
+    String method,
+    String headers,
+    Integer timeout,
+    Integer maxRetries,
+    Integer retryInterval,
+    Boolean enabled,
+    String remark
+) {
+    public WebhookConfigDTO {
+        if (signatureEnabled == null) signatureEnabled = true;
+        if (method == null) method = "POST";
+        if (timeout == null) timeout = 30;
+        if (maxRetries == null) maxRetries = 3;
+        if (retryInterval == null) retryInterval = 60;
+        if (enabled == null) enabled = true;
+    }
 }

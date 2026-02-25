@@ -67,9 +67,9 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public boolean createApplication(ApplicationDTO dto) {
         // 检查应用编码是否已存在
-        SysApplication existing = applicationMapper.selectByAppCode(dto.getAppCode());
+        SysApplication existing = applicationMapper.selectByAppCode(dto.appCode());
         if (existing != null) {
-            throw new RuntimeException("应用编码已存在：" + dto.getAppCode());
+            throw new RuntimeException("应用编码已存在：" + dto.appCode());
         }
 
         SysApplication application = new SysApplication();
@@ -81,14 +81,14 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateApplication(ApplicationDTO dto) {
-        if (dto.getId() == null) {
+        if (dto.id() == null) {
             throw new RuntimeException("应用ID不能为空");
         }
 
         // 检查应用编码是否被其他应用使用
-        SysApplication existing = applicationMapper.selectByAppCode(dto.getAppCode());
-        if (existing != null && !existing.getId().equals(dto.getId())) {
-            throw new RuntimeException("应用编码已被其他应用使用：" + dto.getAppCode());
+        SysApplication existing = applicationMapper.selectByAppCode(dto.appCode());
+        if (existing != null && !existing.getId().equals(dto.id())) {
+            throw new RuntimeException("应用编码已被其他应用使用：" + dto.appCode());
         }
 
         SysApplication application = new SysApplication();
@@ -126,8 +126,16 @@ public class ApplicationServiceImpl implements ApplicationService {
      * 转换为DTO
      */
     private ApplicationDTO convertToDTO(SysApplication entity) {
-        ApplicationDTO dto = new ApplicationDTO();
-        BeanUtils.copyProperties(entity, dto);
-        return dto;
+        return new ApplicationDTO(
+                entity.getId(),
+                entity.getAppName(),
+                entity.getAppCode(),
+                entity.getAppType(),
+                entity.getAppIcon(),
+                entity.getAppUrl(),
+                entity.getStatus(),
+                entity.getOrderNum(),
+                entity.getRemark()
+        );
     }
 }

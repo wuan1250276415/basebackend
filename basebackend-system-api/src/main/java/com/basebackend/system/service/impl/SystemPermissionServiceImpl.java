@@ -133,7 +133,7 @@ public class SystemPermissionServiceImpl implements PermissionService {
             // 通过 FeignClient 获取用户基本信息，提取部门ID
             Result<UserBasicDTO> userResult = userFeignClient.getById(userId);
             if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
-                return userResult.getData().getDeptId();
+                return userResult.getData().deptId();
             }
             log.warn("获取用户部门信息失败: userId={}", userId);
             return null;

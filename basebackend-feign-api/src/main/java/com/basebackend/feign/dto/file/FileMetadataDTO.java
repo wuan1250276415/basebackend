@@ -3,10 +3,6 @@ package com.basebackend.feign.dto.file;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -17,109 +13,105 @@ import java.time.LocalDateTime;
  * @author Claude Code
  * @since 2025-01-07
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "文件元数据信息")
-public class FileMetadataDTO implements Serializable {
+public record FileMetadataDTO(
 
-    private static final long serialVersionUID = 1L;
+        @Schema(description = "主键ID")
+        Long id,
 
-    @Schema(description = "主键ID")
-    private Long id;
+        @Schema(description = "文件唯一标识")
+        String fileId,
 
-    @Schema(description = "文件唯一标识")
-    private String fileId;
+        @Schema(description = "文件名")
+        String fileName,
 
-    @Schema(description = "文件名")
-    private String fileName;
+        @Schema(description = "原始文件名")
+        String originalName,
 
-    @Schema(description = "原始文件名")
-    private String originalName;
+        @Schema(description = "存储路径")
+        String filePath,
 
-    @Schema(description = "存储路径")
-    private String filePath;
+        @Schema(description = "文件大小(字节)")
+        Long fileSize,
 
-    @Schema(description = "文件大小(字节)")
-    private Long fileSize;
+        @Schema(description = "文件MIME类型")
+        String contentType,
 
-    @Schema(description = "文件MIME类型")
-    private String contentType;
+        @Schema(description = "文件扩展名")
+        String fileExtension,
 
-    @Schema(description = "文件扩展名")
-    private String fileExtension;
+        @Schema(description = "文件MD5值")
+        String md5,
 
-    @Schema(description = "文件MD5值")
-    private String md5;
+        @Schema(description = "文件SHA256值")
+        String sha256,
 
-    @Schema(description = "文件SHA256值")
-    private String sha256;
+        @Schema(description = "存储类型")
+        String storageType,
 
-    @Schema(description = "存储类型")
-    private String storageType;
+        @Schema(description = "存储桶名称")
+        String bucketName,
 
-    @Schema(description = "存储桶名称")
-    private String bucketName;
+        @Schema(description = "所属文件夹ID")
+        Long folderId,
 
-    @Schema(description = "所属文件夹ID")
-    private Long folderId;
+        @Schema(description = "文件夹路径")
+        String folderPath,
 
-    @Schema(description = "文件夹路径")
-    private String folderPath;
+        @Schema(description = "是否为文件夹")
+        Boolean isFolder,
 
-    @Schema(description = "是否为文件夹")
-    private Boolean isFolder;
+        @Schema(description = "所有者ID")
+        Long ownerId,
 
-    @Schema(description = "所有者ID")
-    private Long ownerId;
+        @Schema(description = "所有者名称")
+        String ownerName,
 
-    @Schema(description = "所有者名称")
-    private String ownerName;
+        @Schema(description = "是否公开")
+        Boolean isPublic,
 
-    @Schema(description = "是否公开")
-    private Boolean isPublic;
+        @Schema(description = "是否删除(软删除)")
+        Boolean isDeleted,
 
-    @Schema(description = "是否删除(软删除)")
-    private Boolean isDeleted;
+        @Schema(description = "删除时间")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+        LocalDateTime deletedAt,
 
-    @Schema(description = "删除时间")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private LocalDateTime deletedAt;
+        @Schema(description = "删除人ID")
+        Long deletedBy,
 
-    @Schema(description = "删除人ID")
-    private Long deletedBy;
+        @Schema(description = "当前版本号")
+        Integer version,
 
-    @Schema(description = "当前版本号")
-    private Integer version;
+        @Schema(description = "最新版本ID")
+        Long latestVersionId,
 
-    @Schema(description = "最新版本ID")
-    private Long latestVersionId;
+        @Schema(description = "下载次数")
+        Integer downloadCount,
 
-    @Schema(description = "下载次数")
-    private Integer downloadCount;
+        @Schema(description = "浏览次数")
+        Integer viewCount,
 
-    @Schema(description = "浏览次数")
-    private Integer viewCount;
+        @Schema(description = "缩略图路径")
+        String thumbnailPath,
 
-    @Schema(description = "缩略图路径")
-    private String thumbnailPath;
+        @Schema(description = "标签(JSON数组)")
+        String tags,
 
-    @Schema(description = "标签(JSON数组)")
-    private String tags;
+        @Schema(description = "文件描述")
+        String description,
 
-    @Schema(description = "文件描述")
-    private String description;
+        @Schema(description = "扩展元数据")
+        String metadata,
 
-    @Schema(description = "扩展元数据")
-    private String metadata;
+        @Schema(description = "创建时间")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+        LocalDateTime createTime,
 
-    @Schema(description = "创建时间")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private LocalDateTime createTime;
+        @Schema(description = "更新时间")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+        LocalDateTime updateTime
 
-    @Schema(description = "更新时间")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private LocalDateTime updateTime;
+) implements Serializable {
 }

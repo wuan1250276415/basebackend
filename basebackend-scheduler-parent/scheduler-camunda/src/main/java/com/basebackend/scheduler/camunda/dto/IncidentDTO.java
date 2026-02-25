@@ -1,10 +1,6 @@
 package com.basebackend.scheduler.camunda.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.camunda.bpm.engine.runtime.Incident;
 
 import java.util.Date;
@@ -19,115 +15,59 @@ import java.util.Date;
  * @version 1.0.0
  * @since 2025-01-01
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Schema(name = "IncidentDTO", description = "异常事件信息")
-public class IncidentDTO {
+public record IncidentDTO(
+        @Schema(description = "异常事件 ID", example = "12345")
+        String id,
 
-    /**
-     * 异常事件 ID
-     */
-    @Schema(description = "异常事件 ID", example = "12345")
-    private String id;
+        @Schema(description = "异常类型", example = "failedJob")
+        String incidentType,
 
-    /**
-     * 异常类型
-     */
-    @Schema(description = "异常类型", example = "failedJob")
-    private String incidentType;
+        @Schema(description = "异常消息", example = "Connection timeout")
+        String incidentMessage,
 
-    /**
-     * 异常消息
-     */
-    @Schema(description = "异常消息", example = "Connection timeout")
-    private String incidentMessage;
+        @Schema(description = "异常发生时间", example = "2025-01-01T10:00:00")
+        Date incidentTimestamp,
 
-    /**
-     * 异常发生时间
-     */
-    @Schema(description = "异常发生时间", example = "2025-01-01T10:00:00")
-    private Date incidentTimestamp;
+        @Schema(description = "流程定义 ID", example = "order_approval:1:12345")
+        String processDefinitionId,
 
-    /**
-     * 流程定义 ID
-     */
-    @Schema(description = "流程定义 ID", example = "order_approval:1:12345")
-    private String processDefinitionId;
+        @Schema(description = "流程实例 ID", example = "67890")
+        String processInstanceId,
 
-    /**
-     * 流程实例 ID
-     */
-    @Schema(description = "流程实例 ID", example = "67890")
-    private String processInstanceId;
+        @Schema(description = "执行实例 ID", example = "11111")
+        String executionId,
 
-    /**
-     * 执行实例 ID
-     */
-    @Schema(description = "执行实例 ID", example = "11111")
-    private String executionId;
+        @Schema(description = "活动 ID", example = "ServiceTask_1")
+        String activityId,
 
-    /**
-     * 活动 ID（发生异常的 BPMN 节点 ID）
-     */
-    @Schema(description = "活动 ID", example = "ServiceTask_1")
-    private String activityId;
+        @Schema(description = "失败的活动 ID", example = "ServiceTask_1")
+        String failedActivityId,
 
-    /**
-     * 失败的活动 ID
-     */
-    @Schema(description = "失败的活动 ID", example = "ServiceTask_1")
-    private String failedActivityId;
+        @Schema(description = "作业定义 ID", example = "job_def_123")
+        String jobDefinitionId,
 
-    /**
-     * 关联的作业定义 ID
-     */
-    @Schema(description = "作业定义 ID", example = "job_def_123")
-    private String jobDefinitionId;
+        @Schema(description = "配置信息", example = "job_123")
+        String configuration,
 
-    /**
-     * 关联的配置（如作业 ID）
-     */
-    @Schema(description = "配置信息", example = "job_123")
-    private String configuration;
+        @Schema(description = "根异常事件 ID", example = "root_incident_123")
+        String rootCauseIncidentId,
 
-    /**
-     * 根异常事件 ID
-     */
-    @Schema(description = "根异常事件 ID", example = "root_incident_123")
-    private String rootCauseIncidentId;
+        @Schema(description = "原因异常事件 ID", example = "cause_incident_123")
+        String causeIncidentId,
 
-    /**
-     * 原因异常事件 ID
-     */
-    @Schema(description = "原因异常事件 ID", example = "cause_incident_123")
-    private String causeIncidentId;
+        @Schema(description = "租户 ID", example = "tenant_001")
+        String tenantId,
 
-    /**
-     * 租户 ID
-     */
-    @Schema(description = "租户 ID", example = "tenant_001")
-    private String tenantId;
+        @Schema(description = "是否已解决", example = "false")
+        Boolean resolved,
 
-    /**
-     * 历史异常事件是否已解决
-     */
-    @Schema(description = "是否已解决", example = "false")
-    private Boolean resolved;
+        @Schema(description = "解决时间", example = "2025-01-01T12:00:00")
+        Date resolvedTimestamp,
 
-    /**
-     * 历史异常事件解决时间
-     */
-    @Schema(description = "解决时间", example = "2025-01-01T12:00:00")
-    private Date resolvedTimestamp;
-
-    /**
-     * 注解/备注
-     */
-    @Schema(description = "注解/备注", example = "手动处理完成")
-    private String annotation;
-
+        @Schema(description = "注解/备注", example = "手动处理完成")
+        String annotation
+) {
     /**
      * 从 Camunda Incident 转换为 DTO
      *
@@ -138,23 +78,24 @@ public class IncidentDTO {
         if (incident == null) {
             return null;
         }
-
-        return IncidentDTO.builder()
-                .id(incident.getId())
-                .incidentType(incident.getIncidentType())
-                .incidentMessage(incident.getIncidentMessage())
-                .incidentTimestamp(incident.getIncidentTimestamp())
-                .processDefinitionId(incident.getProcessDefinitionId())
-                .processInstanceId(incident.getProcessInstanceId())
-                .executionId(incident.getExecutionId())
-                .activityId(incident.getActivityId())
-                .failedActivityId(incident.getFailedActivityId())
-                .jobDefinitionId(incident.getJobDefinitionId())
-                .configuration(incident.getConfiguration())
-                .rootCauseIncidentId(incident.getRootCauseIncidentId())
-                .causeIncidentId(incident.getCauseIncidentId())
-                .tenantId(incident.getTenantId())
-                .annotation(incident.getAnnotation())
-                .build();
+        return new IncidentDTO(
+                incident.getId(),
+                incident.getIncidentType(),
+                incident.getIncidentMessage(),
+                incident.getIncidentTimestamp(),
+                incident.getProcessDefinitionId(),
+                incident.getProcessInstanceId(),
+                incident.getExecutionId(),
+                incident.getActivityId(),
+                incident.getFailedActivityId(),
+                incident.getJobDefinitionId(),
+                incident.getConfiguration(),
+                incident.getRootCauseIncidentId(),
+                incident.getCauseIncidentId(),
+                incident.getTenantId(),
+                null,
+                null,
+                incident.getAnnotation()
+        );
     }
 }

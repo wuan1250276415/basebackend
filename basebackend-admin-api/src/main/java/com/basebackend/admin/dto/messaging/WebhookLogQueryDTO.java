@@ -1,26 +1,21 @@
 package com.basebackend.admin.dto.messaging;
 
-import lombok.Data;
-
 import java.time.LocalDateTime;
 
 /**
  * Webhook日志查询DTO
  */
-@Data
-public class WebhookLogQueryDTO {
-
-    private Long webhookId;
-
-    private String eventType;
-
-    private Boolean success;
-
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
-
-    private Integer page = 1;
-
-    private Integer size = 20;
+public record WebhookLogQueryDTO(
+    Long webhookId,
+    String eventType,
+    Boolean success,
+    LocalDateTime startTime,
+    LocalDateTime endTime,
+    Integer page,
+    Integer size
+) {
+    public WebhookLogQueryDTO {
+        if (page == null) page = 1;
+        if (size == null) size = 20;
+    }
 }

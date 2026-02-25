@@ -72,7 +72,7 @@ public class ApplicationController {
     @OperationLog(operation = "创建应用", businessType = BusinessType.INSERT)
     @RequiresPermission("system:application:create")
     public Result<Void> createApplication(@Validated @RequestBody ApplicationDTO dto) {
-        log.info("创建应用: {}", dto.getAppName());
+        log.info("创建应用: {}", dto.appName());
         boolean success = applicationService.createApplication(dto);
         return success ? Result.success() : Result.error("创建失败");
     }
@@ -82,7 +82,7 @@ public class ApplicationController {
     @OperationLog(operation = "更新应用", businessType = BusinessType.UPDATE)
     @RequiresPermission("system:application:update")
     public Result<Void> updateApplication(@Validated @RequestBody ApplicationDTO dto) {
-        log.info("更新应用: {}", dto.getId());
+        log.info("更新应用: {}", dto.id());
         boolean success = applicationService.updateApplication(dto);
         return success ? Result.success() : Result.error("更新失败");
     }

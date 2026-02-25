@@ -275,7 +275,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
 
             String fileName = definition.getResourceName();
 
-            return BinaryPayload.builder().data(content).fileName(fileName).mimeType("application/xml").build();
+            return new BinaryPayload(fileName, "application/xml", content);
         } catch (CamundaServiceException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -312,7 +312,7 @@ public class ProcessDefinitionServiceImpl implements ProcessDefinitionService {
             String fileName = definition.getDiagramResourceName();
             String contentType = fileName.endsWith(".svg") ? "image/svg+xml" : "image/png";
 
-            return BinaryPayload.builder().data(content).fileName(fileName).mimeType(contentType).build();
+            return new BinaryPayload(fileName, contentType, content);
         } catch (CamundaServiceException ex) {
             throw ex;
         } catch (Exception ex) {

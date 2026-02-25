@@ -331,40 +331,40 @@ public class TraceQueryServiceImpl implements TraceQueryService {
 
     @Override
     public Map<String, Object> searchTraces(TraceQueryRequest request) {
-        log.info("Searching traces for service: {}", request.getServiceName());
-        
+        log.info("Searching traces for service: {}", request.serviceName());
+
         try {
             // 构建Zipkin查询参数
             StringBuilder urlBuilder = new StringBuilder(traceEndpoint + "/api/v2/traces?");
-            
-            if (request.getServiceName() != null) {
-                urlBuilder.append("serviceName=").append(request.getServiceName()).append("&");
+
+            if (request.serviceName() != null) {
+                urlBuilder.append("serviceName=").append(request.serviceName()).append("&");
             }
-            
-            if (request.getOperationName() != null) {
-                urlBuilder.append("spanName=").append(request.getOperationName()).append("&");
+
+            if (request.operationName() != null) {
+                urlBuilder.append("spanName=").append(request.operationName()).append("&");
             }
-            
-            if (request.getMinDuration() != null) {
-                urlBuilder.append("minDuration=").append(request.getMinDuration() * 1000).append("&");
+
+            if (request.minDuration() != null) {
+                urlBuilder.append("minDuration=").append(request.minDuration() * 1000).append("&");
             }
-            
-            if (request.getMaxDuration() != null) {
-                urlBuilder.append("maxDuration=").append(request.getMaxDuration() * 1000).append("&");
+
+            if (request.maxDuration() != null) {
+                urlBuilder.append("maxDuration=").append(request.maxDuration() * 1000).append("&");
             }
-            
-            if (request.getEndTime() != null) {
-                urlBuilder.append("endTs=").append(request.getEndTime()).append("&");
+
+            if (request.endTime() != null) {
+                urlBuilder.append("endTs=").append(request.endTime()).append("&");
             }
-            
+
             // lookback参数（查询时间范围，单位：毫秒）
             long lookback = 3600000; // 默认1小时
-            if (request.getStartTime() != null && request.getEndTime() != null) {
-                lookback = request.getEndTime() - request.getStartTime();
+            if (request.startTime() != null && request.endTime() != null) {
+                lookback = request.endTime() - request.startTime();
             }
             urlBuilder.append("lookback=").append(lookback).append("&");
-            
-            urlBuilder.append("limit=").append(request.getLimit() != null ? request.getLimit() : 100);
+
+            urlBuilder.append("limit=").append(request.limit() != null ? request.limit() : 100);
             
             String url = urlBuilder.toString();
             log.debug("Querying traces: {}", url);
@@ -386,7 +386,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
                 Map<String, Object> result = new HashMap<>();
                 result.put("traces", convertedTraces);
                 result.put("total", convertedTraces.size());
-                result.put("limit", request.getLimit());
+                result.put("limit", request.limit());
                 
                 return result;
             } else {
@@ -434,11 +434,9 @@ public class TraceQueryServiceImpl implements TraceQueryService {
             long startTime = endTime - (hours * 3600000L);
             
             // 查询traces
-            TraceQueryRequest request = new TraceQueryRequest();
-            request.setServiceName(serviceName);
-            request.setStartTime(startTime);
-            request.setEndTime(endTime);
-            request.setLimit(1000); // 获取更多数据用于统计
+            TraceQueryRequest request = new TraceQueryRequest(
+                    serviceName, null, startTime, endTime,
+                    null, null, null, 1000); // 获取更多数据用于统计
             
             Map<String, Object> searchResult = searchTraces(request);
             @SuppressWarnings("unchecked")

@@ -181,12 +181,12 @@ public class ProcessDefinitionController {
             @Parameter(description = "流程定义 ID") @PathVariable @NotBlank String definitionId) {
         BinaryPayload payload = processDefinitionService.downloadBpmn(definitionId);
 
-        ByteArrayResource resource = new ByteArrayResource(payload.getData());
+        ByteArrayResource resource = new ByteArrayResource(payload.data());
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(payload.getMimeType()))
+                .contentType(MediaType.parseMediaType(payload.mimeType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + payload.getFileName() + "\"")
+                        "attachment; filename=\"" + payload.fileName() + "\"")
                 .body(resource);
     }
 
@@ -201,7 +201,7 @@ public class ProcessDefinitionController {
     public Result<java.util.Map<String, String>> getBpmnXmlContent(
             @Parameter(description = "流程定义 ID") @PathVariable @NotBlank String definitionId) {
         BinaryPayload payload = processDefinitionService.downloadBpmn(definitionId);
-        String xml = new String(payload.getData(), java.nio.charset.StandardCharsets.UTF_8);
+        String xml = new String(payload.data(), java.nio.charset.StandardCharsets.UTF_8);
         return Result.success(java.util.Map.of("xml", xml));
     }
 
@@ -217,12 +217,12 @@ public class ProcessDefinitionController {
             @Parameter(description = "流程定义 ID") @PathVariable @NotBlank String definitionId) {
         BinaryPayload payload = processDefinitionService.downloadDiagram(definitionId);
 
-        ByteArrayResource resource = new ByteArrayResource(payload.getData());
+        ByteArrayResource resource = new ByteArrayResource(payload.data());
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(payload.getMimeType()))
+                .contentType(MediaType.parseMediaType(payload.mimeType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + payload.getFileName() + "\"")
+                        "attachment; filename=\"" + payload.fileName() + "\"")
                 .body(resource);
     }
 

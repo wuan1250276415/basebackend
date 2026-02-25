@@ -52,7 +52,7 @@ public class DeptInfoHelper {
         try {
             Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
             if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                return deptResult.getData().getDeptName();
+                return deptResult.getData().deptName();
             } else {
                 log.warn("获取部门信息失败或返回空: deptId={}, message={}",
                         deptId, deptResult != null ? deptResult.getMessage() : "null");
@@ -89,7 +89,7 @@ public class DeptInfoHelper {
             try {
                 Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
                 if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                    deptNameMap.put(deptId, deptResult.getData().getDeptName());
+                    deptNameMap.put(deptId, deptResult.getData().deptName());
                 }
             } catch (Exception e) {
                 log.warn("批量获取部门信息异常: deptId={}, error={}", deptId, e.getMessage());

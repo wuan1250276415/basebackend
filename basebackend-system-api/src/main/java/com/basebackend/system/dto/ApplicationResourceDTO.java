@@ -3,65 +3,47 @@ package com.basebackend.system.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
 
 import java.util.List;
 
 /**
  * 应用资源DTO
  */
-@Data
 @Schema(description = "应用资源DTO")
-public class ApplicationResourceDTO {
-
+public record ApplicationResourceDTO(
     @Schema(description = "资源ID")
-    private Long id;
-
+    Long id,
     @Schema(description = "所属应用ID", required = true)
     @NotNull(message = "应用ID不能为空")
-    private Long appId;
-
+    Long appId,
     @Schema(description = "资源名称", required = true)
     @NotBlank(message = "资源名称不能为空")
-    private String resourceName;
-
+    String resourceName,
     @Schema(description = "父资源ID")
-    private Long parentId;
-
+    Long parentId,
     @Schema(description = "资源类型：M-目录，C-菜单，F-按钮", required = true)
     @NotBlank(message = "资源类型不能为空")
-    private String resourceType;
-
+    String resourceType,
     @Schema(description = "路由地址")
-    private String path;
-
+    String path,
     @Schema(description = "组件路径")
-    private String component;
-
+    String component,
     @Schema(description = "权限标识")
-    private String perms;
-
+    String perms,
     @Schema(description = "菜单图标")
-    private String icon;
-
+    String icon,
     @Schema(description = "是否显示：0-隐藏，1-显示")
-    private Integer visible;
-
+    Integer visible,
     @Schema(description = "打开方式：current-当前页，blank-新窗口")
-    private String openType;
-
+    String openType,
     @Schema(description = "显示顺序")
-    private Integer orderNum;
-
+    Integer orderNum,
     @Schema(description = "状态：0-禁用，1-启用")
-    private Integer status;
-
+    Integer status,
     @Schema(description = "备注")
-    private String remark;
-
+    String remark,
     @Schema(description = "子资源列表")
-    private List<ApplicationResourceDTO> children;
-
+    List<ApplicationResourceDTO> children,
     @Schema(description = "应用名称")
-    private String appName;
-}
+    String appName
+) {}

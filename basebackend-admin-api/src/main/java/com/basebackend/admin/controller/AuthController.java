@@ -31,7 +31,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "用户登录接口")
     public Result<LoginResponse> login(@Validated @RequestBody LoginRequest loginRequest) {
-        log.info("用户登录请求: {}", loginRequest.getUsername());
+        log.info("用户登录请求: {}", loginRequest.username());
         try {
             LoginResponse response = authService.login(loginRequest);
             return Result.success("登录成功", response);

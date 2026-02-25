@@ -113,7 +113,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setCreateTime(LocalDateTime.now());
 
         // 如果未指定用户ID，则发送给所有用户（这里简化处理，实际可能需要批量插入）
-        if (dto.getUserId() == null) {
+        if (dto.userId() == null) {
             // TODO: 实现群发逻辑
             throw new BusinessException("暂不支持群发通知");
         }

@@ -29,10 +29,10 @@ public class EventController {
     @PostMapping("/publish")
     public Result<Void> publishEvent(@Validated @RequestBody EventPublishDTO dto) {
         eventPublisher.publishEvent(
-                dto.getEventType(),
-                dto.getData(),
-                dto.getSource() != null ? dto.getSource() : "admin-api",
-                dto.getMetadata()
+                dto.eventType(),
+                dto.data(),
+                dto.source() != null ? dto.source() : "admin-api",
+                dto.metadata()
         );
         return Result.success();
     }

@@ -71,7 +71,7 @@ public class GeneratorService {
             }
 
             // 2. 加载模板列表（带缓存）
-            List<GenTemplate> templates = loadTemplatesWithCache(request.getTemplateGroupId());
+            List<GenTemplate> templates = loadTemplatesWithCache(request.templateGroupId());
             if (templates.isEmpty()) {
                 return buildErrorResult("未找到可用模板");
             }
@@ -104,11 +104,11 @@ public class GeneratorService {
      * 验证并获取数据源配置
      */
     private GenDataSource validateAndGetDataSource(GenerateRequest request) {
-        if (request.getDatasourceId() == null) {
+        if (request.datasourceId() == null) {
             log.warn("数据源ID为空");
             return null;
         }
-        return dataSourceMapper.selectById(request.getDatasourceId());
+        return dataSourceMapper.selectById(request.datasourceId());
     }
 
     /**
@@ -161,7 +161,7 @@ public class GeneratorService {
         // 使用工厂获取对应数据库类型的元数据读取器
         DatabaseMetadataReader reader = metadataReaderFactory.getReader(context.getDsConfig().getDbType());
 
-        for (String tableName : context.getRequest().getTableNames()) {
+        for (String tableName : context.getRequest().tableNames()) {
             try {
                 generateTableFiles(tableName, dataSource, reader, context, generatedFiles);
             } catch (Exception e) {
@@ -280,9 +280,9 @@ public class GeneratorService {
         Map<String, Object> dataModel = new HashMap<>();
 
         // 基础信息
-        dataModel.put("packageName", request.getPackageName());
-        dataModel.put("moduleName", request.getModuleName());
-        dataModel.put("author", request.getAuthor());
+        dataModel.put("packageName", request.packageName());
+        dataModel.put("moduleName", request.moduleName());
+        dataModel.put("author", request.author());
         dataModel.put("date", DateUtil.today());
 
         // 表信息
@@ -331,7 +331,7 @@ public class GeneratorService {
 
         // 替换占位符
         path = path.replace(GeneratorConstants.PLACEHOLDER_PACKAGE_PATH,
-                request.getPackageName().replace(".", "/"));
+                request.packageName().replace(".", "/"));
         path = path.replace(GeneratorConstants.PLACEHOLDER_CLASS_NAME, table.getClassName());
         path = path.replace(GeneratorConstants.PLACEHOLDER_VARIABLE_NAME, table.getVariableName());
         path = path.replace(GeneratorConstants.PLACEHOLDER_TEMPLATE_CODE, template.getCode());
@@ -347,11 +347,11 @@ public class GeneratorService {
     private void enhanceTableMetadata(TableMetadata table, GenerateRequest request,
             Map<String, GenTypeMapping> typeMappings) {
         // 设置命名
-        table.setClassName(NamingStrategy.tableToClassName(table.getTableName(), request.getTablePrefix()));
-        table.setVariableName(NamingStrategy.tableToVariableName(table.getTableName(), request.getTablePrefix()));
-        table.setUrlPath(NamingStrategy.tableToUrlPath(table.getTableName(), request.getTablePrefix()));
-        table.setModuleName(request.getModuleName());
-        table.setPackageName(request.getPackageName());
+        table.setClassName(NamingStrategy.tableToClassName(table.getTableName(), request.tablePrefix()));
+        table.setVariableName(NamingStrategy.tableToVariableName(table.getTableName(), request.tablePrefix()));
+        table.setUrlPath(NamingStrategy.tableToUrlPath(table.getTableName(), request.tablePrefix()));
+        table.setModuleName(request.moduleName());
+        table.setPackageName(request.packageName());
 
         // 处理列信息
         for (ColumnMetadata column : table.getColumns()) {
@@ -386,37 +386,30 @@ public class GeneratorService {
     private GenerateResult buildResult(Map<String, String> generatedFiles,
             List<String> failedTables,
             GenerateRequest request) {
-        GenerateResult.GenerateResultBuilder resultBuilder = GenerateResult.builder()
-                .files(generatedFiles)
-                .fileCount(generatedFiles.size())
-                .failedTables(failedTables);
-
         // 确定状态
+        String status;
         if (failedTables.isEmpty()) {
-            resultBuilder.status(GenerateStatus.SUCCESS.name());
-        } else if (failedTables.size() == request.getTableNames().size()) {
-            resultBuilder.status(GenerateStatus.FAILED.name());
+            status = GenerateStatus.SUCCESS.name();
+        } else if (failedTables.size() == request.tableNames().size()) {
+            status = GenerateStatus.FAILED.name();
         } else {
-            resultBuilder.status(GenerateStatus.PARTIAL.name());
+            status = GenerateStatus.PARTIAL.name();
         }
 
         // 如果是下载模式，打包成ZIP
-        if (GeneratorConstants.GENERATE_TYPE_DOWNLOAD.equals(request.getGenerateType())) {
-            byte[] zipData = ZipUtils.createZip(generatedFiles);
-            resultBuilder.zipData(zipData);
+        byte[] zipData = null;
+        if (GeneratorConstants.GENERATE_TYPE_DOWNLOAD.equals(request.generateType())) {
+            zipData = ZipUtils.createZip(generatedFiles);
         }
 
-        return resultBuilder.build();
+        return new GenerateResult(status, generatedFiles, zipData, null, generatedFiles.size(), failedTables);
     }
 
     /**
      * 构建错误结果
      */
     private GenerateResult buildErrorResult(String errorMessage) {
-        return GenerateResult.builder()
-                .status(GenerateStatus.FAILED.name())
-                .errorMessage(errorMessage)
-                .build();
+        return new GenerateResult(GenerateStatus.FAILED.name(), null, null, errorMessage, null, null);
     }
 
     // ==================== 缓存管理接口 ====================

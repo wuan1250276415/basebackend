@@ -57,10 +57,10 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public void create(PermissionDTO permissionDTO) {
-        log.info("创建权限: {}", permissionDTO.getPermissionName());
+        log.info("创建权限: {}", permissionDTO.permissionName());
 
         // 检查权限标识是否唯一
-        if (!checkPermissionKeyUnique(permissionDTO.getPermissionKey(), null)) {
+        if (!checkPermissionKeyUnique(permissionDTO.permissionKey(), null)) {
             throw new RuntimeException("权限标识已存在");
         }
 
@@ -84,15 +84,15 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public void update(PermissionDTO permissionDTO) {
-        log.info("更新权限: {}", permissionDTO.getId());
+        log.info("更新权限: {}", permissionDTO.id());
 
-        SysPermission permission = permissionMapper.selectById(permissionDTO.getId());
+        SysPermission permission = permissionMapper.selectById(permissionDTO.id());
         if (permission == null) {
             throw new RuntimeException("权限不存在");
         }
 
         // 检查权限标识是否唯一
-        if (!checkPermissionKeyUnique(permissionDTO.getPermissionKey(), permissionDTO.getId())) {
+        if (!checkPermissionKeyUnique(permissionDTO.permissionKey(), permissionDTO.id())) {
             throw new RuntimeException("权限标识已存在");
         }
 
@@ -151,8 +151,15 @@ public class PermissionServiceImpl implements PermissionService {
      * 转换为DTO
      */
     private PermissionDTO convertToDTO(SysPermission permission) {
-        PermissionDTO dto = new PermissionDTO();
-        BeanUtil.copyProperties(permission, dto);
-        return dto;
+        return new PermissionDTO(
+                permission.getId(),
+                permission.getPermissionName(),
+                permission.getPermissionKey(),
+                permission.getApiPath(),
+                permission.getHttpMethod(),
+                permission.getPermissionType(),
+                permission.getStatus(),
+                permission.getRemark()
+        );
     }
 }

@@ -81,15 +81,15 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public void create(RoleDTO roleDTO) {
-        log.info("创建角色: {}", roleDTO.getRoleName());
+        log.info("创建角色: {}", roleDTO.roleName());
 
         // 检查角色名称是否唯一
-        if (!checkRoleNameUnique(roleDTO.getRoleName(), null)) {
+        if (!checkRoleNameUnique(roleDTO.roleName(), null)) {
             throw new RuntimeException("角色名称已存在");
         }
 
         // 检查角色标识是否唯一
-        if (!checkRoleKeyUnique(roleDTO.getRoleKey(), null)) {
+        if (!checkRoleKeyUnique(roleDTO.roleKey(), null)) {
             throw new RuntimeException("角色标识已存在");
         }
 
@@ -102,13 +102,13 @@ public class RoleServiceImpl implements RoleService {
         roleMapper.insert(role);
 
         // 分配菜单
-        if (roleDTO.getMenuIds() != null && !roleDTO.getMenuIds().isEmpty()) {
-            assignMenus(role.getId(), roleDTO.getMenuIds());
+        if (roleDTO.menuIds() != null && !roleDTO.menuIds().isEmpty()) {
+            assignMenus(role.getId(), roleDTO.menuIds());
         }
 
         // 分配权限
-        if (roleDTO.getPermissionIds() != null && !roleDTO.getPermissionIds().isEmpty()) {
-            assignPermissions(role.getId(), roleDTO.getPermissionIds());
+        if (roleDTO.permissionIds() != null && !roleDTO.permissionIds().isEmpty()) {
+            assignPermissions(role.getId(), roleDTO.permissionIds());
         }
 
         log.info("角色创建成功: {}", role.getRoleName());
@@ -117,20 +117,20 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public void update(RoleDTO roleDTO) {
-        log.info("更新角色: {}", roleDTO.getId());
+        log.info("更新角色: {}", roleDTO.id());
 
-        SysRole role = roleMapper.selectById(roleDTO.getId());
+        SysRole role = roleMapper.selectById(roleDTO.id());
         if (role == null) {
             throw new RuntimeException("角色不存在");
         }
 
         // 检查角色名称是否唯一
-        if (!checkRoleNameUnique(roleDTO.getRoleName(), roleDTO.getId())) {
+        if (!checkRoleNameUnique(roleDTO.roleName(), roleDTO.id())) {
             throw new RuntimeException("角色名称已存在");
         }
 
         // 检查角色标识是否唯一
-        if (!checkRoleKeyUnique(roleDTO.getRoleKey(), roleDTO.getId())) {
+        if (!checkRoleKeyUnique(roleDTO.roleKey(), roleDTO.id())) {
             throw new RuntimeException("角色标识已存在");
         }
 
@@ -142,13 +142,13 @@ public class RoleServiceImpl implements RoleService {
         roleMapper.updateById(role);
 
         // 更新菜单
-        if (roleDTO.getMenuIds() != null) {
-            assignMenus(role.getId(), roleDTO.getMenuIds());
+        if (roleDTO.menuIds() != null) {
+            assignMenus(role.getId(), roleDTO.menuIds());
         }
 
         // 更新权限
-        if (roleDTO.getPermissionIds() != null) {
-            assignPermissions(role.getId(), roleDTO.getPermissionIds());
+        if (roleDTO.permissionIds() != null) {
+            assignPermissions(role.getId(), roleDTO.permissionIds());
         }
 
         log.info("角色更新成功: {}", role.getRoleName());
@@ -447,17 +447,23 @@ public class RoleServiceImpl implements RoleService {
      * 转换为DTO
      */
     private RoleDTO convertToDTO(SysRole role) {
-        RoleDTO dto = new RoleDTO();
-        BeanUtil.copyProperties(role, dto);
-
-        // 设置菜单ID列表
+        // 获取菜单ID列表
         List<Long> menuIds = getRoleMenus(role.getId());
-        dto.setMenuIds(menuIds);
 
-        // 设置权限ID列表
+        // 获取权限ID列表
         List<Long> permissionIds = getRolePermissions(role.getId());
-        dto.setPermissionIds(permissionIds);
 
-        return dto;
+        return new RoleDTO(
+                role.getId(),
+                role.getAppId(),
+                role.getRoleName(),
+                role.getRoleKey(),
+                role.getRoleSort(),
+                role.getDataScope(),
+                role.getStatus(),
+                role.getRemark(),
+                menuIds,
+                permissionIds
+        );
     }
 }

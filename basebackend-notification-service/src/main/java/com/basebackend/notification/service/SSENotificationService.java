@@ -161,16 +161,16 @@ public class SSENotificationService {
                     .data(jsonData));
 
             pushSuccessCounter.incrementAndGet();
-            log.debug("[SSE] 通知推送成功: notificationId={}", notification.getId());
+            log.debug("[SSE] 通知推送成功: notificationId={}", notification.id());
 
         } catch (IOException e) {
             pushFailureCounter.incrementAndGet();
             // P1: 不暴露详细错误信息
-            log.warn("[SSE] 通知推送失败: notificationId={}", notification.getId());
+            log.warn("[SSE] 通知推送失败: notificationId={}", notification.id());
             doRemoveConnection(userId);
         } catch (Exception e) {
             pushFailureCounter.incrementAndGet();
-            log.warn("[SSE] 通知推送异常: notificationId={}", notification.getId());
+            log.warn("[SSE] 通知推送异常: notificationId={}", notification.id());
             doRemoveConnection(userId);
         }
     }

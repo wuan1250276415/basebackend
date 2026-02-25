@@ -40,16 +40,16 @@ public class GeneratorController {
     @PostMapping("/generate")
     @Operation(summary = "生成代码")
     public ResponseEntity<?> generate(@Valid @RequestBody GenerateRequest request) {
-        log.info("开始生成代码: {}", request.getTableNames());
+        log.info("开始生成代码: {}", request.tableNames());
 
         GenerateResult result = generatorService.generate(request);
 
         // 下载模式返回ZIP文件
-        if (GeneratorConstants.GENERATE_TYPE_DOWNLOAD.equals(request.getGenerateType())) {
+        if (GeneratorConstants.GENERATE_TYPE_DOWNLOAD.equals(request.generateType())) {
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=generated-code.zip")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(result.getZipData());
+                    .body(result.zipData());
         }
 
         // 预览模式返回JSON
@@ -65,8 +65,12 @@ public class GeneratorController {
     @PostMapping("/preview")
     @Operation(summary = "预览代码")
     public Result<GenerateResult> preview(@Valid @RequestBody GenerateRequest request) {
-        request.setGenerateType(GeneratorConstants.GENERATE_TYPE_PREVIEW);
-        GenerateResult result = generatorService.generate(request);
+        GenerateRequest previewRequest = new GenerateRequest(
+                request.datasourceId(), request.tableNames(), request.templateGroupId(),
+                GeneratorConstants.GENERATE_TYPE_PREVIEW, request.packageName(),
+                request.moduleName(), request.author(), request.tablePrefix(), request.config()
+        );
+        GenerateResult result = generatorService.generate(previewRequest);
         return Result.success("预览成功", result);
     }
 }

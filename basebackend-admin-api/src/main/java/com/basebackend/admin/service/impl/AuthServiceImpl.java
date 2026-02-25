@@ -49,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
-        log.info("用户登录: {}", loginRequest.getUsername());
+        log.info("用户登录: {}", loginRequest.username());
 
         // 获取请求信息
         HttpServletRequest request = getHttpServletRequest();
@@ -59,7 +59,7 @@ public class AuthServiceImpl implements AuthService {
         String os = UserAgentUtil.getOperatingSystem(request);
 
         LoginLogDTO loginLog = new LoginLogDTO();
-        loginLog.setUsername(loginRequest.getUsername());
+        loginLog.setUsername(loginRequest.username());
         loginLog.setIpAddress(ipAddress);
         loginLog.setLoginLocation(location);
         loginLog.setBrowser(browser);
@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             // 查询用户
-            SysUser user = userMapper.selectByUsername(loginRequest.getUsername());
+            SysUser user = userMapper.selectByUsername(loginRequest.username());
             if (user == null) {
                 loginLog.setStatus(0);
                 loginLog.setMsg("用户不存在");
@@ -77,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // 验证密码
-            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
                 loginLog.setUserId(user.getId());
                 loginLog.setStatus(0);
                 loginLog.setMsg("密码错误");

@@ -1,7 +1,6 @@
 package com.basebackend.feign.dto.scheduler;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -13,208 +12,127 @@ import java.util.Map;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Data
-public class TaskFeignDTO implements Serializable {
+public record TaskFeignDTO(
+        /** 任务ID */
+        String id,
 
-    private static final long serialVersionUID = 1L;
+        /** 任务名称 */
+        String name,
 
-    /**
-     * 任务ID
-     */
-    private String id;
+        /** 任务名称本地化变量 */
+        String localizedName,
 
-    /**
-     * 任务名称
-     */
-    private String name;
+        /** 任务描述 */
+        String description,
 
-    /**
-     * 任务名称本地化变量
-     */
-    private String localizedName;
+        /** 任务描述本地化变量 */
+        String localizedDescription,
 
-    /**
-     * 任务描述
-     */
-    private String description;
+        /** 任务分配人 */
+        String assignee,
 
-    /**
-     * 任务描述本地化变量
-     */
-    private String localizedDescription;
+        /** 任务拥有者 */
+        String owner,
 
-    /**
-     * 任务分配人
-     */
-    private String assignee;
+        /** 任务的创建时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime created,
 
-    /**
-     * 任务拥有者
-     */
-    private String owner;
+        /** 任务的到期时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime due,
 
-    /**
-     * 任务的创建时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime created;
+        /** 任务被声明的时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime claimed,
 
-    /**
-     * 任务的到期时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime due;
+        /** 任务完成时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime completed,
 
-    /**
-     * 任务被声明的时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime claimed;
+        /** 任务的最后修改时间 */
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime lastUpdated,
 
-    /**
-     * 任务完成时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime completed;
+        /** 优先级（默认：50） */
+        Integer priority,
 
-    /**
-     * 任务的最后修改时间
-     */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime lastUpdated;
+        /** 任务是否为查询结果中的最后一条 */
+        boolean isLast,
 
-    /**
-     * 优先级（默认：50）
-     */
-    private Integer priority;
+        /** 任务的执行ID */
+        String executionId,
 
-    /**
-     * 任务是否为查询结果中的最后一条
-     */
-    private boolean isLast;
+        /** 任务所在的流程实例ID */
+        String processInstanceId,
 
-    /**
-     * 任务的执行ID
-     */
-    private String executionId;
+        /** 流程实例业务键 */
+        String processInstanceBusinessKey,
 
-    /**
-     * 任务所在的流程实例ID
-     */
-    private String processInstanceId;
+        /** 任务所在的流程定义ID */
+        String processDefinitionId,
 
-    /**
-     * 流程实例业务键
-     */
-    private String processInstanceBusinessKey;
+        /** 流程定义键 */
+        String processDefinitionKey,
 
-    /**
-     * 任务所在的流程定义ID
-     */
-    private String processDefinitionId;
+        /** 流程定义名称 */
+        String processDefinitionName,
 
-    /**
-     * 流程定义键
-     */
-    private String processDefinitionKey;
+        /** 流程定义版本 */
+        Integer processDefinitionVersion,
 
-    /**
-     * 流程定义名称
-     */
-    private String processDefinitionName;
+        /** 任务所属活动（Service Task等）的ID */
+        String activityId,
 
-    /**
-     * 流程定义版本
-     */
-    private Integer processDefinitionVersion;
+        /** 任务所属活动的名称 */
+        String activityName,
 
-    /**
-     * 任务所属活动（Service Task等）的ID
-     */
-    private String activityId;
+        /** 任务所属活动实例ID */
+        String activityInstanceId,
 
-    /**
-     * 任务所属活动的名称
-     */
-    private String activityName;
+        /** 任务所在的任务列表的名称 */
+        String taskDefinitionKey,
 
-    /**
-     * 任务所属活动实例ID
-     */
-    private String activityInstanceId;
+        /** 任务的候选用户组ID */
+        String tenantId,
 
-    /**
-     * 任务所在的任务列表的名称
-     */
-    private String taskDefinitionKey;
+        /** 表单Key（用于启动流程和完成任务） */
+        String formKey,
 
-    /**
-     * 任务的候选用户组ID
-     */
-    private String tenantId;
+        /** 任务类别 */
+        String category,
 
-    /**
-     * 表单Key（用于启动流程和完成任务）
-     */
-    private String formKey;
+        /** 父任务ID */
+        String parentTaskId,
 
-    /**
-     * 任务类别
-     */
-    private String category;
+        /** 任务是否Suspended（挂起） */
+        boolean suspended,
 
-    /**
-     * 父任务ID
-     */
-    private String parentTaskId;
+        /** 任务是否已删除 */
+        boolean deleted,
 
-    /**
-     * 任务是否Suspended（挂起）
-     */
-    private boolean suspended;
+        /** 任务是否已结束 */
+        boolean ended,
 
-    /**
-     * 任务是否已删除
-     */
-    private boolean deleted;
+        /** 任务是否可被认领 */
+        boolean claimable,
 
-    /**
-     * 任务是否已结束
-     */
-    private boolean ended;
+        /** 候选用户ID */
+        String candidateUser,
 
-    /**
-     * 任务是否可被认领
-     */
-    private boolean claimable;
+        /** 候选组ID */
+        String candidateGroup,
 
-    /**
-     * 候选用户ID
-     */
-    private String candidateUser;
+        /** 任务的处理人ID */
+        String involvedUser,
 
-    /**
-     * 候选组ID
-     */
-    private String candidateGroup;
+        /** 任务的子实例数量（对于并行网关） */
+        String subProcessInstanceId,
 
-    /**
-     * 任务的处理人ID
-     */
-    private String involvedUser;
+        /** 任务的父实例ID */
+        String superProcessInstanceId,
 
-    /**
-     * 任务的子实例数量（对于并行网关）
-     */
-    private String subProcessInstanceId;
-
-    /**
-     * 任务的父实例ID
-     */
-    private String superProcessInstanceId;
-
-    /**
-     * 任务变量
-     */
-    private Map<String, Object> variables;
+        /** 任务变量 */
+        Map<String, Object> variables
+) implements Serializable {
 }

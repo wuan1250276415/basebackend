@@ -1,7 +1,5 @@
 package com.basebackend.feign.dto.scheduler;
 
-import lombok.Data;
-
 import java.io.Serializable;
 import java.util.Map;
 
@@ -11,33 +9,20 @@ import java.util.Map;
  * @author Claude Code
  * @since 2025-11-25
  */
-@Data
-public class TaskActionRequest implements Serializable {
+public record TaskActionRequest(
+        /** 任务ID */
+        String taskId,
 
-    private static final long serialVersionUID = 1L;
+        /** 操作用户 */
+        String userId,
 
-    /**
-     * 任务ID
-     */
-    private String taskId;
+        /** 操作变量 */
+        Map<String, Object> variables,
 
-    /**
-     * 操作用户
-     */
-    private String userId;
+        /** 本地变量 */
+        Map<String, Object> localVariables,
 
-    /**
-     * 操作变量
-     */
-    private Map<String, Object> variables;
-
-    /**
-     * 本地变量
-     */
-    private Map<String, Object> localVariables;
-
-    /**
-     * 任务结果或意见
-     */
-    private String comment;
+        /** 任务结果或意见 */
+        String comment
+) implements Serializable {
 }

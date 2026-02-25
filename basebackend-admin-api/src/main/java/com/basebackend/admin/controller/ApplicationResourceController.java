@@ -68,7 +68,7 @@ public class ApplicationResourceController {
     @PostMapping
     @Operation(summary = "创建资源")
     public Result<Void> createResource(@Validated @RequestBody ApplicationResourceDTO dto) {
-        log.info("创建资源: {}", dto.getResourceName());
+        log.info("创建资源: {}", dto.resourceName());
         boolean success = resourceService.createResource(dto);
         return success ? Result.success() : Result.error("创建失败");
     }
@@ -76,7 +76,7 @@ public class ApplicationResourceController {
     @PutMapping
     @Operation(summary = "更新资源")
     public Result<Void> updateResource(@Validated @RequestBody ApplicationResourceDTO dto) {
-        log.info("更新资源: {}", dto.getId());
+        log.info("更新资源: {}", dto.id());
         boolean success = resourceService.updateResource(dto);
         return success ? Result.success() : Result.error("更新失败");
     }

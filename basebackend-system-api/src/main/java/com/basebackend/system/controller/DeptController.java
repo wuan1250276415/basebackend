@@ -91,7 +91,7 @@ public class DeptController {
     @Operation(summary = "创建部门", description = "创建新部门")
     @RequiresPermission("system:dept:create")
     public Result<String> create(@Validated @RequestBody DeptDTO deptDTO) {
-        log.info("创建部门: {}", deptDTO.getDeptName());
+        log.info("创建部门: {}", deptDTO.deptName());
         try {
             deptService.create(deptDTO);
             return Result.success("部门创建成功");
@@ -111,8 +111,7 @@ public class DeptController {
             @Validated @RequestBody DeptDTO deptDTO) {
         log.info("更新部门: {}", id);
         try {
-            deptDTO.setId(id);
-            deptService.update(deptDTO);
+            deptService.update(deptDTO.withId(id));
             return Result.success("部门更新成功");
         } catch (Exception e) {
             return handleControllerError("更新部门", e);

@@ -1,32 +1,17 @@
 package com.basebackend.generator.dto;
 
-import lombok.Builder;
-import lombok.Data;
-
 /**
  * 预览文件DTO
+ *
+ * @param fileName 文件名
+ * @param filePath 文件路径
+ * @param content  文件内容
+ * @param language 语言类型（用于语法高亮）
  */
-@Data
-@Builder
-public class PreviewFile {
-
-    /**
-     * 文件名
-     */
-    private String fileName;
-
-    /**
-     * 文件路径
-     */
-    private String filePath;
-
-    /**
-     * 文件内容
-     */
-    private String content;
-
-    /**
-     * 语言类型（用于语法高亮）
-     */
-    private String language;
+public record PreviewFile(
+        String fileName,
+        String filePath,
+        String content,
+        String language
+) {
 }

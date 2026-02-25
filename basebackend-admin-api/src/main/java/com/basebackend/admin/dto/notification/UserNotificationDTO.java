@@ -1,7 +1,6 @@
 package com.basebackend.admin.dto.notification;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -11,34 +10,15 @@ import java.time.LocalDateTime;
  * @author Claude Code
  * @since 2025-10-30
  */
-@Data
 @Schema(description = "用户通知")
-public class UserNotificationDTO {
-
-    @Schema(description = "通知ID")
-    private Long id;
-
-    @Schema(description = "通知标题")
-    private String title;
-
-    @Schema(description = "通知内容")
-    private String content;
-
-    @Schema(description = "通知类型")
-    private String type;
-
-    @Schema(description = "通知级别")
-    private String level;
-
-    @Schema(description = "是否已读")
-    private Integer isRead;
-
-    @Schema(description = "关联链接")
-    private String linkUrl;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-
-    @Schema(description = "阅读时间")
-    private LocalDateTime readTime;
-}
+public record UserNotificationDTO(
+    @Schema(description = "通知ID") Long id,
+    @Schema(description = "通知标题") String title,
+    @Schema(description = "通知内容") String content,
+    @Schema(description = "通知类型") String type,
+    @Schema(description = "通知级别") String level,
+    @Schema(description = "是否已读") Integer isRead,
+    @Schema(description = "关联链接") String linkUrl,
+    @Schema(description = "创建时间") LocalDateTime createTime,
+    @Schema(description = "阅读时间") LocalDateTime readTime
+) {}

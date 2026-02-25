@@ -49,7 +49,7 @@ public class ProcessDefinitionFeignFallbackFactory implements FallbackFactory<Pr
 
             @Override
             public Result<String> startProcessInstance(ProcessDefinitionStartRequest request) {
-                log.error("[Feign降级] 启动流程实例失败: processDefinitionKey={}, error={}", request.getProcessDefinitionKey(), cause.getMessage(), cause);
+                log.error("[Feign降级] 启动流程实例失败: processDefinitionKey={}, error={}", request.processDefinitionKey(), cause.getMessage(), cause);
                 return Result.error("调度器服务暂时不可用，流程启动失败");
             }
 

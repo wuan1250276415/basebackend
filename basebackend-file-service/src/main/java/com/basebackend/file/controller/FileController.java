@@ -21,7 +21,6 @@ import com.basebackend.file.limit.RateLimiter;
 import com.basebackend.file.limit.RateLimitPolicy;
 import com.basebackend.file.service.FileService;
 import com.basebackend.common.exception.BusinessException;
-import org.springframework.beans.BeanUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -85,11 +84,22 @@ public class FileController {
         String userName = UserContextHolder.getUsername();
 
         FileMetadata metadata = fileManagementService.uploadFile(file, folderId, userId, userName);
-        
+
         // 转换为 DTO
-        FileMetadataDTO dto = new FileMetadataDTO();
-        BeanUtils.copyProperties(metadata, dto);
-        
+        FileMetadataDTO dto = new FileMetadataDTO(
+                metadata.getId(), metadata.getFileId(), metadata.getFileName(),
+                metadata.getOriginalName(), metadata.getFilePath(), metadata.getFileSize(),
+                metadata.getContentType(), metadata.getFileExtension(), metadata.getMd5(),
+                metadata.getSha256(), metadata.getStorageType(), metadata.getBucketName(),
+                metadata.getFolderId(), metadata.getFolderPath(), metadata.getIsFolder(),
+                metadata.getOwnerId(), metadata.getOwnerName(), metadata.getIsPublic(),
+                metadata.getIsDeleted(), metadata.getDeletedAt(), metadata.getDeletedBy(),
+                metadata.getVersion(), metadata.getLatestVersionId(), metadata.getDownloadCount(),
+                metadata.getViewCount(), metadata.getThumbnailPath(), metadata.getTags(),
+                metadata.getDescription(), metadata.getMetadata(),
+                metadata.getCreateTime(), metadata.getUpdateTime()
+        );
+
         return Result.success("文件上传成功", dto);
     }
 
@@ -365,11 +375,16 @@ public class FileController {
         FileVersion version = fileManagementService.createFileVersion(
             fileId, file, description, userId, userName
         );
-        
+
         // 转换为 DTO
-        FileVersionDTO dto = new FileVersionDTO();
-        BeanUtils.copyProperties(version, dto);
-        
+        FileVersionDTO dto = new FileVersionDTO(
+                version.getId(), version.getFileId(), version.getVersionNumber(),
+                version.getFilePath(), version.getFileSize(), version.getMd5(),
+                version.getChangeDescription(), version.getCreatedBy(),
+                version.getCreatedByName(), version.getIsCurrent(),
+                version.getCreateTime(), version.getUpdateTime()
+        );
+
         return Result.success("版本创建成功", dto);
     }
 

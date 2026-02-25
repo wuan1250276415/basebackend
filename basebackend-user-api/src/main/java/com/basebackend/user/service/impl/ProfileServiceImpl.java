@@ -47,13 +47,23 @@ public class ProfileServiceImpl implements ProfileService {
             throw BusinessException.notFound("用户不存在");
         }
 
-        ProfileDetailDTO dto = BeanUtil.copyProperties(user, ProfileDetailDTO.class);
-        dto.setUserId(user.getId());
-
-        // 获取部门名称（使用DeptInfoHelper统一处理）
-        dto.setDeptName(deptInfoHelper.getDeptName(user.getDeptId()));
-
-        return dto;
+        return new ProfileDetailDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getAvatar(),
+                user.getGender(),
+                user.getBirthday(),
+                user.getDeptId(),
+                deptInfoHelper.getDeptName(user.getDeptId()),
+                user.getUserType(),
+                user.getStatus(),
+                user.getLoginIp(),
+                user.getLoginTime(),
+                user.getCreateTime()
+        );
     }
 
     @Override
@@ -69,9 +79,9 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // 验证邮箱唯一性
-        if (dto.getEmail() != null && !dto.getEmail().equals(user.getEmail())) {
+        if (dto.email() != null && !dto.email().equals(user.getEmail())) {
             LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUser::getEmail, dto.getEmail())
+            wrapper.eq(SysUser::getEmail, dto.email())
                    .ne(SysUser::getId, currentUserId);
             if (userMapper.selectCount(wrapper) > 0) {
                 throw BusinessException.conflict("邮箱已被使用");
@@ -79,9 +89,9 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // 验证手机号唯一性
-        if (dto.getPhone() != null && !dto.getPhone().equals(user.getPhone())) {
+        if (dto.phone() != null && !dto.phone().equals(user.getPhone())) {
             LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUser::getPhone, dto.getPhone())
+            wrapper.eq(SysUser::getPhone, dto.phone())
                    .ne(SysUser::getId, currentUserId);
             if (userMapper.selectCount(wrapper) > 0) {
                 throw BusinessException.conflict("手机号已被使用");
@@ -108,12 +118,12 @@ public class ProfileServiceImpl implements ProfileService {
         customMetrics.recordBusinessOperation("profile", "change_password");
 
         // 验证两次输入的新密码是否一致
-        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+        if (!dto.newPassword().equals(dto.confirmPassword())) {
             throw BusinessException.paramError("两次输入的新密码不一致");
         }
 
         // 验证新密码不能与旧密码相同
-        if (dto.getOldPassword().equals(dto.getNewPassword())) {
+        if (dto.oldPassword().equals(dto.newPassword())) {
             throw BusinessException.paramError("新密码不能与旧密码相同");
         }
 
@@ -124,14 +134,14 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // 验证旧密码是否正确
-        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(dto.oldPassword(), user.getPassword())) {
             throw BusinessException.paramError("当前密码不正确");
         }
 
         // 更新密码
         SysUser updateUser = new SysUser();
         updateUser.setId(currentUserId);
-        updateUser.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        updateUser.setPassword(passwordEncoder.encode(dto.newPassword()));
 
         int result = userMapper.updateById(updateUser);
         if (result <= 0) {
