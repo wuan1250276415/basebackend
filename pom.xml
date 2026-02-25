@@ -492,6 +492,27 @@
                 <artifactId>shardingsphere-jdbc-core</artifactId>
                 <version>${shardingsphere.version}</version>
             </dependency>
+
+            <!-- Test: 统一排除不需要的传递依赖 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring-boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.hamcrest</groupId>
+                        <artifactId>hamcrest</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.xmlunit</groupId>
+                        <artifactId>xmlunit-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.skyscreamer</groupId>
+                        <artifactId>jsonassert</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
