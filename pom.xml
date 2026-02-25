@@ -27,7 +27,6 @@
         <module>basebackend-nacos</module>
         <module>basebackend-api-model</module>
         <module>basebackend-service-client</module>
-        <module>basebackend-feature-toggle</module>
         <module>basebackend-gateway</module>
         <module>basebackend-scheduler-parent</module>
         <module>basebackend-code-generator</module>
