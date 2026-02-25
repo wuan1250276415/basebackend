@@ -19,7 +19,6 @@
         <module>basebackend-cache</module>
         <module>basebackend-logging</module>
         <module>basebackend-security</module>
-        <module>basebackend-security-starter</module>
         <module>basebackend-observability</module>
         <module>basebackend-messaging</module>
         <module>basebackend-file-service</module>
