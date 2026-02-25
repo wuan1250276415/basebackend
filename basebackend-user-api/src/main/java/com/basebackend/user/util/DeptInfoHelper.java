@@ -1,8 +1,8 @@
 package com.basebackend.user.util;
 
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.DeptFeignClient;
-import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.service.client.DeptServiceClient;
+import com.basebackend.api.model.dept.DeptBasicDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -27,7 +27,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DeptInfoHelper {
 
-    private final ObjectProvider<DeptFeignClient> deptFeignClientProvider;
+    private final ObjectProvider<DeptServiceClient> deptServiceClientProvider;
 
     /**
      * 获取部门名称
@@ -43,14 +43,14 @@ public class DeptInfoHelper {
             return "";
         }
 
-        var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-        if (deptFeignClient == null) {
+        var deptServiceClient = deptServiceClientProvider.getIfAvailable();
+        if (deptServiceClient == null) {
             log.debug("部门服务不可用，跳过获取部门名称: deptId={}", deptId);
             return "";
         }
 
         try {
-            Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
+            Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
             if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
                 return deptResult.getData().deptName();
             } else {
@@ -79,15 +79,15 @@ public class DeptInfoHelper {
             return deptNameMap;
         }
 
-        var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-        if (deptFeignClient == null) {
+        var deptServiceClient = deptServiceClientProvider.getIfAvailable();
+        if (deptServiceClient == null) {
             log.debug("部门服务不可用，跳过批量获取部门名称");
             return deptNameMap;
         }
 
         for (Long deptId : deptIds) {
             try {
-                Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
+                Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
                 if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
                     deptNameMap.put(deptId, deptResult.getData().deptName());
                 }

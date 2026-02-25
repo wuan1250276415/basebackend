@@ -27,7 +27,8 @@
         <module>basebackend-file-service</module>
         <module>basebackend-backup</module>
         <module>basebackend-nacos</module>
-        <module>basebackend-feign-api</module>
+        <module>basebackend-api-model</module>
+        <module>basebackend-service-client</module>
         <module>basebackend-feature-toggle</module>
         <module>basebackend-gateway</module>
         <module>basebackend-scheduler-parent</module>

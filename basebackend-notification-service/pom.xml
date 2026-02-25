@@ -26,9 +26,16 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- API Model (DTOs) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
+            <artifactId>basebackend-api-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Service Client (@HttpExchange clients) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-service-client</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Base Backend Web -->

@@ -1,7 +1,7 @@
 package com.basebackend.system.controller.internal;
 
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.dto.log.UserOperationLogDTO;
+import com.basebackend.api.model.log.UserOperationLogDTO;
 import com.basebackend.system.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

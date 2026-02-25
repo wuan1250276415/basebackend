@@ -2,7 +2,7 @@ package com.basebackend.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.SysRoleResourceFeignClient;
+import com.basebackend.service.client.SysRoleResourceServiceClient;
 import com.basebackend.system.dto.ApplicationResourceDTO;
 import com.basebackend.system.entity.SysApplicationResource;
 import com.basebackend.system.entity.SysRole;
@@ -30,7 +30,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     private final SysApplicationResourceMapper resourceMapper;
     private final SysRoleResourceMapper roleResourceMapper;
     private final SysRoleMapper roleMapper;
-    private final SysRoleResourceFeignClient sysRoleResourceFeignClient;
+    private final SysRoleResourceServiceClient sysRoleResourceServiceClient;
 
     @Override
     public List<ApplicationResourceDTO> getResourceTree(Long appId) {
@@ -146,7 +146,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
             if (menuIds != null && !menuIds.isEmpty()) {
                 // 通过Feign调用插入角色菜单关联
                 try {
-                    Result<String> result = sysRoleResourceFeignClient.assignMenus(roleId, menuIds);
+                    Result<String> result = sysRoleResourceServiceClient.assignMenus(roleId, menuIds);
                     if (result == null || result.getCode() != 200) {
                         log.warn("通过Feign分配角色菜单失败: roleId={}, menuIds={}, message={}",
                                 roleId, menuIds, result != null ? result.getMessage() : "null");

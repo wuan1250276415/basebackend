@@ -2,8 +2,8 @@ package com.basebackend.user.controller;
 
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.exception.BusinessException;
-import com.basebackend.feign.dto.user.LoginRequest;
-import com.basebackend.feign.dto.user.LoginResponse;
+import com.basebackend.api.model.user.LoginRequest;
+import com.basebackend.api.model.user.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.service.AuthService;
 import com.basebackend.common.model.Result;

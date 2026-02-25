@@ -9,7 +9,7 @@ import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.UserFeignClient;
+import com.basebackend.service.client.UserServiceClient;
 import com.basebackend.observability.metrics.CustomMetrics;
 import com.basebackend.notification.constants.NotificationConstants;
 import com.basebackend.notification.dto.CreateNotificationDTO;
@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private final UserNotificationMapper notificationMapper;
-    private final UserFeignClient userFeignClient;
+    private final UserServiceClient userServiceClient;
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final CustomMetrics customMetrics;
@@ -64,14 +64,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     public NotificationServiceImpl(
             UserNotificationMapper notificationMapper,
-            @Lazy UserFeignClient userFeignClient,
+            @Lazy UserServiceClient userServiceClient,
             JavaMailSender mailSender,
             TemplateEngine templateEngine,
             CustomMetrics customMetrics,
             RocketMQTemplate rocketMQTemplate,
             NotificationValidator validator) {
         this.notificationMapper = notificationMapper;
-        this.userFeignClient = userFeignClient;
+        this.userServiceClient = userServiceClient;
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
         this.customMetrics = customMetrics;
@@ -203,7 +203,7 @@ public class NotificationServiceImpl implements NotificationService {
         customMetrics.recordBusinessOperation("notification", "broadcast");
 
         // 获取所有活跃用户ID
-        Result<List<Long>> result = userFeignClient.getAllActiveUserIds();
+        Result<List<Long>> result = userServiceClient.getAllActiveUserIds();
         if (result == null || result.getCode() != 200 || result.getData() == null) {
             log.error("获取活跃用户列表失败");
             throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR, "获取用户列表失败，无法发送群发通知");

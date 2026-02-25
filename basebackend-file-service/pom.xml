@@ -31,10 +31,10 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Feign API -->
+        <!-- API Model (DTOs only) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
+            <artifactId>basebackend-api-model</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 

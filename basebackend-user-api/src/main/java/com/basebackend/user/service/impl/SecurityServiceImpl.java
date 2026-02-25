@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.OperationLogFeignClient;
+import com.basebackend.service.client.OperationLogServiceClient;
 import com.basebackend.observability.metrics.CustomMetrics;
 import com.basebackend.user.dto.security.User2FADTO;
 import com.basebackend.user.dto.security.UserDeviceDTO;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class SecurityServiceImpl implements SecurityService {
 
     private final UserDeviceMapper deviceMapper;
-    private final OperationLogFeignClient operationLogFeignClient;
+    private final OperationLogServiceClient operationLogServiceClient;
     private final User2FAMapper user2FAMapper;
     private final SysUserMapper userMapper;
     private final CustomMetrics customMetrics;
@@ -124,7 +124,7 @@ public class SecurityServiceImpl implements SecurityService {
 
         try {
             // 通过Feign调用system-api获取操作日志
-            Result<List<com.basebackend.feign.dto.log.UserOperationLogDTO>> result = operationLogFeignClient
+            Result<List<com.basebackend.api.model.log.UserOperationLogDTO>> result = operationLogServiceClient
                     .getUserOperationLogs(currentUserId, limit);
 
             if (result == null || !result.isSuccess() || result.getData() == null) {

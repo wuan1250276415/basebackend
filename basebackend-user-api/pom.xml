@@ -91,11 +91,17 @@
             <artifactId>observability-metrics</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- API Model (DTOs) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
+            <artifactId>basebackend-api-model</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-            <scope>compile</scope>
+        </dependency>
+        <!-- Service Client (@HttpExchange clients) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-service-client</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <!-- Seata Distributed Transaction -->
         <dependency>

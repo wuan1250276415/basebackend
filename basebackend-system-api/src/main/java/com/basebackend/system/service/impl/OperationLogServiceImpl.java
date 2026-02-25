@@ -2,7 +2,7 @@ package com.basebackend.system.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.basebackend.feign.dto.log.UserOperationLogDTO;
+import com.basebackend.api.model.log.UserOperationLogDTO;
 import com.basebackend.system.entity.UserOperationLog;
 import com.basebackend.system.mapper.UserOperationLogMapper;
 import com.basebackend.system.service.OperationLogService;

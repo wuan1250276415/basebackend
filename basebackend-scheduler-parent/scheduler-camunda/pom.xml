@@ -168,12 +168,18 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Feign API -->
+        <!-- API Model (纯DTO) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
+            <artifactId>basebackend-api-model</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
+        </dependency>
+
+        <!-- Service Client (@HttpExchange) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-service-client</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Observability -->
