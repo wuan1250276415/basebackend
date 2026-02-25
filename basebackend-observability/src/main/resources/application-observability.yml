@@ -32,7 +32,6 @@ observability:
         enabled: true  # 启用日志导出
     bridge:
       micrometer: true  # 启用 Micrometer 桥接
-      brave: true       # 启用 Brave 桥接
     sampling-ratio: 1.0  # 采样率（0.0-1.0），开发环境100%，生产环境建议0.01-0.1
 
   # SLI/SLO/SLA 指标体系配置

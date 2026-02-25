@@ -1,58 +1,28 @@
 package com.basebackend.observability.tracing;
 
-import brave.Tracer;
-import brave.sampler.Sampler;
+import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
-import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 /**
  * 分布式追踪配置
- * 配置 Brave/Zipkin/Tempo 进行分布式链路追踪
+ * <p>
+ * Spring Boot 4 通过 micrometer-tracing-bridge-otel 自动配置 OTel Tracing，
+ * 采样策略通过 management.tracing.sampling.probability 属性配置，
+ * Span 导出通过 OTLP exporter 自动完成。
+ * </p>
+ * <p>
+ * 此配置类保留为扩展点，用于注册自定义追踪组件。
+ * 原有的 Brave Sampler 和 AsyncZipkinSpanHandler Bean 已被 Spring Boot 4 自动配置替代。
+ * </p>
  */
 @Slf4j
 @Configuration
-@ConditionalOnClass({ Tracer.class, Sampler.class })
+@ConditionalOnClass(Tracer.class)
 public class TracingConfig {
 
-    @Value("${observability.tempo.endpoint:http://localhost:9411/api/v2/spans}")
-    private String tempoEndpoint;
-
-    @Value("${management.tracing.sampling.probability:1.0}")
-    private double samplingProbability;
-
-    /**
-     * 配置采样策略
-     * probability 为 1.0 表示 100% 采样（开发/测试环境）
-     * 生产环境建议降低到 0.1 或更低
-     */
-    @Bean(name = "observabilitySampler")
-    public Sampler sampler() {
-        log.info("Configuring tracing sampler with probability: {}", samplingProbability);
-        return Sampler.create((float) samplingProbability);
-    }
-
-    /**
-     * 配置 Zipkin Span Handler（用于 Tempo）
-     * 只有在启用追踪时才创建此 Bean
-     */
-    @Bean(name = "observabilityZipkinSpanHandler")
-    @ConditionalOnProperty(name = "observability.tempo.enabled", havingValue = "true")
-    public AsyncZipkinSpanHandler zipkinSpanHandler() {
-        log.info("Configuring Zipkin Span Handler for Tempo: {}", tempoEndpoint);
-
-        URLConnectionSender sender = URLConnectionSender.newBuilder()
-                .endpoint(tempoEndpoint)
-                .connectTimeout(1000)
-                .readTimeout(10000)
-                .build();
-
-        return AsyncZipkinSpanHandler.newBuilder(sender)
-                .build();
+    public TracingConfig() {
+        log.info("TracingConfig initialized: using Micrometer Tracing with OTel bridge (Spring Boot 4 auto-configuration)");
     }
 }

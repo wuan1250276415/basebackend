@@ -104,7 +104,7 @@ import org.springframework.context.annotation.Import;
         "com.basebackend.observability.otel.config.OtelAutoConfiguration"
 })
 @AutoConfigureBefore(name = {
-        "org.springframework.boot.actuate.autoconfigure.tracing.BraveAutoConfiguration"
+        "org.springframework.boot.actuate.autoconfigure.tracing.OpenTelemetryAutoConfiguration"
 })
 @Import({
         TracePropagatorConfiguration.class,  // 上下文传播器配置

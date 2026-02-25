@@ -56,10 +56,10 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
-        <!-- Micrometer Tracing -->
+        <!-- Micrometer Tracing (OTel bridge for Spring Boot 4) -->
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
 
         <!-- Micrometer Context Propagation -->
@@ -67,18 +67,6 @@
             <groupId>io.micrometer</groupId>
             <artifactId>context-propagation</artifactId>
             <version>1.0.5</version>
-        </dependency>
-
-        <!-- Zipkin Reporter -->
-        <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-reporter-brave</artifactId>
-        </dependency>
-
-        <!-- Zipkin URL Connection Sender -->
-        <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-sender-urlconnection</artifactId>
         </dependency>
 
         <!-- JVM Extras for Micrometer -->

@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
  * OpenTelemetry 自动配置
  * <p>
  * 该配置类负责实例化 OpenTelemetry SDK 组件并配置 OTLP 导出器。
- * 设计为与现有的 Micrometer 和 Brave 共存，支持双栈遥测数据导出。
+ * 基于 OpenTelemetry 原生 SDK，通过 Micrometer Tracing Bridge OTel 与 Spring Boot 4 集成。
  * </p>
  * <p>
  * 配置项通过 {@link OtelProperties} 控制，包括：
@@ -62,8 +62,7 @@ import java.util.concurrent.TimeUnit;
 @EnableConfigurationProperties(OtelProperties.class)
 @ConditionalOnProperty(value = "observability.otel.enabled", havingValue = "true")
 @AutoConfigureAfter(name = {
-        "org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration",
-        "org.springframework.cloud.sleuth.autoconfig.brave.BraveAutoConfiguration"
+        "org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration"
 })
 public class OtelAutoConfiguration implements DisposableBean {
 

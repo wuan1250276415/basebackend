@@ -6,8 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * OpenTelemetry 配置属性
  * <p>
- * 支持双栈配置，允许 OpenTelemetry 与 Micrometer/Brave 共存，
- * 为平滑迁移提供灵活的配置选项。
+ * OpenTelemetry 配置属性，与 Micrometer Tracing Bridge OTel 集成。
  * </p>
  *
  * @author BaseBackend Team
@@ -33,7 +32,7 @@ public class OtelProperties {
     private Otlp otlp = new Otlp();
 
     /**
-     * 桥接器配置
+     * 桥接器配置（Micrometer 桥接）
      */
     private Bridge bridge = new Bridge();
 
@@ -175,25 +174,12 @@ public class OtelProperties {
          */
         private boolean micrometer = true;
 
-        /**
-         * 是否启用 Brave 桥接
-         */
-        private boolean brave = true;
-
         public boolean isMicrometer() {
             return micrometer;
         }
 
         public void setMicrometer(boolean micrometer) {
             this.micrometer = micrometer;
-        }
-
-        public boolean isBrave() {
-            return brave;
-        }
-
-        public void setBrave(boolean brave) {
-            this.brave = brave;
         }
     }
 

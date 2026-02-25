@@ -1,7 +1,7 @@
 package com.basebackend.observability.tracing;
 
-import brave.Tracer;
-import brave.propagation.TraceContext;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +18,12 @@ import java.io.IOException;
 
 /**
  * MDC 追踪过滤器
- * 将 TraceId 和 SpanId 自动注入到 MDC 中，使所有日志都包含链路追踪信息
+ * 将 TraceId 和 SpanId 自动注入到 MDC 中，使所有日志都包含链路追踪信息。
+ * <p>
+ * 使用 Micrometer Tracing API（通过 OTel bridge），不再直接依赖 Brave。
+ * Spring Boot 4 自动将 traceId/spanId 放入 MDC，此 Filter 补充 requestId 生成
+ * 和响应头输出等自定义逻辑。
+ * </p>
  *
  * MDC (Mapped Diagnostic Context) 是 SLF4J 提供的机制，可以将上下文信息附加到日志中
  */
@@ -43,12 +48,11 @@ public class TracingMdcFilter implements Filter {
 
         try {
             if (request instanceof HttpServletRequest httpRequest) {
-                // 获取当前 Span 的 TraceContext
-                TraceContext context = tracer.currentSpan() != null ? tracer.currentSpan().context() : null;
+                Span currentSpan = tracer.currentSpan();
 
-                if (context != null) {
-                    String traceId = context.traceIdString();
-                    String spanId = context.spanIdString();
+                if (currentSpan != null) {
+                    String traceId = currentSpan.context().traceId();
+                    String spanId = currentSpan.context().spanId();
 
                     // 将 TraceId 和 SpanId 注入到 MDC
                     MDC.put(TRACE_ID_KEY, traceId);

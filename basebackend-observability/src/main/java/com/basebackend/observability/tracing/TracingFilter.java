@@ -1,7 +1,7 @@
 package com.basebackend.observability.tracing;
 
-import brave.Tracer;
-import brave.propagation.TraceContext;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +17,10 @@ import java.io.IOException;
 
 /**
  * 追踪过滤器
- * 自动为每个请求创建 Span，并将 TraceId 添加到响应头
+ * 将当前 Span 的 TraceId/SpanId 添加到 HTTP 响应头，方便前端和调试追踪。
+ * <p>
+ * 使用 Micrometer Tracing API（通过 OTel bridge），不再直接依赖 Brave。
+ * </p>
  */
 @Slf4j
 @Component
@@ -35,12 +38,11 @@ public class TracingFilter implements Filter {
 
         if (request instanceof HttpServletRequest httpRequest && response instanceof HttpServletResponse httpResponse) {
 
-            // 获取当前 Span 的 TraceContext
-            TraceContext context = tracer.currentSpan() != null ? tracer.currentSpan().context() : null;
+            Span currentSpan = tracer.currentSpan();
 
-            if (context != null) {
-                String traceId = context.traceIdString();
-                String spanId = context.spanIdString();
+            if (currentSpan != null) {
+                String traceId = currentSpan.context().traceId();
+                String spanId = currentSpan.context().spanId();
 
                 // 将 TraceId 和 SpanId 添加到响应头
                 httpResponse.setHeader("X-Trace-Id", traceId);
