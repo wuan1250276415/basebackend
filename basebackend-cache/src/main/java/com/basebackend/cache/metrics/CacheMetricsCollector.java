@@ -48,8 +48,7 @@ public class CacheMetricsCollector {
         
         // 根据操作类型更新统计
         switch (metrics.getOperationType()) {
-            case GET:
-            case MULTI_GET:
+            case GET, MULTI_GET -> {
                 if (metrics.isSuccess()) {
                     if (Boolean.TRUE.equals(metrics.getHit())) {
                         stats.hitCount.incrementAndGet();
@@ -59,25 +58,23 @@ public class CacheMetricsCollector {
                         incrementCounter(cacheName, "miss");
                     }
                 }
-                break;
-            case SET:
-            case MULTI_SET:
+            }
+            case SET, MULTI_SET -> {
                 if (metrics.isSuccess()) {
                     incrementCounter(cacheName, "set");
                 }
-                break;
-            case EVICT:
-            case DELETE_BY_PATTERN:
+            }
+            case EVICT, DELETE_BY_PATTERN -> {
                 if (metrics.isSuccess()) {
                     stats.evictionCount.incrementAndGet();
                     incrementCounter(cacheName, "eviction");
                 }
-                break;
-            case CLEAR:
+            }
+            case CLEAR -> {
                 if (metrics.isSuccess()) {
                     incrementCounter(cacheName, "clear");
                 }
-                break;
+            }
         }
         
         // 记录延迟

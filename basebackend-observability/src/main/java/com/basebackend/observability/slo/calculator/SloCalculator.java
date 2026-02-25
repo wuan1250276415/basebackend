@@ -37,38 +37,31 @@ public class SloCalculator {
         double compliance;
 
         // 根据不同类型的 SLO 计算合规性
-        switch (slo.getType()) {
-            case LATENCY:
+        compliance = switch (slo.getType()) {
+            case LATENCY -> {
                 // 延迟：观测值越小越好，合规性 = 目标 / 观测值
                 if (observedSli <= 0) {
-                    compliance = 1d;  // 无延迟，完全合规
+                    yield 1d;  // 无延迟，完全合规
                 } else {
-                    compliance = slo.getTarget() / observedSli;
+                    yield slo.getTarget() / observedSli;
                 }
-                break;
-
-            case THROUGHPUT:
+            }
+            case THROUGHPUT ->
                 // 吞吐量：观测值越大越好，合规性 = 观测值 / 目标
-                compliance = observedSli >= slo.getTarget() ? 1d : observedSli / slo.getTarget();
-                break;
-
-            case ERROR_RATE:
+                observedSli >= slo.getTarget() ? 1d : observedSli / slo.getTarget();
+            case ERROR_RATE -> {
                 // 错误率：观测值越小越好
-                // 合规性 = (1 - 观测值) / (1 - 目标)
                 double allowedErrorRate = slo.getTarget();
                 if (observedSli <= allowedErrorRate) {
-                    compliance = 1d;  // 低于目标错误率，完全合规
+                    yield 1d;  // 低于目标错误率，完全合规
                 } else {
-                    compliance = allowedErrorRate / observedSli;
+                    yield allowedErrorRate / observedSli;
                 }
-                break;
-
-            case AVAILABILITY:
-            default:
+            }
+            default ->
                 // 可用性：观测值越大越好，合规性 = 观测值 / 目标
-                compliance = observedSli / slo.getTarget();
-                break;
-        }
+                observedSli / slo.getTarget();
+        };
 
         // 确保合规性非负
         compliance = Math.max(compliance, 0d);

@@ -45,20 +45,18 @@ public class MultiLevelCacheConfig {
 
         // 根据淘汰策略配置
         switch (multiLevel.getEvictionPolicy().toUpperCase()) {
-            case "LRU":
+            case "LRU" -> {
                 // Caffeine 默认使用 Window TinyLFU，这里我们使用 expireAfterAccess 来模拟 LRU
                 caffeineBuilder.expireAfterAccess(multiLevel.getLocalTtl().toMillis(), TimeUnit.MILLISECONDS);
                 log.info("Using LRU eviction policy (expireAfterAccess)");
-                break;
-            case "LFU":
+            }
+            case "LFU" ->
                 // Caffeine 的默认策略就是基于频率的
                 log.info("Using LFU eviction policy (Caffeine default)");
-                break;
-            case "FIFO":
+            case "FIFO" ->
                 // FIFO 使用 expireAfterWrite
                 log.info("Using FIFO eviction policy (expireAfterWrite)");
-                break;
-            default:
+            default ->
                 log.warn("Unknown eviction policy: {}, using default", multiLevel.getEvictionPolicy());
         }
 

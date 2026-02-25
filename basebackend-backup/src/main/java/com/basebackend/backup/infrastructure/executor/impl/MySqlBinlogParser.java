@@ -107,38 +107,12 @@ public class MySqlBinlogParser {
 
                 // 根据事件类型分发处理逻辑
                 switch (eventType) {
-                    case WRITE_ROWS:
-                    case EXT_WRITE_ROWS:
-                        // 处理INSERT操作事件
-                        handleWriteRows(event, listener);
-                        break;
-
-                    case UPDATE_ROWS:
-                    case EXT_UPDATE_ROWS:
-                        // 处理UPDATE操作事件
-                        handleUpdateRows(event, listener);
-                        break;
-
-                    case DELETE_ROWS:
-                    case EXT_DELETE_ROWS:
-                        // 处理DELETE操作事件
-                        handleDeleteRows(event, listener);
-                        break;
-
-                    case QUERY:
-                        // 处理SQL语句事件（包括DDL）
-                        handleQuery(event, listener);
-                        break;
-
-                    case ROWS_QUERY:
-                        // 处理行查询事件
-                        handleRowsQuery(event, listener);
-                        break;
-
-                    default:
-                        // 对于不支持的事件类型，记录debug日志但不中断处理
-                        log.trace("忽略不支持的binlog事件类型: {}", eventType);
-                        break;
+                    case WRITE_ROWS, EXT_WRITE_ROWS -> handleWriteRows(event, listener);
+                    case UPDATE_ROWS, EXT_UPDATE_ROWS -> handleUpdateRows(event, listener);
+                    case DELETE_ROWS, EXT_DELETE_ROWS -> handleDeleteRows(event, listener);
+                    case QUERY -> handleQuery(event, listener);
+                    case ROWS_QUERY -> handleRowsQuery(event, listener);
+                    default -> log.trace("忽略不支持的binlog事件类型: {}", eventType);
                 }
             } catch (Exception e) {
                 // 记录处理异常，但不让异常中断事件监听循环

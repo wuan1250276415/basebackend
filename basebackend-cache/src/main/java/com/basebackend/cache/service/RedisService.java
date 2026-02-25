@@ -398,29 +398,21 @@ public class RedisService {
         long currentTime = System.currentTimeMillis();
         CacheProperties.Resilience.CircuitBreaker config = cacheProperties.getResilience().getCircuitBreaker();
         
-        switch (circuitBreakerState) {
-            case CLOSED:
-                // 正常状态，无需处理
-                return CircuitBreakerState.CLOSED;
-                
-            case OPEN:
+        return switch (circuitBreakerState) {
+            case CLOSED -> CircuitBreakerState.CLOSED;
+            case OPEN -> {
                 // 检查是否可以进入半开状态
                 long openDuration = config.getOpenDuration().toMillis();
                 if (currentTime - circuitOpenTime.get() >= openDuration) {
                     log.info("Circuit breaker transitioning from OPEN to HALF_OPEN");
                     circuitBreakerState = CircuitBreakerState.HALF_OPEN;
                     halfOpenSuccesses.set(0);
-                    return CircuitBreakerState.HALF_OPEN;
+                    yield CircuitBreakerState.HALF_OPEN;
                 }
-                return CircuitBreakerState.OPEN;
-                
-            case HALF_OPEN:
-                // 半开状态，允许部分请求通过
-                return CircuitBreakerState.HALF_OPEN;
-                
-            default:
-                return CircuitBreakerState.CLOSED;
-        }
+                yield CircuitBreakerState.OPEN;
+            }
+            case HALF_OPEN -> CircuitBreakerState.HALF_OPEN;
+        };
     }
 
     /**
@@ -434,31 +426,25 @@ public class RedisService {
         }
         
         switch (circuitBreakerState) {
-            case CLOSED:
+            case CLOSED -> {
                 // 重置失败计数
                 if (consecutiveFailures.get() > 0) {
                     log.debug("Resetting failure count after successful operation: {}", operationName);
                     consecutiveFailures.set(0);
                 }
-                break;
-                
-            case HALF_OPEN:
+            }
+            case HALF_OPEN -> {
                 // 半开状态下成功，增加成功计数
                 int successes = halfOpenSuccesses.incrementAndGet();
                 log.debug("Half-open success count: {}/{}", successes, config.getHalfOpenRequests());
-                
                 if (successes >= config.getHalfOpenRequests()) {
-                    // 达到成功阈值，关闭熔断器
                     log.info("Circuit breaker transitioning from HALF_OPEN to CLOSED after {} successful requests", successes);
                     circuitBreakerState = CircuitBreakerState.CLOSED;
                     consecutiveFailures.set(0);
                     recordCircuitBreakerMetrics(operationName, true);
                 }
-                break;
-                
-            case OPEN:
-                // 不应该到达这里
-                break;
+            }
+            case OPEN -> { /* 不应该到达这里 */ }
         }
     }
 
@@ -511,7 +497,7 @@ public class RedisService {
         log.warn("Consecutive failures: {}/{}", failures, config.getFailureThreshold());
         
         switch (circuitBreakerState) {
-            case CLOSED:
+            case CLOSED -> {
                 // 检查是否达到失败阈值
                 if (failures >= config.getFailureThreshold()) {
                     log.error("Circuit breaker opening after {} consecutive failures", failures);
@@ -519,20 +505,16 @@ public class RedisService {
                     circuitOpenTime.set(System.currentTimeMillis());
                     recordCircuitBreakerMetrics(operationName, false);
                 }
-                break;
-                
-            case HALF_OPEN:
+            }
+            case HALF_OPEN -> {
                 // 半开状态下失败，立即打开熔断器
                 log.error("Circuit breaker reopening after failure in HALF_OPEN state");
                 circuitBreakerState = CircuitBreakerState.OPEN;
                 circuitOpenTime.set(System.currentTimeMillis());
                 halfOpenSuccesses.set(0);
                 recordCircuitBreakerMetrics(operationName, false);
-                break;
-                
-            case OPEN:
-                // 已经打开，无需处理
-                break;
+            }
+            case OPEN -> { /* 已经打开，无需处理 */ }
         }
     }
 

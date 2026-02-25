@@ -33,23 +33,13 @@ public class BackupNotificationEvent {
         StringBuilder sb = new StringBuilder();
         sb.append("[BaseBackend Backup] ");
 
-        switch (eventType) {
-            case BACKUP_SUCCESS:
-                sb.append("备份成功");
-                break;
-            case BACKUP_FAILED:
-                sb.append("备份失败");
-                break;
-            case RESTORE_SUCCESS:
-                sb.append("恢复成功");
-                break;
-            case RESTORE_FAILED:
-                sb.append("恢复失败");
-                break;
-            case CLEANUP_COMPLETED:
-                sb.append("清理完成");
-                break;
-        }
+        sb.append(switch (eventType) {
+            case BACKUP_SUCCESS -> "备份成功";
+            case BACKUP_FAILED -> "备份失败";
+            case RESTORE_SUCCESS -> "恢复成功";
+            case RESTORE_FAILED -> "恢复失败";
+            case CLEANUP_COMPLETED -> "清理完成";
+        });
 
         sb.append("\n任务: ").append(taskName);
         if (backupType != null) {

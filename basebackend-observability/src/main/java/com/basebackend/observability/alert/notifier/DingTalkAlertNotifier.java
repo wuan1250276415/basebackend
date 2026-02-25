@@ -154,25 +154,25 @@ public class DingTalkAlertNotifier implements AlertNotifier {
      * 获取告警级别的 Emoji
      */
     private String getSeverityEmoji(com.basebackend.observability.alert.AlertRule.AlertSeverity severity) {
-        switch (severity) {
-            case CRITICAL: return "🔴";
-            case ERROR: return "🟠";
-            case WARNING: return "🟡";
-            case INFO: return "🔵";
-            default: return "⚪";
-        }
+        return switch (severity) {
+            case CRITICAL -> "🔴";
+            case ERROR -> "🟠";
+            case WARNING -> "🟡";
+            case INFO -> "🔵";
+            default -> "⚪";
+        };
     }
 
     /**
      * 获取告警级别的文本（带颜色标记）
      */
     private String getSeverityText(com.basebackend.observability.alert.AlertRule.AlertSeverity severity) {
-        switch (severity) {
-            case CRITICAL: return "<font color=#FF0000>严重</font>";
-            case ERROR: return "<font color=#FF6600>错误</font>";
-            case WARNING: return "<font color=#FFCC00>警告</font>";
-            case INFO: return "<font color=#0066FF>信息</font>";
-            default: return severity.toString();
-        }
+        return switch (severity) {
+            case CRITICAL -> "<font color=#FF0000>严重</font>";
+            case ERROR -> "<font color=#FF6600>错误</font>";
+            case WARNING -> "<font color=#FFCC00>警告</font>";
+            case INFO -> "<font color=#0066FF>信息</font>";
+            default -> severity.toString();
+        };
     }
 }

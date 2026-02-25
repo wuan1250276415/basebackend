@@ -181,14 +181,11 @@ public class OcsfExporter {
             return 6003;
         }
         String category = eventType.getCategory();
-        switch (category) {
-            case "auth":
-                return 3002;
-            case "security":
-                return 3003;
-            default:
-                return 6003;
-        }
+        return switch (category) {
+            case "auth" -> 3002;
+            case "security" -> 3003;
+            default -> 6003;
+        };
     }
 
     /**
@@ -212,41 +209,27 @@ public class OcsfExporter {
             return 1;
         }
         AuditSeverity severity = entry.getEventType().getSeverity();
-        switch (severity) {
-            case LOW:
-                return 1;
-            case MEDIUM:
-                return 2;
-            case HIGH:
-                return 3;
-            case CRITICAL:
-                return 4;
-            default:
-                return 1;
-        }
+        return switch (severity) {
+            case LOW -> 1;
+            case MEDIUM -> 2;
+            case HIGH -> 3;
+            case CRITICAL -> 4;
+            default -> 1;
+        };
     }
 
     private int mapActivityId(AuditLogEntry entry) {
         if (entry.getEventType() == null) {
             return 0;
         }
-        switch (entry.getEventType()) {
-            case LOGIN:
-                return 1;
-            case LOGOUT:
-                return 2;
-            case CREATE:
-            case BATCH_CREATE:
-                return 1;
-            case UPDATE:
-            case BATCH_UPDATE:
-                return 2;
-            case DELETE:
-            case BATCH_DELETE:
-                return 3;
-            default:
-                return 0;
-        }
+        return switch (entry.getEventType()) {
+            case LOGIN -> 1;
+            case LOGOUT -> 2;
+            case CREATE, BATCH_CREATE -> 1;
+            case UPDATE, BATCH_UPDATE -> 2;
+            case DELETE, BATCH_DELETE -> 3;
+            default -> 0;
+        };
     }
 
     private long computeTypeUid(AuditLogEntry entry) {

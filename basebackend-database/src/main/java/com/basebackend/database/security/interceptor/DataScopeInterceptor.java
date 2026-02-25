@@ -244,39 +244,35 @@ public class DataScopeInterceptor implements Interceptor {
      */
     private String generateWhereCondition(DataScopeType dataScopeType, Long userId, Long deptId,
             boolean needDeptFilter, boolean needCreatorFilter) {
-        switch (dataScopeType) {
-            case ALL:
-                return null;
-
-            case DEPT:
+        return switch (dataScopeType) {
+            case ALL -> null;
+            case DEPT -> {
                 if (needDeptFilter && deptId != null) {
                     validateLongValue(deptId, "deptId");
-                    return "dept_id = " + deptId;
+                    yield "dept_id = " + deptId;
                 }
-                return null; // 表没有dept_id字段，不添加过滤条件
-
-            case DEPT_AND_CHILD:
+                yield null; // 表没有dept_id字段，不添加过滤条件
+            }
+            case DEPT_AND_CHILD -> {
                 if (needDeptFilter && deptId != null) {
                     validateLongValue(deptId, "deptId");
-                    return "(dept_id = " + deptId + " OR dept_id IN (SELECT id FROM sys_dept WHERE parent_id = "
+                    yield "(dept_id = " + deptId + " OR dept_id IN (SELECT id FROM sys_dept WHERE parent_id = "
                             + deptId + "))";
                 }
-                return null;
-
-            case SELF:
+                yield null;
+            }
+            case SELF -> {
                 if (needCreatorFilter && userId != null) {
                     validateLongValue(userId, "userId");
-                    return "(create_by = " + userId + ")";
+                    yield "(create_by = " + userId + ")";
                 }
-                return null;
-
-            case CUSTOM:
+                yield null;
+            }
+            case CUSTOM ->
                 // 自定义数据权限，由调用方处理
-                return null;
-
-            default:
-                return null;
-        }
+                null;
+            default -> null;
+        };
     }
 
     /**

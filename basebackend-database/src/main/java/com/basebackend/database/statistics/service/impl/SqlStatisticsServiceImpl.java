@@ -71,23 +71,12 @@ public class SqlStatisticsServiceImpl extends ServiceImpl<SqlStatisticsMapper, S
         boolean isAsc = "ASC".equalsIgnoreCase(query.getOrderDirection());
 
         switch (orderBy) {
-            case "executeCount":
-                wrapper.orderBy(true, isAsc, SqlStatistics::getExecuteCount);
-                break;
-            case "avgTime":
-                wrapper.orderBy(true, isAsc, SqlStatistics::getAvgTime);
-                break;
-            case "maxTime":
-                wrapper.orderBy(true, isAsc, SqlStatistics::getMaxTime);
-                break;
-            case "totalTime":
-                wrapper.orderBy(true, isAsc, SqlStatistics::getTotalTime);
-                break;
-            case "failCount":
-                wrapper.orderBy(true, isAsc, SqlStatistics::getFailCount);
-                break;
-            default:
-                wrapper.orderByDesc(SqlStatistics::getExecuteCount);
+            case "executeCount" -> wrapper.orderBy(true, isAsc, SqlStatistics::getExecuteCount);
+            case "avgTime" -> wrapper.orderBy(true, isAsc, SqlStatistics::getAvgTime);
+            case "maxTime" -> wrapper.orderBy(true, isAsc, SqlStatistics::getMaxTime);
+            case "totalTime" -> wrapper.orderBy(true, isAsc, SqlStatistics::getTotalTime);
+            case "failCount" -> wrapper.orderBy(true, isAsc, SqlStatistics::getFailCount);
+            default -> wrapper.orderByDesc(SqlStatistics::getExecuteCount);
         }
 
         return this.page(page, wrapper);

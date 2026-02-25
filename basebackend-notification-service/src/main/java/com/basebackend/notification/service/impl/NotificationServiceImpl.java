@@ -384,16 +384,12 @@ public class NotificationServiceImpl implements NotificationService {
      */
     private String getSubjectByTemplateCode(String templateCode) {
         // 简化处理，实际应该从数据库查询
-        switch (templateCode) {
-            case "welcome":
-                return "欢迎加入系统";
-            case "password_changed":
-                return "您的密码已修改";
-            case "profile_updated":
-                return "资料更新通知";
-            default:
-                return "系统通知";
-        }
+        return switch (templateCode) {
+            case "welcome" -> "欢迎加入系统";
+            case "password_changed" -> "您的密码已修改";
+            case "profile_updated" -> "资料更新通知";
+            default -> "系统通知";
+        };
     }
 
     @Override
@@ -554,14 +550,10 @@ public class NotificationServiceImpl implements NotificationService {
             return NotificationConstants.TAG_SYSTEM;
         }
 
-        switch (type.toLowerCase()) {
-            case "announcement":
-                return NotificationConstants.TAG_ANNOUNCEMENT;
-            case "reminder":
-                return NotificationConstants.TAG_REMINDER;
-            case "system":
-            default:
-                return NotificationConstants.TAG_SYSTEM;
-        }
+        return switch (type.toLowerCase()) {
+            case "announcement" -> NotificationConstants.TAG_ANNOUNCEMENT;
+            case "reminder" -> NotificationConstants.TAG_REMINDER;
+            default -> NotificationConstants.TAG_SYSTEM;
+        };
     }
 }

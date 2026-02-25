@@ -69,22 +69,15 @@ public class FeatureToggleExceptionHandler {
         // 根据异常类型决定处理策略
         ExceptionType exceptionType = classifyException(exception);
 
-        switch (exceptionType) {
-            case NETWORK_ERROR:
-                return handleNetworkError(featureName, operation, exception, defaultValue);
-            case TIMEOUT_ERROR:
-                return handleTimeoutError(featureName, operation, exception, defaultValue);
-            case AUTHENTICATION_ERROR:
-                return handleAuthError(featureName, operation, exception, defaultValue);
-            case RATE_LIMIT_ERROR:
-                return handleRateLimitError(featureName, operation, exception, defaultValue);
-            case CONFIGURATION_ERROR:
-                return handleConfigError(featureName, operation, exception, defaultValue);
-            case BUSINESS_ERROR:
-                return handleBusinessError(featureName, operation, exception, defaultValue);
-            default:
-                return handleUnknownError(featureName, operation, exception, defaultValue);
-        }
+        return switch (exceptionType) {
+            case NETWORK_ERROR -> handleNetworkError(featureName, operation, exception, defaultValue);
+            case TIMEOUT_ERROR -> handleTimeoutError(featureName, operation, exception, defaultValue);
+            case AUTHENTICATION_ERROR -> handleAuthError(featureName, operation, exception, defaultValue);
+            case RATE_LIMIT_ERROR -> handleRateLimitError(featureName, operation, exception, defaultValue);
+            case CONFIGURATION_ERROR -> handleConfigError(featureName, operation, exception, defaultValue);
+            case BUSINESS_ERROR -> handleBusinessError(featureName, operation, exception, defaultValue);
+            default -> handleUnknownError(featureName, operation, exception, defaultValue);
+        };
     }
 
     /**
@@ -111,22 +104,15 @@ public class FeatureToggleExceptionHandler {
         // 根据异常类型决定处理策略
         ExceptionType exceptionType = classifyException(exception);
 
-        switch (exceptionType) {
-            case NETWORK_ERROR:
-                return handleNetworkError(featureName, operation, exception, defaultValue);
-            case TIMEOUT_ERROR:
-                return handleTimeoutError(featureName, operation, exception, defaultValue);
-            case AUTHENTICATION_ERROR:
-                return handleAuthError(featureName, operation, exception, defaultValue);
-            case RATE_LIMIT_ERROR:
-                return handleRateLimitError(featureName, operation, exception, defaultValue);
-            case CONFIGURATION_ERROR:
-                return handleConfigError(featureName, operation, exception, defaultValue);
-            case BUSINESS_ERROR:
-                return handleBusinessError(featureName, operation, exception, defaultValue);
-            default:
-                return handleUnknownError(featureName, operation, exception, defaultValue);
-        }
+        return switch (exceptionType) {
+            case NETWORK_ERROR -> handleNetworkError(featureName, operation, exception, defaultValue);
+            case TIMEOUT_ERROR -> handleTimeoutError(featureName, operation, exception, defaultValue);
+            case AUTHENTICATION_ERROR -> handleAuthError(featureName, operation, exception, defaultValue);
+            case RATE_LIMIT_ERROR -> handleRateLimitError(featureName, operation, exception, defaultValue);
+            case CONFIGURATION_ERROR -> handleConfigError(featureName, operation, exception, defaultValue);
+            case BUSINESS_ERROR -> handleBusinessError(featureName, operation, exception, defaultValue);
+            default -> handleUnknownError(featureName, operation, exception, defaultValue);
+        };
     }
 
     /**

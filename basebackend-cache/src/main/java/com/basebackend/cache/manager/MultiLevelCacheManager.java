@@ -86,24 +86,25 @@ public class MultiLevelCacheManager {
         
         // 根据淘汰策略配置过期时间
         switch (multiLevel.getEvictionPolicy().toUpperCase()) {
-            case "LRU":
+            case "LRU" -> {
                 // LRU: 基于访问时间淘汰
                 caffeineBuilder.expireAfterAccess(multiLevel.getLocalTtl());
                 log.info("Using LRU eviction policy (expireAfterAccess)");
-                break;
-            case "LFU":
+            }
+            case "LFU" -> {
                 // LFU: Caffeine 默认使用 Window TinyLFU，基于频率淘汰
                 caffeineBuilder.expireAfterWrite(multiLevel.getLocalTtl());
                 log.info("Using LFU eviction policy (Caffeine default Window TinyLFU)");
-                break;
-            case "FIFO":
+            }
+            case "FIFO" -> {
                 // FIFO: 基于写入时间淘汰
                 caffeineBuilder.expireAfterWrite(multiLevel.getLocalTtl());
                 log.info("Using FIFO eviction policy (expireAfterWrite)");
-                break;
-            default:
+            }
+            default -> {
                 log.warn("Unknown eviction policy: {}, using default LRU", multiLevel.getEvictionPolicy());
                 caffeineBuilder.expireAfterAccess(multiLevel.getLocalTtl());
+            }
         }
         
         this.localCache = caffeineBuilder.build();

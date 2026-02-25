@@ -113,25 +113,25 @@ public class WeChatAlertNotifier implements AlertNotifier {
      * 获取告警级别的 Emoji
      */
     private String getSeverityEmoji(com.basebackend.observability.alert.AlertRule.AlertSeverity severity) {
-        switch (severity) {
-            case CRITICAL: return "🚨";
-            case ERROR: return "❌";
-            case WARNING: return "⚠️";
-            case INFO: return "ℹ️";
-            default: return "📢";
-        }
+        return switch (severity) {
+            case CRITICAL -> "🚨";
+            case ERROR -> "❌";
+            case WARNING -> "⚠️";
+            case INFO -> "ℹ️";
+            default -> "📢";
+        };
     }
 
     /**
      * 获取告警级别的标签（带颜色）
      */
     private String getSeverityTag(com.basebackend.observability.alert.AlertRule.AlertSeverity severity) {
-        switch (severity) {
-            case CRITICAL: return "<font color=\"warning\">严重</font>";
-            case ERROR: return "<font color=\"warning\">错误</font>";
-            case WARNING: return "<font color=\"comment\">警告</font>";
-            case INFO: return "<font color=\"info\">信息</font>";
-            default: return severity.toString();
-        }
+        return switch (severity) {
+            case CRITICAL -> "<font color=\"warning\">严重</font>";
+            case ERROR -> "<font color=\"warning\">错误</font>";
+            case WARNING -> "<font color=\"comment\">警告</font>";
+            case INFO -> "<font color=\"info\">信息</font>";
+            default -> severity.toString();
+        };
     }
 }

@@ -68,9 +68,11 @@ public class DeadLetterConsumer implements RocketMQListener<String> {
         }
 
         try {
-            String sql = "INSERT INTO sys_dead_letter " +
-                    "(message_id, topic, tags, message_type, payload, original_message, error_message, retry_count, create_time, status) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = """
+                    INSERT INTO sys_dead_letter
+                    (message_id, topic, tags, message_type, payload, original_message, error_message, retry_count, create_time, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """;
 
             String messageId = (String) messageMap.getOrDefault("messageId", "unknown");
             String topic = (String) messageMap.getOrDefault("topic", "unknown");

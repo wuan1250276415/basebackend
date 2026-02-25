@@ -50,8 +50,7 @@ class ProcessInstanceControllerTest {
     @Test
     void terminate_shouldDelegateToService() {
         // Given
-        TerminateRequest request = new TerminateRequest();
-        request.setReason("User cancelled");
+        TerminateRequest request = new TerminateRequest("test-process-id", "User cancelled");
 
         // Then - controller exists
         assertThat(controller).isNotNull();

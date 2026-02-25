@@ -94,13 +94,13 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
         String isolationMode = tenantConfig.getIsolationMode();
         
         // 根据隔离模式返回数据源键
-        switch (isolationMode) {
-            case "SHARED_DB":
+        return switch (isolationMode) {
+            case "SHARED_DB" -> {
                 // 共享数据库模式，使用默认数据源
                 log.debug("Tenant {} using SHARED_DB mode, default data source", tenantId);
-                return properties.getDynamicDatasource().getPrimary();
-                
-            case "SEPARATE_DB":
+                yield properties.getDynamicDatasource().getPrimary();
+            }
+            case "SEPARATE_DB" -> {
                 // 独立数据库模式，使用租户专属数据源
                 String dataSourceKey = tenantConfig.getDataSourceKey();
                 if (dataSourceKey == null || dataSourceKey.trim().isEmpty()) {
@@ -108,9 +108,9 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
                     throw new TenantContextException("Data source key not configured for tenant: " + tenantId);
                 }
                 log.debug("Tenant {} using SEPARATE_DB mode, data source: {}", tenantId, dataSourceKey);
-                return dataSourceKey;
-                
-            case "SEPARATE_SCHEMA":
+                yield dataSourceKey;
+            }
+            case "SEPARATE_SCHEMA" -> {
                 // 独立 Schema 模式，使用默认数据源但切换 Schema
                 String schemaName = tenantConfig.getSchemaName();
                 if (schemaName == null || schemaName.trim().isEmpty()) {
@@ -120,12 +120,14 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
                 // 缓存 Schema 名称，供后续使用
                 tenantSchemas.put(tenantId, schemaName);
                 log.debug("Tenant {} using SEPARATE_SCHEMA mode, schema: {}", tenantId, schemaName);
-                return properties.getDynamicDatasource().getPrimary();
+                yield properties.getDynamicDatasource().getPrimary();
+            }
                 
-            default:
+            default -> {
                 log.error("Unknown isolation mode: {} for tenant: {}", isolationMode, tenantId);
                 throw new TenantContextException("Unknown isolation mode: " + isolationMode);
-        }
+            }
+        };
     }
     
     @Override

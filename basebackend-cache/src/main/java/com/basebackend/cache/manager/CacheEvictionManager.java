@@ -211,19 +211,16 @@ public class CacheEvictionManager {
     private long evictByPolicy(long count) {
         log.info("Evicting {} entries using policy: {}", count, evictionPolicy);
         
-        switch (evictionPolicy) {
-            case LRU:
-                return evictLRU(count);
-            case LFU:
-                return evictLFU(count);
-            case FIFO:
-                return evictFIFO(count);
-            case TTL:
-                return evictByTTL(count);
-            default:
+        return switch (evictionPolicy) {
+            case LRU -> evictLRU(count);
+            case LFU -> evictLFU(count);
+            case FIFO -> evictFIFO(count);
+            case TTL -> evictByTTL(count);
+            default -> {
                 log.warn("Unknown eviction policy: {}, using LRU", evictionPolicy);
-                return evictLRU(count);
-        }
+                yield evictLRU(count);
+            }
+        };
     }
 
     /**

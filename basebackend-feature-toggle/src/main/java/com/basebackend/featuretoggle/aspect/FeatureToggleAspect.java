@@ -241,25 +241,22 @@ public class FeatureToggleAspect {
                                   GradualRollout.FallbackStrategy strategy,
                                   String fallbackMethodName,
                                   String featureName) throws Throwable {
-        switch (strategy) {
-            case RETURN_NULL:
+        return switch (strategy) {
+            case RETURN_NULL -> {
                 log.debug("GradualRollout '{}': returning null (fallback)", featureName);
-                return null;
-
-            case THROW_EXCEPTION:
-                throw new FeatureNotEnabledException(featureName,
-                        "Feature '" + featureName + "' is not enabled in gradual rollout");
-
-            case FALLBACK_METHOD:
+                yield null;
+            }
+            case THROW_EXCEPTION -> throw new FeatureNotEnabledException(featureName,
+                    "Feature '" + featureName + "' is not enabled in gradual rollout");
+            case FALLBACK_METHOD -> {
                 if (fallbackMethodName == null || fallbackMethodName.isEmpty()) {
                     log.warn("GradualRollout '{}': fallback method not specified, returning null", featureName);
-                    return null;
+                    yield null;
                 }
-                return invokeFallbackMethod(joinPoint, fallbackMethodName, featureName);
-
-            default:
-                return null;
-        }
+                yield invokeFallbackMethod(joinPoint, fallbackMethodName, featureName);
+            }
+            default -> null;
+        };
     }
 
     /**

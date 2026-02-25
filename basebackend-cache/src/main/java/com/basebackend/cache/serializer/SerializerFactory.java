@@ -31,21 +31,14 @@ public class SerializerFactory {
         final String normalizedType = serializerType.toLowerCase().trim();
         
         // 从缓存中获取
-        return SERIALIZER_CACHE.computeIfAbsent(normalizedType, t -> {
-            switch (t) {
-                case "json":
-                    log.info("Creating JSON serializer");
-                    return new JsonCacheSerializer();
-                    
-                case "protobuf":
-                    return createProtobufSerializer();
-                    
-                case "kryo":
-                    return createKryoSerializer();
-                    
-                default:
-                    throw new CacheException("Unsupported serializer type: " + normalizedType);
+        return SERIALIZER_CACHE.computeIfAbsent(normalizedType, t -> switch (t) {
+            case "json" -> {
+                log.info("Creating JSON serializer");
+                yield new JsonCacheSerializer();
             }
+            case "protobuf" -> createProtobufSerializer();
+            case "kryo" -> createKryoSerializer();
+            default -> throw new CacheException("Unsupported serializer type: " + normalizedType);
         });
     }
     

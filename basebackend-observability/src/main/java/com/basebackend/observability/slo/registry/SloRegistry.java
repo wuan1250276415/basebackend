@@ -352,25 +352,25 @@ public class SloRegistry {
     private SLI createSli(SLO slo) {
         try {
             SloType type = slo.getType() == null ? SloType.AVAILABILITY : slo.getType();
-            switch (type) {
-                case LATENCY:
+            return switch (type) {
+                case LATENCY -> {
                     double percentile = slo.getPercentile() == null ? 0.95d : slo.getPercentile();
                     log.debug("创建 LatencySLI: slo={}, percentile={}", slo.getName(), percentile);
-                    return new LatencySLI(percentile);
-
-                case ERROR_RATE:
+                    yield new LatencySLI(percentile);
+                }
+                case ERROR_RATE -> {
                     log.debug("创建 ErrorRateSLI: slo={}", slo.getName());
-                    return new ErrorRateSLI();
-
-                case THROUGHPUT:
+                    yield new ErrorRateSLI();
+                }
+                case THROUGHPUT -> {
                     log.debug("创建 ThroughputSLI: slo={}", slo.getName());
-                    return new ThroughputSLI();
-
-                case AVAILABILITY:
-                default:
+                    yield new ThroughputSLI();
+                }
+                default -> {
                     log.debug("创建 AvailabilitySLI: slo={}", slo.getName());
-                    return new AvailabilitySLI();
-            }
+                    yield new AvailabilitySLI();
+                }
+            };
         } catch (Exception ex) {
             log.warn("创建 SLI 实例失败，使用默认可用性实现: slo={}", slo.getName(), ex);
             return new AvailabilitySLI();

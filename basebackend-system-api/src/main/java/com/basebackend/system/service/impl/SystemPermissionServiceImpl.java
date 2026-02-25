@@ -52,18 +52,13 @@ public class SystemPermissionServiceImpl implements PermissionService {
             // 根据角色ID分配系统管理权限
             for (Long roleId : roleIds) {
                 switch (roleId.intValue()) {
-                    case 1: // 超级管理员
+                    case 1 -> // 超级管理员
                         permissions.addAll(getAdminPermissions());
-                        break;
-                    case 2: // 系统管理员
+                    case 2 -> // 系统管理员
                         permissions.addAll(getSysAdminPermissions());
-                        break;
-                    case 3: // 普通管理员
+                    case 3 -> // 普通管理员
                         permissions.addAll(getNormalAdminPermissions());
-                        break;
-                    default:
-                        permissions.addAll(getDefaultPermissions());
-                        break;
+                    default -> permissions.addAll(getDefaultPermissions());
                 }
             }
 

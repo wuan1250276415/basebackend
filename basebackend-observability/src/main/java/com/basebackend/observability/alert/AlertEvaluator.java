@@ -40,16 +40,12 @@ public class AlertEvaluator {
                 return EvaluationResult.notTriggered("未知规则类型");
             }
 
-            switch (ruleType) {
-                case THRESHOLD:
-                    return evaluateThresholdRule(rule);
-                case LOG:
-                    return evaluateLogRule(rule);
-                case CUSTOM:
-                    return evaluateCustomRule(rule);
-                default:
-                    return EvaluationResult.notTriggered("未知规则类型");
-            }
+            return switch (ruleType) {
+                case THRESHOLD -> evaluateThresholdRule(rule);
+                case LOG -> evaluateLogRule(rule);
+                case CUSTOM -> evaluateCustomRule(rule);
+                default -> EvaluationResult.notTriggered("未知规则类型");
+            };
         } catch (Exception e) {
             log.error("Failed to evaluate alert rule - ruleId: {}, ruleName: {}, error: {}",
                     rule.getId(), rule.getRuleName(), e.getMessage(), e);
@@ -146,18 +142,11 @@ public class AlertEvaluator {
                     .meters()
                     .stream()
                     .findFirst()
-                    .map(meter -> {
-                        // 根据 Meter 类型获取值
-                        switch (meter.getId().getType()) {
-                            case COUNTER:
-                                return meterRegistry.counter(metricName).count();
-                            case GAUGE:
-                                return meterRegistry.gauge(metricName, 0.0);
-                            case TIMER:
-                                return meterRegistry.timer(metricName).mean(java.util.concurrent.TimeUnit.MILLISECONDS);
-                            default:
-                                return null;
-                        }
+                    .map(meter -> switch (meter.getId().getType()) {
+                        case COUNTER -> meterRegistry.counter(metricName).count();
+                        case GAUGE -> meterRegistry.gauge(metricName, 0.0);
+                        case TIMER -> meterRegistry.timer(metricName).mean(java.util.concurrent.TimeUnit.MILLISECONDS);
+                        default -> (Double) null;
                     })
                     .orElse(null);
         } catch (Exception e) {
@@ -175,22 +164,17 @@ public class AlertEvaluator {
             return false;
         }
 
-        switch (operator) {
-            case ">":
-                return current > threshold;
-            case ">=":
-                return current >= threshold;
-            case "<":
-                return current < threshold;
-            case "<=":
-                return current <= threshold;
-            case "==":
-            case "=":
-                return Math.abs(current - threshold) < 0.0001;
-            default:
+        return switch (operator) {
+            case ">" -> current > threshold;
+            case ">=" -> current >= threshold;
+            case "<" -> current < threshold;
+            case "<=" -> current <= threshold;
+            case "==", "=" -> Math.abs(current - threshold) < 0.0001;
+            default -> {
                 log.warn("Unknown comparison operator: {}", operator);
-                return false;
-        }
+                yield false;
+            }
+        };
     }
 
     /**

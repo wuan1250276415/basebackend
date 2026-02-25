@@ -104,44 +104,38 @@ public class LoggingMetricsEndpoint {
 
         Map<String, Object> result = new HashMap<>();
         switch (type.toLowerCase()) {
-            case "ingest":
+            case "ingest" -> {
                 result.put("count", sum("logging.ingest.count"));
                 result.put("error", sum("logging.ingest.count", "error"));
                 result.put("success", sum("logging.ingest.count", "success"));
                 result.put("warn", sum("logging.ingest.count", "warn"));
                 result.put("error_rate", metricsCollector.getCurrentErrorRate());
-                break;
-
-            case "latency":
+            }
+            case "latency" -> {
                 result.put("mean", timerMean("logging.latency"));
                 result.put("p50", timerPercentile("logging.latency", 0.50));
                 result.put("p95", timerPercentile("logging.latency", 0.95));
                 result.put("p99", timerPercentile("logging.latency", 0.99));
-                break;
-
-            case "performance":
+            }
+            case "performance" -> {
                 result.put("throughput", summaryMean("logging.throughput.bytes"));
                 result.put("batch_size", summaryMean("logging.batch.size"));
                 result.put("queue_depth", gauge("logging.queue.depth"));
                 result.put("active_threads", gauge("logging.active.threads"));
-                break;
-
-            case "system":
+            }
+            case "system" -> {
                 result.put("cache_hit_ratio", gauge("logging.cache.hit.ratio"));
                 result.put("compression_ratio", gauge("logging.compression.ratio"));
                 result.put("memory_usage", gauge("logging.memory.usage"));
-                break;
-
-            case "business":
+            }
+            case "business" -> {
                 result.put("async_batch", gauge("logging.async.batch.count"));
                 result.put("gzip_compression", gauge("logging.gzip.compression.count"));
                 result.put("redis_operations", gauge("logging.redis.cache.operations"));
                 result.put("masking", gauge("logging.masking.operations"));
                 result.put("audit_events", gauge("logging.audit.events"));
-                break;
-
-            default:
-                throw new IllegalArgumentException("未知的指标类型: " + type);
+            }
+            default -> throw new IllegalArgumentException("未知的指标类型: " + type);
         }
 
         return result;

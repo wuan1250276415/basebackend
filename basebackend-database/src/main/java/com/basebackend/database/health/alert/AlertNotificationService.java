@@ -47,12 +47,10 @@ public class AlertNotificationService {
         String alertKey = "slow_query:" + sql.hashCode();
         
         if (shouldSendAlert(alertKey)) {
-            String message = String.format(
-                "Slow query detected!\n" +
-                "Execution time: %dms (threshold: %dms)\n" +
-                "SQL: %s",
-                executionTime, threshold, sql
-            );
+            String message = """
+                Slow query detected!
+                Execution time: %dms (threshold: %dms)
+                SQL: %s""".formatted(executionTime, threshold, sql);
 
             sendAlert(AlertLevel.WARNING, "Slow Query Alert", message);
             recordAlert(alertKey);
@@ -75,12 +73,10 @@ public class AlertNotificationService {
         String alertKey = "connection_pool_usage";
         
         if (shouldSendAlert(alertKey)) {
-            String message = String.format(
-                "Connection pool usage is high!\n" +
-                "Usage rate: %.2f%% (threshold: %d%%)\n" +
-                "Active connections: %d / %d",
-                usageRate, threshold, activeCount, maxCount
-            );
+            String message = """
+                Connection pool usage is high!
+                Usage rate: %.2f%% (threshold: %d%%)
+                Active connections: %d / %d""".formatted(usageRate, threshold, activeCount, maxCount);
 
             sendAlert(AlertLevel.WARNING, "Connection Pool Alert", message);
             recordAlert(alertKey);
@@ -101,12 +97,10 @@ public class AlertNotificationService {
         String alertKey = "datasource_failure:" + dataSourceName;
         
         if (shouldSendAlert(alertKey)) {
-            String message = String.format(
-                "Data source connection failed!\n" +
-                "Data source: %s\n" +
-                "Error: %s",
-                dataSourceName, errorMessage
-            );
+            String message = """
+                Data source connection failed!
+                Data source: %s
+                Error: %s""".formatted(dataSourceName, errorMessage);
 
             sendAlert(AlertLevel.ERROR, "Data Source Failure Alert", message);
             recordAlert(alertKey);
@@ -128,12 +122,10 @@ public class AlertNotificationService {
         String alertKey = "health_status_change:" + dataSourceName;
         
         if (shouldSendAlert(alertKey)) {
-            String message = String.format(
-                "Data source health status changed!\n" +
-                "Data source: %s\n" +
-                "Status: %s -> %s",
-                dataSourceName, oldStatus, newStatus
-            );
+            String message = """
+                Data source health status changed!
+                Data source: %s
+                Status: %s -> %s""".formatted(dataSourceName, oldStatus, newStatus);
 
             AlertLevel level = "DOWN".equals(newStatus) ? AlertLevel.ERROR : AlertLevel.WARNING;
             sendAlert(level, "Health Status Change Alert", message);
@@ -151,15 +143,9 @@ public class AlertNotificationService {
     public void sendAlert(AlertLevel level, String title, String message) {
         // 记录告警日志
         switch (level) {
-            case ERROR:
-                log.error("ALERT [{}]: {}\n{}", level, title, message);
-                break;
-            case WARNING:
-                log.warn("ALERT [{}]: {}\n{}", level, title, message);
-                break;
-            case INFO:
-                log.info("ALERT [{}]: {}\n{}", level, title, message);
-                break;
+            case ERROR -> log.error("ALERT [{}]: {}\n{}", level, title, message);
+            case WARNING -> log.warn("ALERT [{}]: {}\n{}", level, title, message);
+            case INFO -> log.info("ALERT [{}]: {}\n{}", level, title, message);
         }
 
         // TODO: 集成实际的告警通知渠道

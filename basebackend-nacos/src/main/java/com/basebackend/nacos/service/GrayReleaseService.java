@@ -215,21 +215,21 @@ public class GrayReleaseService {
 
         // 根据策略类型验证参数
         switch (strategy) {
-            case IP:
+            case IP -> {
                 if (!StringUtils.hasText(grayConfig.getTargetInstances())) {
                     throw new IllegalArgumentException("IP灰度策略必须指定目标实例");
                 }
-                break;
-            case PERCENTAGE:
+            }
+            case PERCENTAGE -> {
                 if (grayConfig.getPercentage() == null || grayConfig.getPercentage() <= 0 || grayConfig.getPercentage() > 100) {
                     throw new IllegalArgumentException("百分比灰度策略的百分比必须在1-100之间");
                 }
-                break;
-            case LABEL:
+            }
+            case LABEL -> {
                 if (!StringUtils.hasText(grayConfig.getLabels())) {
                     throw new IllegalArgumentException("标签灰度策略必须指定标签");
                 }
-                break;
+            }
         }
     }
 
@@ -408,16 +408,12 @@ public class GrayReleaseService {
             return Collections.emptyList();
         }
 
-        switch (strategy) {
-            case IP:
-                return selectByIp(allInstances, grayConfig.getTargetInstances());
-            case PERCENTAGE:
-                return selectByPercentage(allInstances, grayConfig.getPercentage());
-            case LABEL:
-                return selectByLabel(allInstances, grayConfig.getLabels());
-            default:
-                return Collections.emptyList();
-        }
+        return switch (strategy) {
+            case IP -> selectByIp(allInstances, grayConfig.getTargetInstances());
+            case PERCENTAGE -> selectByPercentage(allInstances, grayConfig.getPercentage());
+            case LABEL -> selectByLabel(allInstances, grayConfig.getLabels());
+            default -> Collections.emptyList();
+        };
     }
 
     /**

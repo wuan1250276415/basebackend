@@ -45,16 +45,12 @@ public class FeatureTogglePropertiesValidator {
             errors.add("Provider type is not specified");
         } else {
             switch (provider) {
-                case UNLEASH:
-                    validateUnleashConfig(properties.getUnleash(), errors, warnings);
-                    break;
-                case FLAGSMITH:
-                    validateFlagsmithConfig(properties.getFlagsmith(), errors, warnings);
-                    break;
-                case BOTH:
+                case UNLEASH -> validateUnleashConfig(properties.getUnleash(), errors, warnings);
+                case FLAGSMITH -> validateFlagsmithConfig(properties.getFlagsmith(), errors, warnings);
+                case BOTH -> {
                     validateUnleashConfig(properties.getUnleash(), errors, warnings);
                     validateFlagsmithConfig(properties.getFlagsmith(), errors, warnings);
-                    break;
+                }
             }
         }
 

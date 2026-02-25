@@ -151,20 +151,11 @@ public class MaskingConverter extends MessageConverter {
      * @return 替换字符串
      */
     private static String generateReplacementForStrategy(LoggingProperties.MaskingRule rule, MaskingStrategy strategy) {
-        switch (strategy) {
-            case HIDE:
-                // HIDE策略：完全隐藏，替换为固定字符串
-                return "******";
-
-            case HASH:
-                // HASH策略：不使用替换字符串，使用哈希函数
-                return null;
-
-            case PARTIAL:
-            default:
-                // PARTIAL策略：使用partialPattern生成替换字符串
-                return generatePartialReplacement(rule.getPartialPattern());
-        }
+        return switch (strategy) {
+            case HIDE -> "******";
+            case HASH -> null;
+            default -> generatePartialReplacement(rule.getPartialPattern());
+        };
     }
 
     /**
@@ -240,17 +231,11 @@ public class MaskingConverter extends MessageConverter {
         try {
             Matcher matcher = rule.pattern.matcher(message);
 
-            switch (rule.strategy) {
-                case HIDE:
-                    return matcher.replaceAll(rule.replacement);
-
-                case HASH:
-                    return matcher.replaceAll(matchResult -> sha256Hash(matchResult.group()));
-
-                case PARTIAL:
-                default:
-                    return matcher.replaceAll(rule.replacement);
-            }
+            return switch (rule.strategy) {
+                case HIDE -> matcher.replaceAll(rule.replacement);
+                case HASH -> matcher.replaceAll(matchResult -> sha256Hash(matchResult.group()));
+                default -> matcher.replaceAll(rule.replacement);
+            };
         } catch (Exception e) {
             // 脱敏失败时静默忽略，不影响日志输出
             return message;

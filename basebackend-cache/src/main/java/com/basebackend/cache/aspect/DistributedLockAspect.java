@@ -55,20 +55,13 @@ public class DistributedLockAspect {
         try {
             // 根据锁类型获取相应的锁
             switch (lockType) {
-                case FAIR:
+                case FAIR -> {
                     lock = lockService.getFairLock(lockKey);
                     acquired = lock.tryLock(waitTime, leaseTime, timeUnit);
-                    break;
-                case READ:
-                    acquired = lockService.tryReadLock(lockKey, waitTime, leaseTime, timeUnit);
-                    break;
-                case WRITE:
-                    acquired = lockService.tryWriteLock(lockKey, waitTime, leaseTime, timeUnit);
-                    break;
-                case REENTRANT:
-                default:
-                    acquired = lockService.tryLock(lockKey, waitTime, leaseTime, timeUnit);
-                    break;
+                }
+                case READ -> acquired = lockService.tryReadLock(lockKey, waitTime, leaseTime, timeUnit);
+                case WRITE -> acquired = lockService.tryWriteLock(lockKey, waitTime, leaseTime, timeUnit);
+                default -> acquired = lockService.tryLock(lockKey, waitTime, leaseTime, timeUnit);
             }
 
             if (!acquired) {
@@ -95,21 +88,14 @@ public class DistributedLockAspect {
             if (acquired) {
                 try {
                     switch (lockType) {
-                        case READ:
-                            lockService.unlockRead(lockKey);
-                            break;
-                        case WRITE:
-                            lockService.unlockWrite(lockKey);
-                            break;
-                        case FAIR:
+                        case READ -> lockService.unlockRead(lockKey);
+                        case WRITE -> lockService.unlockWrite(lockKey);
+                        case FAIR -> {
                             if (lock != null && lock.isHeldByCurrentThread()) {
                                 lock.unlock();
                             }
-                            break;
-                        case REENTRANT:
-                        default:
-                            lockService.unlock(lockKey);
-                            break;
+                        }
+                        default -> lockService.unlock(lockKey);
                     }
                     log.debug("Lock released: {}", lockKey);
                 } catch (Exception e) {

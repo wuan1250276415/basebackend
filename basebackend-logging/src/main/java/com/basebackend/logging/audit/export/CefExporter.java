@@ -94,18 +94,13 @@ public class CefExporter {
             return 5;
         }
         AuditSeverity severity = entry.getEventType().getSeverity();
-        switch (severity) {
-            case LOW:
-                return 3;
-            case MEDIUM:
-                return 5;
-            case HIGH:
-                return 7;
-            case CRITICAL:
-                return 10;
-            default:
-                return 5;
-        }
+        return switch (severity) {
+            case LOW -> 3;
+            case MEDIUM -> 5;
+            case HIGH -> 7;
+            case CRITICAL -> 10;
+            default -> 5;
+        };
     }
 
     private String formatTimestamp(AuditLogEntry entry) {

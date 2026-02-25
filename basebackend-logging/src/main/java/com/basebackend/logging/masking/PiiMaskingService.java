@@ -245,18 +245,12 @@ public class PiiMaskingService {
         if (value == null) {
             return null;
         }
-        switch (rule.getStrategy()) {
-            case REMOVE:
-                return "";
-            case HASH:
-                return sha256(value);
-            case CUSTOM:
-                return rule.getReplacement();
-            case PARTIAL:
-            case MASK:
-            default:
-                return partialMask(value, rule.getPrefixKeep(), rule.getSuffixKeep(), rule.getReplacement());
-        }
+        return switch (rule.getStrategy()) {
+            case REMOVE -> "";
+            case HASH -> sha256(value);
+            case CUSTOM -> rule.getReplacement();
+            default -> partialMask(value, rule.getPrefixKeep(), rule.getSuffixKeep(), rule.getReplacement());
+        };
     }
 
     /**
