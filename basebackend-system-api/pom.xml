@@ -27,7 +27,12 @@
         </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-database</artifactId>
+            <artifactId>database-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>database-security</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

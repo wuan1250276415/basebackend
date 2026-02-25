@@ -1,0 +1,2 @@
+com.basebackend.database.config.DatabaseEnhancedAutoConfiguration
+com.basebackend.database.observability.DatabaseObservabilityConfiguration

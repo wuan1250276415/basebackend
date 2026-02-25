@@ -1,3 +1,0 @@
-com.basebackend.database.config.DatabaseEnhancedAutoConfiguration
-com.basebackend.database.tenant.config.MultiTenancyAutoConfiguration
-com.basebackend.database.observability.DatabaseObservabilityConfiguration
