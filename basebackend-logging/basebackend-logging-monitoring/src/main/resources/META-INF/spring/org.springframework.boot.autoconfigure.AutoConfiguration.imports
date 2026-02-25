@@ -1,0 +1,2 @@
+com.basebackend.logging.monitoring.config.MonitoringAutoConfiguration
+com.basebackend.logging.statistics.config.StatisticsAutoConfiguration

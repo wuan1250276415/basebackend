@@ -1,0 +1,3 @@
+com.basebackend.logging.audit.config.AuditAutoConfiguration
+com.basebackend.logging.audit.export.AuditExportAutoConfiguration
+com.basebackend.logging.audit.storage.database.DatabaseAuditStorageAutoConfiguration

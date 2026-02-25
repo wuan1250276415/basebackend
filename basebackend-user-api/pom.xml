@@ -83,7 +83,7 @@
         </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-logging</artifactId>
+            <artifactId>basebackend-logging-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

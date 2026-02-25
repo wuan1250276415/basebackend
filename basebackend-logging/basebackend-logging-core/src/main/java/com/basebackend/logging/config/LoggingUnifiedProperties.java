@@ -1,12 +1,8 @@
 package com.basebackend.logging.config;
 
-import com.basebackend.logging.audit.config.AuditProperties;
-import com.basebackend.logging.masking.MaskingProperties;
-import com.basebackend.logging.statistics.config.StatisticsProperties;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.annotation.PostConstruct;
@@ -14,25 +10,23 @@ import jakarta.validation.constraints.NotNull;
 
 /**
  * 日志模块统一配置属性
- * 
- * P1优化：统一配置管理，整合所有子模块配置
- * 
+ *
+ * 拆分后仅保留核心级别配置。各子模块（audit / masking / statistics）
+ * 由各自的 Properties 类独立管理，通过各自的 AutoConfiguration 加载。
+ *
  * 配置前缀：basebackend.logging
- * 
+ *
  * 使用示例：
  * <pre>
  * basebackend:
  *   logging:
  *     enabled: true
- *     audit:
- *       enabled: true
- *       storage-path: logs/audit
- *     masking:
- *       enabled: true
- *     statistics:
- *       enabled: true
+ *     performance:
+ *       async-pool-size: 4
+ *     monitoring:
+ *       enable-health-check: true
  * </pre>
- * 
+ *
  * @author basebackend team
  * @since 2025-12-08
  */
@@ -46,27 +40,6 @@ public class LoggingUnifiedProperties {
      * 是否启用日志模块
      */
     private boolean enabled = true;
-
-    /**
-     * 审计配置
-     */
-    @NotNull
-    @NestedConfigurationProperty
-    private AuditProperties audit = new AuditProperties();
-
-    /**
-     * 脱敏配置
-     */
-    @NotNull
-    @NestedConfigurationProperty
-    private MaskingProperties masking = new MaskingProperties();
-
-    /**
-     * 统计配置
-     */
-    @NotNull
-    @NestedConfigurationProperty
-    private StatisticsProperties statistics = new StatisticsProperties();
 
     /**
      * 全局性能配置
@@ -86,8 +59,7 @@ public class LoggingUnifiedProperties {
     @PostConstruct
     public void init() {
         validateAll();
-        log.info("日志模块配置加载完成: enabled={}, audit={}, masking={}, statistics={}",
-                enabled, audit.isEnabled(), masking.isEnabled(), statistics.isEnabled());
+        log.info("日志模块配置加载完成: enabled={}", enabled);
     }
 
     /**
@@ -99,16 +71,6 @@ public class LoggingUnifiedProperties {
             return;
         }
 
-        // 验证审计配置
-        if (audit.isEnabled()) {
-            audit.validate();
-        }
-
-        // 验证统计配置
-        if (statistics.isEnabled()) {
-            statistics.validate();
-        }
-
         // 验证性能配置
         performance.validate();
 
@@ -116,27 +78,6 @@ public class LoggingUnifiedProperties {
         monitoring.validate();
 
         log.debug("日志模块配置验证通过");
-    }
-
-    /**
-     * 检查是否启用审计
-     */
-    public boolean isAuditEnabled() {
-        return enabled && audit.isEnabled();
-    }
-
-    /**
-     * 检查是否启用脱敏
-     */
-    public boolean isMaskingEnabled() {
-        return enabled && masking.isEnabled();
-    }
-
-    /**
-     * 检查是否启用统计
-     */
-    public boolean isStatisticsEnabled() {
-        return enabled && statistics.isEnabled();
     }
 
     /**
