@@ -33,7 +33,7 @@
         <!-- Hutool（丰富的工具集） -->
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
+            <artifactId>hutool-core</artifactId>
         </dependency>
 
         <!-- Apache Commons Lang3（字符串和对象工具） -->
