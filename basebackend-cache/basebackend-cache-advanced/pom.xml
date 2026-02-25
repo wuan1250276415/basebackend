@@ -24,6 +24,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Observability SLO (for @SloMonitored annotation) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>observability-slo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -46,10 +46,10 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Base Backend Observability -->
+        <!-- Base Backend Observability Core -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-observability</artifactId>
+            <artifactId>observability-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         

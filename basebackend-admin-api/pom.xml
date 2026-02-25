@@ -124,7 +124,17 @@
 
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-observability</artifactId>
+            <artifactId>observability-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>observability-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>observability-alert</artifactId>
             <version>${project.version}</version>
         </dependency>
 
