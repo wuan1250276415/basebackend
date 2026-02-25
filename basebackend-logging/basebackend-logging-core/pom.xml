@@ -44,6 +44,12 @@
             <version>7.4</version>
         </dependency>
 
+        <!-- Janino：Logback <if> 条件标签所需 -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+
         <!-- Loki Logback Appender -->
         <dependency>
             <groupId>com.github.loki4j</groupId>

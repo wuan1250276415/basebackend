@@ -59,7 +59,7 @@ public class DeptInfoHelper {
                 return "";
             }
         } catch (Exception e) {
-            log.error("调用部门服务异常: deptId={}, error={}", deptId, e.getMessage(), e);
+            log.warn("调用部门服务异常（系统服务可能未启动）: deptId={}, error={}", deptId, e.getMessage());
             return "";
         }
     }

@@ -33,7 +33,7 @@ class PermissionServiceTest extends BaseServiceTest {
 
     @BeforeEach
     void setUp() {
-        permissionService = new PermissionServiceImpl(permissionMapper,auditHelper);
+        permissionService = new PermissionServiceImpl(permissionMapper, auditHelper);
     }
 
     @Test
@@ -48,7 +48,7 @@ class PermissionServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getPermissionName()).isEqualTo("权限1");
+        assertThat(result.get(0).permissionName()).isEqualTo("权限1");
         verify(permissionMapper).selectList(null);
     }
 

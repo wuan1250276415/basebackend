@@ -4,6 +4,7 @@ import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.domain.entity.BackupHistory;
 import com.basebackend.backup.infrastructure.executor.*;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -27,14 +28,14 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * 支持全量备份（mysqldump）和增量备份（binlog）两种备份模式：
  * <ul>
- *   <li>全量备份：使用mysqldump工具导出整个数据库</li>
- *   <li>增量备份：通过解析MySQL binlog实现增量数据捕获</li>
+ * <li>全量备份：使用mysqldump工具导出整个数据库</li>
+ * <li>增量备份：通过解析MySQL binlog实现增量数据捕获（需要mysql-binlog-connector-java）</li>
  * </ul>
  * <p>
  * 安全性考虑：
  * <ul>
- *   <li>密码通过MYSQL_PWD环境变量传递，避免命令行暴露</li>
- *   <li>使用ProcessBuilder参数列表方式执行命令，防止命令注入</li>
+ * <li>密码通过MYSQL_PWD环境变量传递，避免命令行暴露</li>
+ * <li>使用ProcessBuilder参数列表方式执行命令，防止命令注入</li>
  * </ul>
  *
  * @author BaseBackend
@@ -44,9 +45,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class MySqlBackupExecutor extends AbstractBackupExecutor
-    implements DataSourceBackupExecutor<BackupRequest> {
+        implements DataSourceBackupExecutor<BackupRequest> {
 
     private final BackupProperties backupProperties;
+    @Nullable
     private final MySqlBinlogParser binlogParser;
 
     /**
@@ -54,13 +56,13 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
      * <p>
      * 通过构造器注入所有依赖，提高可测试性和代码可维护性
      *
-     * @param lockManager 分布式锁管理器，用于防止并发备份
-     * @param retryTemplate 重试模板，用于处理临时性失败
-     * @param storageProvider 存储提供者，用于上传备份文件
-     * @param checksumService 校验和服务，用于验证文件完整性
+     * @param lockManager         分布式锁管理器，用于防止并发备份
+     * @param retryTemplate       重试模板，用于处理临时性失败
+     * @param storageProvider     存储提供者，用于上传备份文件
+     * @param checksumService     校验和服务，用于验证文件完整性
      * @param backupHistoryMapper 备份历史Mapper，用于持久化备份记录
-     * @param backupProperties 备份配置属性
-     * @param binlogParser MySQL binlog解析器
+     * @param backupProperties    备份配置属性
+     * @param binlogParser        MySQL binlog解析器（可选，仅增量备份需要）
      */
     public MySqlBackupExecutor(
             com.basebackend.backup.infrastructure.reliability.LockManager lockManager,
@@ -69,7 +71,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
             com.basebackend.backup.infrastructure.reliability.impl.ChecksumService checksumService,
             com.basebackend.backup.domain.mapper.BackupHistoryMapper backupHistoryMapper,
             BackupProperties backupProperties,
-            MySqlBinlogParser binlogParser) {
+            @Nullable MySqlBinlogParser binlogParser) {
         super(lockManager, retryTemplate, storageProvider, checksumService, backupHistoryMapper);
         this.backupProperties = backupProperties;
         this.binlogParser = binlogParser;
@@ -124,13 +126,15 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
             // 构建备份产物
             BackupArtifact artifact = BackupArtifact.builder()
-                .file(backupFile)
-                .backupType("full")
-                .fileSize(backupFile.length())
-                .startTime(request.getStartTime())
-                .endTime(LocalDateTime.now())
-                .durationSeconds((System.currentTimeMillis() - request.getStartTime().toEpochSecond(ZoneOffset.UTC) * 1000) / 1000)
-                .build();
+                    .file(backupFile)
+                    .backupType("full")
+                    .fileSize(backupFile.length())
+                    .startTime(request.getStartTime())
+                    .endTime(LocalDateTime.now())
+                    .durationSeconds(
+                            (System.currentTimeMillis() - request.getStartTime().toEpochSecond(ZoneOffset.UTC) * 1000)
+                                    / 1000)
+                    .build();
 
             log.info("MySQL全量备份完成: {}, 大小: {} bytes", outputFile, backupFile.length());
 
@@ -152,8 +156,12 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
     @Override
     public BackupArtifact executeIncremental(IncrementalBackupRequest request) throws Exception {
+        if (binlogParser == null) {
+            throw new UnsupportedOperationException(
+                    "增量备份需要 mysql-binlog-connector-java 库，请将其添加到 classpath");
+        }
         log.info("执行MySQL增量备份: {}, 基线备份ID: {}",
-            request.getTaskId(), request.getBaseFullBackupId());
+                request.getTaskId(), request.getBaseFullBackupId());
 
         BinlogPosition startPosition = null;
 
@@ -183,32 +191,32 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
         // 解析binlog事件
         binlogParser.subscribe(host, port, username, password, startPosition,
-            new BinlogEventListener() {
-                @Override
-                public void onDataChange(BinlogEvent event) throws Exception {
-                    log.debug("收到数据变更事件: {}.{}", event.getDatabase(), event.getTable());
-                }
+                new BinlogEventListener() {
+                    @Override
+                    public void onDataChange(BinlogEvent event) throws Exception {
+                        log.debug("收到数据变更事件: {}.{}", event.getDatabase(), event.getTable());
+                    }
 
-                @Override
-                public void onQuery(BinlogEvent event) throws Exception {
-                    log.debug("收到查询事件: {}", event.getDatabase());
-                }
+                    @Override
+                    public void onQuery(BinlogEvent event) throws Exception {
+                        log.debug("收到查询事件: {}", event.getDatabase());
+                    }
 
-                @Override
-                public void onDDL(BinlogEvent event) throws Exception {
-                    log.debug("收到DDL事件");
-                }
+                    @Override
+                    public void onDDL(BinlogEvent event) throws Exception {
+                        log.debug("收到DDL事件");
+                    }
 
-                @Override
-                public void onError(Throwable error) throws Exception {
-                    log.error("Binlog解析错误", error);
-                }
+                    @Override
+                    public void onError(Throwable error) throws Exception {
+                        log.error("Binlog解析错误", error);
+                    }
 
-                @Override
-                public List<BinlogEvent> getEvents() {
-                    return new java.util.ArrayList<>();
-                }
-            });
+                    @Override
+                    public List<BinlogEvent> getEvents() {
+                        return new java.util.ArrayList<>();
+                    }
+                });
 
         // 简化：创建增量SQL文件（实际实现中应该基于解析的事件生成SQL）
         String outputFile = getOutputFilePath(request, "incremental");
@@ -218,15 +226,16 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         File backupFile = new File(outputFile);
 
         BackupArtifact artifact = BackupArtifact.builder()
-            .file(backupFile)
-            .backupType("incremental")
-            .fileSize(backupFile.length())
-            .startTime(request.getStartTime())
-            .endTime(LocalDateTime.now())
-            .binlogStartPosition(startPosition.toString())
-            .binlogEndPosition(endPosition.toString())
-            .durationSeconds((System.currentTimeMillis() - request.getStartTime().toEpochSecond(java.time.ZoneOffset.UTC) * 1000) / 1000)
-            .build();
+                .file(backupFile)
+                .backupType("incremental")
+                .fileSize(backupFile.length())
+                .startTime(request.getStartTime())
+                .endTime(LocalDateTime.now())
+                .binlogStartPosition(startPosition.toString())
+                .binlogEndPosition(endPosition.toString())
+                .durationSeconds((System.currentTimeMillis()
+                        - request.getStartTime().toEpochSecond(java.time.ZoneOffset.UTC) * 1000) / 1000)
+                .build();
 
         log.info("MySQL增量备份完成: {}, 大小: {} bytes", outputFile, backupFile.length());
 
@@ -275,6 +284,10 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
     @Override
     public String getCurrentIncrementalPosition(BackupRequest request) throws Exception {
+        if (binlogParser == null) {
+            throw new UnsupportedOperationException(
+                    "增量备份需要 mysql-binlog-connector-java 库，请将其添加到 classpath");
+        }
         String host = request.getDatabaseConfig().getHost();
         int port = request.getDatabaseConfig().getPort();
         String username = request.getDatabaseConfig().getUsername();
@@ -301,7 +314,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
     @Override
     public String[] getSupportedFeatures() {
-        return new String[]{"full_backup", "incremental_backup", "restore", "checksum_verification"};
+        return new String[] { "full_backup", "incremental_backup", "restore", "checksum_verification" };
     }
 
     /**

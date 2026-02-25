@@ -65,7 +65,7 @@ class MonitorServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUsername()).isEqualTo("admin");
+        assertThat(result.get(0).username()).isEqualTo("admin");
         verify(redisService).keys("online_users:*");
         verify(redisService).get("online_users:user1");
     }
@@ -100,11 +100,11 @@ class MonitorServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getServerName()).isNotNull();
-        assertThat(result.getOsName()).isNotNull();
-        assertThat(result.getJavaVersion()).isNotNull();
-        assertThat(result.getTotalMemory()).isNotNull();
-        assertThat(result.getProcessorCount()).isGreaterThan(0);
+        assertThat(result.serverName()).isNotNull();
+        assertThat(result.osName()).isNotNull();
+            assertThat(result.javaVersion()).isNotNull();
+        assertThat(result.totalMemory()).isNotNull();
+        assertThat(result.processorCount()).isGreaterThan(0);
     }
 
     @Test
@@ -116,8 +116,8 @@ class MonitorServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result).hasSizeGreaterThan(0);
-        assertThat(result.get(0).getCacheName()).isNotNull();
-        assertThat(result.get(0).getCacheType()).isEqualTo("Redis");
+        assertThat(result.get(0).cacheName()).isNotNull();
+        assertThat(result.get(0).cacheType()).isEqualTo("Redis");
     }
 
     @Test

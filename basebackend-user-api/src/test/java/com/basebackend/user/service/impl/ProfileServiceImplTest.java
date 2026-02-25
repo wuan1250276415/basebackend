@@ -61,10 +61,7 @@ class ProfileServiceImplTest {
     @DisplayName("修改密码 - 两次密码不一致")
     void testChangePassword_PasswordMismatch() {
         doNothing().when(customMetrics).recordBusinessOperation(anyString(), anyString());
-        ChangePasswordDTO dto = new ChangePasswordDTO();
-        dto.setOldPassword("oldPassword");
-        dto.setNewPassword("newPassword123");
-        dto.setConfirmPassword("differentPassword");
+        ChangePasswordDTO dto = new ChangePasswordDTO("oldPassword", "newPassword123", "differentPassword");
         assertThrows(BusinessException.class, () -> profileService.changePassword(dto));
     }
 
@@ -72,10 +69,7 @@ class ProfileServiceImplTest {
     @DisplayName("修改密码 - 新旧密码相同")
     void testChangePassword_SamePassword() {
         doNothing().when(customMetrics).recordBusinessOperation(anyString(), anyString());
-        ChangePasswordDTO dto = new ChangePasswordDTO();
-        dto.setOldPassword("samePassword");
-        dto.setNewPassword("samePassword");
-        dto.setConfirmPassword("samePassword");
+        ChangePasswordDTO dto = new ChangePasswordDTO("samePassword", "samePassword", "samePassword");
         assertThrows(BusinessException.class, () -> profileService.changePassword(dto));
     }
 

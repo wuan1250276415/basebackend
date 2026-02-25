@@ -40,6 +40,12 @@
             <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- MySQL Driver (database-core 中为 optional，需显式引入) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-logging-core</artifactId>

@@ -2,10 +2,10 @@ package com.basebackend.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.basebackend.api.model.dept.DeptBasicDTO;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.DeptFeignClient;
-import com.basebackend.feign.dto.dept.DeptBasicDTO;
 import com.basebackend.observability.metrics.CustomMetrics;
+import com.basebackend.service.client.DeptServiceClient;
 import com.basebackend.user.dto.UserCreateDTO;
 import com.basebackend.user.dto.UserDTO;
 import com.basebackend.user.dto.UserQueryDTO;
@@ -71,7 +71,7 @@ class UserServiceImplTest {
     private DeptInfoHelper deptInfoHelper;
 
     @Mock
-    private DeptFeignClient deptFeignClient;
+    private DeptServiceClient deptFeignClient;
     @InjectMocks
     private UserServiceImpl userService;
 

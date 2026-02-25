@@ -61,7 +61,7 @@ spring:
         weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
         cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
         service-name: ${spring.application.name}
-        ip: ${NACOS_DISCOVERY_IP:}
+        ip: ${NACOS_DISCOVERY_IP:192.168.66.118}
         port: ${NACOS_DISCOVERY_PORT:${server.port:8081}}
         metadata:
           version: ${APP_VERSION:1.0.0}
@@ -103,7 +103,7 @@ nacos:
     weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
     cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
     service-name: ${spring.application.name}
-    ip: ${NACOS_DISCOVERY_IP:}
+    ip: ${NACOS_DISCOVERY_IP:192.168.66.118}
     port: ${NACOS_DISCOVERY_PORT:${server.port:8080}}
     username: ${NACOS_DISCOVERY_USERNAME:nacos}
     password: ${NACOS_DISCOVERY_PASSWORD:nacos}

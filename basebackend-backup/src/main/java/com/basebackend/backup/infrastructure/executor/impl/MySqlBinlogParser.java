@@ -8,6 +8,7 @@ import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 @Component
+@ConditionalOnClass(name = "com.github.shyiko.mysql.binlog.BinaryLogClient")
 @RequiredArgsConstructor
 public class MySqlBinlogParser {
 
@@ -46,8 +48,8 @@ public class MySqlBinlogParser {
      * 通过查询MySQL的SHOW MASTER STATUS命令获取当前binlog文件名和位置
      * 这是增量备份的起始点，用于确定从哪个位置开始解析binlog
      *
-     * @param host MySQL主机地址
-     * @param port MySQL端口号
+     * @param host     MySQL主机地址
+     * @param port     MySQL端口号
      * @param username 数据库用户名
      * @param password 数据库密码
      * @return 当前binlog位置信息，包含文件名和偏移量
@@ -74,16 +76,16 @@ public class MySqlBinlogParser {
      * 2. 连接支持自动超时断开（默认10分钟）
      * 3. 事件监听器会在独立线程中调用，注意线程安全问题
      *
-     * @param host MySQL服务器主机地址
-     * @param port MySQL服务器端口号
-     * @param username 具有REPLICATION SLAVE权限的用户名
-     * @param password 用户密码
+     * @param host          MySQL服务器主机地址
+     * @param port          MySQL服务器端口号
+     * @param username      具有REPLICATION SLAVE权限的用户名
+     * @param password      用户密码
      * @param startPosition 起始binlog位置，如果为null则从当前位置开始
-     * @param listener 事件监听器，用于处理接收到的binlog事件
+     * @param listener      事件监听器，用于处理接收到的binlog事件
      * @throws Exception 建立连接或监听过程中发生的异常
      */
     public void subscribe(String host, int port, String username, String password,
-                         BinlogPosition startPosition, BinlogEventListener listener) throws Exception {
+            BinlogPosition startPosition, BinlogEventListener listener) throws Exception {
         log.info("开始订阅MySQL binlog变更事件，起始位置: {}", startPosition);
 
         // 创建BinaryLogClient实例，用于连接MySQL服务器
@@ -146,13 +148,13 @@ public class MySqlBinlogParser {
      * 从指定位置解析到当前位置
      *
      * @param startPosition 起始位置
-     * @param endPosition 结束位置
-     * @param databaseName 数据库名（可选，用于过滤）
+     * @param endPosition   结束位置
+     * @param databaseName  数据库名（可选，用于过滤）
      * @return 解析的事件列表
      * @throws Exception 解析失败时抛出异常
      */
     public List<BinlogEvent> parseToPosition(BinlogPosition startPosition, BinlogPosition endPosition,
-                                            String databaseName) throws Exception {
+            String databaseName) throws Exception {
         log.info("解析binlog: {} -> {}", startPosition, endPosition);
 
         List<BinlogEvent> events = new ArrayList<>();
@@ -165,7 +167,7 @@ public class MySqlBinlogParser {
                 }
                 // 检查是否到达结束位置
                 if (event.getBinlogFilename().equals(endPosition.getFilename()) &&
-                    event.getPosition() >= endPosition.getPosition()) {
+                        event.getPosition() >= endPosition.getPosition()) {
                     reachedEnd.set(true);
                 }
             }
@@ -256,14 +258,14 @@ public class MySqlBinlogParser {
 
         String table = data.getTableId() + "";
         BinlogEvent binlogEvent = BinlogEvent.builder()
-            .eventType(BinlogEvent.EventType.WRITE_ROWS)
-            .database(backupProperties.getDatabase().getDatabase())
-            .table(table)
-            .operation(BinlogEvent.OperationType.INSERT)
-            .timestamp(getTimestamp(header))
-            .binlogFilename(getBinlogFilename(header))
-            .position(getPosition(header))
-            .build();
+                .eventType(BinlogEvent.EventType.WRITE_ROWS)
+                .database(backupProperties.getDatabase().getDatabase())
+                .table(table)
+                .operation(BinlogEvent.OperationType.INSERT)
+                .timestamp(getTimestamp(header))
+                .binlogFilename(getBinlogFilename(header))
+                .position(getPosition(header))
+                .build();
 
         listener.onDataChange(binlogEvent);
     }
@@ -277,14 +279,14 @@ public class MySqlBinlogParser {
 
         String table = data.getTableId() + "";
         BinlogEvent binlogEvent = BinlogEvent.builder()
-            .eventType(BinlogEvent.EventType.UPDATE_ROWS)
-            .database(backupProperties.getDatabase().getDatabase())
-            .table(table)
-            .operation(BinlogEvent.OperationType.UPDATE)
-            .timestamp(getTimestamp(header))
-            .binlogFilename(getBinlogFilename(header))
-            .position(getPosition(header))
-            .build();
+                .eventType(BinlogEvent.EventType.UPDATE_ROWS)
+                .database(backupProperties.getDatabase().getDatabase())
+                .table(table)
+                .operation(BinlogEvent.OperationType.UPDATE)
+                .timestamp(getTimestamp(header))
+                .binlogFilename(getBinlogFilename(header))
+                .position(getPosition(header))
+                .build();
 
         listener.onDataChange(binlogEvent);
     }
@@ -298,14 +300,14 @@ public class MySqlBinlogParser {
 
         String table = data.getTableId() + "";
         BinlogEvent binlogEvent = BinlogEvent.builder()
-            .eventType(BinlogEvent.EventType.DELETE_ROWS)
-            .database(backupProperties.getDatabase().getDatabase())
-            .table(table)
-            .operation(BinlogEvent.OperationType.DELETE)
-            .timestamp(getTimestamp(header))
-            .binlogFilename(getBinlogFilename(header))
-            .position(getPosition(header))
-            .build();
+                .eventType(BinlogEvent.EventType.DELETE_ROWS)
+                .database(backupProperties.getDatabase().getDatabase())
+                .table(table)
+                .operation(BinlogEvent.OperationType.DELETE)
+                .timestamp(getTimestamp(header))
+                .binlogFilename(getBinlogFilename(header))
+                .position(getPosition(header))
+                .build();
 
         listener.onDataChange(binlogEvent);
     }
@@ -318,13 +320,13 @@ public class MySqlBinlogParser {
         EventHeader header = event.getHeader();
 
         BinlogEvent binlogEvent = BinlogEvent.builder()
-            .eventType(BinlogEvent.EventType.QUERY)
-            .database(data.getDatabase())
-            .operation(BinlogEvent.OperationType.UNKNOWN)
-            .timestamp(getTimestamp(header))
-            .binlogFilename(getBinlogFilename(header))
-            .position(getPosition(header))
-            .build();
+                .eventType(BinlogEvent.EventType.QUERY)
+                .database(data.getDatabase())
+                .operation(BinlogEvent.OperationType.UNKNOWN)
+                .timestamp(getTimestamp(header))
+                .binlogFilename(getBinlogFilename(header))
+                .position(getPosition(header))
+                .build();
 
         listener.onQuery(binlogEvent);
     }
@@ -337,12 +339,12 @@ public class MySqlBinlogParser {
         EventHeader header = event.getHeader();
 
         BinlogEvent binlogEvent = BinlogEvent.builder()
-            .eventType(BinlogEvent.EventType.QUERY)
-            .operation(BinlogEvent.OperationType.UNKNOWN)
-            .timestamp(getTimestamp(header))
-            .binlogFilename(getBinlogFilename(header))
-            .position(getPosition(header))
-            .build();
+                .eventType(BinlogEvent.EventType.QUERY)
+                .operation(BinlogEvent.OperationType.UNKNOWN)
+                .timestamp(getTimestamp(header))
+                .binlogFilename(getBinlogFilename(header))
+                .position(getPosition(header))
+                .build();
 
         listener.onQuery(binlogEvent);
     }
@@ -353,7 +355,7 @@ public class MySqlBinlogParser {
     private java.time.LocalDateTime getTimestamp(EventHeader header) {
         if (header instanceof EventHeaderV4 headerV4) {
             return java.time.LocalDateTime.ofEpochSecond(headerV4.getTimestamp() / 1000, 0,
-                java.time.ZoneOffset.ofHours(8));
+                    java.time.ZoneOffset.ofHours(8));
         }
         return java.time.LocalDateTime.now();
     }

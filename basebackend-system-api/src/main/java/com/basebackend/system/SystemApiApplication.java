@@ -19,17 +19,11 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
         "com.basebackend.database",
         "com.basebackend.cache",
         "com.basebackend.logging",
-        "com.basebackend.observability",
-        "com.basebackend.backup",
-        "com.basebackend.feign",
-        "com.basebackend.file",
+        "com.basebackend.observability"
 })
 @MapperScan({
         "com.basebackend.system.mapper",
-        "com.basebackend.database.**.mapper",
-        "com.basebackend.backup.**.mapper",
-        "com.basebackend.file.mapper",
-        "com.basebackend.file.**.mapper"
+        "com.basebackend.database.**.mapper"
 })
 @EnableDiscoveryClient
 @EnableAspectJAutoProxy

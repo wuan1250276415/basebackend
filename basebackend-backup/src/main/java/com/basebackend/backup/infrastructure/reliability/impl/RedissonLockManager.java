@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Callable;
@@ -17,10 +18,10 @@ import java.util.concurrent.TimeUnit;
  * 提供分布式环境下的锁服务，确保备份任务在多实例部署时不会并发执行。
  * 主要特性：
  * <ul>
- *   <li>支持可配置的等待时间和租约时间</li>
- *   <li>支持Runnable和Callable两种回调模式</li>
- *   <li>自动释放锁，防止死锁</li>
- *   <li>支持中断处理，保证线程安全</li>
+ * <li>支持可配置的等待时间和租约时间</li>
+ * <li>支持Runnable和Callable两种回调模式</li>
+ * <li>自动释放锁，防止死锁</li>
+ * <li>支持中断处理，保证线程安全</li>
  * </ul>
  *
  * @author BaseBackend
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
+@ConditionalOnClass(name = "org.redisson.api.RedissonClient")
 @RequiredArgsConstructor
 public class RedissonLockManager implements LockManager {
 
@@ -37,7 +39,7 @@ public class RedissonLockManager implements LockManager {
     @Override
     public void withLock(String lockKey, Runnable action) throws Exception {
         withLock(lockKey, backupProperties.getDistributedLock().getWaitTime().toMillis(),
-            backupProperties.getDistributedLock().getTtl().toMillis(), action);
+                backupProperties.getDistributedLock().getTtl().toMillis(), action);
     }
 
     @Override
@@ -46,7 +48,7 @@ public class RedissonLockManager implements LockManager {
 
         try {
             log.debug("尝试获取分布式锁: {}, 等待时间: {}ms, 租约时间: {}ms",
-                lockKey, waitTimeMs, leaseTimeMs);
+                    lockKey, waitTimeMs, leaseTimeMs);
 
             if (lock.tryLock(waitTimeMs, leaseTimeMs, TimeUnit.MILLISECONDS)) {
                 log.debug("成功获取分布式锁: {}", lockKey);
@@ -71,7 +73,7 @@ public class RedissonLockManager implements LockManager {
     @Override
     public <T> T withLock(String lockKey, Callable<T> action) throws Exception {
         return withLock(lockKey, backupProperties.getDistributedLock().getWaitTime().toMillis(),
-            backupProperties.getDistributedLock().getTtl().toMillis(), action);
+                backupProperties.getDistributedLock().getTtl().toMillis(), action);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class RedissonLockManager implements LockManager {
 
         try {
             log.debug("尝试获取分布式锁: {}, 等待时间: {}ms, 租约时间: {}ms",
-                lockKey, waitTimeMs, leaseTimeMs);
+                    lockKey, waitTimeMs, leaseTimeMs);
 
             if (lock.tryLock(waitTimeMs, leaseTimeMs, TimeUnit.MILLISECONDS)) {
                 log.debug("成功获取分布式锁: {}", lockKey);
@@ -112,7 +114,7 @@ public class RedissonLockManager implements LockManager {
         RLock lock = redissonClient.getLock(lockKey);
         try {
             return lock.tryLock(waitTime, backupProperties.getDistributedLock().getTtl().toMillis(),
-                TimeUnit.MILLISECONDS);
+                    TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("尝试获取分布式锁被中断: {}", lockKey, e);

@@ -21,7 +21,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
         "com.basebackend.logging",
         "com.basebackend.observability",
         "com.basebackend.backup",
-        "com.basebackend.feign",
         "com.basebackend.messaging"
 })
 @MapperScan({

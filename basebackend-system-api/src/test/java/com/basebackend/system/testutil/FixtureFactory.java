@@ -18,6 +18,7 @@ import java.util.UUID;
  * 测试数据构造器工厂
  * <p>
  * 集中生成合法/非法测试对象，减少重复代码。
+ * 所有 DTO 均为 record 类型（不可变），通过全参构造器创建。
  * </p>
  */
 public final class FixtureFactory {
@@ -35,26 +36,14 @@ public final class FixtureFactory {
      * 创建有效的权限DTO
      */
     public PermissionDTO createValidPermissionDTO() {
-        PermissionDTO dto = new PermissionDTO();
-        dto.setId(1L);
-        dto.setPermissionName("测试权限");
-        dto.setPermissionKey("test:permission");
-        dto.setApiPath("/api/test");
-        dto.setHttpMethod("GET");
-        dto.setPermissionType(1);
-        dto.setStatus(1);
-        dto.setRemark("测试权限备注");
-        return dto;
+        return new PermissionDTO(1L, "测试权限", "test:permission", "/api/test", "GET", 1, 1, "测试权限备注");
     }
 
     /**
      * 创建无效的权限DTO（缺少必填字段）
      */
     public PermissionDTO createInvalidPermissionDTO() {
-        PermissionDTO dto = new PermissionDTO();
-        dto.setPermissionName(""); // 空名称，违反@NotBlank
-        dto.setPermissionKey(""); // 空权限标识，违反@NotBlank
-        return dto;
+        return new PermissionDTO(null, "", "", "", "", null, null, "");
     }
 
     /**
@@ -81,24 +70,15 @@ public final class FixtureFactory {
      * 创建不同类型的权限DTO
      */
     public PermissionDTO createMenuPermissionDTO() {
-        PermissionDTO dto = createValidPermissionDTO();
-        dto.setPermissionType(1); // 菜单权限
-        dto.setPermissionName("菜单权限");
-        return dto;
+        return new PermissionDTO(1L, "菜单权限", "test:permission", "/api/test", "GET", 1, 1, "测试权限备注");
     }
 
     public PermissionDTO createButtonPermissionDTO() {
-        PermissionDTO dto = createValidPermissionDTO();
-        dto.setPermissionType(2); // 按钮权限
-        dto.setPermissionName("按钮权限");
-        return dto;
+        return new PermissionDTO(1L, "按钮权限", "test:permission", "/api/test", "GET", 2, 1, "测试权限备注");
     }
 
     public PermissionDTO createApiPermissionDTO() {
-        PermissionDTO dto = createValidPermissionDTO();
-        dto.setPermissionType(3); // API权限
-        dto.setPermissionName("API权限");
-        return dto;
+        return new PermissionDTO(1L, "API权限", "test:permission", "/api/test", "GET", 3, 1, "测试权限备注");
     }
 
     // ========== 部门相关 ==========
@@ -107,26 +87,14 @@ public final class FixtureFactory {
      * 创建有效的部门DTO
      */
     public DeptDTO createValidDeptDTO() {
-        DeptDTO dto = new DeptDTO();
-        dto.setId(1L);
-        dto.setDeptName("测试部门");
-        dto.setParentId(0L);
-        dto.setOrderNum(1);
-        dto.setLeader("负责人");
-        dto.setPhone("13800138000");
-        dto.setEmail("test@example.com");
-        dto.setStatus(1);
-        dto.setRemark("测试部门备注");
-        return dto;
+        return new DeptDTO(1L, "测试部门", 0L, 1, "负责人", "13800138000", "test@example.com", 1, "测试部门备注", null);
     }
 
     /**
      * 创建无效的部门DTO（缺少必填字段）
      */
     public DeptDTO createInvalidDeptDTO() {
-        DeptDTO dto = new DeptDTO();
-        dto.setDeptName(""); // 空名称，违反@NotBlank
-        return dto;
+        return new DeptDTO(null, "", null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -154,19 +122,11 @@ public final class FixtureFactory {
      * 创建不同层级的部门DTO
      */
     public DeptDTO createParentDeptDTO() {
-        DeptDTO dto = createValidDeptDTO();
-        dto.setId(1L);
-        dto.setDeptName("总公司");
-        dto.setParentId(0L);
-        return dto;
+        return new DeptDTO(1L, "总公司", 0L, 1, "负责人", "13800138000", "test@example.com", 1, "测试部门备注", null);
     }
 
     public DeptDTO createChildDeptDTO() {
-        DeptDTO dto = createValidDeptDTO();
-        dto.setId(2L);
-        dto.setDeptName("分公司");
-        dto.setParentId(1L);
-        return dto;
+        return new DeptDTO(2L, "分公司", 1L, 1, "负责人", "13800138000", "test@example.com", 1, "测试部门备注", null);
     }
 
     // ========== 应用相关 ==========
@@ -175,28 +135,15 @@ public final class FixtureFactory {
      * 创建有效的应用DTO
      */
     public ApplicationDTO createValidApplicationDTO() {
-        ApplicationDTO dto = new ApplicationDTO();
-        dto.setId(1L);
-        dto.setAppName("测试应用");
-        dto.setAppCode("TEST_APP");
-        dto.setAppType("web");
-        dto.setAppIcon("icon-test");
-        dto.setAppUrl("https://test.example.com");
-        dto.setStatus(1);
-        dto.setOrderNum(1);
-        dto.setRemark("测试应用备注");
-        return dto;
+        return new ApplicationDTO(1L, "测试应用", "TEST_APP", "web", "icon-test",
+                "https://test.example.com", 1, 1, "测试应用备注");
     }
 
     /**
      * 创建无效的应用DTO（缺少必填字段）
      */
     public ApplicationDTO createInvalidApplicationDTO() {
-        ApplicationDTO dto = new ApplicationDTO();
-        dto.setAppName(""); // 空名称，违反@NotBlank
-        dto.setAppCode(""); // 空编码，违反@NotBlank
-        dto.setAppType(""); // 空类型，违反@NotBlank
-        return dto;
+        return new ApplicationDTO(null, "", "", "", null, null, null, null, null);
     }
 
     /**
@@ -225,28 +172,18 @@ public final class FixtureFactory {
      * 创建不同类型的应用DTO
      */
     public ApplicationDTO createWebAppDTO() {
-        ApplicationDTO dto = createValidApplicationDTO();
-        dto.setAppType("web");
-        dto.setAppName("Web应用");
-        return dto;
+        return new ApplicationDTO(1L, "Web应用", "TEST_APP", "web", "icon-test",
+                "https://test.example.com", 1, 1, "测试应用备注");
     }
 
     public ApplicationDTO createMobileAppDTO() {
-        ApplicationDTO dto = createValidApplicationDTO();
-        dto.setAppType("mobile");
-        dto.setAppName("移动应用");
-        dto.setId(2L);
-        dto.setAppCode("MOBILE_APP");
-        return dto;
+        return new ApplicationDTO(2L, "移动应用", "MOBILE_APP", "mobile", "icon-test",
+                "https://test.example.com", 1, 1, "测试应用备注");
     }
 
     public ApplicationDTO createApiAppDTO() {
-        ApplicationDTO dto = createValidApplicationDTO();
-        dto.setAppType("api");
-        dto.setAppName("API服务");
-        dto.setId(3L);
-        dto.setAppCode("API_APP");
-        return dto;
+        return new ApplicationDTO(3L, "API服务", "API_APP", "api", "icon-test",
+                "https://test.example.com", 1, 1, "测试应用备注");
     }
 
     // ========== 通用方法 ==========
@@ -278,28 +215,14 @@ public final class FixtureFactory {
      * 创建有效的字典DTO
      */
     public DictDTO createValidDictDTO() {
-        DictDTO dto = new DictDTO();
-        dto.setId(1L);
-        dto.setDictName("用户类型");
-        dto.setDictType("user_type");
-        dto.setStatus(1);
-        dto.setRemark("测试字典备注");
-        return dto;
+        return new DictDTO(1L, null, "用户类型", "user_type", 1, "测试字典备注");
     }
 
     /**
      * 创建有效的字典数据DTO
      */
     public DictDataDTO createValidDictDataDTO() {
-        DictDataDTO dto = new DictDataDTO();
-        dto.setId(1L);
-        dto.setDictType("user_type");
-        dto.setDictLabel("管理员");
-        dto.setDictValue("admin");
-        dto.setDictSort(1);
-        dto.setStatus(1);
-        dto.setRemark("测试数据备注");
-        return dto;
+        return new DictDataDTO(1L, null, 1, "管理员", "admin", "user_type", null, null, null, 1, "测试数据备注");
     }
 
     // ========== 日志相关 ==========
@@ -308,38 +231,16 @@ public final class FixtureFactory {
      * 创建有效的登录日志DTO
      */
     public LoginLogDTO createValidLoginLogDTO() {
-        LoginLogDTO dto = new LoginLogDTO();
-        dto.setId(String.valueOf(1));
-        dto.setUserId(1L);
-        dto.setUsername("admin");
-        dto.setIpAddress("127.0.0.1");
-        dto.setLoginLocation("本地");
-        dto.setBrowser("Chrome");
-        dto.setOs("Windows 10");
-        dto.setStatus(1);
-        dto.setMsg("登录成功");
-        dto.setLoginTime(LocalDateTime.now());
-        return dto;
+        return new LoginLogDTO("1", 1L, "admin", "127.0.0.1", "本地", "Chrome", "Windows 10", 1, "登录成功",
+                LocalDateTime.now());
     }
 
     /**
      * 创建有效的操作日志DTO
      */
     public OperationLogDTO createValidOperationLogDTO() {
-        OperationLogDTO dto = new OperationLogDTO();
-        dto.setId(String.valueOf(1));
-        dto.setUserId(1L);
-        dto.setUsername("admin");
-        dto.setOperation("创建用户");
-        dto.setMethod("POST /api/users");
-        dto.setParams("{\"username\":\"test\"}");
-        dto.setTime(100L);
-        dto.setIpAddress("127.0.0.1");
-        dto.setLocation("本地");
-        dto.setStatus(1);
-        dto.setErrorMsg(null);
-        dto.setOperationTime(LocalDateTime.now());
-        return dto;
+        return new OperationLogDTO("1", 1L, "admin", "创建用户", "POST /api/users",
+                "{\"username\":\"test\"}", 100L, "127.0.0.1", "本地", 1, null, LocalDateTime.now());
     }
 
     /**
