@@ -7,7 +7,7 @@ import com.basebackend.admin.dto.observability.TraceQueryRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.ZoneId;
 import java.util.*;
@@ -22,7 +22,7 @@ public class TraceQueryService {
     @Value("${observability.tempo.query-url:http://localhost:3200}")
     private String tempoUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     /**
      * 根据 TraceId 查询追踪详情
@@ -33,7 +33,7 @@ public class TraceQueryService {
 
             log.info("Querying Tempo trace: {}", url);
 
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restClient.get().uri(url).retrieve().body(String.class);
             JSONObject trace = JSON.parseObject(response);
 
             return parseTraceResponse(trace);
@@ -80,7 +80,7 @@ public class TraceQueryService {
 
             log.info("Searching Tempo traces: {}", fullUrl);
 
-            String response = restTemplate.getForObject(fullUrl, String.class);
+            String response = restClient.get().uri(fullUrl).retrieve().body(String.class);
             return parseSearchResponse(response);
 
         } catch (Exception e) {
@@ -96,13 +96,13 @@ public class TraceQueryService {
         try {
             String url = tempoUrl + "/api/search/tags";
 
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restClient.get().uri(url).retrieve().body(String.class);
             JSONObject json = JSON.parseObject(response);
             JSONArray tagNames = json.getJSONArray("tagNames");
 
             if (tagNames != null && tagNames.contains("service.name")) {
                 String valuesUrl = tempoUrl + "/api/search/tag/service.name/values";
-                String valuesResponse = restTemplate.getForObject(valuesUrl, String.class);
+                String valuesResponse = restClient.get().uri(valuesUrl).retrieve().body(String.class);
                 JSONObject valuesJson = JSON.parseObject(valuesResponse);
                 JSONArray values = valuesJson.getJSONArray("tagValues");
 

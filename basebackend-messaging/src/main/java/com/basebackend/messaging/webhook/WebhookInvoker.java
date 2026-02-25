@@ -5,7 +5,7 @@ import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,14 +17,14 @@ import java.util.Map;
 @Slf4j
 public class WebhookInvoker {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final WebhookSignatureService signatureService;
     private final MessageProducer messageProducer;
 
-    public WebhookInvoker(RestTemplate restTemplate,
+    public WebhookInvoker(RestClient restClient,
             WebhookSignatureService signatureService,
             MessageProducer messageProducer) {
-        this.restTemplate = restTemplate;
+        this.restClient = restClient;
         this.signatureService = signatureService;
         this.messageProducer = messageProducer;
     }
@@ -69,14 +69,13 @@ public class WebhookInvoker {
             webhookLog.setRequestHeaders(JSON.toJSONString(headers.toSingleValueMap()));
 
             // 发送请求
-            HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
             long startTime = System.currentTimeMillis();
 
             ResponseEntity<String> response;
             if ("POST".equalsIgnoreCase(config.getMethod())) {
-                response = restTemplate.postForEntity(config.getUrl(), requestEntity, String.class);
+                response = restClient.post().uri(config.getUrl()).headers(h -> h.addAll(headers)).body(requestBody).retrieve().toEntity(String.class);
             } else if ("PUT".equalsIgnoreCase(config.getMethod())) {
-                response = restTemplate.exchange(config.getUrl(), HttpMethod.PUT, requestEntity, String.class);
+                response = restClient.put().uri(config.getUrl()).headers(h -> h.addAll(headers)).body(requestBody).retrieve().toEntity(String.class);
             } else {
                 throw new UnsupportedOperationException("Unsupported HTTP method: " + config.getMethod());
             }

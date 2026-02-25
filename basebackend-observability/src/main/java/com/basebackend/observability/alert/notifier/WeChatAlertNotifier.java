@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ public class WeChatAlertNotifier implements AlertNotifier {
     @Value("${spring.application.name:BaseBackend}")
     private String applicationName;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -43,7 +43,7 @@ public class WeChatAlertNotifier implements AlertNotifier {
             Map<String, Object> message = buildWeChatMessage(event);
             String jsonMessage = JSON.toJSONString(message);
 
-            String response = restTemplate.postForObject(webhookUrl, message, String.class);
+            String response = restClient.post().uri(webhookUrl).body(message).retrieve().body(String.class);
 
             log.info("WeChat alert sent successfully - ruleId: {}, ruleName: {}, response: {}",
                     event.getRuleId(), event.getRuleName(), response);

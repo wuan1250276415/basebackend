@@ -12,8 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
@@ -160,15 +159,15 @@ public class MTlsConfig {
     }
 
     /**
-     * 创建支持mTLS的RestTemplate
+     * 创建支持mTLS的RestClient
      *
      * @param sslContext SSL上下文（客户端）
-     * @return RestTemplate
+     * @return RestClient
      */
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate mTLsRestTemplate(@Qualifier("clientSSLContext") SSLContext sslContext) {
-        log.debug("创建mTLS RestTemplate");
+    public RestClient mTLsRestClient(@Qualifier("clientSSLContext") SSLContext sslContext) {
+        log.debug("创建mTLS RestClient");
 
         try {
             // 创建 Apache HttpClient5 with mTLS
@@ -178,18 +177,20 @@ public class MTlsConfig {
             HttpComponentsClientHttpRequestFactory factory =
                 new HttpComponentsClientHttpRequestFactory(httpClient);
 
-            // 创建 RestTemplate
-            RestTemplate restTemplate = new RestTemplate(factory);
+            // 创建 RestClient
+            RestClient restClient = RestClient.builder()
+                    .requestFactory(factory)
+                    .build();
 
-            log.info("mTLS RestTemplate创建成功");
+            log.info("mTLS RestClient创建成功");
             log.info("Connect Timeout: {}ms", mtlsProperties.getClient().getConnectTimeout());
             log.info("Read Timeout: {}ms", mtlsProperties.getClient().getReadTimeout());
 
-            return restTemplate;
+            return restClient;
 
         } catch (Exception e) {
-            log.error("创建mTLS RestTemplate失败", e);
-            throw new RuntimeException("mTLS RestTemplate创建失败", e);
+            log.error("创建mTLS RestClient失败", e);
+            throw new RuntimeException("mTLS RestClient创建失败", e);
         }
     }
 

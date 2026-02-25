@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TraceQueryServiceImpl implements TraceQueryService {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     @Value("${observability.trace.endpoint:http://192.168.66.126:9411}")
@@ -57,7 +57,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
             
             log.debug("Requesting trace from URL: {}", url);
 
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restClient.get().uri(url).retrieve().toEntity(String.class);
 
             if (response.getStatusCode() == HttpStatus.OK) {
                 String body = response.getBody();
@@ -369,7 +369,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
             String url = urlBuilder.toString();
             log.debug("Querying traces: {}", url);
             
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restClient.get().uri(url).retrieve().toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 // 解析Zipkin返回的traces数组
@@ -405,7 +405,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
         
         try {
             String url = traceEndpoint + "/api/v2/services";
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> response = restClient.get().uri(url).retrieve().toEntity(String.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<String> services = objectMapper.readValue(

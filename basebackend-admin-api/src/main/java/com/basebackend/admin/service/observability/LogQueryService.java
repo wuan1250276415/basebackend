@@ -7,7 +7,7 @@ import com.basebackend.admin.dto.observability.LogQueryRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -24,7 +24,7 @@ public class LogQueryService {
     @Value("${observability.loki.url:http://192.168.66.126:3400}")
     private String lokiUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     /**
      * 查询日志
@@ -52,7 +52,7 @@ public class LogQueryService {
             URI lokiUri = builder.build().toUri();
             log.info("Querying Loki: {}", lokiUri);
 
-            String response = restTemplate.getForObject(lokiUri, String.class);
+            String response = restClient.get().uri(lokiUri).retrieve().body(String.class);
             return parseLokiResponse(response);
 
         } catch (Exception e) {
@@ -156,7 +156,7 @@ public class LogQueryService {
                 .build()
                 .toUri();
 
-            String response = restTemplate.getForObject(uri, String.class);
+            String response = restClient.get().uri(uri).retrieve().body(String.class);
             JSONObject json = JSON.parseObject(response);
 
             if ("success".equals(json.getString("status"))) {

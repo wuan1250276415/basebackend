@@ -3,7 +3,7 @@ package com.basebackend.logging.monitoring.exporter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.nio.charset.StandardCharsets;
@@ -23,10 +23,10 @@ import java.util.Map;
 @Component
 public class GrafanaDashboardExporter {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
     public GrafanaDashboardExporter() {
-        this.restTemplate = new RestTemplate();
+        this.restClient = RestClient.create();
     }
 
     /**
@@ -40,12 +40,12 @@ public class GrafanaDashboardExporter {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiToken);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    grafanaUrl + "/api/dashboards/db",
-                    HttpMethod.POST,
-                    new HttpEntity<>(payload, headers),
-                    String.class
-            );
+            ResponseEntity<String> response = restClient.post()
+                    .uri(grafanaUrl + "/api/dashboards/db")
+                    .headers(h -> h.addAll(headers))
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("仪表板导入成功");
@@ -72,12 +72,11 @@ public class GrafanaDashboardExporter {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(apiToken);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    grafanaUrl + "/api/dashboards/uid/" + uid,
-                    HttpMethod.GET,
-                    new HttpEntity<>(headers),
-                    String.class
-            );
+            ResponseEntity<String> response = restClient.get()
+                    .uri(grafanaUrl + "/api/dashboards/uid/" + uid)
+                    .headers(h -> h.addAll(headers))
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 String dashboardJson = response.getBody();
@@ -121,12 +120,12 @@ public class GrafanaDashboardExporter {
                 ));
             }
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    grafanaUrl + "/api/datasources",
-                    HttpMethod.POST,
-                    new HttpEntity<>(payload, headers),
-                    String.class
-            );
+            ResponseEntity<String> response = restClient.post()
+                    .uri(grafanaUrl + "/api/datasources")
+                    .headers(h -> h.addAll(headers))
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(String.class);
 
             boolean success = response.getStatusCode().is2xxSuccessful();
             if (success) {
@@ -168,12 +167,11 @@ public class GrafanaDashboardExporter {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(apiToken);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    grafanaUrl + "/api/search?query=basebackend",
-                    HttpMethod.GET,
-                    new HttpEntity<>(headers),
-                    String.class
-            );
+            ResponseEntity<String> response = restClient.get()
+                    .uri(grafanaUrl + "/api/search?query=basebackend")
+                    .headers(h -> h.addAll(headers))
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return DashboardListResult.success(response.getBody());
@@ -195,12 +193,11 @@ public class GrafanaDashboardExporter {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(apiToken);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    grafanaUrl + "/api/dashboards/uid/" + uid,
-                    HttpMethod.DELETE,
-                    new HttpEntity<>(headers),
-                    String.class
-            );
+            ResponseEntity<String> response = restClient.delete()
+                    .uri(grafanaUrl + "/api/dashboards/uid/" + uid)
+                    .headers(h -> h.addAll(headers))
+                    .retrieve()
+                    .toEntity(String.class);
 
             boolean success = response.getStatusCode().is2xxSuccessful();
             if (success) {

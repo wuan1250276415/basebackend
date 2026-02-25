@@ -6,14 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.engine.delegate.BpmnError;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,7 +62,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MicroserviceCallDelegate implements JavaDelegate {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -259,14 +258,12 @@ public class MicroserviceCallDelegate implements JavaDelegate {
         }
 
         // 构建请求实体
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-        // 执行HTTP调用
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url,
-                method,
-                requestEntity,
-                Map.class);
+        ResponseEntity<Map> response = restClient.method(method)
+                .uri(url)
+                .headers(h -> h.addAll(headers))
+                .body(body)
+                .retrieve()
+                .toEntity(Map.class);
 
         // 构建结果
         Map<String, Object> result = new HashMap<>();

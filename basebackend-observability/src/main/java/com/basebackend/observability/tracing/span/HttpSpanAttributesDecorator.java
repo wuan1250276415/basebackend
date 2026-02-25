@@ -19,7 +19,7 @@ import java.util.Objects;
  * HTTP Span 属性装饰器
  * <p>
  * 根据 OpenTelemetry HTTP 语义约定为 Span 添加 HTTP 相关属性。
- * 支持服务端（Servlet）和客户端（Spring RestTemplate/WebClient）场景。
+ * 支持服务端（Servlet）和客户端（Spring RestClient/WebClient）场景。
  * </p>
  * <p>
  * 服务端属性（基于 {@link HttpServletRequest} 和 {@link HttpServletResponse}）：

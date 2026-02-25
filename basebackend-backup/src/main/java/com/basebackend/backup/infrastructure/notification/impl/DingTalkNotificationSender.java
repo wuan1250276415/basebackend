@@ -5,7 +5,7 @@ import com.basebackend.backup.infrastructure.notification.BackupNotificationEven
 import com.basebackend.backup.infrastructure.notification.BackupNotificationSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class DingTalkNotificationSender implements BackupNotificationSender {
 
     private final BackupProperties.Notify.DingTalk config;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     public DingTalkNotificationSender(BackupProperties.Notify.DingTalk config) {
         this.config = config;
@@ -46,8 +46,12 @@ public class DingTalkNotificationSender implements BackupNotificationSender {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+            ResponseEntity<String> response = restClient.post()
+                    .uri(url)
+                    .headers(h -> h.addAll(headers))
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("钉钉通知发送成功");

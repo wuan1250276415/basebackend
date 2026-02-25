@@ -9,12 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.restclient.RestTemplateCustomizer;
+import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * HTTP 追踪配置
@@ -23,7 +23,7 @@ import org.springframework.web.client.RestTemplate;
  * <ul>
  *     <li>HTTP 服务端追踪过滤器（{@link HttpServerTracingFilter}）</li>
  *     <li>HTTP 客户端追踪拦截器（{@link HttpClientTracingInterceptor}）</li>
- *     <li>RestTemplate 追踪定制器（自动注册拦截器到所有 RestTemplate）</li>
+ *     <li>RestClient 追踪定制器（自动注册拦截器到所有 RestClient）</li>
  * </ul>
  * </p>
  * <p>
@@ -106,43 +106,35 @@ public class HttpTracingConfiguration {
     }
 
     /**
-     * 创建 RestTemplate 定制器
+     * 创建 RestClient 定制器
      * <p>
-     * 自动配置 {@link RestTemplate} 以启用分布式追踪，将 {@link HttpClientTracingInterceptor}
-     * 注册到所有通过 {@link org.springframework.boot.web.client.RestTemplateBuilder} 创建的 RestTemplate 实例。
+     * 自动配置 {@link RestClient} 以启用分布式追踪，将 {@link HttpClientTracingInterceptor}
+     * 注册到所有通过 {@link RestClient.Builder} 创建的 RestClient 实例。
      * </p>
      * <p>
      * 使用示例：
      * <pre>{@code
-     * // 通过 RestTemplateBuilder 创建的 RestTemplate 会自动注册拦截器
+     * // 通过 RestClient.Builder 创建的 RestClient 会自动注册拦截器
      * @Bean
-     * public RestTemplate restTemplate(RestTemplateBuilder builder) {
+     * public RestClient restClient(RestClient.Builder builder) {
      *     return builder.build();
-     * }
-     *
-     * // 直接 new 的 RestTemplate 不会自动注册，需要手动添加
-     * @Bean
-     * public RestTemplate customRestTemplate(HttpClientTracingInterceptor interceptor) {
-     *     RestTemplate restTemplate = new RestTemplate();
-     *     restTemplate.getInterceptors().add(interceptor);
-     *     return restTemplate;
      * }
      * }</pre>
      * </p>
      * <p>
      * <b>注意事项：</b>
      * <ul>
-     *     <li>此配置只影响通过 Spring Boot 管理的 RestTemplate</li>
-     *     <li>如果项目中有直接 new RestTemplate() 的代码，需要手动添加拦截器</li>
+     *     <li>此配置只影响通过 Spring Boot 管理的 RestClient</li>
+     *     <li>如果项目中有直接 RestClient.create() 的代码，需要手动添加拦截器</li>
      *     <li>对于 WebClient，需要单独配置 {@code ExchangeFilterFunction}</li>
      * </ul>
      * </p>
      *
      * @param interceptor HTTP 客户端追踪拦截器
-     * @return RestTemplateCustomizer 实例
+     * @return RestClientCustomizer 实例
      */
     @Bean
-    @ConditionalOnClass(RestTemplate.class)
+    @ConditionalOnClass(RestClient.class)
     @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(HttpClientTracingInterceptor.class)
     @ConditionalOnProperty(
             prefix = "observability.tracing.http.client",
@@ -150,14 +142,11 @@ public class HttpTracingConfiguration {
             havingValue = "true",
             matchIfMissing = true
     )
-    public RestTemplateCustomizer tracingRestTemplateCustomizer(HttpClientTracingInterceptor interceptor) {
-        log.info("注册 RestTemplate 追踪定制器");
-        return restTemplate -> {
-            // 避免重复添加
-            if (!restTemplate.getInterceptors().contains(interceptor)) {
-                restTemplate.getInterceptors().add(interceptor);
-                log.debug("为 RestTemplate 添加追踪拦截器");
-            }
+    public RestClientCustomizer tracingRestClientCustomizer(HttpClientTracingInterceptor interceptor) {
+        log.info("注册 RestClient 追踪定制器");
+        return restClientBuilder -> {
+            restClientBuilder.requestInterceptor(interceptor);
+            log.debug("为 RestClient 添加追踪拦截器");
         };
     }
 }

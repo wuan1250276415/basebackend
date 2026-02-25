@@ -79,7 +79,7 @@ import org.springframework.context.annotation.Import;
  *     <li>Sampler Bean 自动注入到 SdkTracerProvider（通过 OtelAutoConfiguration）</li>
  *     <li>SpanProcessor Bean 自动注册到 SdkTracerProvider（通过 OtelAutoConfiguration）</li>
  *     <li>HttpServerTracingFilter 自动注册为 ServletFilter（通过 FilterRegistrationBean）</li>
- *     <li>HttpClientTracingInterceptor 自动添加到 RestTemplate（通过 RestTemplateCustomizer）</li>
+ *     <li>HttpClientTracingInterceptor 自动添加到 RestClient（通过 RestClientCustomizer）</li>
  * </ul>
  * </p>
  *

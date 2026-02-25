@@ -24,7 +24,7 @@ import java.util.Map;
 /**
  * HTTP 客户端追踪拦截器
  * <p>
- * 为 Spring {@link org.springframework.web.client.RestTemplate} 发起的所有 HTTP 请求创建
+ * 为 Spring {@link org.springframework.web.client.RestClient} 发起的所有 HTTP 请求创建
  * CLIENT 类型的 Span，并自动注入追踪上下文到请求头。
  * </p>
  * <p>
@@ -58,9 +58,9 @@ import java.util.Map;
  *       client:
  *         enabled: true  # 客户端追踪开关（默认true）
  *
- * // RestTemplate 会自动注册此拦截器（通过 RestTemplateCustomizer）
+ * // RestClient 会自动注册此拦截器（通过 RestClientCustomizer）
  * @Bean
- * public RestTemplate restTemplate(RestTemplateBuilder builder) {
+ * public RestClient restClient(RestClient.Builder builder) {
  *     return builder.build();
  * }
  * }</pre>
@@ -68,7 +68,7 @@ import java.util.Map;
  * <p>
  * <b>注意：</b>
  * <ul>
- *     <li>此拦截器通过 {@link HttpClientTracingConfig} 自动注册到 RestTemplate</li>
+ *     <li>此拦截器通过 {@link HttpClientTracingConfig} 自动注册到 RestClient</li>
  *     <li>对于 WebClient，需要单独实现 {@code ExchangeFilterFunction}</li>
  * </ul>
  * </p>

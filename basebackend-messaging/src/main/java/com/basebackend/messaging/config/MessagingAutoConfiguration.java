@@ -23,15 +23,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.Duration;
+import org.springframework.web.client.RestClient;
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "messaging", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -43,10 +41,12 @@ public class MessagingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate messagingRestTemplate(RestTemplateBuilder builder) {
+    public RestClient messagingRestClient(RestClient.Builder builder) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(30000);
         return builder
-                .connectTimeout(Duration.ofSeconds(10))
-                .readTimeout(Duration.ofSeconds(30))
+                .requestFactory(factory)
                 .build();
     }
 
@@ -75,10 +75,10 @@ public class MessagingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public WebhookInvoker webhookInvoker(RestTemplate messagingRestTemplate,
+    public WebhookInvoker webhookInvoker(RestClient messagingRestClient,
             WebhookSignatureService signatureService,
             ObjectProvider<MessageProducer> messageProducerProvider) {
-        return new WebhookInvoker(messagingRestTemplate, signatureService, messageProducerProvider.getIfAvailable());
+        return new WebhookInvoker(messagingRestClient, signatureService, messageProducerProvider.getIfAvailable());
     }
 
     @Bean

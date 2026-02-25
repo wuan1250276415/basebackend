@@ -7,7 +7,7 @@ import com.basebackend.admin.dto.observability.MetricsQueryRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.ZoneId;
 import java.util.*;
@@ -22,7 +22,7 @@ public class MetricsQueryService {
     @Value("${observability.prometheus.url:http://localhost:9090}")
     private String prometheusUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     /**
      * 查询指标数据
@@ -48,7 +48,7 @@ public class MetricsQueryService {
 
             log.info("Querying Prometheus: {}", fullUrl);
 
-            String response = restTemplate.getForObject(fullUrl, String.class);
+            String response = restClient.get().uri(fullUrl).retrieve().body(String.class);
             return parsePrometheusResponse(response);
 
         } catch (Exception e) {
@@ -63,7 +63,7 @@ public class MetricsQueryService {
     public List<String> getAvailableMetrics() {
         try {
             String url = prometheusUrl + "/api/v1/label/__name__/values";
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restClient.get().uri(url).retrieve().body(String.class);
 
             JSONObject json = JSON.parseObject(response);
             if ("success".equals(json.getString("status"))) {
@@ -154,7 +154,7 @@ public class MetricsQueryService {
             String url = prometheusUrl + "/api/v1/query?query=" +
                         java.net.URLEncoder.encode(query, "UTF-8");
 
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restClient.get().uri(url).retrieve().body(String.class);
             JSONObject json = JSON.parseObject(response);
 
             if ("success".equals(json.getString("status"))) {

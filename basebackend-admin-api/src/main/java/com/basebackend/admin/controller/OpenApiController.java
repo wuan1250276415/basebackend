@@ -11,7 +11,7 @@ import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -34,7 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -52,7 +51,7 @@ public class OpenApiController {
     private static final MediaType MEDIA_TYPE_YAML = MediaType.valueOf("application/yaml");
     private static final MediaType MEDIA_TYPE_ZIP = MediaType.valueOf("application/zip");
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
     @Value("${documentation.openapi.base-url:}")
@@ -61,10 +60,12 @@ public class OpenApiController {
     @Value("${server.port:0}")
     private int serverPort;
 
-    public OpenApiController(RestTemplateBuilder restTemplateBuilder, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplateBuilder
-                .connectTimeout(Duration.ofSeconds(5))
-                .readTimeout(Duration.ofSeconds(30))
+    public OpenApiController(RestClient.Builder restClientBuilder, ObjectMapper objectMapper) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(30000);
+        this.restClient = restClientBuilder
+                .requestFactory(factory)
                 .build();
         this.objectMapper = objectMapper;
     }
@@ -158,7 +159,7 @@ public class OpenApiController {
 
     private String fetchOpenApiJson(HttpServletRequest request) throws IOException {
         String apiDocsUrl = resolveApiDocsUrl(request);
-        ResponseEntity<String> response = restTemplate.getForEntity(apiDocsUrl, String.class);
+        ResponseEntity<String> response = restClient.get().uri(apiDocsUrl).retrieve().toEntity(String.class);
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new IOException("Failed to load OpenAPI spec from " + apiDocsUrl + ", status: " + response.getStatusCode());
         }
