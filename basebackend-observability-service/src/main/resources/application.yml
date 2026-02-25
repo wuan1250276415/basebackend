@@ -75,8 +75,6 @@ spring:
             refresh: true
 
   main:
-    allow-circular-references: true
-    allow-bean-definition-overriding: true
   autoconfigure:
     exclude:
       - com.basebackend.observability.otel.config.OtelAutoConfiguration

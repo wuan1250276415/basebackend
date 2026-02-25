@@ -92,8 +92,6 @@ spring:
           connectiontimeout: 5000
           writetimeout: 5000
   main:
-    allow-circular-references: true
-    allow-bean-definition-overriding: true
   autoconfigure:
     exclude:
       - com.basebackend.observability.otel.config.OtelAutoConfiguration

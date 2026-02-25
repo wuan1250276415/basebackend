@@ -14,16 +14,9 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @SpringBootApplication(scanBasePackages = {
         "com.basebackend.system",
         "com.basebackend.common",
-        "com.basebackend.security",
-        "com.basebackend.jwt",
-        "com.basebackend.database",
-        "com.basebackend.cache",
-        "com.basebackend.logging",
-        "com.basebackend.observability"
 })
 @MapperScan({
         "com.basebackend.system.mapper",
-        "com.basebackend.database.**.mapper"
 })
 @EnableDiscoveryClient
 @EnableAspectJAutoProxy

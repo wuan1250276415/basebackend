@@ -30,8 +30,6 @@ spring:
 
   main:
     web-application-type: servlet
-    allow-circular-references: ${SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES:true}
-    allow-bean-definition-overriding: ${SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING:true}
     lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
 
   # ========== Spring Config Import (替代 bootstrap.yml) ==========
