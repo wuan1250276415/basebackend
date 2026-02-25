@@ -21,7 +21,7 @@
         <!-- ========== 缓存模块 (from scheduler-core) ========== -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-cache</artifactId>
+            <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>

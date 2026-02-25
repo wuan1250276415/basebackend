@@ -32,7 +32,7 @@
         </dependency>
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-cache</artifactId>
+            <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Seata Distributed Transaction -->

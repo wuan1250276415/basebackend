@@ -28,7 +28,7 @@
         <!-- Cache Module (缓存支持) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-cache</artifactId>
+            <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
