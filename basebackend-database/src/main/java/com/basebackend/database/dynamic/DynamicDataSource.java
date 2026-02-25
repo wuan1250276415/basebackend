@@ -312,8 +312,8 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
     private boolean checkDataSourceHealth(String key) {
         try {
             Object ds = targetDataSourceMap.get(key);
-            if (ds instanceof DataSource) {
-                try (Connection conn = ((DataSource) ds).getConnection()) {
+            if (ds instanceof DataSource dataSource) {
+                try (Connection conn = dataSource.getConnection()) {
                     return conn != null && !conn.isClosed();
                 }
             }

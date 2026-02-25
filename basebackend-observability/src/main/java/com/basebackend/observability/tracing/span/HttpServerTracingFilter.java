@@ -112,13 +112,10 @@ public class HttpServerTracingFilter implements Filter {
             throws IOException, ServletException {
 
         // 只处理 HTTP 请求
-        if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
+        if (!(request instanceof HttpServletRequest httpRequest) || !(response instanceof HttpServletResponse httpResponse)) {
             chain.doFilter(request, response);
             return;
         }
-
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         // 防重复追踪保护：避免在同一个请求的多次 dispatch 中重复创建 Span
         String attrKey = "otel.server.span.started";

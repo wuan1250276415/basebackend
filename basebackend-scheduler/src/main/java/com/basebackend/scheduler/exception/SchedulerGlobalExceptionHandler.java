@@ -334,8 +334,8 @@ public class GlobalExceptionHandler {
 
         // 3. 从请求属性获取（拦截器设置）
         Object attributeTraceId = request.getAttribute("traceId");
-        if (attributeTraceId instanceof String && !((String) attributeTraceId).trim().isEmpty()) {
-            return (String) attributeTraceId;
+        if (attributeTraceId instanceof String traceIdStr && !traceIdStr.trim().isEmpty()) {
+            return traceIdStr;
         }
 
         // 4. 返回默认值或生成新的UUID

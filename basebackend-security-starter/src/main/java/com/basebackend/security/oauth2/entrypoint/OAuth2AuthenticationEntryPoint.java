@@ -49,8 +49,7 @@ public class OAuth2AuthenticationEntryPoint implements AuthenticationEntryPoint 
             authException.getMessage());
 
         // 处理OAuth2特定异常
-        if (authException instanceof OAuth2AuthenticationException) {
-            OAuth2AuthenticationException oauth2Exception = (OAuth2AuthenticationException) authException;
+        if (authException instanceof OAuth2AuthenticationException oauth2Exception) {
             OAuth2Error error = oauth2Exception.getError();
 
             sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,

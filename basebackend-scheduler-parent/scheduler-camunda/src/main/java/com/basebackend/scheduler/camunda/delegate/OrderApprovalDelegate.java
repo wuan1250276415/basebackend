@@ -117,15 +117,15 @@ public class OrderApprovalDelegate implements JavaDelegate {
         if (value == null) {
             return null;
         }
-        if (value instanceof Long) {
-            return (Long) value;
+        if (value instanceof Long l) {
+            return l;
         }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
+        if (value instanceof Number n) {
+            return n.longValue();
         }
-        if (value instanceof String) {
+        if (value instanceof String s) {
             try {
-                return Long.parseLong((String) value);
+                return Long.parseLong(s);
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException(variableName + " 不是有效的Long值: " + value);
             }

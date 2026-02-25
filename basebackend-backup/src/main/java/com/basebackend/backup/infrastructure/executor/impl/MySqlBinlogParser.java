@@ -377,8 +377,7 @@ public class MySqlBinlogParser {
      * 获取事件时间戳
      */
     private java.time.LocalDateTime getTimestamp(EventHeader header) {
-        if (header instanceof EventHeaderV4) {
-            EventHeaderV4 headerV4 = (EventHeaderV4) header;
+        if (header instanceof EventHeaderV4 headerV4) {
             return java.time.LocalDateTime.ofEpochSecond(headerV4.getTimestamp() / 1000, 0,
                 java.time.ZoneOffset.ofHours(8));
         }
@@ -397,8 +396,7 @@ public class MySqlBinlogParser {
      * 获取位置
      */
     private long getPosition(EventHeader header) {
-        if (header instanceof EventHeaderV4) {
-            EventHeaderV4 headerV4 = (EventHeaderV4) header;
+        if (header instanceof EventHeaderV4 headerV4) {
             return headerV4.getNextPosition();
         }
         return 0;

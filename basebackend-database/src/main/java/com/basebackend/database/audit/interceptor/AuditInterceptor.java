@@ -359,8 +359,7 @@ public class AuditInterceptor implements Interceptor {
         }
 
         // Handle Map parameter
-        if (entity instanceof Map) {
-            Map<?, ?> paramMap = (Map<?, ?>) entity;
+        if (entity instanceof Map<?, ?> paramMap) {
             // Try to get 'et' parameter
             Object et = null;
             try {
@@ -514,17 +513,16 @@ public class AuditInterceptor implements Interceptor {
             if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
                 Object principal = authentication.getPrincipal();
-                if (principal instanceof Long) {
-                    return (Long) principal;
-                } else if (principal instanceof String) {
-                    String idStr = (String) principal;
+                if (principal instanceof Long userId) {
+                    return userId;
+                } else if (principal instanceof String idStr) {
                     try {
                         return Long.parseLong(idStr);
                     } catch (NumberFormatException e) {
                         log.debug("Failed to parse user ID from String: {}", idStr);
                     }
-                } else if (principal instanceof Integer) {
-                    return ((Integer) principal).longValue();
+                } else if (principal instanceof Integer intId) {
+                    return intId.longValue();
                 }
             }
         } catch (Exception e) {
@@ -542,10 +540,10 @@ public class AuditInterceptor implements Interceptor {
             if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
                 Object principal = authentication.getPrincipal();
-                if (principal instanceof org.springframework.security.core.userdetails.User) {
-                    return ((org.springframework.security.core.userdetails.User) principal).getUsername();
-                } else if (principal instanceof String) {
-                    return (String) principal;
+                if (principal instanceof org.springframework.security.core.userdetails.User user) {
+                    return user.getUsername();
+                } else if (principal instanceof String name) {
+                    return name;
                 }
             }
         } catch (Exception e) {

@@ -185,11 +185,11 @@ public class TraceQueryServiceImpl implements TraceQueryService {
                             // 更新trace级别的信息
                             Object startTimeObj = convertedSpan.get("startTime");
                             Object endTimeObj = convertedSpan.get("endTime");
-                            if (startTimeObj instanceof Long) {
-                                startTime = Math.min(startTime, (Long) startTimeObj);
+                            if (startTimeObj instanceof Long startTimeLong) {
+                                startTime = Math.min(startTime, startTimeLong);
                             }
-                            if (endTimeObj instanceof Long) {
-                                endTime = Math.max(endTime, (Long) endTimeObj);
+                            if (endTimeObj instanceof Long endTimeLong) {
+                                endTime = Math.max(endTime, endTimeLong);
                             }
                             
                             // 获取根span的操作名
@@ -548,9 +548,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
         
         // 提取服务信息
         Object localEndpoint = zipkinSpan.get("localEndpoint");
-        if (localEndpoint instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> endpoint = (Map<String, Object>) localEndpoint;
+        if (localEndpoint instanceof Map<?, ?> endpoint) {
             span.put("serviceName", endpoint.get("serviceName"));
         }
         

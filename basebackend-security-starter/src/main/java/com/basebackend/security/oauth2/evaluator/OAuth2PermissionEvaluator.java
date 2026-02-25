@@ -123,8 +123,7 @@ public class OAuth2PermissionEvaluator implements PermissionEvaluator {
             }
 
             // 如果是JWT认证_token，提取额外信息
-            if (authentication instanceof JwtAuthenticationToken) {
-                JwtAuthenticationToken jwtToken = (JwtAuthenticationToken) authentication;
+            if (authentication instanceof JwtAuthenticationToken jwtToken) {
                 Jwt jwt = jwtToken.getToken();
 
                 // 提取JWT claims中的额外权限信息
@@ -155,9 +154,9 @@ public class OAuth2PermissionEvaluator implements PermissionEvaluator {
             // 从permissions字段提取
             if (claims.containsKey("permissions")) {
                 Object permissionsObj = claims.get("permissions");
-                if (permissionsObj instanceof java.util.List) {
+                if (permissionsObj instanceof java.util.List<?> permissionsRaw) {
                     @SuppressWarnings("unchecked")
-                    java.util.List<String> permissionsList = (java.util.List<String>) permissionsObj;
+                    java.util.List<String> permissionsList = (java.util.List<String>) permissionsRaw;
                     permissionsList.forEach(permissions::addPermission);
                 }
             }
@@ -165,9 +164,9 @@ public class OAuth2PermissionEvaluator implements PermissionEvaluator {
             // 从roles字段提取
             if (claims.containsKey("roles")) {
                 Object rolesObj = claims.get("roles");
-                if (rolesObj instanceof java.util.List) {
+                if (rolesObj instanceof java.util.List<?> rolesRaw) {
                     @SuppressWarnings("unchecked")
-                    java.util.List<String> rolesList = (java.util.List<String>) rolesObj;
+                    java.util.List<String> rolesList = (java.util.List<String>) rolesRaw;
                     rolesList.forEach(permissions::addRole);
                 }
             }
@@ -219,9 +218,9 @@ public class OAuth2PermissionEvaluator implements PermissionEvaluator {
         // 提取其他自定义权限
         if (claims.containsKey("custom_permissions")) {
             Object customPermissions = claims.get("custom_permissions");
-            if (customPermissions instanceof java.util.List) {
+            if (customPermissions instanceof java.util.List<?> customPermissionsRaw) {
                 @SuppressWarnings("unchecked")
-                java.util.List<String> customPerms = (java.util.List<String>) customPermissions;
+                java.util.List<String> customPerms = (java.util.List<String>) customPermissionsRaw;
                 customPerms.forEach(permissions::addPermission);
             }
         }

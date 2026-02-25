@@ -31,8 +31,7 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateSimpleKey("cache", "user", userId.toString());
         
         Object cached = redisService.get(key);
-        if (cached instanceof User) {
-            User user = (User) cached;
+        if (cached instanceof User user) {
             log.info("Cache hit for user: {}", userId);
             return user;
         }
@@ -56,8 +55,8 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateVersionedKey("cache", "api", apiKey, version);
         
         Object cached = redisService.get(key);
-        if (cached instanceof ApiResponse) {
-            return (ApiResponse) cached;
+        if (cached instanceof ApiResponse response) {
+            return response;
         }
         
         // 调用 API
@@ -76,8 +75,8 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateTenantKey(tenantId, "cache", "config", configKey);
         
         Object cached = redisService.get(key);
-        if (cached instanceof TenantConfig) {
-            return (TenantConfig) cached;
+        if (cached instanceof TenantConfig config) {
+            return config;
         }
         
         // 从数据库查询
@@ -102,9 +101,9 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generatePageKey("cache", "orders", pageNum, pageSize, params);
         
         Object cached = redisService.get(key);
-        if (cached instanceof PageResult) {
+        if (cached instanceof PageResult<?> cachedResult) {
             @SuppressWarnings("unchecked")
-            PageResult<Order> result = (PageResult<Order>) cached;
+            PageResult<Order> result = (PageResult<Order>) cachedResult;
             log.info("Cache hit for orders page: {}/{}", pageNum, pageSize);
             return result;
         }
@@ -127,9 +126,9 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateJsonKey("cache", "report", query);
         
         Object cached = redisService.get(key);
-        if (cached instanceof Report) {
+        if (cached instanceof Report report) {
             log.info("Cache hit for report");
-            return (Report) cached;
+            return report;
         }
         
         // 生成报表
@@ -154,8 +153,8 @@ public class CacheKeyGeneratorExample {
         Map<String, Object> cachedObjects = redisService.multiGet(keySet);
         Map<String, User> cachedUsers = new HashMap<>();
         for (Map.Entry<String, Object> entry : cachedObjects.entrySet()) {
-            if (entry.getValue() instanceof User) {
-                cachedUsers.put(entry.getKey(), (User) entry.getValue());
+            if (entry.getValue() instanceof User user) {
+                cachedUsers.put(entry.getKey(), user);
             }
         }
         
@@ -181,8 +180,8 @@ public class CacheKeyGeneratorExample {
             
             // 合并结果
             for (Map.Entry<String, Object> entry : toCache.entrySet()) {
-                if (entry.getValue() instanceof User) {
-                    cachedUsers.put(entry.getKey(), (User) entry.getValue());
+                if (entry.getValue() instanceof User user) {
+                    cachedUsers.put(entry.getKey(), user);
                 }
             }
         }
@@ -208,8 +207,8 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateNamespacedKey(environment, "cache", "config", configKey);
         
         Object cached = redisService.get(key);
-        if (cached instanceof Config) {
-            return (Config) cached;
+        if (cached instanceof Config config) {
+            return config;
         }
         
         // 从配置中心查询
@@ -252,8 +251,8 @@ public class CacheKeyGeneratorExample {
         String key = keyGenerator.generateTimestampKey("cache", "report", reportType, timestamp);
         
         Object cached = redisService.get(key);
-        if (cached instanceof DailyReport) {
-            return (DailyReport) cached;
+        if (cached instanceof DailyReport report) {
+            return report;
         }
         
         // 生成报表

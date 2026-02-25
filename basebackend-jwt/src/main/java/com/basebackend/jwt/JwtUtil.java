@@ -376,10 +376,10 @@ public class JwtUtil {
         }
 
         Object userIdObj = claims.get("userId");
-        if (userIdObj instanceof Integer) {
-            return ((Integer) userIdObj).longValue();
-        } else if (userIdObj instanceof Long) {
-            return (Long) userIdObj;
+        if (userIdObj instanceof Integer i) {
+            return i.longValue();
+        } else if (userIdObj instanceof Long l) {
+            return l;
         }
 
         String subject = claims.getSubject();
@@ -405,8 +405,8 @@ public class JwtUtil {
         }
 
         Object usernameObj = claims.get("username");
-        if (usernameObj instanceof String) {
-            return (String) usernameObj;
+        if (usernameObj instanceof String s) {
+            return s;
         }
 
         return claims.getSubject();
@@ -422,10 +422,10 @@ public class JwtUtil {
         }
 
         Object deptIdObj = claims.get("deptId");
-        if (deptIdObj instanceof Integer) {
-            return ((Integer) deptIdObj).longValue();
-        } else if (deptIdObj instanceof Long) {
-            return (Long) deptIdObj;
+        if (deptIdObj instanceof Integer i) {
+            return i.longValue();
+        } else if (deptIdObj instanceof Long l) {
+            return l;
         }
 
         return null;
@@ -701,12 +701,12 @@ public class JwtUtil {
         if (claims == null)
             return null;
         Object userIdObj = claims.get("userId");
-        if (userIdObj instanceof Integer) {
-            return ((Integer) userIdObj).longValue();
-        } else if (userIdObj instanceof Long) {
-            return (Long) userIdObj;
-        } else if (userIdObj instanceof Number) {
-            return ((Number) userIdObj).longValue();
+        if (userIdObj instanceof Integer i) {
+            return i.longValue();
+        } else if (userIdObj instanceof Long l) {
+            return l;
+        } else if (userIdObj instanceof Number n) {
+            return n.longValue();
         }
         return null;
     }

@@ -94,17 +94,17 @@ public class JwtTokenService {
 
             // 解析角色
             Object rolesObj = claims.get("roles");
-            if (rolesObj instanceof List) {
+            if (rolesObj instanceof List<?> rolesList) {
                 @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) rolesObj;
+                List<String> roles = (List<String>) rolesList;
                 context.setRoles(roles);
             }
 
             // 解析权限
             Object permsObj = claims.get("permissions");
-            if (permsObj instanceof List) {
+            if (permsObj instanceof List<?> permsList) {
                 @SuppressWarnings("unchecked")
-                List<String> permissions = (List<String>) permsObj;
+                List<String> permissions = (List<String>) permsList;
                 context.setPermissions(permissions);
             }
 

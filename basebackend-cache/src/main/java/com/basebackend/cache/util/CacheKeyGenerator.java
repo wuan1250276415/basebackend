@@ -137,16 +137,16 @@ public class CacheKeyGenerator {
         
         // 对于数组，使用 Arrays.toString
         if (arg.getClass().isArray()) {
-            if (arg instanceof Object[]) {
-                return Arrays.toString((Object[]) arg);
-            } else if (arg instanceof int[]) {
-                return Arrays.toString((int[]) arg);
-            } else if (arg instanceof long[]) {
-                return Arrays.toString((long[]) arg);
-            } else if (arg instanceof double[]) {
-                return Arrays.toString((double[]) arg);
-            } else if (arg instanceof boolean[]) {
-                return Arrays.toString((boolean[]) arg);
+            if (arg instanceof Object[] arr) {
+                return Arrays.toString(arr);
+            } else if (arg instanceof int[] arr) {
+                return Arrays.toString(arr);
+            } else if (arg instanceof long[] arr) {
+                return Arrays.toString(arr);
+            } else if (arg instanceof double[] arr) {
+                return Arrays.toString(arr);
+            } else if (arg instanceof boolean[] arr) {
+                return Arrays.toString(arr);
             }
             // 其他基本类型数组...
             return arg.toString();

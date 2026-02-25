@@ -136,8 +136,8 @@ public class RedisPipelineTemplate {
             if (value == null) {
                 return new byte[0];
             }
-            if (value instanceof byte[]) {
-                return (byte[]) value;
+            if (value instanceof byte[] bytes) {
+                return bytes;
             }
             return redisService.getSerializer().serialize(value);
         }

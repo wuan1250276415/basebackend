@@ -100,8 +100,7 @@ public class DataSourceHealthIndicator implements HealthIndicator {
 
             if (connected) {
                 // 获取连接池信息
-                if (ds instanceof DruidDataSource) {
-                    DruidDataSource druidDs = (DruidDataSource) ds;
+                if (ds instanceof DruidDataSource druidDs) {
                     int activeCount = druidDs.getActiveCount();
                     int maxActive = druidDs.getMaxActive();
                     int idleCount = maxActive - activeCount;

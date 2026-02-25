@@ -66,10 +66,10 @@ public class SqlStatisticsInterceptor implements Interceptor {
             result = invocation.proceed();
 
             // Calculate affected rows
-            if (result instanceof Integer) {
-                affectedRows = (Integer) result;
-            } else if (result instanceof java.util.List) {
-                affectedRows = ((java.util.List<?>) result).size();
+            if (result instanceof Integer intResult) {
+                affectedRows = intResult;
+            } else if (result instanceof java.util.List<?> listResult) {
+                affectedRows = listResult.size();
             }
 
             return result;

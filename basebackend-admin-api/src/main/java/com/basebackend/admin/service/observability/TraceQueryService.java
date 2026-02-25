@@ -241,16 +241,16 @@ public class TraceQueryService {
      */
     private long extractDurationMs(Map<String, Object> trace) {
         Object value = trace.get("durationMs");
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException ignore) {
-                // fall through to default
+        return switch (value) {
+            case Number n -> n.longValue();
+            case String s -> {
+                try {
+                    yield Long.parseLong(s);
+                } catch (NumberFormatException ignore) {
+                    yield 0L;
+                }
             }
-        }
-        return 0L;
+            case null, default -> 0L;
+        };
     }
 }

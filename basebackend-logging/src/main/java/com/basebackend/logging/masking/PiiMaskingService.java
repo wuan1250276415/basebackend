@@ -105,8 +105,8 @@ public class PiiMaskingService {
         if (!properties.isEnabled() || input == null) {
             return input;
         }
-        if (input instanceof String) {
-            return mask((String) input);
+        if (input instanceof String s) {
+            return mask(s);
         }
         long start = System.nanoTime();
         try {
@@ -230,9 +230,9 @@ public class PiiMaskingService {
             parent = current;
             current = current.get(last);
         }
-        if (parent instanceof ObjectNode && current != null && last != null) {
+        if (parent instanceof ObjectNode objectNode && current != null && last != null) {
             String masked = maskValue(current.asText(), rule.rule);
-            ((ObjectNode) parent).put(last, masked);
+            objectNode.put(last, masked);
             return true;
         }
         return false;

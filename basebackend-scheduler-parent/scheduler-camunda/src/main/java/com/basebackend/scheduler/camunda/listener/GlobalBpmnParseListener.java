@@ -31,8 +31,7 @@ public class GlobalBpmnParseListener extends AbstractBpmnParseListener {
     @Override
     public void parseUserTask(Element userTaskElement, ScopeImpl scope, ActivityImpl activity) {
         ActivityBehavior activityBehavior = activity.getActivityBehavior();
-        if (activityBehavior instanceof UserTaskActivityBehavior) {
-            UserTaskActivityBehavior userTaskBehavior = (UserTaskActivityBehavior) activityBehavior;
+        if (activityBehavior instanceof UserTaskActivityBehavior userTaskBehavior) {
 
             // 添加任务创建监听器
             userTaskBehavior.getTaskDefinition()

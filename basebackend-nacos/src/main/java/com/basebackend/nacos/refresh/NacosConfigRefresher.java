@@ -188,8 +188,8 @@ public class NacosConfigRefresher implements InitializingBean {
 
     @PreDestroy
     public void destroy() {
-        if (!destroyed && executor instanceof ExecutorService) {
-            ((ExecutorService) executor).shutdown();
+        if (!destroyed && executor instanceof ExecutorService executorService) {
+            executorService.shutdown();
             destroyed = true;
             log.info("Nacos配置刷新监听器已关闭，线程池已释放");
         }

@@ -130,8 +130,8 @@ public final class ExceptionUtils {
         }
 
         // 验证异常特殊处理
-        if (throwable instanceof MethodArgumentNotValidException) {
-            return buildValidationErrorMessage((MethodArgumentNotValidException) throwable);
+        if (throwable instanceof MethodArgumentNotValidException validEx) {
+            return buildValidationErrorMessage(validEx);
         }
 
         // 获取原始消息

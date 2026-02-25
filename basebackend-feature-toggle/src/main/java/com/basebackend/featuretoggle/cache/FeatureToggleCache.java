@@ -257,9 +257,9 @@ public class FeatureToggleCache {
      * 获取单个缓存的统计信息
      */
     private CacheStatistics getCacheStats(Cache cache) {
-        if (cache instanceof CaffeineCache) {
+        if (cache instanceof CaffeineCache caffeineCache) {
             com.github.benmanes.caffeine.cache.Cache<Object, Object> nativeCache =
-                    ((CaffeineCache) cache).getNativeCache();
+                    caffeineCache.getNativeCache();
 
             return new CacheStatistics(
                     nativeCache.stats().hitCount(),

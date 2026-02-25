@@ -130,9 +130,9 @@ public class OAuth2TokenCustomizer {
             // 1. 从permissions字段提取
             if (claims.containsKey("permissions")) {
                 Object permissionsObj = claims.get("permissions");
-                if (permissionsObj instanceof List) {
+                if (permissionsObj instanceof List<?> permissionsList) {
                     @SuppressWarnings("unchecked")
-                    List<String> permissions = (List<String>) permissionsObj;
+                    List<String> permissions = (List<String>) permissionsList;
                     authorities.addAll(permissions.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList()));
@@ -143,9 +143,9 @@ public class OAuth2TokenCustomizer {
             // 2. 从roles字段提取（兼容旧版JWT格式）
             if (claims.containsKey("roles")) {
                 Object rolesObj = claims.get("roles");
-                if (rolesObj instanceof List) {
+                if (rolesObj instanceof List<?> rolesList) {
                     @SuppressWarnings("unchecked")
-                    List<String> roles = (List<String>) rolesObj;
+                    List<String> roles = (List<String>) rolesList;
                     roles.stream()
                         .map(role -> "ROLE_" + role) // 添加ROLE_前缀
                         .map(SimpleGrantedAuthority::new)
@@ -171,9 +171,9 @@ public class OAuth2TokenCustomizer {
             // 4. 从authorities字段提取
             if (claims.containsKey("authorities")) {
                 Object authoritiesObj = claims.get("authorities");
-                if (authoritiesObj instanceof List) {
+                if (authoritiesObj instanceof List<?> authoritiesRaw) {
                     @SuppressWarnings("unchecked")
-                    List<String> authoritiesList = (List<String>) authoritiesObj;
+                    List<String> authoritiesList = (List<String>) authoritiesRaw;
                     authorities.addAll(authoritiesList.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList()));
@@ -205,8 +205,8 @@ public class OAuth2TokenCustomizer {
         try {
             if (claims.containsKey("exp")) {
                 Object expObj = claims.get("exp");
-                long expTime = expObj instanceof Long ? (Long) expObj :
-                    expObj instanceof Integer ? ((Integer) expObj).longValue() : 0;
+                long expTime = expObj instanceof Long expVal ? expVal :
+                    expObj instanceof Integer expInt ? expInt.longValue() : 0;
 
                 long currentTime = System.currentTimeMillis() / 1000;
 
@@ -219,8 +219,8 @@ public class OAuth2TokenCustomizer {
 
             if (claims.containsKey("iat")) {
                 Object iatObj = claims.get("iat");
-                long iatTime = iatObj instanceof Long ? (Long) iatObj :
-                    iatObj instanceof Integer ? ((Integer) iatObj).longValue() : 0;
+                long iatTime = iatObj instanceof Long iatVal ? iatVal :
+                    iatObj instanceof Integer iatInt ? iatInt.longValue() : 0;
 
                 // 检查签发时间是否在未来（防止时间同步问题）
                 if (iatTime > System.currentTimeMillis() / 1000 + 300) {

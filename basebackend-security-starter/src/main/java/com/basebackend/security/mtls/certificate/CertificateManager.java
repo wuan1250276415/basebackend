@@ -207,11 +207,10 @@ public class CertificateManager {
             }
 
             // 验证证书有效期
-            if (!(cert instanceof X509Certificate)) {
+            if (!(cert instanceof X509Certificate x509Cert)) {
                 throw new RuntimeException("证书不是X509类型");
             }
 
-            X509Certificate x509Cert = (X509Certificate) cert;
             x509Cert.checkValidity();
 
             // 计算剩余有效期天数
@@ -285,8 +284,7 @@ public class CertificateManager {
         try (PEMParser pemParser = new PEMParser(new FileReader(pemPath))) {
             Object obj = pemParser.readObject();
 
-            if (obj instanceof X509CertificateHolder) {
-                X509CertificateHolder holder = (X509CertificateHolder) obj;
+            if (obj instanceof X509CertificateHolder holder) {
                 return new JcaX509CertificateConverter()
                     .setProvider("BC")
                     .getCertificate(holder);
@@ -320,11 +318,9 @@ public class CertificateManager {
             throw new RuntimeException("未找到证书: " + alias);
         }
 
-        if (!(cert instanceof X509Certificate)) {
+        if (!(cert instanceof X509Certificate x509Cert)) {
             throw new RuntimeException("证书不是X509类型");
         }
-
-        X509Certificate x509Cert = (X509Certificate) cert;
 
         CertificateInfo info = new CertificateInfo();
         info.setSerialNumber(x509Cert.getSerialNumber().toString());
@@ -348,10 +344,10 @@ public class CertificateManager {
      */
     private static int getKeySize(PublicKey publicKey) {
         try {
-            if (publicKey instanceof java.security.interfaces.RSAPublicKey) {
-                return ((java.security.interfaces.RSAPublicKey) publicKey).getModulus().bitLength();
-            } else if (publicKey instanceof java.security.interfaces.ECPublicKey) {
-                return ((java.security.interfaces.ECPublicKey) publicKey).getParams().getCurve().getField().getFieldSize();
+            if (publicKey instanceof java.security.interfaces.RSAPublicKey rsaKey) {
+                return rsaKey.getModulus().bitLength();
+            } else if (publicKey instanceof java.security.interfaces.ECPublicKey ecKey) {
+                return ecKey.getParams().getCurve().getField().getFieldSize();
             }
             return 0;
         } catch (Exception e) {

@@ -354,23 +354,19 @@ public class MonitorServiceImpl implements MonitorService {
      * 将Object转换为Long
      */
     private Long getLongValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-        if (value instanceof Integer) {
-            return ((Integer) value).longValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException e) {
-                return null;
+        return switch (value) {
+            case null -> null;
+            case Long l -> l;
+            case Integer i -> i.longValue();
+            case String s -> {
+                try {
+                    yield Long.parseLong(s);
+                } catch (NumberFormatException e) {
+                    yield null;
+                }
             }
-        }
-        return null;
+            default -> null;
+        };
     }
 
     /**
@@ -380,8 +376,8 @@ public class MonitorServiceImpl implements MonitorService {
         if (value == null) {
             return null;
         }
-        if (value instanceof String) {
-            return (String) value;
+        if (value instanceof String s) {
+            return s;
         }
         return value.toString();
     }

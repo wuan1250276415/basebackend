@@ -73,8 +73,8 @@ public class CacheObservabilityAspect {
         try (Scope scope = span.makeCurrent()) {
             // 提取缓存 key（如果是第一个参数）
             Object[] args = joinPoint.getArgs();
-            if (args.length > 0 && args[0] instanceof String) {
-                span.setAttribute("cache.key", (String) args[0]);
+            if (args.length > 0 && args[0] instanceof String key) {
+                span.setAttribute("cache.key", key);
             }
 
             long startTime = System.currentTimeMillis();
@@ -141,8 +141,8 @@ public class CacheObservabilityAspect {
         try (Scope scope = span.makeCurrent()) {
             // 提取锁 key
             Object[] args = joinPoint.getArgs();
-            if (args.length > 0 && args[0] instanceof String) {
-                span.setAttribute("lock.key", (String) args[0]);
+            if (args.length > 0 && args[0] instanceof String key) {
+                span.setAttribute("lock.key", key);
             }
 
             long startTime = System.currentTimeMillis();
@@ -157,8 +157,7 @@ public class CacheObservabilityAspect {
             }
 
             // 记录锁获取成功/失败
-            if (methodName.contains("tryLock") && result instanceof Boolean) {
-                boolean acquired = (Boolean) result;
+            if (methodName.contains("tryLock") && result instanceof Boolean acquired) {
                 span.setAttribute("lock.acquired", acquired);
 
                 if (meterRegistry != null) {

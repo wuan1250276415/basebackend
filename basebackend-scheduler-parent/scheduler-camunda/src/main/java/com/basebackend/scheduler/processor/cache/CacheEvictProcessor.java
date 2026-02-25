@@ -101,8 +101,8 @@ public class CacheEvictProcessor implements TaskProcessor {
         if (value == null) {
             return defaultValue;
         }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
+        if (value instanceof Number n) {
+            return n.longValue();
         }
         try {
             return Long.parseLong(String.valueOf(value));

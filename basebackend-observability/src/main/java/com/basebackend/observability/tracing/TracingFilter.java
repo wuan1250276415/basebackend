@@ -33,9 +33,7 @@ public class TracingFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
-            HttpServletRequest httpRequest = (HttpServletRequest) request;
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
+        if (request instanceof HttpServletRequest httpRequest && response instanceof HttpServletResponse httpResponse) {
 
             // 获取当前 Span 的 TraceContext
             TraceContext context = tracer.currentSpan() != null ? tracer.currentSpan().context() : null;

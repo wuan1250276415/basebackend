@@ -253,8 +253,7 @@ public class FeatureToggleExceptionHandler {
      * 处理业务错误
      */
     private boolean handleBusinessError(String featureName, String operation, Throwable exception, boolean defaultValue) {
-        if (exception instanceof FeatureToggleException) {
-            FeatureToggleException fe = (FeatureToggleException) exception;
+        if (exception instanceof FeatureToggleException fe) {
             log.warn("Business error for feature '{}' operation '{}': {} (code: {})",
                     featureName, operation, fe.getMessage(), fe.getErrorCode());
         } else {
@@ -266,8 +265,7 @@ public class FeatureToggleExceptionHandler {
     }
 
     private String handleBusinessError(String featureName, String operation, Throwable exception, String defaultValue) {
-        if (exception instanceof FeatureToggleException) {
-            FeatureToggleException fe = (FeatureToggleException) exception;
+        if (exception instanceof FeatureToggleException fe) {
             log.warn("Business error for feature '{}' operation '{}': {} (code: {})",
                     featureName, operation, fe.getMessage(), fe.getErrorCode());
         } else {

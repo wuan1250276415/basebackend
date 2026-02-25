@@ -56,8 +56,7 @@ public class ConnectionPoolMonitor {
         }
 
         try {
-            if (dataSource instanceof DruidDataSource) {
-                DruidDataSource druidDs = (DruidDataSource) dataSource;
+            if (dataSource instanceof DruidDataSource druidDs) {
 
                 int activeCount = druidDs.getActiveCount();
                 int maxActive = druidDs.getMaxActive();
@@ -120,8 +119,7 @@ public class ConnectionPoolMonitor {
      * 获取连接池使用率
      */
     public double getPoolUsageRate() {
-        if (dataSource instanceof DruidDataSource) {
-            DruidDataSource druidDs = (DruidDataSource) dataSource;
+        if (dataSource instanceof DruidDataSource druidDs) {
             int activeCount = druidDs.getActiveCount();
             int maxActive = druidDs.getMaxActive();
             return (double) activeCount / maxActive * 100;
@@ -177,9 +175,8 @@ public class ConnectionPoolMonitor {
     public Map<String, Object> getDetailedStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        if (dataSource instanceof DruidDataSource) {
-            DruidDataSource druidDs = (DruidDataSource) dataSource;
-            
+        if (dataSource instanceof DruidDataSource druidDs) {
+
             stats.put("basic", Map.of(
                 "activeCount", druidDs.getActiveCount(),
                 "poolingCount", druidDs.getPoolingCount(),
@@ -227,8 +224,7 @@ public class ConnectionPoolMonitor {
         }
 
         try {
-            if (dataSource instanceof DruidDataSource) {
-                DruidDataSource druidDs = (DruidDataSource) dataSource;
+            if (dataSource instanceof DruidDataSource druidDs) {
                 int maxActive = druidDs.getMaxActive();
 
                 // 除零防护
@@ -298,8 +294,7 @@ public class ConnectionPoolMonitor {
                     String key = entry.getKey().toString();
                     DataSource ds = entry.getValue();
 
-                    if (ds instanceof DruidDataSource) {
-                        DruidDataSource druidDs = (DruidDataSource) ds;
+                    if (ds instanceof DruidDataSource druidDs) {
                         perDataSourceStats.put(key, Map.of(
                             "activeCount", druidDs.getActiveCount(),
                             "poolingCount", druidDs.getPoolingCount(),

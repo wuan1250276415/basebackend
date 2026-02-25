@@ -175,7 +175,7 @@ public class SystemHealthCheckProcessor implements TaskProcessor {
         }
         double parsed;
         try {
-            parsed = (value instanceof Number) ? ((Number) value).doubleValue()
+            parsed = (value instanceof Number n) ? n.doubleValue()
                     : Double.parseDouble(String.valueOf(value));
         } catch (NumberFormatException ex) {
             return defaultValue;

@@ -65,12 +65,11 @@ public class DatabaseMetricsExporter {
     }
     
     private void registerConnectionPoolMetrics(String prefix) {
-        if (!(dataSource instanceof DruidDataSource)) {
+        if (!(dataSource instanceof DruidDataSource druid)) {
             log.warn("DataSource is not DruidDataSource, connection pool metrics unavailable");
             return;
         }
-        
-        DruidDataSource druid = (DruidDataSource) dataSource;
+
         Tags tags = Tags.of("datasource", "primary");
         
         // 活跃连接数

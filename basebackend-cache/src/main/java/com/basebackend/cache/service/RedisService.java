@@ -381,8 +381,8 @@ public class RedisService {
             throw new TimeoutException("Redis operation timeout after " + timeout.toMillis() + "ms: " + operationName);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
+            if (cause instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(cause);
         } catch (InterruptedException e) {
@@ -794,8 +794,10 @@ public class RedisService {
     public List<Object> getList(String key) {
         return executeWithFallback(() -> {
             Object value = redisTemplate.opsForValue().get(key);
-            if (value instanceof List) {
-                return (List<Object>) value;
+            if (value instanceof List<?> list) {
+                @SuppressWarnings("unchecked")
+                List<Object> result = (List<Object>) list;
+                return result;
             }
             return null;
         }, null, "getList");

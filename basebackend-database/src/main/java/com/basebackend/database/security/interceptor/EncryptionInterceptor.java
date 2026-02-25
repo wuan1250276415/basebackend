@@ -118,13 +118,12 @@ public class EncryptionInterceptor implements InnerInterceptor {
         }
 
         // 处理Map参数（MyBatis Plus的批量操作）
-        if (parameter instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) parameter;
+        if (parameter instanceof Map<?, ?> map) {
             int encryptedCount = 0;
             for (Object value : map.values()) {
-                if (value instanceof Collection) {
+                if (value instanceof Collection<?> collection) {
                     // 批量操作
-                    for (Object item : (Collection<?>) value) {
+                    for (Object item : collection) {
                         encryptedCount += encryptObject(item, operationId);
                     }
                 } else {

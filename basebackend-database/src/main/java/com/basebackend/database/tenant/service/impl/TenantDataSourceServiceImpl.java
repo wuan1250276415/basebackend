@@ -88,8 +88,8 @@ public class TenantDataSourceServiceImpl implements TenantDataSourceService {
         tenantDataSourceRouter.removeTenantDataSource(tenantId);
         
         // 关闭数据源（如果是 DruidDataSource）
-        if (dataSource instanceof DruidDataSource) {
-            ((DruidDataSource) dataSource).close();
+        if (dataSource instanceof DruidDataSource druidDs) {
+            druidDs.close();
             log.info("Closed DruidDataSource for tenant: {}", tenantId);
         }
         

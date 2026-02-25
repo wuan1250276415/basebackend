@@ -21,14 +21,13 @@ public class ProtobufCacheSerializer implements CacheSerializer {
             return null;
         }
         
-        if (!(obj instanceof Message)) {
+        if (!(obj instanceof Message message)) {
             throw new CacheSerializationException(
                 "Object must be a Protobuf Message, but got: " + obj.getClass().getName()
             );
         }
-        
+
         try {
-            Message message = (Message) obj;
             return message.toByteArray();
         } catch (Exception e) {
             log.error("Failed to serialize Protobuf message: {}", obj.getClass().getName(), e);

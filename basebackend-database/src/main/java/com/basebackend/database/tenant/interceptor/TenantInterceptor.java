@@ -169,26 +169,25 @@ public class TenantInterceptor implements InnerInterceptor {
     private String addTenantFilterToUpdate(String sql, String tenantId) throws Exception {
         Statement statement = CCJSqlParserUtil.parse(sql);
         
-        if (statement instanceof Update) {
-            Update update = (Update) statement;
-            
+        if (statement instanceof Update updateStmt) {
+
             // 检查是否是排除的表
-            String tableName = update.getTable().getName();
+            String tableName = updateStmt.getTable().getName();
             if (isExcludedTable(tableName)) {
                 log.debug("Table {} is excluded from tenant filtering", tableName);
                 return sql;
             }
-            
-            Expression where = update.getWhere();
+
+            Expression where = updateStmt.getWhere();
             Expression tenantCondition = createTenantCondition(tenantId);
-            
+
             if (where != null) {
-                update.setWhere(new AndExpression(where, tenantCondition));
+                updateStmt.setWhere(new AndExpression(where, tenantCondition));
             } else {
-                update.setWhere(tenantCondition);
+                updateStmt.setWhere(tenantCondition);
             }
-            
-            return update.toString();
+
+            return updateStmt.toString();
         }
         
         return sql;
@@ -200,9 +199,8 @@ public class TenantInterceptor implements InnerInterceptor {
     private String addTenantFilterToDelete(String sql, String tenantId) throws Exception {
         Statement statement = CCJSqlParserUtil.parse(sql);
         
-        if (statement instanceof Delete) {
-            Delete delete = (Delete) statement;
-            
+        if (statement instanceof Delete delete) {
+
             // 检查是否是排除的表
             String tableName = delete.getTable().getName();
             if (isExcludedTable(tableName)) {
@@ -245,8 +243,8 @@ public class TenantInterceptor implements InnerInterceptor {
             if (statement instanceof PlainSelect plainSelect) {
                 {
                     FromItem fromItem = plainSelect.getFromItem();
-                    if (fromItem instanceof net.sf.jsqlparser.schema.Table) {
-                        return ((net.sf.jsqlparser.schema.Table) fromItem).getName();
+                    if (fromItem instanceof net.sf.jsqlparser.schema.Table table) {
+                        return table.getName();
                     }
                 }
             }

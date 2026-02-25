@@ -67,9 +67,8 @@ public class DecryptionInterceptor implements Interceptor {
             return;
         }
         
-        if (result instanceof List) {
+        if (result instanceof List<?> list) {
             // 处理列表结果
-            List<?> list = (List<?>) result;
             for (Object item : list) {
                 decryptObject(item);
             }

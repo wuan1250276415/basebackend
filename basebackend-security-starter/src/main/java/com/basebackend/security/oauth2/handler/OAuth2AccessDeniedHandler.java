@@ -154,10 +154,7 @@ public class OAuth2AccessDeniedHandler implements AccessDeniedHandler {
     private String extractPermissionsFromPrincipal(Object principal) {
         try {
             // 尝试获取权限信息
-            if (principal instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken) {
-                org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth =
-                    (org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken) principal;
-
+            if (principal instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth) {
                 return jwtAuth.getAuthorities().stream()
                     .map(auth -> auth.getAuthority())
                     .reduce((a, b) -> a + "," + b)
