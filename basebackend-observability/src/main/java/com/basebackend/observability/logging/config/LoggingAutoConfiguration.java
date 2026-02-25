@@ -118,9 +118,11 @@ public class LoggingAutoConfiguration {
             havingValue = "true",
             matchIfMissing = true
     )
-    public LogAttributeEnricher logAttributeEnricher() {
+    public LogAttributeEnricher logAttributeEnricher(
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+            io.micrometer.tracing.Tracer tracer) {
         log.info("日志属性填充器已创建");
-        return new LogAttributeEnricher();
+        return new LogAttributeEnricher(tracer);
     }
 
     /**

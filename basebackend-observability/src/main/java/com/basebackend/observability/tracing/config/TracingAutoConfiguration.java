@@ -108,7 +108,6 @@ import org.springframework.context.annotation.Import;
 })
 @Import({
         TracePropagatorConfiguration.class,  // 上下文传播器配置
-        HttpTracingConfiguration.class,      // HTTP 追踪配置
         SamplerConfiguration.class           // 采样器配置
 })
 public class TracingAutoConfiguration {

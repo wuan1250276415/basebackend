@@ -1,11 +1,8 @@
 package com.basebackend.database.observability;
 
 import com.basebackend.observability.slo.annotation.SloMonitored;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -19,7 +16,7 @@ import org.springframework.stereotype.Component;
 /**
  * Database 模块可观测性集成切面
  * <p>
- * 为数据库操作自动添加分布式追踪和 SLO 监控。
+ * 使用 Observation API 为数据库操作自动添加追踪和指标监控。
  * </p>
  *
  * @author BaseBackend Team
@@ -28,71 +25,36 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Aspect
 @Component
-@ConditionalOnClass(name = "io.opentelemetry.api.trace.Tracer")
+@ConditionalOnClass(name = "io.micrometer.observation.ObservationRegistry")
 @ConditionalOnProperty(prefix = "basebackend.database.observability", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DatabaseObservabilityAspect {
 
-    private final Tracer tracer;
-    private final MeterRegistry meterRegistry;
+    private final ObservationRegistry observationRegistry;
 
     public DatabaseObservabilityAspect(
-            @Autowired(required = false) Tracer tracer,
-            @Autowired(required = false) MeterRegistry meterRegistry) {
-        this.tracer = tracer;
-        this.meterRegistry = meterRegistry;
+            @Autowired(required = false) ObservationRegistry observationRegistry) {
+        this.observationRegistry = observationRegistry != null
+                ? observationRegistry : ObservationRegistry.NOOP;
     }
 
     /**
-     * 拦截 Mapper 方法，添加追踪
+     * 拦截 Mapper 方法，通过 Observation API 添加追踪和指标
      */
     @Around("execution(* com.basebackend..*.mapper..*.*(..))")
     @SloMonitored(sloName = "database-operations", service = "database-service")
     public Object traceDatabaseOperation(ProceedingJoinPoint joinPoint) throws Throwable {
-        if (tracer == null) {
-            return joinPoint.proceed();
-        }
-
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String className = signature.getDeclaringType().getSimpleName();
         String methodName = signature.getName();
 
-        Span span = tracer.spanBuilder("db." + className + "." + methodName)
-                .setSpanKind(SpanKind.CLIENT)
-                .setAttribute("db.operation", determineOperation(methodName))
-                .setAttribute("db.mapper", className)
-                .setAttribute("db.method", methodName)
-                .startSpan();
+        Observation observation = Observation.createNotStarted(
+                        "database.operation", observationRegistry)
+                .lowCardinalityKeyValue("db.operation", determineOperation(methodName))
+                .lowCardinalityKeyValue("db.mapper", className)
+                .lowCardinalityKeyValue("db.method", methodName)
+                .contextualName("db." + className + "." + methodName);
 
-        try (Scope scope = span.makeCurrent()) {
-            long startTime = System.currentTimeMillis();
-            Object result = joinPoint.proceed();
-            long duration = System.currentTimeMillis() - startTime;
-
-            if (meterRegistry != null) {
-                meterRegistry.timer("database.operation.duration",
-                        "mapper", className,
-                        "method", methodName)
-                        .record(duration, java.util.concurrent.TimeUnit.MILLISECONDS);
-            }
-
-            span.setStatus(io.opentelemetry.api.trace.StatusCode.OK);
-            return result;
-
-        } catch (Throwable ex) {
-            span.recordException(ex);
-            span.setStatus(io.opentelemetry.api.trace.StatusCode.ERROR, ex.getMessage());
-
-            if (meterRegistry != null) {
-                meterRegistry.counter("database.errors",
-                        "mapper", className,
-                        "exception", ex.getClass().getSimpleName())
-                        .increment();
-            }
-
-            throw ex;
-        } finally {
-            span.end();
-        }
+        return observation.observeChecked(() -> joinPoint.proceed());
     }
 
     private String determineOperation(String methodName) {
