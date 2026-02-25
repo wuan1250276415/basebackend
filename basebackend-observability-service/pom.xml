@@ -25,12 +25,7 @@
             <artifactId>basebackend-common-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
-<!-- Base Backend Web -->
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         
         <!-- Base Backend Database -->
         <dependency>
@@ -113,6 +108,13 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     

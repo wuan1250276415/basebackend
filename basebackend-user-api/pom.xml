@@ -50,11 +50,6 @@
             <artifactId>basebackend-backup</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <!-- Spring Boot Starter -->
         <dependency>
