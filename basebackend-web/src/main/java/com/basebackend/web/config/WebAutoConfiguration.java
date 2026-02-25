@@ -3,10 +3,11 @@ package com.basebackend.web.config;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
 
@@ -18,9 +19,10 @@ import jakarta.annotation.PostConstruct;
  * @since 2025-11-23
  */
 @Slf4j
-@Configuration
-@EnableConfigurationProperties({CorsConfig.class, SecurityHeaderConfig.class})
 @AutoConfiguration
+@EnableConfigurationProperties({CorsConfig.class, SecurityHeaderConfig.class})
+@ConditionalOnProperty(prefix = "basebackend.web", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnClass(name = "org.springframework.web.servlet.DispatcherServlet")
 public class WebAutoConfiguration {
 
     @PostConstruct

@@ -13,9 +13,9 @@ import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -32,7 +32,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @author BaseBackend
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableScheduling
 @RequiredArgsConstructor
 @ComponentScan("com.basebackend.backup")

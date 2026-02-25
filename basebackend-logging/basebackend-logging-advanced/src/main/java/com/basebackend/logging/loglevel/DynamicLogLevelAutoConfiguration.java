@@ -2,6 +2,7 @@ package com.basebackend.logging.loglevel;
 
 import com.alibaba.nacos.api.config.ConfigService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
  * @since 2025-12-10
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(DynamicLogLevelProperties.class)
 @ConditionalOnProperty(value = "basebackend.logging.log-level.enabled", matchIfMissing = true)
 public class DynamicLogLevelAutoConfiguration {

@@ -4,11 +4,12 @@ import com.basebackend.nacos.repository.GrayReleaseHistoryRepository;
 import com.basebackend.nacos.repository.InMemoryGrayReleaseHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 /**
@@ -19,9 +20,10 @@ import org.springframework.context.annotation.Import;
  * </p>
  */
 @Slf4j
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @EnableConfigurationProperties(NacosConfigProperties.class)
 @ConditionalOnProperty(prefix = "nacos", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnClass(name = "com.alibaba.nacos.api.config.ConfigService")
 @Import({
         NacosConfigConfiguration.class,
         NacosDiscoveryConfiguration.class

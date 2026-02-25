@@ -3,11 +3,11 @@ package com.basebackend.logging.cost;
 import ch.qos.logback.classic.LoggerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 日志成本治理自动配置
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
  * @since 2025-12-10
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(LogCostProperties.class)
 @ConditionalOnProperty(value = "basebackend.logging.cost.enabled", havingValue = "true")
 public class LogCostAutoConfiguration {

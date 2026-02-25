@@ -7,10 +7,11 @@ import com.basebackend.observability.logging.sampling.LogSamplingTurboFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 日志系统自动配置
@@ -72,7 +73,7 @@ import org.springframework.context.annotation.Configuration;
  * @see LoggingProperties 日志配置属性
  * @see LogAttributeEnricher 日志属性填充器
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @EnableConfigurationProperties(LoggingProperties.class)
 @ConditionalOnProperty(
         prefix = "observability.logging",
@@ -112,6 +113,7 @@ public class LoggingAutoConfiguration {
      * @return LogAttributeEnricher 实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(
             prefix = "observability.logging.format",
             name = "include-trace-context",
@@ -135,6 +137,7 @@ public class LoggingAutoConfiguration {
      * @return LogSamplingTurboFilter 实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(
             prefix = "observability.logging.sampling",
             name = "enabled",
@@ -160,6 +163,7 @@ public class LoggingAutoConfiguration {
      * @return LogRoutingAppender 实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(
             prefix = "observability.logging.routing",
             name = "enabled",

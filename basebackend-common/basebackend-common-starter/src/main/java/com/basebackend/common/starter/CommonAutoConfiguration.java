@@ -6,6 +6,7 @@ import com.basebackend.common.starter.config.UserContextAutoConfiguration;
 import com.basebackend.common.starter.filter.ContextCleanupFilter;
 import com.basebackend.common.starter.properties.CommonProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
 
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Import;
  * @see ContextCleanupFilter
  */
 @AutoConfiguration
+@ConditionalOnProperty(prefix = "basebackend.common", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(CommonProperties.class)
 @Import({
     // 安全模块自动配置

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -90,7 +91,7 @@ import org.springframework.context.annotation.Import;
  * @see HttpTracingConfiguration HTTP 追踪配置
  * @see SamplerConfiguration 采样器配置
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @EnableConfigurationProperties(TracingProperties.class)
 @ConditionalOnClass(name = "io.opentelemetry.api.trace.Tracer")
 @ConditionalOnProperty(

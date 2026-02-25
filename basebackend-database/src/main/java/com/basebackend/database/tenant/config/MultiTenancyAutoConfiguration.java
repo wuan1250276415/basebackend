@@ -4,16 +4,17 @@ import com.basebackend.database.config.DatabaseEnhancedProperties;
 import com.basebackend.database.tenant.handler.TenantMetaObjectHandler;
 import com.basebackend.database.tenant.interceptor.TenantInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 多租户自动配置类
  * 根据配置启用多租户功能
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @ConditionalOnProperty(prefix = "database.enhanced.multi-tenancy", name = "enabled", havingValue = "true")
 public class MultiTenancyAutoConfiguration {
     
@@ -32,6 +33,7 @@ public class MultiTenancyAutoConfiguration {
      * 自动为 SQL 添加租户过滤条件
      */
     @Bean
+    @ConditionalOnMissingBean
     public TenantInterceptor tenantInterceptor() {
         log.info("Registering TenantInterceptor");
         return new TenantInterceptor(properties);
@@ -42,6 +44,7 @@ public class MultiTenancyAutoConfiguration {
      * 在插入数据时自动填充租户 ID
      */
     @Bean
+    @ConditionalOnMissingBean
     public TenantMetaObjectHandler tenantMetaObjectHandler() {
         log.info("Registering TenantMetaObjectHandler");
         return new TenantMetaObjectHandler(properties);

@@ -10,11 +10,12 @@ import com.basebackend.security.matcher.InternalServiceRequestMatcher;
 import com.basebackend.security.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,11 +35,13 @@ import org.springframework.security.web.csrf.CsrfFilter;
  * @since 2025-11-26
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableWebSecurity
 @EnableMethodSecurity
 @EnableConfigurationProperties(SecurityProperties.class)
 @EnableAspectJAutoProxy
+@ConditionalOnProperty(prefix = "basebackend.security", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnClass(name = "org.springframework.security.config.annotation.web.builders.HttpSecurity")
 @RequiredArgsConstructor
 public class SecurityAutoConfiguration {
 
@@ -48,6 +51,7 @@ public class SecurityAutoConfiguration {
      * 密码编码器
      */
     @Bean
+    @ConditionalOnMissingBean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }

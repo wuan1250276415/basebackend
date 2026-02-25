@@ -2,11 +2,11 @@ package com.basebackend.logging.pipeline;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ import java.util.List;
  * @since 2025-12-10
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(LogPipelineProperties.class)
 @ConditionalOnProperty(value = "basebackend.logging.pipeline.enabled", havingValue = "true")
 public class LogPipelineAutoConfiguration {

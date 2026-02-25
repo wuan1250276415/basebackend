@@ -8,11 +8,11 @@ import io.opentelemetry.sdk.resources.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * @author BaseBackend Team
  * @since 1.0.0
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @ConditionalOnClass(name = "io.opentelemetry.sdk.logs.SdkLoggerProvider")
 @ConditionalOnProperty(value = "observability.otel.enabled", havingValue = "true")
 public class OtelLogsAutoConfiguration implements DisposableBean {

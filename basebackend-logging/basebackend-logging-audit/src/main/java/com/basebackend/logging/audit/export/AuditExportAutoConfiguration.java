@@ -1,11 +1,11 @@
 package com.basebackend.logging.audit.export;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 审计导出自动配置
@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  * @since 2025-12-10
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(AuditExportProperties.class)
 @ConditionalOnProperty(value = "basebackend.logging.audit.export.enabled", matchIfMissing = true)
 public class AuditExportAutoConfiguration {

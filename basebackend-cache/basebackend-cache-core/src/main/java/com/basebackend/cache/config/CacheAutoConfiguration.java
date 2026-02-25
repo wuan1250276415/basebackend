@@ -3,9 +3,10 @@ package com.basebackend.cache.config;
 import com.basebackend.cache.exception.CacheConfigurationException;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -16,11 +17,12 @@ import org.springframework.util.StringUtils;
  * 根据配置属性自动装配缓存相关的 Bean
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableAspectJAutoProxy
 @EnableScheduling
 @EnableConfigurationProperties(CacheProperties.class)
 @ConditionalOnProperty(prefix = "basebackend.cache", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnClass(name = "org.springframework.data.redis.core.RedisTemplate")
 @Import({
     RedisConfig.class,
     MultiLevelCacheConfig.class,

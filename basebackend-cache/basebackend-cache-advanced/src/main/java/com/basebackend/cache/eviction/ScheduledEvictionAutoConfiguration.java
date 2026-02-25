@@ -5,9 +5,10 @@ import com.basebackend.cache.manager.CacheEvictionManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
@@ -16,10 +17,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  * 当配置了定时淘汰规则时自动注册
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
+@ConditionalOnProperty(prefix = "basebackend.cache.eviction", name = "enabled", havingValue = "true")
 public class ScheduledEvictionAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(name = "cacheEvictionTaskScheduler")
     public TaskScheduler cacheEvictionTaskScheduler(CacheProperties cacheProperties) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(cacheProperties.getEviction().getPoolSize());
@@ -33,6 +36,7 @@ public class ScheduledEvictionAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public ScheduledEvictionExecutor scheduledEvictionExecutor(
             CacheEvictionManager cacheEvictionManager,
             TaskScheduler cacheEvictionTaskScheduler,

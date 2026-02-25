@@ -6,9 +6,10 @@ import com.basebackend.cache.service.RedisService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -21,11 +22,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 创建刷新线程池和 NearExpiryRefreshManager Bean
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @ConditionalOnProperty(prefix = "basebackend.cache.refresh", name = "enabled", havingValue = "true")
 public class NearExpiryRefreshAutoConfiguration {
 
     @Bean(destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(name = "cacheRefreshExecutor")
     public ExecutorService cacheRefreshExecutor(CacheProperties cacheProperties) {
         int poolSize = cacheProperties.getRefresh().getPoolSize();
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
@@ -38,6 +40,7 @@ public class NearExpiryRefreshAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public NearExpiryRefreshManager nearExpiryRefreshManager(
             RedisService redisService,
             DistributedLockService distributedLockService,

@@ -1,9 +1,12 @@
 package com.basebackend.database.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import javax.sql.DataSource;
@@ -13,10 +16,12 @@ import javax.sql.DataSource;
  * 根据配置启用各种增强功能
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(DatabaseEnhancedProperties.class)
 @EnableAsync
 @org.springframework.scheduling.annotation.EnableScheduling
+@ConditionalOnProperty(prefix = "basebackend.database.enhanced", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnClass(name = "com.baomidou.mybatisplus.core.MybatisConfiguration")
 public class DatabaseEnhancedAutoConfiguration {
 
     public DatabaseEnhancedAutoConfiguration(DatabaseEnhancedProperties properties) {
@@ -28,6 +33,7 @@ public class DatabaseEnhancedAutoConfiguration {
      * 注册 DatabaseVendorDetector Bean
      */
     @Bean
+    @ConditionalOnMissingBean
     public DatabaseVendorDetector databaseVendorDetector(DatabaseEnhancedProperties properties, DataSource dataSource) {
         return new DatabaseVendorDetector(properties, dataSource);
     }

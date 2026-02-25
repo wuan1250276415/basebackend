@@ -3,11 +3,11 @@ package com.basebackend.logging.audit.storage.database;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 数据库审计存储自动配置
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
  * @since 2025-12-10
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @ConditionalOnClass(BaseMapper.class)
 @ConditionalOnProperty(value = "basebackend.logging.audit.database.enabled", havingValue = "true")
 @MapperScan(basePackages = "com.basebackend.logging.audit.storage.database")

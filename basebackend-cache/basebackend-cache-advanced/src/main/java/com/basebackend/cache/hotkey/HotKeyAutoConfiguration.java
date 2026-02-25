@@ -4,9 +4,10 @@ import com.basebackend.cache.config.CacheProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,11 +17,12 @@ import java.util.concurrent.ScheduledExecutorService;
  * 创建 HotKeyDetector 和 HotKeyMitigator Bean
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @ConditionalOnProperty(prefix = "basebackend.cache.hot-key", name = "enabled", havingValue = "true")
 public class HotKeyAutoConfiguration {
 
     @Bean(destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(name = "hotKeyScheduler")
     public ScheduledExecutorService hotKeyScheduler() {
         return Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "hotkey-window-rotator");
@@ -30,6 +32,7 @@ public class HotKeyAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public HotKeyDetector hotKeyDetector(
             CacheProperties cacheProperties,
             ScheduledExecutorService hotKeyScheduler,
@@ -42,6 +45,7 @@ public class HotKeyAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public HotKeyMitigator hotKeyMitigator(
             HotKeyDetector hotKeyDetector,
             CacheProperties cacheProperties,

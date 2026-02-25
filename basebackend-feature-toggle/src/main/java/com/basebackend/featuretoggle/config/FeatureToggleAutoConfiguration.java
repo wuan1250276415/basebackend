@@ -8,11 +8,11 @@ import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.util.UnleashConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
 /**
@@ -21,7 +21,7 @@ import org.springframework.util.StringUtils;
  * @author BaseBackend
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(FeatureToggleProperties.class)
 @ConditionalOnProperty(prefix = "feature-toggle", name = "enabled", havingValue = "true")
 public class FeatureToggleAutoConfiguration {

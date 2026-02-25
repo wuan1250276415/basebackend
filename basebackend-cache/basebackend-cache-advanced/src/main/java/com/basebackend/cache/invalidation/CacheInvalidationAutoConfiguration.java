@@ -6,9 +6,10 @@ import com.basebackend.cache.service.CacheService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -19,11 +20,12 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
  * 注册 Redis Pub/Sub 监听器和发布器
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @ConditionalOnProperty(prefix = "basebackend.cache.invalidation", name = "enabled", havingValue = "true")
 public class CacheInvalidationAutoConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean
     public CacheInvalidationPublisher cacheInvalidationPublisher(
             RedisTemplate<String, Object> redisTemplate,
             CacheProperties cacheProperties,
@@ -35,6 +37,7 @@ public class CacheInvalidationAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public CacheInvalidationListener cacheInvalidationListener(
             CacheService cacheService,
             CacheProperties cacheProperties,
@@ -45,6 +48,7 @@ public class CacheInvalidationAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "cacheInvalidationListenerContainer")
     public RedisMessageListenerContainer cacheInvalidationListenerContainer(
             RedisConnectionFactory connectionFactory,
             CacheInvalidationListener listener,
