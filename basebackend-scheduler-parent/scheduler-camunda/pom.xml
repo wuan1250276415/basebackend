@@ -18,7 +18,7 @@
     <description>Camunda工作流集成模块 - 提供BPMN流程管理、任务调度、监控与性能优化</description>
 
     <dependencies>
-        <!-- ========== 缓存模块 (from scheduler-core) ========== -->
+        <!-- ========== 核心模块依赖 ========== -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-cache-core</artifactId>
@@ -35,7 +35,6 @@
             </exclusions>
         </dependency>
 
-        <!-- ========== 基础模块依赖 ========== -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-common-starter</artifactId>
@@ -44,78 +43,8 @@
 
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-nacos</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-messaging</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.basebackend</groupId>
             <artifactId>basebackend-logging-core</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- ========== 可观测性 (from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>observability-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- ========== 监控与指标 (from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-observation</artifactId>
-        </dependency>
-        <!-- Micrometer Tracing (OTel bridge for Spring Boot 4) -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-
-        <!-- ========== Caffeine Cache (from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
-
-        <!-- ========== Spring Data Redis (Optional, from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- ========== HikariCP (Optional, from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- ========== MyBatis Plus (Optional, from scheduler-metrics) ========== -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- ========== Spring Boot Starter ========== -->
@@ -152,14 +81,25 @@
             <artifactId>camunda-spin-dataformat-json-jackson</artifactId>
         </dependency>
 
-        <!-- ========== Jakarta Mail ========== -->
+        <!-- ========== 监控与指标 ========== -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.mail</groupId>
-            <artifactId>jakarta.mail-api</artifactId>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation</artifactId>
+        </dependency>
+        <!-- Micrometer Tracing (OTel bridge for Spring Boot 4) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
+        <!-- ========== Caffeine Cache ========== -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
         </dependency>
 
         <!-- ========== API 文档 ========== -->
@@ -168,11 +108,87 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Spring Boot Flyway (Boot 4 modularized) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
         <!-- ========== Lombok ========== -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- ========== 可选：运行时基础设施 ========== -->
+
+        <!-- Spring Data Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- MyBatis Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Web公共配置 -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-web</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Nacos (配置/服务发现) -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-nacos</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Messaging -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-messaging</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Feign API -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-feign-api</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Observability -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>observability-core</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Jakarta Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- ========== Test Dependencies ========== -->
@@ -208,20 +224,8 @@
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mysql</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <!-- Spring Boot Flyway (Boot 4 modularized) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-flyway</artifactId>
         </dependency>
     </dependencies>
 
