@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 登录日志实体
@@ -73,5 +73,5 @@ public class SysLoginLog {
      * 登录时间
      */
     @TableField("login_time")
-    private Date loginTime;
+    private LocalDateTime loginTime;
 }

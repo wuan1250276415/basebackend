@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * 操作日志实体
@@ -85,5 +85,5 @@ public class SysOperationLog {
      * 操作时间
      */
     @TableField("operation_time")
-    private Date operationTime;
+    private LocalDateTime operationTime;
 }
