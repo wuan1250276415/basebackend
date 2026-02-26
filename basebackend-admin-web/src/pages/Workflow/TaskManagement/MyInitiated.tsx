@@ -1,3 +1,4 @@
+import { Eye, CheckCircle2, Clock, XCircle, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -14,13 +15,7 @@ import {
   Row,
   Col,
 } from 'antd'
-import {
-  EyeOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -122,19 +117,19 @@ const MyInitiated: React.FC = () => {
   const getStatusTag = (instance: HistoricProcessInstance) => {
     if (['COMPLETED', 'EXTERNALLY_TERMINATED', 'INTERNALLY_TERMINATED'].includes(instance.state)) {
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
+        <Tag icon={<CheckCircle2 />} color="success">
           已完成
         </Tag>
       )
     } else if (instance.state === 'SUSPENDED') {
       return (
-        <Tag icon={<CloseCircleOutlined />} color="error">
+        <Tag icon={<XCircle />} color="error">
           已挂起
         </Tag>
       )
     } else {
       return (
-        <Tag icon={<SyncOutlined spin />} color="processing">
+        <Tag icon={<RefreshCw className="anticon-spin" />} color="processing">
           进行中
         </Tag>
       )
@@ -238,7 +233,7 @@ const MyInitiated: React.FC = () => {
             {dayjs(text).fromNow()}
           </Tooltip>
         ) : (
-          <Tag icon={<ClockCircleOutlined />} color="processing">
+          <Tag icon={<Clock />} color="processing">
             进行中
           </Tag>
         ),
@@ -276,7 +271,7 @@ const MyInitiated: React.FC = () => {
       width: 100,
       fixed: 'right',
       render: (_, record) => (
-        <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
+        <Button type="link" size="small" icon={<Eye />} onClick={() => handleView(record)}>
           查看
         </Button>
       ),

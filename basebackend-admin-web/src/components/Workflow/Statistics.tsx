@@ -1,11 +1,7 @@
+import { Clock, CheckCircle2, RefreshCw, PauseCircle } from 'lucide-react';
 import React from 'react'
 import { Card, Row, Col, Statistic } from 'antd'
-import {
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  SyncOutlined,
-  PauseCircleOutlined,
-} from '@ant-design/icons'
+
 
 /**
  * 工作流统计卡片组件
@@ -35,7 +31,7 @@ export const WorkflowStatistics: React.FC<WorkflowStatisticsProps> = ({
             title="总数"
             value={total}
             valueStyle={{ color: '#1890ff' }}
-            prefix={<ClockCircleOutlined />}
+            prefix={<Clock />}
           />
         </Card>
       </Col>
@@ -45,7 +41,7 @@ export const WorkflowStatistics: React.FC<WorkflowStatisticsProps> = ({
             title="进行中"
             value={active}
             valueStyle={{ color: '#52c41a' }}
-            prefix={<SyncOutlined spin />}
+            prefix={<RefreshCw className="anticon-spin" />}
           />
         </Card>
       </Col>
@@ -55,7 +51,7 @@ export const WorkflowStatistics: React.FC<WorkflowStatisticsProps> = ({
             title="已完成"
             value={completed}
             valueStyle={{ color: '#13c2c2' }}
-            prefix={<CheckCircleOutlined />}
+            prefix={<CheckCircle2 />}
           />
         </Card>
       </Col>
@@ -65,7 +61,7 @@ export const WorkflowStatistics: React.FC<WorkflowStatisticsProps> = ({
             title="已挂起"
             value={suspended}
             valueStyle={{ color: '#faad14' }}
-            prefix={<PauseCircleOutlined />}
+            prefix={<PauseCircle />}
           />
         </Card>
       </Col>

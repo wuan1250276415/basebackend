@@ -1,6 +1,7 @@
+import { Plus, Edit, Trash2, Network, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Tree, Button, Space, Form, Modal, message, Tag, Popconfirm, Input, InputNumber, Select, Row, Col } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, ApartmentOutlined, ReloadOutlined } from '@ant-design/icons'
+
 import type { DataNode } from 'antd/es/tree'
 import { getDeptTree, createDept, updateDept, deleteDept } from '@/api/dept'
 import { Dept } from '@/types'
@@ -110,7 +111,7 @@ const DeptList = () => {
           <div className="dept-tree-content">
             <div className="dept-tree-title">
               <Space size={4}>
-                <ApartmentOutlined style={{ color: '#1890ff' }} />
+                <Network style={{ color: '#1890ff' }} />
                 <span className="dept-name">{dept.deptName}</span>
                 {dept.leader && <Tag color="blue">{dept.leader}</Tag>}
                 {dept.status === 0 && <Tag color="error">禁用</Tag>}
@@ -124,7 +125,7 @@ const DeptList = () => {
             <Button
               type="link"
               size="small"
-              icon={<PlusOutlined />}
+              icon={<Plus />}
               onClick={(e) => {
                 e.stopPropagation()
                 handleOpenModal(undefined, dept)
@@ -135,7 +136,7 @@ const DeptList = () => {
             <Button
               type="link"
               size="small"
-              icon={<EditOutlined />}
+              icon={<Edit />}
               onClick={(e) => {
                 e.stopPropagation()
                 handleOpenModal(dept)
@@ -153,7 +154,7 @@ const DeptList = () => {
                 type="link"
                 size="small"
                 danger
-                icon={<DeleteOutlined />}
+                icon={<Trash2 />}
                 onClick={(e) => e.stopPropagation()}
               >
                 删除
@@ -232,12 +233,12 @@ const DeptList = () => {
             title="部门树"
             extra={
               <Space>
-                <Button icon={<ReloadOutlined />} onClick={loadData} size="small">
+                <Button icon={<RefreshCw />} onClick={loadData} size="small">
                   刷新
                 </Button>
                 <Button
                   type="primary"
-                  icon={<PlusOutlined />}
+                  icon={<Plus />}
                   onClick={() => handleOpenModal()}
                   size="small"
                 >

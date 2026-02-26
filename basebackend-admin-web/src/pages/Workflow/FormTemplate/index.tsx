@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import {
     Card,
@@ -12,7 +13,7 @@ import {
     Popconfirm,
     Tag,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 
@@ -178,13 +179,13 @@ const FormTemplateList: React.FC = () => {
                     <Button
                         type="primary"
                         size="small"
-                        icon={<EditOutlined />}
+                        icon={<Edit />}
                         onClick={() => handleEdit(record)}
                     >
                         编辑
                     </Button>
                     <Popconfirm title="确定要删除吗？" onConfirm={() => handleDelete(record.id)}>
-                        <Button type="primary" size="small" danger icon={<DeleteOutlined />}>
+                        <Button type="primary" size="small" danger icon={<Trash2 />}>
                             删除
                         </Button>
                     </Popconfirm>
@@ -203,7 +204,7 @@ const FormTemplateList: React.FC = () => {
                         onSearch={handleSearch}
                         style={{ width: 200 }}
                     />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+                    <Button type="primary" icon={<Plus />} onClick={handleCreate}>
                         新建模板
                     </Button>
                 </Space>

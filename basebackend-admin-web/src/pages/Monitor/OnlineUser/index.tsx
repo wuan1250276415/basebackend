@@ -1,6 +1,7 @@
+import { RefreshCw, LogOut, User } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Space, message, Modal, Tag, Statistic, Row, Col } from 'antd'
-import { ReloadOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import { OnlineUser } from '@/types'
 import { getOnlineUsers, forceLogout } from '@/api/monitor'
@@ -118,7 +119,7 @@ const OnlineUserPage = () => {
           type="link"
           size="small"
           danger
-          icon={<LogoutOutlined />}
+          icon={<LogOut />}
           onClick={() => handleForceLogout(record)}
         >
           强制下线
@@ -136,7 +137,7 @@ const OnlineUserPage = () => {
             <Statistic
               title="在线用户数"
               value={dataSource.length}
-              prefix={<UserOutlined />}
+              prefix={<User />}
               valueStyle={{ color: '#3f8600' }}
             />
           </Card>
@@ -149,7 +150,7 @@ const OnlineUserPage = () => {
         extra={
           <Button
             type="primary"
-            icon={<ReloadOutlined />}
+            icon={<RefreshCw />}
             onClick={loadData}
             loading={loading}
           >

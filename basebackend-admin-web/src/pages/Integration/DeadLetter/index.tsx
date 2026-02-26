@@ -1,3 +1,4 @@
+import { Search, Eye, Redo, Trash2, AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react'
 import {
   Card,
@@ -12,13 +13,7 @@ import {
   Popconfirm,
   Modal
 } from 'antd'
-import {
-  SearchOutlined,
-  EyeOutlined,
-  RedoOutlined,
-  DeleteOutlined,
-  ExclamationCircleOutlined
-} from '@ant-design/icons'
+
 import {
   getDeadLetterPage,
   getDeadLetter,
@@ -107,7 +102,7 @@ const DeadLetter = () => {
 
     Modal.confirm({
       title: '确认批量重新投递',
-      icon: <ExclamationCircleOutlined />,
+      icon: <AlertCircle />,
       content: `确定要重新投递选中的 ${selectedRowKeys.length} 条死信吗？`,
       onOk: async () => {
         try {
@@ -193,7 +188,7 @@ const DeadLetter = () => {
           <Button
             type="link"
             size="small"
-            icon={<EyeOutlined />}
+            icon={<Eye />}
             onClick={() => handleViewDetail(record.id)}
           >
             详情
@@ -207,7 +202,7 @@ const DeadLetter = () => {
                 <Button
                   type="link"
                   size="small"
-                  icon={<RedoOutlined />}
+                  icon={<Redo />}
                 >
                   重投
                 </Button>
@@ -220,7 +215,7 @@ const DeadLetter = () => {
                   type="link"
                   size="small"
                   danger
-                  icon={<DeleteOutlined />}
+                  icon={<Trash2 />}
                 >
                   丢弃
                 </Button>
@@ -248,7 +243,7 @@ const DeadLetter = () => {
           <Space>
             <Button
               type="primary"
-              icon={<RedoOutlined />}
+              icon={<Redo />}
               onClick={handleBatchRedeliver}
               disabled={selectedRowKeys.length === 0}
             >
@@ -272,7 +267,7 @@ const DeadLetter = () => {
 
           <Button
             type="primary"
-            icon={<SearchOutlined />}
+            icon={<Search />}
             onClick={fetchData}
           >
             查询

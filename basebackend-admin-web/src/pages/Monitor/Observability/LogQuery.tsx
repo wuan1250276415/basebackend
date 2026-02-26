@@ -1,6 +1,7 @@
+import { Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Form, Input, Select, DatePicker, Button, Table, Tag, Space, message } from 'antd'
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons'
+
 import { queryLogs, LogQueryRequest } from '@/api/observability/logs'
 import dayjs from 'dayjs'
 
@@ -143,10 +144,10 @@ const LogQuery = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+              <Button type="primary" htmlType="submit" icon={<Search />}>
                 查询
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+              <Button icon={<RefreshCw />} onClick={handleReset}>
                 重置
               </Button>
             </Space>

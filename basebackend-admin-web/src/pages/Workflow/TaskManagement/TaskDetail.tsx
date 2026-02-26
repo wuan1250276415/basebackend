@@ -1,3 +1,4 @@
+import { CheckCircle2, XCircle, Undo2, ArrowLeft } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -17,12 +18,7 @@ import {
   Row,
   Col,
 } from 'antd'
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  RollbackOutlined,
-  ArrowLeftOutlined,
-} from '@ant-design/icons'
+
 import dayjs from 'dayjs'
 
 import {
@@ -167,7 +163,7 @@ const TaskDetail: React.FC = () => {
       <Card>
         <Space>
           <Button
-            icon={<ArrowLeftOutlined />}
+            icon={<ArrowLeft />}
             onClick={() => navigate('/workflow/todo')}
           >
             返回
@@ -261,13 +257,13 @@ const TaskDetail: React.FC = () => {
                 >
                   <Radio.Group>
                     <Radio.Button value="approve">
-                      <CheckCircleOutlined /> 通过
+                      <CheckCircle2 /> 通过
                     </Radio.Button>
                     <Radio.Button value="reject">
-                      <CloseCircleOutlined /> 驳回
+                      <XCircle /> 驳回
                     </Radio.Button>
                     <Radio.Button value="return">
-                      <RollbackOutlined /> 退回
+                      <Undo2 /> 退回
                     </Radio.Button>
                   </Radio.Group>
                 </Form.Item>

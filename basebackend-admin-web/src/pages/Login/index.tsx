@@ -1,7 +1,8 @@
+import { User, Lock } from 'lucide-react';
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Card, message } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
+
 import { login } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { LoginRequest } from '@/types'
@@ -54,7 +55,7 @@ const Login = () => {
               rules={[{ required: true, message: '请输入用户名' }]}
             >
               <Input
-                prefix={<UserOutlined />}
+                prefix={<User />}
                 placeholder="用户名"
                 autoComplete="username"
               />
@@ -65,7 +66,7 @@ const Login = () => {
               rules={[{ required: true, message: '请输入密码' }]}
             >
               <Input.Password
-                prefix={<LockOutlined />}
+                prefix={<Lock />}
                 placeholder="密码"
                 autoComplete="current-password"
               />

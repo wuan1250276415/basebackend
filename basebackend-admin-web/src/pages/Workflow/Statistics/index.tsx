@@ -1,11 +1,7 @@
+import { LayoutGrid, PlayCircle, CheckCircle2, TriangleAlert } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { Card, Row, Col, Statistic, message, Spin } from 'antd'
-import {
-    AppstoreOutlined,
-    PlayCircleOutlined,
-    CheckCircleOutlined,
-    WarningOutlined,
-} from '@ant-design/icons'
+
 import { Pie, Column } from '@ant-design/charts'
 import { getWorkflowOverview } from '@/api/workflow/statistics'
 import type { WorkflowOverview } from '@/types/workflow'
@@ -89,7 +85,7 @@ const Statistics: React.FC = () => {
                         <Statistic
                             title="流程定义总数"
                             value={data.processDefinitions.totalDefinitions}
-                            prefix={<AppstoreOutlined />}
+                            prefix={<LayoutGrid />}
                         />
                         <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
                             活跃: {data.processDefinitions.activeDefinitions} | 挂起: {data.processDefinitions.suspendedDefinitions}
@@ -101,7 +97,7 @@ const Statistics: React.FC = () => {
                         <Statistic
                             title="运行中实例"
                             value={data.instances.runningInstances}
-                            prefix={<PlayCircleOutlined />}
+                            prefix={<PlayCircle />}
                             valueStyle={{ color: '#1890ff' }}
                         />
                     </Card>
@@ -111,7 +107,7 @@ const Statistics: React.FC = () => {
                         <Statistic
                             title="待办任务"
                             value={data.tasks.pendingTasks}
-                            prefix={<WarningOutlined />}
+                            prefix={<TriangleAlert />}
                             valueStyle={{ color: '#faad14' }}
                         />
                     </Card>
@@ -121,7 +117,7 @@ const Statistics: React.FC = () => {
                         <Statistic
                             title="已完成任务"
                             value={data.tasks.completedTasks}
-                            prefix={<CheckCircleOutlined />}
+                            prefix={<CheckCircle2 />}
                             valueStyle={{ color: '#52c41a' }}
                         />
                     </Card>

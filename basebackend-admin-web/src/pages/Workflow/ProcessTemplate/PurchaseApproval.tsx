@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -15,7 +16,7 @@ import {
   Row,
   Col,
 } from 'antd'
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 
@@ -279,7 +280,7 @@ const PurchaseApproval: React.FC = () => {
         <Button
           type="link"
           danger
-          icon={<DeleteOutlined />}
+          icon={<Trash2 />}
           onClick={() => handleDeletePurchaseItem(record.key)}
           disabled={purchaseItems.length === 1}
         >
@@ -362,7 +363,7 @@ const PurchaseApproval: React.FC = () => {
                     <Button
                       type="dashed"
                       onClick={handleAddPurchaseItem}
-                      icon={<PlusOutlined />}
+                      icon={<Plus />}
                     >
                       添加采购项
                     </Button>
@@ -418,7 +419,7 @@ const PurchaseApproval: React.FC = () => {
                 beforeUpload={() => false}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
               >
-                <Button icon={<PlusOutlined />}>上传附件</Button>
+                <Button icon={<Plus />}>上传附件</Button>
               </Upload>
             </Form.Item>
           </Col>

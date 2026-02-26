@@ -1,5 +1,6 @@
+import { Folder, File, Webhook, LayoutGrid } from 'lucide-react';
 import { Card, Row, Col, Statistic } from 'antd'
-import { FolderOutlined, FileOutlined, ApiOutlined, AppstoreOutlined } from '@ant-design/icons'
+
 import { Menu } from '@/types'
 
 interface MenuStatisticsProps {
@@ -40,7 +41,7 @@ const MenuStatistics = ({ menus }: MenuStatisticsProps) => {
           <Statistic
             title="总菜单数"
             value={stats.total}
-            prefix={<AppstoreOutlined style={{ color: '#1890ff' }} />}
+            prefix={<LayoutGrid style={{ color: '#1890ff' }} />}
             valueStyle={{ color: '#1890ff' }}
           />
         </Card>
@@ -50,7 +51,7 @@ const MenuStatistics = ({ menus }: MenuStatisticsProps) => {
           <Statistic
             title="目录数"
             value={stats.directories}
-            prefix={<FolderOutlined style={{ color: '#52c41a' }} />}
+            prefix={<Folder style={{ color: '#52c41a' }} />}
             valueStyle={{ color: '#52c41a' }}
           />
         </Card>
@@ -60,7 +61,7 @@ const MenuStatistics = ({ menus }: MenuStatisticsProps) => {
           <Statistic
             title="菜单数"
             value={stats.pages}
-            prefix={<FileOutlined style={{ color: '#fa8c16' }} />}
+            prefix={<File style={{ color: '#fa8c16' }} />}
             valueStyle={{ color: '#fa8c16' }}
           />
         </Card>
@@ -70,7 +71,7 @@ const MenuStatistics = ({ menus }: MenuStatisticsProps) => {
           <Statistic
             title="按钮数"
             value={stats.buttons}
-            prefix={<ApiOutlined style={{ color: '#722ed1' }} />}
+            prefix={<Webhook style={{ color: '#722ed1' }} />}
             valueStyle={{ color: '#722ed1' }}
           />
         </Card>

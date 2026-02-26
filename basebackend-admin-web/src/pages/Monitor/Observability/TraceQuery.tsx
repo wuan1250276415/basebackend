@@ -1,6 +1,7 @@
+import { Search, RefreshCw, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Form, Input, Button, Table, Tag, Space, message, Drawer, Descriptions } from 'antd'
-import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons'
+
 import { searchTraces, getTraceById, TraceQueryRequest } from '@/api/observability/traces'
 import dayjs from 'dayjs'
 
@@ -110,7 +111,7 @@ const TraceQuery = () => {
       render: (_: any, record: any) => (
         <Button
           type="link"
-          icon={<EyeOutlined />}
+          icon={<Eye />}
           onClick={() => handleViewDetail(record)}
         >
           详情
@@ -141,10 +142,10 @@ const TraceQuery = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+              <Button type="primary" htmlType="submit" icon={<Search />}>
                 搜索
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+              <Button icon={<RefreshCw />} onClick={handleReset}>
                 重置
               </Button>
             </Space>

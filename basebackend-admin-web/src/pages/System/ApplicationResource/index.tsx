@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2, Undo2 } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import {
   Card,
@@ -15,12 +16,7 @@ import {
   Input,
   Switch,
 } from 'antd'
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  RollbackOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import {
   getResourceTree,
@@ -258,7 +254,7 @@ const ApplicationResourceManagement = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenModal(record)}
           >
             编辑
@@ -270,7 +266,7 @@ const ApplicationResourceManagement = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -292,12 +288,12 @@ const ApplicationResourceManagement = () => {
             </h2>
           </div>
           <Space>
-            <Button icon={<RollbackOutlined />} onClick={handleBack}>
+            <Button icon={<Undo2 />} onClick={handleBack}>
               返回应用列表
             </Button>
             <Button
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<Plus />}
               onClick={() => handleOpenModal()}
             >
               新增资源

@@ -1,15 +1,7 @@
+import { User, Users, Globe, CheckSquare, File, FileText, TriangleAlert, RefreshCw } from 'lucide-react';
 import React from 'react'
 import { Card, Row, Col, Statistic } from 'antd'
-import {
-  UserOutlined,
-  TeamOutlined,
-  GlobalOutlined,
-  CheckSquareOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  WarningOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+
 import { useNavigate } from 'react-router-dom'
 import type { CoreMetricsData } from '../types'
 
@@ -25,56 +17,56 @@ export const CoreMetrics: React.FC<CoreMetricsProps> = React.memo(({ data, loadi
     {
       title: '用户总数',
       value: data.userCount,
-      icon: <UserOutlined />,
+      icon: <User />,
       color: '#1890ff',
       path: '/system/user',
     },
     {
       title: '角色总数',
       value: data.roleCount,
-      icon: <TeamOutlined />,
+      icon: <Users />,
       color: '#52c41a',
       path: '/system/role',
     },
     {
       title: '在线用户',
       value: data.onlineUsers,
-      icon: <GlobalOutlined />,
+      icon: <Globe />,
       color: '#13c2c2',
       path: '/monitor/online-user',
     },
     {
       title: '待办任务',
       value: data.pendingTasks,
-      icon: <CheckSquareOutlined />,
+      icon: <CheckSquare />,
       color: '#faad14',
       path: '/workflow/task',
     },
     {
       title: '文件总数',
       value: data.fileCount,
-      icon: <FileOutlined />,
+      icon: <File />,
       color: '#722ed1',
       path: '/file/list',
     },
     {
       title: '今日日志',
       value: data.todayLogs,
-      icon: <FileTextOutlined />,
+      icon: <FileText />,
       color: '#595959',
       path: '/monitor/operation-log',
     },
     {
       title: '活跃告警',
       value: data.activeAlerts,
-      icon: <WarningOutlined />,
+      icon: <TriangleAlert />,
       color: '#f5222d',
       path: '/monitor/observability/alert',
     },
     {
       title: '运行中流程',
       value: data.runningProcesses,
-      icon: <SyncOutlined spin={data.runningProcesses > 0} />,
+      icon: <RefreshCw className={data.runningProcesses > 0 ? "anticon-spin" : ""} />,
       color: '#1890ff',
       path: '/workflow/instance',
     },

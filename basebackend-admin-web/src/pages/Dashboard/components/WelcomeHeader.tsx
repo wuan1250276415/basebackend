@@ -1,6 +1,7 @@
+import { RefreshCw, Clock } from 'lucide-react';
 import React from 'react'
 import { Card, Space, Button, Typography } from 'antd'
-import { ReloadOutlined, ClockCircleOutlined } from '@ant-design/icons'
+
 import { useAuthStore } from '@/stores/auth'
 
 const { Title, Text } = Typography
@@ -54,12 +55,12 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = React.memo(
               {getGreeting()}，{userInfo?.nickname || userInfo?.username}！
             </Title>
             <Space>
-              <ClockCircleOutlined />
+              <Clock />
               <Text type="secondary">{formatTime(currentTime)}</Text>
             </Space>
           </Space>
           <Button
-            icon={<ReloadOutlined />}
+            icon={<RefreshCw />}
             onClick={onRefresh}
             loading={loading}
           >

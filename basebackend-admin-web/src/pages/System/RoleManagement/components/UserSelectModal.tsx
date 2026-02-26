@@ -1,6 +1,7 @@
+import { Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { Modal, Table, Input, Space, message } from 'antd'
-import { SearchOutlined } from '@ant-design/icons'
+
 import type { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { User } from '@/types'
 import request from '@/utils/request'
@@ -152,7 +153,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
         <Input
           placeholder="搜索用户名"
-          prefix={<SearchOutlined />}
+          prefix={<Search />}
           allowClear
           onPressEnter={(e) => handleSearch((e.target as HTMLInputElement).value)}
           onChange={(e) => {
