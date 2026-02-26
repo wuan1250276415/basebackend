@@ -2,7 +2,6 @@ package com.basebackend.gateway.gray;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -11,10 +10,13 @@ import java.util.List;
 
 /**
  * 灰度路由配置
+ * <p>
+ * 注意：移除 @RefreshScope 以兼容 GraalVM Native Image (AOT 编译)。
+ * Nacos 配置变更会通过 @ConfigurationProperties 自动绑定刷新，
+ * 如需强制刷新可使用 /actuator/refresh 端点触发重新绑定。
  */
 @Data
 @Component
-@RefreshScope
 @ConfigurationProperties(prefix = "gateway.gray")
 public class GrayRouteProperties {
 
