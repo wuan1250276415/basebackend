@@ -34,6 +34,7 @@
         <module>basebackend-system-api</module>
         <module>basebackend-notification-service</module>
         <module>basebackend-ai</module>
+        <module>basebackend-websocket</module>
         <module>basebackend-observability-service</module>
     </modules>
 
