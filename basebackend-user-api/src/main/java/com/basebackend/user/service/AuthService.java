@@ -1,8 +1,8 @@
 package com.basebackend.user.service;
 
 import com.basebackend.common.context.UserContext;
-import com.basebackend.feign.dto.user.LoginRequest;
-import com.basebackend.feign.dto.user.LoginResponse;
+import com.basebackend.api.model.user.LoginRequest;
+import com.basebackend.api.model.user.LoginResponse;
 import com.basebackend.user.dto.PasswordChangeDTO;
 
 /**

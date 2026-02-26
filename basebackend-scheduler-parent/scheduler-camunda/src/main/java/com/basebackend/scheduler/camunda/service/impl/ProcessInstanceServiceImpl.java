@@ -315,12 +315,15 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
                 throw new CamundaServiceException("变量不存在: " + variableName);
             }
 
-            ProcessVariableDTO dto = new ProcessVariableDTO();
-            dto.setName(variableName);
-            dto.setValue(value);
-            dto.setType(variableInstance.getTypeName());
-
-            return dto;
+            return new ProcessVariableDTO(
+                    variableName,
+                    value,
+                    variableInstance.getTypeName(),
+                    null,
+                    instanceId,
+                    null,
+                    null
+            );
         } catch (CamundaServiceException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -531,13 +534,14 @@ public class ProcessInstanceServiceImpl implements ProcessInstanceService {
     }
 
     private ProcessVariableDTO convertVariableToDTO(VariableInstance variable) {
-        ProcessVariableDTO dto = new ProcessVariableDTO();
-        dto.setName(variable.getName());
-        dto.setValue(variable.getValue());
-        dto.setType(variable.getTypeName());
-        dto.setProcessInstanceId(variable.getProcessInstanceId());
-        dto.setExecutionId(variable.getExecutionId());
-        dto.setTaskId(variable.getTaskId());
-        return dto;
+        return new ProcessVariableDTO(
+                variable.getName(),
+                variable.getValue(),
+                variable.getTypeName(),
+                null,
+                variable.getProcessInstanceId(),
+                variable.getExecutionId(),
+                variable.getTaskId()
+        );
     }
 }

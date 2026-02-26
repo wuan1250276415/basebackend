@@ -32,7 +32,7 @@ public class MetricsController {
     @PostMapping("/query")
     @Operation(summary = "查询指标数据")
     public Result<Map<String, Object>> queryMetrics(@RequestBody MetricsQueryRequest request) {
-        log.info("Querying metrics: {}", request.getMetricName());
+        log.info("Querying metrics: {}", request.metricName());
         Map<String, Object> result = metricsQueryService.queryMetrics(request);
         return Result.success(result);
     }

@@ -349,7 +349,7 @@ class RedissonLockManagerTest {
     void shouldHandleNullLockKey() throws Exception {
         // Given - mock getLock返回值以避免NullPointer
         RLock nullLock = mock(RLock.class);
-        when(redissonClient.getLock(null)).thenReturn(nullLock);
+        when(redissonClient.getLock((String) null)).thenReturn(nullLock);
         when(nullLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(nullLock.isHeldByCurrentThread()).thenReturn(true);
 
@@ -361,7 +361,7 @@ class RedissonLockManagerTest {
 
         // Then
         assertThat(executed.get()).isTrue();
-        verify(redissonClient).getLock(null);
+        verify(redissonClient).getLock((String) null);
     }
 
     @Test

@@ -457,59 +457,42 @@ public class JobServiceImpl implements JobService {
         }
 
         switch (sortBy.toLowerCase()) {
-            case "jobid":
-                if (asc)
-                    query.orderByJobId().asc();
-                else
-                    query.orderByJobId().desc();
-                break;
-            case "executionid":
-                if (asc)
-                    query.orderByExecutionId().asc();
-                else
-                    query.orderByExecutionId().desc();
-                break;
-            case "processinstanceid":
-                if (asc)
-                    query.orderByProcessInstanceId().asc();
-                else
-                    query.orderByProcessInstanceId().desc();
-                break;
-            case "processdefinitionid":
-                if (asc)
-                    query.orderByProcessDefinitionId().asc();
-                else
-                    query.orderByProcessDefinitionId().desc();
-                break;
-            case "processdefinitionkey":
-                if (asc)
-                    query.orderByProcessDefinitionKey().asc();
-                else
-                    query.orderByProcessDefinitionKey().desc();
-                break;
-            case "jobretries":
-                if (asc)
-                    query.orderByJobRetries().asc();
-                else
-                    query.orderByJobRetries().desc();
-                break;
-            case "jobduedate":
-                if (asc)
-                    query.orderByJobDuedate().asc();
-                else
-                    query.orderByJobDuedate().desc();
-                break;
-            case "jobpriority":
-                if (asc)
-                    query.orderByJobPriority().asc();
-                else
-                    query.orderByJobPriority().desc();
-                break;
-            default:
-                if (asc)
-                    query.orderByJobDuedate().asc();
-                else
-                    query.orderByJobDuedate().desc();
+            case "jobid" -> {
+                if (asc) query.orderByJobId().asc();
+                else query.orderByJobId().desc();
+            }
+            case "executionid" -> {
+                if (asc) query.orderByExecutionId().asc();
+                else query.orderByExecutionId().desc();
+            }
+            case "processinstanceid" -> {
+                if (asc) query.orderByProcessInstanceId().asc();
+                else query.orderByProcessInstanceId().desc();
+            }
+            case "processdefinitionid" -> {
+                if (asc) query.orderByProcessDefinitionId().asc();
+                else query.orderByProcessDefinitionId().desc();
+            }
+            case "processdefinitionkey" -> {
+                if (asc) query.orderByProcessDefinitionKey().asc();
+                else query.orderByProcessDefinitionKey().desc();
+            }
+            case "jobretries" -> {
+                if (asc) query.orderByJobRetries().asc();
+                else query.orderByJobRetries().desc();
+            }
+            case "jobduedate" -> {
+                if (asc) query.orderByJobDuedate().asc();
+                else query.orderByJobDuedate().desc();
+            }
+            case "jobpriority" -> {
+                if (asc) query.orderByJobPriority().asc();
+                else query.orderByJobPriority().desc();
+            }
+            default -> {
+                if (asc) query.orderByJobDuedate().asc();
+                else query.orderByJobDuedate().desc();
+            }
         }
     }
 }

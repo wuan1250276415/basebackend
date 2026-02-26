@@ -48,10 +48,12 @@ public class CandidateRuleResolverImpl implements CandidateRuleResolver {
             } else if (rule.startsWith(PREFIX_VAR)) {
                 String varName = rule.substring(PREFIX_VAR.length());
                 Object val = variables.get(varName);
-                if (val instanceof String) {
-                    return List.of(((String) val).split(","));
-                } else if (val instanceof List) {
-                    return (List<String>) val;
+                if (val instanceof String s) {
+                    return List.of(s.split(","));
+                } else if (val instanceof List<?> list) {
+                    @SuppressWarnings("unchecked")
+                    List<String> result = (List<String>) list;
+                    return result;
                 }
             } else {
                 // 默认策略或自定义策略 TODO: 扩展更多策略

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.file.mapper.FileShareAuditLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.basebackend.file.audit.FileShareAuditLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="trace_id" property="traceId" jdbcType="VARCHAR"/>
+        <result column="span_id" property="spanId" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="VARCHAR"/>
+        <result column="tenant_id" property="tenantId" jdbcType="VARCHAR"/>
+        <result column="share_code" property="shareCode" jdbcType="VARCHAR"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="outcome" property="outcome" jdbcType="VARCHAR"/>
+        <result column="error_code" property="errorCode" jdbcType="VARCHAR"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="client_ip" property="clientIp" jdbcType="VARCHAR"/>
+        <result column="user_agent" property="userAgent" jdbcType="VARCHAR"/>
+        <result column="referrer" property="referrer" jdbcType="VARCHAR"/>
+        <result column="rate_limit_hit" property="rateLimitHit" jdbcType="TINYINT"/>
+        <result column="details" property="details" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, created_at, trace_id, span_id, user_id, tenant_id, share_code, action, outcome,
+        error_code, error_message, client_ip, user_agent, referrer, rate_limit_hit, details
+    </sql>
+
+    <!-- 根据分享码查询审计日志 -->
+    <select id="selectByShareCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_file_share_audit_log
+        WHERE share_code = #{shareCode,jdbcType=VARCHAR}
+        ORDER BY created_at DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 根据用户ID查询审计日志 -->
+    <select id="selectByUserId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_file_share_audit_log
+        WHERE user_id = #{userId,jdbcType=VARCHAR}
+        ORDER BY created_at DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 根据操作类型查询审计日志 -->
+    <select id="selectByAction" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_file_share_audit_log
+        WHERE action = #{action,jdbcType=VARCHAR}
+        ORDER BY created_at DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit,jdbcType=INTEGER}
+        </if>
+    </select>
+
+    <!-- 查询失败的审计日志（用于安全告警） -->
+    <select id="selectFailedLogs" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_file_share_audit_log
+        WHERE outcome = 'FAIL'
+        AND created_at BETWEEN #{startTime,jdbcType=TIMESTAMP} AND #{endTime,jdbcType=TIMESTAMP}
+        <if test="action != null">
+            AND action = #{action,jdbcType=VARCHAR}
+        </if>
+        <if test="userId != null and userId != ''">
+            AND user_id = #{userId,jdbcType=VARCHAR}
+        </if>
+        <if test="shareCode != null and shareCode != ''">
+            AND share_code = #{shareCode,jdbcType=VARCHAR}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

@@ -184,7 +184,7 @@ public class LogServiceImpl implements LogService {
     @Override
     @Transactional
     public void recordOperationLog(OperationLogDTO operationLogDTO) {
-        log.info("记录操作日志: {}", operationLogDTO.getOperation());
+        log.info("记录操作日志: {}", operationLogDTO.operation());
         SysOperationLog operationLog = new SysOperationLog();
         BeanUtil.copyProperties(operationLogDTO, operationLog);
         operationLogMapper.insert(operationLog);
@@ -203,8 +203,6 @@ public class LogServiceImpl implements LogService {
      * 转换为操作日志DTO
      */
     private OperationLogDTO convertToOperationLogDTO(SysOperationLog operationLog) {
-        OperationLogDTO dto = new OperationLogDTO();
-        BeanUtil.copyProperties(operationLog, dto);
-        return dto;
+        return BeanUtil.copyProperties(operationLog, OperationLogDTO.class);
     }
 }

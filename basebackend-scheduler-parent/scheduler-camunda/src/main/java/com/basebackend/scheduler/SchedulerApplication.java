@@ -7,10 +7,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.Environment;
 
 /**
@@ -29,31 +26,19 @@ import org.springframework.core.env.Environment;
  * @version 1.0.0
  * @since 2025-01-01
  */
-@SpringBootApplication(exclude = {
-        org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration.class
-})
-@ComponentScan(
-        basePackages = {
+@SpringBootApplication(
+        scanBasePackages = {
                 "com.basebackend.scheduler",
                 "com.basebackend.common",
-                "com.basebackend.security",
-                "com.basebackend.jwt",
-                "com.basebackend.database",
-                "com.basebackend.cache",
-                "com.basebackend.observability",
-                "com.basebackend.feign",
-                "com.basebackend.messaging"
         },
-        excludeFilters = {
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.basebackend\\.database\\.migration\\..*")
+        exclude = {
+                org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration.class
         }
 )
 @MapperScan({
         "com.basebackend.scheduler.**.mapper",
-        "com.basebackend.database.**.mapper",
 })
 @EnableDiscoveryClient
-@EnableFeignClients(basePackages = {"com.basebackend.feign.client"})
 public class SchedulerApplication {
 
     private static final Logger log = LoggerFactory.getLogger(SchedulerApplication.class);

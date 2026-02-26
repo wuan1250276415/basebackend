@@ -1,8 +1,8 @@
 package com.basebackend.user.util;
 
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.DeptFeignClient;
-import com.basebackend.feign.dto.dept.DeptBasicDTO;
+import com.basebackend.service.client.DeptServiceClient;
+import com.basebackend.api.model.dept.DeptBasicDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -27,7 +27,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DeptInfoHelper {
 
-    private final ObjectProvider<DeptFeignClient> deptFeignClientProvider;
+    private final ObjectProvider<DeptServiceClient> deptServiceClientProvider;
 
     /**
      * 获取部门名称
@@ -43,23 +43,23 @@ public class DeptInfoHelper {
             return "";
         }
 
-        var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-        if (deptFeignClient == null) {
+        var deptServiceClient = deptServiceClientProvider.getIfAvailable();
+        if (deptServiceClient == null) {
             log.debug("部门服务不可用，跳过获取部门名称: deptId={}", deptId);
             return "";
         }
 
         try {
-            Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
+            Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
             if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                return deptResult.getData().getDeptName();
+                return deptResult.getData().deptName();
             } else {
                 log.warn("获取部门信息失败或返回空: deptId={}, message={}",
                         deptId, deptResult != null ? deptResult.getMessage() : "null");
                 return "";
             }
         } catch (Exception e) {
-            log.error("调用部门服务异常: deptId={}, error={}", deptId, e.getMessage(), e);
+            log.warn("调用部门服务异常（系统服务可能未启动）: deptId={}, error={}", deptId, e.getMessage());
             return "";
         }
     }
@@ -79,17 +79,17 @@ public class DeptInfoHelper {
             return deptNameMap;
         }
 
-        var deptFeignClient = deptFeignClientProvider.getIfAvailable();
-        if (deptFeignClient == null) {
+        var deptServiceClient = deptServiceClientProvider.getIfAvailable();
+        if (deptServiceClient == null) {
             log.debug("部门服务不可用，跳过批量获取部门名称");
             return deptNameMap;
         }
 
         for (Long deptId : deptIds) {
             try {
-                Result<DeptBasicDTO> deptResult = deptFeignClient.getById(deptId);
+                Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
                 if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                    deptNameMap.put(deptId, deptResult.getData().getDeptName());
+                    deptNameMap.put(deptId, deptResult.getData().deptName());
                 }
             } catch (Exception e) {
                 log.warn("批量获取部门信息异常: deptId={}, error={}", deptId, e.getMessage());

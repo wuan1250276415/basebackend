@@ -192,26 +192,22 @@ public class DataSyncDelegate implements JavaDelegate {
         Map<String, Object> result = new HashMap<>();
 
         switch (sourceType.toLowerCase()) {
-            case "database":
+            case "database" -> {
                 result.put("type", "database");
                 result.put("recordsProcessed", payload.size());
                 result.put("message", "数据库同步完成");
-                break;
-
-            case "api":
+            }
+            case "api" -> {
                 result.put("type", "api");
                 result.put("endpoint", payload.get("endpoint"));
                 result.put("message", "API调用完成");
-                break;
-
-            case "file":
+            }
+            case "file" -> {
                 result.put("type", "file");
                 result.put("fileName", payload.get("fileName"));
                 result.put("message", "文件同步完成");
-                break;
-
-            default:
-                throw new IllegalArgumentException("不支持的数据源类型: " + sourceType);
+            }
+            default -> throw new IllegalArgumentException("不支持的数据源类型: " + sourceType);
         }
 
         // 模拟数据同步操作

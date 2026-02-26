@@ -45,14 +45,9 @@ public class ChecksumServiceImpl implements ChecksumProvider {
 
             for (String algorithm : algorithms) {
                 switch (algorithm.toUpperCase()) {
-                    case "MD5":
-                        md5 = computeMD5(filePath);
-                        break;
-                    case "SHA256":
-                        sha256 = computeSHA256(filePath);
-                        break;
-                    default:
-                        log.warn("不支持的校验算法: {}", algorithm);
+                    case "MD5" -> md5 = computeMD5(filePath);
+                    case "SHA256" -> sha256 = computeSHA256(filePath);
+                    default -> log.warn("不支持的校验算法: {}", algorithm);
                 }
             }
 
@@ -86,14 +81,9 @@ public class ChecksumServiceImpl implements ChecksumProvider {
 
             for (String algorithm : algorithms) {
                 switch (algorithm.toUpperCase()) {
-                    case "MD5":
-                        md5Digest = MessageDigest.getInstance("MD5");
-                        break;
-                    case "SHA256":
-                        sha256Digest = MessageDigest.getInstance("SHA-256");
-                        break;
-                    default:
-                        log.warn("不支持的校验算法: {}", algorithm);
+                    case "MD5" -> md5Digest = MessageDigest.getInstance("MD5");
+                    case "SHA256" -> sha256Digest = MessageDigest.getInstance("SHA-256");
+                    default -> log.warn("不支持的校验算法: {}", algorithm);
                 }
             }
 

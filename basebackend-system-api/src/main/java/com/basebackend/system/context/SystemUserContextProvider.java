@@ -32,18 +32,17 @@ public class SystemUserContextProvider implements UserContextProvider {
         Object principal = authentication.getPrincipal();
 
         // 优先从 JwtUserDetails 获取完整用户信息（推荐方式）
-        if (principal instanceof JwtUserDetails) {
-            JwtUserDetails userDetails = (JwtUserDetails) principal;
+        if (principal instanceof JwtUserDetails userDetails) {
             userId = userDetails.getUserId();
             username = userDetails.getUsername();
             deptId = userDetails.getDeptId();
         }
         // 兼容旧的处理方式
-        else if (principal instanceof Long) {
-            userId = (Long) principal;
+        else if (principal instanceof Long l) {
+            userId = l;
             username = authentication.getName();
-        } else if (principal instanceof String) {
-            username = (String) principal;
+        } else if (principal instanceof String s) {
+            username = s;
             try {
                 userId = Long.parseLong(username);
             } catch (NumberFormatException ignored) {

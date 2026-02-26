@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.OperationLogFeignClient;
+import com.basebackend.service.client.OperationLogServiceClient;
 import com.basebackend.observability.metrics.CustomMetrics;
 import com.basebackend.user.dto.security.User2FADTO;
 import com.basebackend.user.dto.security.UserDeviceDTO;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class SecurityServiceImpl implements SecurityService {
 
     private final UserDeviceMapper deviceMapper;
-    private final OperationLogFeignClient operationLogFeignClient;
+    private final OperationLogServiceClient operationLogServiceClient;
     private final User2FAMapper user2FAMapper;
     private final SysUserMapper userMapper;
     private final CustomMetrics customMetrics;
@@ -124,7 +124,7 @@ public class SecurityServiceImpl implements SecurityService {
 
         try {
             // 通过Feign调用system-api获取操作日志
-            Result<List<com.basebackend.feign.dto.log.UserOperationLogDTO>> result = operationLogFeignClient
+            Result<List<com.basebackend.api.model.log.UserOperationLogDTO>> result = operationLogServiceClient
                     .getUserOperationLogs(currentUserId, limit);
 
             if (result == null || !result.isSuccess() || result.getData() == null) {
@@ -155,22 +155,19 @@ public class SecurityServiceImpl implements SecurityService {
 
         if (user2FA == null) {
             // 返回默认配置
-            User2FADTO dto = new User2FADTO();
-            dto.setEnabled(0);
-            return dto;
+            return new User2FADTO(null, null, 0, null, null, null, null);
         }
 
-        User2FADTO dto = BeanUtil.copyProperties(user2FA, User2FADTO.class);
-
-        // 脱敏处理
-        if (user2FA.getVerifyPhone() != null) {
-            dto.setVerifyPhone(maskPhone(user2FA.getVerifyPhone()));
-        }
-        if (user2FA.getVerifyEmail() != null) {
-            dto.setVerifyEmail(maskEmail(user2FA.getVerifyEmail()));
-        }
-
-        return dto;
+        // 构建DTO，同时进行脱敏处理
+        return new User2FADTO(
+                user2FA.getId(),
+                user2FA.getType(),
+                user2FA.getEnabled(),
+                user2FA.getVerifyPhone() != null ? maskPhone(user2FA.getVerifyPhone()) : null,
+                user2FA.getVerifyEmail() != null ? maskEmail(user2FA.getVerifyEmail()) : null,
+                user2FA.getLastVerifyTime(),
+                user2FA.getCreateTime()
+        );
     }
 
     @Override

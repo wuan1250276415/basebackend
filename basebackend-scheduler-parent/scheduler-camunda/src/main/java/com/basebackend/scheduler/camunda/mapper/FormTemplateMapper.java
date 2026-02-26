@@ -30,27 +30,29 @@ public interface FormTemplateMapper extends BaseMapper<FormTemplateEntity> {
      * @param entity 查询条件（包含分页参数 current、size、keyword 等）
      * @return 表单模板列表
      */
-    @Select("<script>" +
-            "SELECT * FROM camunda_form_template " +
-            "<where>" +
-            "  <if test='entity.tenantId != null and entity.tenantId != \"\"'>" +
-            "    AND tenant_id = #{entity.tenantId}" +
-            "  </if>" +
-            "  <if test='entity.formType != null and entity.formType != \"\"'>" +
-            "    AND form_type = #{entity.formType}" +
-            "  </if>" +
-            "  <if test='entity.status != null and entity.status != \"\"'>" +
-            "    AND status = #{entity.status}" +
-            "  </if>" +
-            "  <if test='entity.keyword != null and entity.keyword != \"\"'>" +
-            "    AND (name LIKE CONCAT('%', #{entity.keyword}, '%') OR description LIKE CONCAT('%', #{entity.keyword}, '%'))" +
-            "  </if>" +
-            "</where>" +
-            "ORDER BY created_at DESC " +
-            "<if test='entity.current != null and entity.size != null'>" +
-            "  LIMIT #{entity.current}, #{entity.size}" +
-            "</if>" +
-            "</script>")
+    @Select("""
+            <script>
+            SELECT * FROM camunda_form_template
+            <where>
+              <if test='entity.tenantId != null and entity.tenantId != ""'>
+                AND tenant_id = #{entity.tenantId}
+              </if>
+              <if test='entity.formType != null and entity.formType != ""'>
+                AND form_type = #{entity.formType}
+              </if>
+              <if test='entity.status != null and entity.status != ""'>
+                AND status = #{entity.status}
+              </if>
+              <if test='entity.keyword != null and entity.keyword != ""'>
+                AND (name LIKE CONCAT('%', #{entity.keyword}, '%') OR description LIKE CONCAT('%', #{entity.keyword}, '%'))
+              </if>
+            </where>
+            ORDER BY created_at DESC
+            <if test='entity.current != null and entity.size != null'>
+              LIMIT #{entity.current}, #{entity.size}
+            </if>
+            </script>
+            """)
     List<FormTemplateEntity> selectList(@Param("entity") FormTemplateEntity entity);
 
     /**
@@ -62,22 +64,24 @@ public interface FormTemplateMapper extends BaseMapper<FormTemplateEntity> {
      * @param entity 查询条件
      * @return 符合条件的记录数量
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM camunda_form_template " +
-            "<where>" +
-            "  <if test='entity.tenantId != null and entity.tenantId != \"\"'>" +
-            "    AND tenant_id = #{entity.tenantId}" +
-            "  </if>" +
-            "  <if test='entity.formType != null and entity.formType != \"\"'>" +
-            "    AND form_type = #{entity.formType}" +
-            "  </if>" +
-            "  <if test='entity.status != null and entity.status != \"\"'>" +
-            "    AND status = #{entity.status}" +
-            "  </if>" +
-            "  <if test='entity.keyword != null and entity.keyword != \"\"'>" +
-            "    AND (name LIKE CONCAT('%', #{entity.keyword}, '%') OR description LIKE CONCAT('%', #{entity.keyword}, '%'))" +
-            "  </if>" +
-            "</where>" +
-            "</script>")
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM camunda_form_template
+            <where>
+              <if test='entity.tenantId != null and entity.tenantId != ""'>
+                AND tenant_id = #{entity.tenantId}
+              </if>
+              <if test='entity.formType != null and entity.formType != ""'>
+                AND form_type = #{entity.formType}
+              </if>
+              <if test='entity.status != null and entity.status != ""'>
+                AND status = #{entity.status}
+              </if>
+              <if test='entity.keyword != null and entity.keyword != ""'>
+                AND (name LIKE CONCAT('%', #{entity.keyword}, '%') OR description LIKE CONCAT('%', #{entity.keyword}, '%'))
+              </if>
+            </where>
+            </script>
+            """)
     long selectCount(@Param("entity") FormTemplateEntity entity);
 }

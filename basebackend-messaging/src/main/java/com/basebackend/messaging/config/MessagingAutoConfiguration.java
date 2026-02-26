@@ -1,13 +1,9 @@
 package com.basebackend.messaging.config;
 
-import com.basebackend.messaging.consumer.DeadLetterConsumer;
 import com.basebackend.messaging.encryption.AesGcmMessageEncryptor;
 import com.basebackend.messaging.encryption.MessageEncryptor;
 import com.basebackend.messaging.event.EventPublisher;
 import com.basebackend.messaging.idempotency.IdempotencyService;
-import com.basebackend.messaging.mapper.DeadLetterMapper;
-import com.basebackend.messaging.mapper.MessageLogMapper;
-import com.basebackend.messaging.mapper.WebhookEndpointMapper;
 import com.basebackend.messaging.metrics.MessagingMetrics;
 import com.basebackend.messaging.order.OrderedMessageConsumer;
 import com.basebackend.messaging.producer.MessageProducer;
@@ -20,22 +16,20 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.Duration;
+import org.springframework.web.client.RestClient;
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "messaging", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -47,10 +41,12 @@ public class MessagingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate messagingRestTemplate(RestTemplateBuilder builder) {
+    public RestClient messagingRestClient(RestClient.Builder builder) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(30000);
         return builder
-                .setConnectTimeout(Duration.ofSeconds(10))
-                .setReadTimeout(Duration.ofSeconds(30))
+                .requestFactory(factory)
                 .build();
     }
 
@@ -63,28 +59,12 @@ public class MessagingAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(MessageLogMapper.class)
-    @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TransactionalMessageService transactionalMessageService(MessageLogMapper messageLogMapper) {
-        return new TransactionalMessageService(messageLogMapper);
-    }
-
-    @Bean
     @ConditionalOnMissingBean(MessageProducer.class)
     @ConditionalOnBean(RocketMQTemplate.class)
     public RocketMQProducer rocketMQProducer(RocketMQTemplate rocketMQTemplate,
-                                              MessagingProperties messagingProperties,
-                                              TransactionalMessageService transactionalMessageService,
-                                              @Qualifier("messageSenderExecutor") ThreadPoolTaskExecutor senderExecutor) {
-        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService, senderExecutor);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(WebhookEndpointMapper.class)
-    public EventPublisher eventPublisher(WebhookEndpointMapper webhookEndpointMapper, WebhookInvoker webhookInvoker) {
-        return new EventPublisher(webhookEndpointMapper, webhookInvoker);
+            MessagingProperties messagingProperties,
+            TransactionalMessageService transactionalMessageService) {
+        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService);
     }
 
     @Bean
@@ -95,10 +75,10 @@ public class MessagingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public WebhookInvoker webhookInvoker(RestTemplate messagingRestTemplate,
-                                          WebhookSignatureService signatureService,
-                                          MessageProducer messageProducer) {
-        return new WebhookInvoker(messagingRestTemplate, signatureService, messageProducer);
+    public WebhookInvoker webhookInvoker(RestClient messagingRestClient,
+            WebhookSignatureService signatureService,
+            ObjectProvider<MessageProducer> messageProducerProvider) {
+        return new WebhookInvoker(messagingRestClient, signatureService, messageProducerProvider.getIfAvailable());
     }
 
     @Bean
@@ -127,5 +107,32 @@ public class MessagingAutoConfiguration {
     @ConditionalOnProperty(prefix = "messaging.encryption", name = "enabled", havingValue = "true")
     public AesGcmMessageEncryptor aesGcmMessageEncryptor(MessagingProperties properties) {
         return new AesGcmMessageEncryptor(properties);
+    }
+
+    /**
+     * JdbcTemplate 相关的 Bean 定义放在独立内部类中，
+     * 通过 @ConditionalOnClass 保护，避免 spring-jdbc 不在 classpath 时整个配置类加载失败。
+     */
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.jdbc.core.JdbcTemplate")
+    static class JdbcDependentConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(name = "jdbcTemplate")
+        @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
+        public TransactionalMessageService transactionalMessageService(
+                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+            return new TransactionalMessageService(jdbcTemplate);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(name = "jdbcTemplate")
+        public EventPublisher eventPublisher(
+                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+                WebhookInvoker webhookInvoker) {
+            return new EventPublisher(jdbcTemplate, webhookInvoker);
+        }
     }
 }

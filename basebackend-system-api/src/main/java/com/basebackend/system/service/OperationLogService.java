@@ -1,6 +1,6 @@
 package com.basebackend.system.service;
 
-import com.basebackend.feign.dto.log.UserOperationLogDTO;
+import com.basebackend.api.model.log.UserOperationLogDTO;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package com.basebackend.notification.service;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.notification.config.NotificationSecurityConfig;
@@ -155,22 +155,22 @@ public class SSENotificationService {
         }
 
         try {
-            String jsonData = JSON.toJSONString(notification);
+            String jsonData = JsonUtils.toJsonString(notification);
             emitter.send(SseEmitter.event()
                     .name("notification")
                     .data(jsonData));
 
             pushSuccessCounter.incrementAndGet();
-            log.debug("[SSE] 通知推送成功: notificationId={}", notification.getId());
+            log.debug("[SSE] 通知推送成功: notificationId={}", notification.id());
 
         } catch (IOException e) {
             pushFailureCounter.incrementAndGet();
             // P1: 不暴露详细错误信息
-            log.warn("[SSE] 通知推送失败: notificationId={}", notification.getId());
+            log.warn("[SSE] 通知推送失败: notificationId={}", notification.id());
             doRemoveConnection(userId);
         } catch (Exception e) {
             pushFailureCounter.incrementAndGet();
-            log.warn("[SSE] 通知推送异常: notificationId={}", notification.getId());
+            log.warn("[SSE] 通知推送异常: notificationId={}", notification.id());
             doRemoveConnection(userId);
         }
     }

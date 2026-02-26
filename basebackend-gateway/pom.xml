@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -33,15 +32,18 @@
         </dependency>
 
         <!-- Spring Cloud Bootstrap -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
         <!-- JWT Module - 统一的JWT工具，不依赖Spring Security -->
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-jwt</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!-- jasypt-spring-boot 与 Spring Boot 4.x 的属性解析器形成无限递归 StackOverflowError -->
+                <exclusion>
+                    <groupId>com.github.ulisesbocchio</groupId>
+                    <artifactId>jasypt-spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Security Module - 移除，Gateway使用响应式安全，不需要Servlet安全组件 -->
@@ -54,15 +56,15 @@
         </dependency>
         -->
 
-<!--        <dependency>-->
-<!--            <groupId>com.basebackend</groupId>-->
-<!--            <artifactId>basebackend-observability</artifactId>-->
-<!--            <version>${project.version}</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.basebackend</groupId>-->
+        <!--            <artifactId>basebackend-observability</artifactId>-->
+        <!--            <version>${project.version}</version>-->
+        <!--        </dependency>-->
         <!-- Spring Cloud Gateway -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
             <exclusions>
                 <exclusion>
                     <artifactId>spring-web</artifactId>
@@ -186,6 +188,13 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

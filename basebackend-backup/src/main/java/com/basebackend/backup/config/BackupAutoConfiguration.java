@@ -1,7 +1,10 @@
 package com.basebackend.backup.config;
 
-import com.basebackend.backup.infrastructure.reliability.LockManager;
-import com.basebackend.backup.infrastructure.reliability.impl.RedissonLockManager;
+import com.basebackend.backup.infrastructure.notification.BackupNotificationSender;
+import com.basebackend.backup.infrastructure.notification.impl.CompositeNotificationService;
+import com.basebackend.backup.infrastructure.notification.impl.DingTalkNotificationSender;
+import com.basebackend.backup.infrastructure.notification.impl.EmailNotificationSender;
+import com.basebackend.backup.infrastructure.notification.impl.SlackNotificationSender;
 import com.basebackend.backup.infrastructure.reliability.impl.ChecksumService;
 import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
 import com.basebackend.backup.infrastructure.storage.StorageProvider;
@@ -9,15 +12,15 @@ import com.basebackend.backup.infrastructure.storage.impl.LocalStorageProvider;
 import com.basebackend.backup.infrastructure.storage.impl.S3StorageProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.List;
 
 /**
  * 备份系统自动配置类
@@ -25,17 +28,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 负责装配所有核心组件，包括：
  * <ul>
  * <li>重试模板 - 用于处理临时性失败</li>
- * <li>分布式锁管理器 - 用于防止并发执行</li>
  * <li>校验服务 - 用于验证文件完整性</li>
+ * <li>存储提供者 - 本地/S3</li>
+ * <li>通知发送器 - 钉钉/邮件/Slack（按需启用）</li>
  * </ul>
+ * <p>
+ * 注意：使用 @Component 的类由组件扫描自动注册，不在此处列出。
+ * 通知发送器等非 @Component 类通过 @Bean 方法按需注册。
  *
  * @author BaseBackend
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableScheduling
 @RequiredArgsConstructor
-@ComponentScan("com.basebackend.backup")
 @EnableConfigurationProperties(BackupProperties.class)
 @ConditionalOnProperty(prefix = "backup", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class BackupAutoConfiguration {
@@ -44,10 +50,6 @@ public class BackupAutoConfiguration {
 
     /**
      * 配置重试模板
-     * <p>
-     * 提供指数退避重试机制，用于处理备份过程中的临时性失败
-     *
-     * @return 重试模板实例
      */
     @Bean
     @ConditionalOnMissingBean
@@ -57,27 +59,7 @@ public class BackupAutoConfiguration {
     }
 
     /**
-     * 配置分布式锁管理器
-     * <p>
-     * 基于Redisson实现的分布式锁，确保备份任务在多实例部署时不会并发执行
-     *
-     * @param redissonClient Redisson客户端
-     * @return 分布式锁管理器实例
-     */
-    @Bean
-    @ConditionalOnProperty(name = "backup.distributed-lock.type", havingValue = "redisson")
-    @ConditionalOnMissingBean
-    public LockManager lockManager(RedissonClient redissonClient) {
-        log.info("初始化Redisson分布式锁管理器");
-        return new RedissonLockManager(redissonClient, backupProperties);
-    }
-
-    /**
      * 配置校验服务
-     * <p>
-     * 提供MD5和SHA256校验功能，用于验证备份文件的完整性
-     *
-     * @return 校验服务实例
      */
     @Bean
     @ConditionalOnMissingBean
@@ -87,16 +69,11 @@ public class BackupAutoConfiguration {
     }
 
     /**
-     * 配置本地存储提供者
-     * <p>
-     * 默认使用本地文件系统存储备份文件，作为主要存储后端
-     *
-     * @return 本地存储提供者实例
+     * 配置本地存储提供者（默认启用）
      */
-    @Bean
+    @Bean("backupLocalStorageProvider")
     @Primary
     @ConditionalOnProperty(name = "backup.storage.local.enabled", havingValue = "true", matchIfMissing = true)
-    @ConditionalOnMissingBean(StorageProvider.class)
     public StorageProvider localStorageProvider() {
         log.info("初始化本地存储提供者，基础路径: {}", backupProperties.getStorage().getLocal().getBasePath());
         return new LocalStorageProvider(backupProperties);
@@ -104,10 +81,6 @@ public class BackupAutoConfiguration {
 
     /**
      * 配置S3存储提供者
-     * <p>
-     * 当配置了S3端点时，使用S3兼容存储（支持AWS S3、MinIO、阿里云OSS等）
-     *
-     * @return S3存储提供者实例
      */
     @Bean("s3StorageProvider")
     @ConditionalOnProperty(name = "backup.storage.s3.enabled", havingValue = "true")
@@ -118,4 +91,33 @@ public class BackupAutoConfiguration {
         return new S3StorageProvider(backupProperties);
     }
 
+    // ========== 通知发送器（按需注册） ==========
+
+    @Bean
+    @ConditionalOnProperty(name = "backup.notify.dingtalk.webhook-url")
+    public DingTalkNotificationSender dingTalkNotificationSender() {
+        log.info("初始化钉钉通知发送器");
+        return new DingTalkNotificationSender(backupProperties.getNotify().getDingTalk());
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "backup.notify.email.smtp-host")
+    public EmailNotificationSender emailNotificationSender() {
+        log.info("初始化邮件通知发送器");
+        return new EmailNotificationSender(backupProperties.getNotify().getEmail());
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "backup.notify.slack.webhook-url")
+    public SlackNotificationSender slackNotificationSender() {
+        log.info("初始化Slack通知发送器");
+        return new SlackNotificationSender(backupProperties.getNotify().getSlack());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CompositeNotificationService compositeNotificationService(
+            List<BackupNotificationSender> senders) {
+        return new CompositeNotificationService(senders);
+    }
 }

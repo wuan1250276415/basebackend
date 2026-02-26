@@ -171,40 +171,35 @@ public class GrayLoadBalancer {
         HttpHeaders headers = request.getHeaders();
 
         switch (strategy) {
-            case "header":
+            case "header" -> {
                 // 基于Header
                 String headerValue = headers.getFirst(rule.getHeaderName());
                 if (rule.getHeaderValue().equals(headerValue)) {
                     return rule.getGrayVersion();
                 }
-                break;
-
-            case "user":
+            }
+            case "user" -> {
                 // 基于用户ID
                 String userId = headers.getFirst("X-User-Id");
                 if (StringUtils.hasText(userId) && rule.getUserIds() != null && rule.getUserIds().contains(userId)) {
                     return rule.getGrayVersion();
                 }
-                break;
-
-            case "ip":
+            }
+            case "ip" -> {
                 // 基于IP
                 String clientIp = getClientIp(request);
                 if (rule.getIpList() != null && rule.getIpList().contains(clientIp)) {
                     return rule.getGrayVersion();
                 }
-                break;
-
-            case "weight":
+            }
+            case "weight" -> {
                 // 基于权重，使用稳定哈希驱动，确保同一用户落同一版本
                 int bucket = stableBucket(exchange, 100);
                 if (bucket < rule.getWeight()) {
                     return rule.getGrayVersion();
                 }
-                break;
-
-            default:
-                log.warn("未知的灰度策略: {}", strategy);
+            }
+            default -> log.warn("未知的灰度策略: {}", strategy);
         }
 
         // 默认返回稳定版本

@@ -296,50 +296,35 @@ public class IncidentServiceImpl implements IncidentService {
         }
 
         switch (sortBy.toLowerCase()) {
-            case "incidentid":
-                if (asc)
-                    query.orderByIncidentId().asc();
-                else
-                    query.orderByIncidentId().desc();
-                break;
-            case "incidenttimestamp":
-                if (asc)
-                    query.orderByIncidentTimestamp().asc();
-                else
-                    query.orderByIncidentTimestamp().desc();
-                break;
-            case "incidenttype":
-                if (asc)
-                    query.orderByIncidentType().asc();
-                else
-                    query.orderByIncidentType().desc();
-                break;
-            case "executionid":
-                if (asc)
-                    query.orderByExecutionId().asc();
-                else
-                    query.orderByExecutionId().desc();
-                break;
-            case "activityid":
-                if (asc)
-                    query.orderByActivityId().asc();
-                else
-                    query.orderByActivityId().desc();
-                break;
-            case "processinstanceid":
-                if (asc)
-                    query.orderByProcessInstanceId().asc();
-                else
-                    query.orderByProcessInstanceId().desc();
-                break;
-            case "processdefinitionid":
-                if (asc)
-                    query.orderByProcessDefinitionId().asc();
-                else
-                    query.orderByProcessDefinitionId().desc();
-                break;
-            default:
-                query.orderByIncidentTimestamp().desc();
+            case "incidentid" -> {
+                if (asc) query.orderByIncidentId().asc();
+                else query.orderByIncidentId().desc();
+            }
+            case "incidenttimestamp" -> {
+                if (asc) query.orderByIncidentTimestamp().asc();
+                else query.orderByIncidentTimestamp().desc();
+            }
+            case "incidenttype" -> {
+                if (asc) query.orderByIncidentType().asc();
+                else query.orderByIncidentType().desc();
+            }
+            case "executionid" -> {
+                if (asc) query.orderByExecutionId().asc();
+                else query.orderByExecutionId().desc();
+            }
+            case "activityid" -> {
+                if (asc) query.orderByActivityId().asc();
+                else query.orderByActivityId().desc();
+            }
+            case "processinstanceid" -> {
+                if (asc) query.orderByProcessInstanceId().asc();
+                else query.orderByProcessInstanceId().desc();
+            }
+            case "processdefinitionid" -> {
+                if (asc) query.orderByProcessDefinitionId().asc();
+                else query.orderByProcessDefinitionId().desc();
+            }
+            default -> query.orderByIncidentTimestamp().desc();
         }
     }
 }

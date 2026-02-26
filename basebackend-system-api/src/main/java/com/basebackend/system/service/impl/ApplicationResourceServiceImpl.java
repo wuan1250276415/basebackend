@@ -2,7 +2,7 @@ package com.basebackend.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.SysRoleResourceFeignClient;
+import com.basebackend.service.client.SysRoleResourceServiceClient;
 import com.basebackend.system.dto.ApplicationResourceDTO;
 import com.basebackend.system.entity.SysApplicationResource;
 import com.basebackend.system.entity.SysRole;
@@ -30,7 +30,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     private final SysApplicationResourceMapper resourceMapper;
     private final SysRoleResourceMapper roleResourceMapper;
     private final SysRoleMapper roleMapper;
-    private final SysRoleResourceFeignClient sysRoleResourceFeignClient;
+    private final SysRoleResourceServiceClient sysRoleResourceServiceClient;
 
     @Override
     public List<ApplicationResourceDTO> getResourceTree(Long appId) {
@@ -89,7 +89,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateResource(ApplicationResourceDTO dto) {
-        if (dto.getId() == null) {
+        if (dto.id() == null) {
             throw new RuntimeException("资源ID不能为空");
         }
 
@@ -146,7 +146,7 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
             if (menuIds != null && !menuIds.isEmpty()) {
                 // 通过Feign调用插入角色菜单关联
                 try {
-                    Result<String> result = sysRoleResourceFeignClient.assignMenus(roleId, menuIds);
+                    Result<String> result = sysRoleResourceServiceClient.assignMenus(roleId, menuIds);
                     if (result == null || result.getCode() != 200) {
                         log.warn("通过Feign分配角色菜单失败: roleId={}, menuIds={}, message={}",
                                 roleId, menuIds, result != null ? result.getMessage() : "null");
@@ -230,49 +230,79 @@ public class ApplicationResourceServiceImpl implements ApplicationResourceServic
     }
 
     /**
-     * 构建树形结构
+     * 构建树形结构（适配不可变record）
      */
     private List<ApplicationResourceDTO> buildTree(List<SysApplicationResource> resources) {
         if (resources == null || resources.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<ApplicationResourceDTO> dtoList = resources.stream()
-                .map(this::convertToDTO)
+        // 按父ID分组
+        Map<Long, List<SysApplicationResource>> childrenMap = resources.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getParentId() != null ? r.getParentId() : 0L));
+
+        // 从根节点递归构建树
+        return resources.stream()
+                .filter(r -> r.getParentId() == null || r.getParentId() == 0)
+                .map(r -> buildNode(r, childrenMap))
                 .collect(Collectors.toList());
-
-        // 将列表转为Map，以ID为键
-        Map<Long, ApplicationResourceDTO> resourceMap = dtoList.stream()
-                .collect(Collectors.toMap(ApplicationResourceDTO::getId, dto -> dto));
-
-        // 构建树形结构
-        List<ApplicationResourceDTO> tree = new ArrayList<>();
-        for (ApplicationResourceDTO dto : dtoList) {
-            if (dto.getParentId() == null || dto.getParentId() == 0) {
-                // 顶级资源
-                tree.add(dto);
-            } else {
-                // 子资源，添加到父资源的children列表
-                ApplicationResourceDTO parent = resourceMap.get(dto.getParentId());
-                if (parent != null) {
-                    if (parent.getChildren() == null) {
-                        parent.setChildren(new ArrayList<>());
-                    }
-                    parent.getChildren().add(dto);
-                }
-            }
-        }
-
-        return tree;
     }
 
     /**
-     * 转换为DTO
+     * 递归构建单个节点及其子节点
+     */
+    private ApplicationResourceDTO buildNode(SysApplicationResource entity,
+            Map<Long, List<SysApplicationResource>> childrenMap) {
+        List<SysApplicationResource> childEntities = childrenMap.get(entity.getId());
+        List<ApplicationResourceDTO> children = (childEntities != null)
+                ? childEntities.stream()
+                        .map(c -> buildNode(c, childrenMap))
+                        .collect(Collectors.toList())
+                : null;
+
+        return new ApplicationResourceDTO(
+                entity.getId(),
+                entity.getAppId(),
+                entity.getResourceName(),
+                entity.getParentId(),
+                entity.getResourceType(),
+                entity.getPath(),
+                entity.getComponent(),
+                entity.getPerms(),
+                entity.getIcon(),
+                entity.getVisible(),
+                entity.getOpenType(),
+                entity.getOrderNum(),
+                entity.getStatus(),
+                entity.getRemark(),
+                children,
+                null
+        );
+    }
+
+    /**
+     * 转换为DTO（扁平化，不含子节点）
      */
     private ApplicationResourceDTO convertToDTO(SysApplicationResource entity) {
-        ApplicationResourceDTO dto = new ApplicationResourceDTO();
-        BeanUtils.copyProperties(entity, dto);
-        return dto;
+        return new ApplicationResourceDTO(
+                entity.getId(),
+                entity.getAppId(),
+                entity.getResourceName(),
+                entity.getParentId(),
+                entity.getResourceType(),
+                entity.getPath(),
+                entity.getComponent(),
+                entity.getPerms(),
+                entity.getIcon(),
+                entity.getVisible(),
+                entity.getOpenType(),
+                entity.getOrderNum(),
+                entity.getStatus(),
+                entity.getRemark(),
+                null,
+                null
+        );
     }
 
     @Override

@@ -11,9 +11,10 @@ import com.basebackend.backup.infrastructure.executor.impl.PostgresWalParser;
 import com.basebackend.backup.infrastructure.reliability.LockManager;
 import com.basebackend.backup.infrastructure.reliability.impl.ChecksumService;
 import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
-import com.basebackend.backup.service.PostgreSQLBackupService;
+import com.basebackend.backup.service.BackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -37,8 +38,9 @@ import java.util.stream.Collectors;
  * @author BaseBackend
  */
 @Slf4j
+@Service
 @RequiredArgsConstructor
-public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
+public class PostgreSQLBackupServiceImpl implements BackupService {
 
     private final BackupProperties backupProperties;
     private final RetryTemplate retryTemplate;
@@ -55,13 +57,11 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
         final BackupRecord[] lastRecord = new BackupRecord[1];
 
         try {
-            return retryTemplate.execute(() ->
-                lockManager.withLock(lockKey, () -> {
-                    BackupRecord record = doFullBackup();
-                    lastRecord[0] = record;
-                    return record;
-                })
-            );
+            return retryTemplate.execute(() -> lockManager.withLock(lockKey, () -> {
+                BackupRecord record = doFullBackup();
+                lastRecord[0] = record;
+                return record;
+            }));
         } catch (Exception e) {
             log.error("PostgreSQL全量备份失败（含重试后）", e);
             return lastRecord[0] != null ? lastRecord[0] : failedRecord("full", e.getMessage());
@@ -171,13 +171,11 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
         final BackupRecord[] lastRecord = new BackupRecord[1];
 
         try {
-            return retryTemplate.execute(() ->
-                lockManager.withLock(lockKey, () -> {
-                    BackupRecord record = doIncrementalBackup();
-                    lastRecord[0] = record;
-                    return record;
-                })
-            );
+            return retryTemplate.execute(() -> lockManager.withLock(lockKey, () -> {
+                BackupRecord record = doIncrementalBackup();
+                lastRecord[0] = record;
+                return record;
+            }));
         } catch (Exception e) {
             log.error("PostgreSQL增量备份失败（含重试后）", e);
             return lastRecord[0] != null ? lastRecord[0] : failedRecord("incremental", e.getMessage());
@@ -309,9 +307,7 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
         String lockKey = backupProperties.getDistributedLock().getKeyPrefix() + "postgres:restore:" + backupId;
 
         try {
-            return retryTemplate.execute(() ->
-                lockManager.withLock(lockKey, () -> doRestore(backupId))
-            );
+            return retryTemplate.execute(() -> lockManager.withLock(lockKey, () -> doRestore(backupId)));
         } catch (Exception e) {
             log.error("PostgreSQL恢复失败（含重试后）", e);
             return false;
@@ -339,8 +335,7 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
                     "-p", String.valueOf(pg.getPort()),
                     "-U", pg.getUsername(),
                     "-d", pg.getDatabase(),
-                    "-f", record.getFilePath()
-            );
+                    "-f", record.getFilePath());
 
             logCommand(command);
 
@@ -440,8 +435,7 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
                 "--format=plain",
                 "--no-owner",
                 "--no-privileges",
-                "--file=" + backupFile
-        );
+                "--file=" + backupFile);
     }
 
     private List<String> buildPgDumpIncrementalCommand(String backupFile) {
@@ -457,8 +451,7 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
                 "--data-only",
                 "--no-owner",
                 "--no-privileges",
-                "--file=" + backupFile
-        );
+                "--file=" + backupFile);
     }
 
     private void applyPgPassword(ProcessBuilder pb, String password) {
@@ -503,5 +496,10 @@ public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
                 .build();
         backupCache.put(record.getBackupId(), record);
         return record;
+    }
+
+    @Override
+    public String getDatasourceType() {
+        return "postgresql";
     }
 }

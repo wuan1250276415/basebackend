@@ -33,7 +33,7 @@
         <!-- Spring Boot Starter AOP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
 
         <!-- Common Module -->
@@ -46,14 +46,14 @@
         <!-- Cache Module (for idempotency) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-cache</artifactId>
+            <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Database Module -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-database</artifactId>
+            <artifactId>database-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -66,15 +66,15 @@
         <!-- Hutool -->
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
+            <artifactId>hutool-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-crypto</artifactId>
         </dependency>
 
         <!-- Fastjson2 -->
-        <dependency>
-            <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2</artifactId>
-        </dependency>
-
         <!-- Commons Lang3 -->
         <dependency>
             <groupId>org.apache.commons</groupId>

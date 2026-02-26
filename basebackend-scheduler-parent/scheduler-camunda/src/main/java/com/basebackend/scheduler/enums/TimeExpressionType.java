@@ -116,24 +116,21 @@ public enum TimeExpressionType {
         }
 
         try {
-            switch (this) {
-                case CRON:
+            return switch (this) {
+                case CRON -> {
                     String[] fields = expression.trim().split("\\s+");
-                    return fields.length >= 6 && fields.length <= 7;
-
-                case FIXED_RATE:
-                case FIXED_DELAY:
-                case DELAY:
+                    yield fields.length >= 6 && fields.length <= 7;
+                }
+                case FIXED_RATE, FIXED_DELAY, DELAY -> {
                     long interval = Long.parseLong(expression.trim());
-                    return interval > 0;
-
-                case SCHEDULED_TIME:
+                    yield interval > 0;
+                }
+                case SCHEDULED_TIME -> {
                     long timestamp = Long.parseLong(expression.trim());
-                    return timestamp > System.currentTimeMillis();
-
-                default:
-                    return false;
-            }
+                    yield timestamp > System.currentTimeMillis();
+                }
+                default -> false;
+            };
         } catch (NumberFormatException e) {
             return false;
         }

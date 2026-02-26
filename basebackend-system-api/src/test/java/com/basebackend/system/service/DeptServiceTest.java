@@ -50,7 +50,7 @@ class DeptServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getDeptName()).isEqualTo("总公司");
+        assertThat(result.getFirst().deptName()).isEqualTo("总公司");
         verify(deptMapper).selectDeptTreeList();
     }
 

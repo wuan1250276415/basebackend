@@ -1,6 +1,6 @@
 package com.basebackend.messaging.consumer;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.handler.MessageHandler;
 import com.basebackend.messaging.idempotency.IdempotencyService;
 import com.basebackend.messaging.model.Message;
@@ -98,11 +98,11 @@ public abstract class BaseRocketMQConsumer<T> implements org.apache.rocketmq.spr
         try {
             // 首先解析为通用 Message
             @SuppressWarnings("unchecked")
-            Message<Object> genericMessage = JSON.parseObject(messageJson, Message.class);
+            Message<Object> genericMessage = JsonUtils.parseObject(messageJson, Message.class);
 
             // 然后解析 payload
-            String payloadJson = JSON.toJSONString(genericMessage.getPayload());
-            T payload = JSON.parseObject(payloadJson, getPayloadClass());
+            String payloadJson = JsonUtils.toJsonString(genericMessage.getPayload());
+            T payload = JsonUtils.parseObject(payloadJson, getPayloadClass());
 
             // 创建具体类型的 Message
             Message<T> message = new Message<>();

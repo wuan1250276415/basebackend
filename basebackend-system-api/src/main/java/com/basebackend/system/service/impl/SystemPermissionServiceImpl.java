@@ -1,8 +1,8 @@
 package com.basebackend.system.service.impl;
 
 import com.basebackend.security.service.PermissionService;
-import com.basebackend.feign.client.UserFeignClient;
-import com.basebackend.feign.dto.user.UserBasicDTO;
+import com.basebackend.service.client.UserServiceClient;
+import com.basebackend.api.model.user.UserBasicDTO;
 import com.basebackend.common.model.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SystemPermissionServiceImpl implements PermissionService {
 
-    private final UserFeignClient userFeignClient;
+    private final UserServiceClient userServiceClient;
 
     @Override
     public List<String> getCurrentUserPermissions() {
@@ -34,7 +34,7 @@ public class SystemPermissionServiceImpl implements PermissionService {
 
         try {
             // 获取用户角色
-            Result<List<Long>> rolesResult = userFeignClient.getUserRoles(userId);
+            Result<List<Long>> rolesResult = userServiceClient.getUserRoles(userId);
             if (rolesResult == null || !rolesResult.isSuccess() || rolesResult.getData() == null) {
                 log.warn("获取用户角色失败: userId={}", userId);
                 return List.of();
@@ -52,18 +52,13 @@ public class SystemPermissionServiceImpl implements PermissionService {
             // 根据角色ID分配系统管理权限
             for (Long roleId : roleIds) {
                 switch (roleId.intValue()) {
-                    case 1: // 超级管理员
+                    case 1 -> // 超级管理员
                         permissions.addAll(getAdminPermissions());
-                        break;
-                    case 2: // 系统管理员
+                    case 2 -> // 系统管理员
                         permissions.addAll(getSysAdminPermissions());
-                        break;
-                    case 3: // 普通管理员
+                    case 3 -> // 普通管理员
                         permissions.addAll(getNormalAdminPermissions());
-                        break;
-                    default:
-                        permissions.addAll(getDefaultPermissions());
-                        break;
+                    default -> permissions.addAll(getDefaultPermissions());
                 }
             }
 
@@ -84,7 +79,7 @@ public class SystemPermissionServiceImpl implements PermissionService {
         }
 
         try {
-            Result<List<Long>> rolesResult = userFeignClient.getUserRoles(userId);
+            Result<List<Long>> rolesResult = userServiceClient.getUserRoles(userId);
             if (rolesResult == null || !rolesResult.isSuccess() || rolesResult.getData() == null) {
                 return List.of();
             }
@@ -131,9 +126,9 @@ public class SystemPermissionServiceImpl implements PermissionService {
 
         try {
             // 通过 FeignClient 获取用户基本信息，提取部门ID
-            Result<UserBasicDTO> userResult = userFeignClient.getById(userId);
+            Result<UserBasicDTO> userResult = userServiceClient.getById(userId);
             if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
-                return userResult.getData().getDeptId();
+                return userResult.getData().deptId();
             }
             log.warn("获取用户部门信息失败: userId={}", userId);
             return null;

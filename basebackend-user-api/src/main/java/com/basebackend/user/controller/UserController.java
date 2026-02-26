@@ -77,7 +77,7 @@ public class UserController {
     @Operation(summary = "创建用户", description = "创建新用户")
     @OperationLog(operation="创建用户", businessType = BusinessType.INSERT)
     public Result<String> create(@Validated @RequestBody UserCreateDTO userCreateDTO) {
-        log.info("创建用户: {}", userCreateDTO.getUsername());
+        log.info("创建用户: {}", userCreateDTO.username());
         try {
             userService.create(userCreateDTO);
             return Result.success("用户创建成功");
@@ -98,8 +98,14 @@ public class UserController {
             @Validated @RequestBody UserDTO userDTO) {
         log.info("更新用户: {}", id);
         try {
-            userDTO.setId(id);
-            userService.update(userDTO);
+            UserDTO updatedDTO = new UserDTO(
+                    id, userDTO.username(), userDTO.nickname(),
+                    userDTO.email(), userDTO.phone(), userDTO.avatar(),
+                    userDTO.gender(), userDTO.birthday(), userDTO.deptId(),
+                    userDTO.deptName(), userDTO.userType(), userDTO.status(),
+                    userDTO.roleIds(), userDTO.roleNames(), userDTO.remark()
+            );
+            userService.update(updatedDTO);
             return Result.success("用户更新成功");
         } catch (Exception e) {
             log.error("更新用户失败: {}", e.getMessage());

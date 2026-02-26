@@ -1,8 +1,7 @@
 package com.basebackend.notification.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -10,7 +9,7 @@ import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.client.UserFeignClient;
+import com.basebackend.service.client.UserServiceClient;
 import com.basebackend.observability.metrics.CustomMetrics;
 import com.basebackend.notification.constants.NotificationConstants;
 import com.basebackend.notification.dto.CreateNotificationDTO;
@@ -54,7 +53,7 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private final UserNotificationMapper notificationMapper;
-    private final UserFeignClient userFeignClient;
+    private final UserServiceClient userServiceClient;
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final CustomMetrics customMetrics;
@@ -65,14 +64,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     public NotificationServiceImpl(
             UserNotificationMapper notificationMapper,
-            @Lazy UserFeignClient userFeignClient,
+            @Lazy UserServiceClient userServiceClient,
             JavaMailSender mailSender,
             TemplateEngine templateEngine,
             CustomMetrics customMetrics,
             RocketMQTemplate rocketMQTemplate,
             NotificationValidator validator) {
         this.notificationMapper = notificationMapper;
-        this.userFeignClient = userFeignClient;
+        this.userServiceClient = userServiceClient;
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
         this.customMetrics = customMetrics;
@@ -160,27 +159,27 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public void createSystemNotification(CreateNotificationDTO dto) {
         // P0: 输入验证和XSS防护
-        String sanitizedTitle = validator.sanitizeTitle(dto.getTitle());
-        String sanitizedContent = validator.sanitizeNotificationContent(dto.getContent());
-        validator.validateUrl(dto.getLinkUrl());
+        String sanitizedTitle = validator.sanitizeTitle(dto.title());
+        String sanitizedContent = validator.sanitizeNotificationContent(dto.content());
+        validator.validateUrl(dto.linkUrl());
 
         log.info("创建系统通知: title={}", sanitizedTitle);
         customMetrics.recordBusinessOperation("notification", "create_system");
 
         // 如果未指定用户ID，则发送给所有活跃用户
-        if (dto.getUserId() == null) {
+        if (dto.userId() == null) {
             createBroadcastNotification(dto, sanitizedTitle, sanitizedContent);
             return;
         }
 
         // 单用户通知
         UserNotification notification = new UserNotification();
-        notification.setUserId(dto.getUserId());
+        notification.setUserId(dto.userId());
         notification.setTitle(sanitizedTitle);
         notification.setContent(sanitizedContent);
-        notification.setType(dto.getType());
-        notification.setLevel(dto.getLevel());
-        notification.setLinkUrl(dto.getLinkUrl());
+        notification.setType(dto.type());
+        notification.setLevel(dto.level());
+        notification.setLinkUrl(dto.linkUrl());
         notification.setIsRead(0);
         notification.setCreateTime(LocalDateTime.now());
 
@@ -204,7 +203,7 @@ public class NotificationServiceImpl implements NotificationService {
         customMetrics.recordBusinessOperation("notification", "broadcast");
 
         // 获取所有活跃用户ID
-        Result<List<Long>> result = userFeignClient.getAllActiveUserIds();
+        Result<List<Long>> result = userServiceClient.getAllActiveUserIds();
         if (result == null || result.getCode() != 200 || result.getData() == null) {
             log.error("获取活跃用户列表失败");
             throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR, "获取用户列表失败，无法发送群发通知");
@@ -222,8 +221,8 @@ public class NotificationServiceImpl implements NotificationService {
         LocalDateTime now = LocalDateTime.now();
         int batchSize = 500;
         int totalInserted = 0;
-        String type = dto.getType() != null ? dto.getType() : "announcement";
-        String level = dto.getLevel() != null ? dto.getLevel() : "info";
+        String type = dto.type() != null ? dto.type() : "announcement";
+        String level = dto.level() != null ? dto.level() : "info";
 
         for (int i = 0; i < userIds.size(); i += batchSize) {
             int endIndex = Math.min(i + batchSize, userIds.size());
@@ -238,7 +237,7 @@ public class NotificationServiceImpl implements NotificationService {
                 notification.setContent(sanitizedContent);
                 notification.setType(type);
                 notification.setLevel(level);
-                notification.setLinkUrl(dto.getLinkUrl());
+                notification.setLinkUrl(dto.linkUrl());
                 notification.setIsRead(0);
                 notification.setCreateTime(now);
                 notifications.add(notification);
@@ -291,7 +290,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         List<UserNotification> notifications = notificationMapper.selectList(wrapper);
         return notifications.stream()
-                .map(notification -> BeanUtil.copyProperties(notification, UserNotificationDTO.class))
+                .map(this::toUserNotificationDTO)
                 .collect(Collectors.toList());
     }
 
@@ -385,16 +384,12 @@ public class NotificationServiceImpl implements NotificationService {
      */
     private String getSubjectByTemplateCode(String templateCode) {
         // 简化处理，实际应该从数据库查询
-        switch (templateCode) {
-            case "welcome":
-                return "欢迎加入系统";
-            case "password_changed":
-                return "您的密码已修改";
-            case "profile_updated":
-                return "资料更新通知";
-            default:
-                return "系统通知";
-        }
+        return switch (templateCode) {
+            case "welcome" -> "欢迎加入系统";
+            case "password_changed" -> "您的密码已修改";
+            case "profile_updated" -> "资料更新通知";
+            default -> "系统通知";
+        };
     }
 
     @Override
@@ -405,32 +400,32 @@ public class NotificationServiceImpl implements NotificationService {
         Long currentUserId = UserContextHolder.getUserId();
 
         // 构建分页对象
-        Page<UserNotification> page = new Page<>(queryDTO.getPage(), queryDTO.getPageSize());
+        Page<UserNotification> page = new Page<>(queryDTO.page(), queryDTO.pageSize());
 
         // 构建查询条件
         LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserNotification::getUserId, currentUserId);
 
         // 类型筛选
-        if (StrUtil.isNotBlank(queryDTO.getType()) && !"all".equals(queryDTO.getType())) {
-            wrapper.eq(UserNotification::getType, queryDTO.getType());
+        if (StrUtil.isNotBlank(queryDTO.type()) && !"all".equals(queryDTO.type())) {
+            wrapper.eq(UserNotification::getType, queryDTO.type());
         }
 
         // 级别筛选
-        if (StrUtil.isNotBlank(queryDTO.getLevel()) && !"all".equals(queryDTO.getLevel())) {
-            wrapper.eq(UserNotification::getLevel, queryDTO.getLevel());
+        if (StrUtil.isNotBlank(queryDTO.level()) && !"all".equals(queryDTO.level())) {
+            wrapper.eq(UserNotification::getLevel, queryDTO.level());
         }
 
         // 已读状态筛选
-        if (StrUtil.isNotBlank(queryDTO.getIsRead()) && !"all".equals(queryDTO.getIsRead())) {
-            wrapper.eq(UserNotification::getIsRead, Integer.parseInt(queryDTO.getIsRead()));
+        if (StrUtil.isNotBlank(queryDTO.isRead()) && !"all".equals(queryDTO.isRead())) {
+            wrapper.eq(UserNotification::getIsRead, Integer.parseInt(queryDTO.isRead()));
         }
 
         // 关键词搜索
-        if (StrUtil.isNotBlank(queryDTO.getKeyword())) {
-            wrapper.and(w -> w.like(UserNotification::getTitle, queryDTO.getKeyword())
+        if (StrUtil.isNotBlank(queryDTO.keyword())) {
+            wrapper.and(w -> w.like(UserNotification::getTitle, queryDTO.keyword())
                     .or()
-                    .like(UserNotification::getContent, queryDTO.getKeyword()));
+                    .like(UserNotification::getContent, queryDTO.keyword()));
         }
 
         // 按创建时间倒序
@@ -442,7 +437,7 @@ public class NotificationServiceImpl implements NotificationService {
         // 转换为 DTO
         Page<UserNotificationDTO> resultPage = new Page<>(notificationPage.getCurrent(), notificationPage.getSize(), notificationPage.getTotal());
         List<UserNotificationDTO> dtoList = notificationPage.getRecords().stream()
-                .map(notification -> BeanUtil.copyProperties(notification, UserNotificationDTO.class))
+                .map(this::toUserNotificationDTO)
                 .collect(Collectors.toList());
         resultPage.setRecords(dtoList);
 
@@ -484,17 +479,17 @@ public class NotificationServiceImpl implements NotificationService {
     private void sendNotificationToMQ(UserNotification notification) {
         try {
             // 构建消息 DTO
-            NotificationMessageDTO messageDTO = NotificationMessageDTO.builder()
-                    .id(notification.getId())
-                    .userId(notification.getUserId())
-                    .title(notification.getTitle())
-                    .content(notification.getContent())
-                    .type(notification.getType())
-                    .level(notification.getLevel())
-                    .linkUrl(notification.getLinkUrl())
-                    .extraData(notification.getExtraData())
-                    .createTime(notification.getCreateTime().format(DATE_TIME_FORMATTER))
-                    .build();
+            NotificationMessageDTO messageDTO = new NotificationMessageDTO(
+                    notification.getId(),
+                    notification.getUserId(),
+                    notification.getTitle(),
+                    notification.getContent(),
+                    notification.getType(),
+                    notification.getLevel(),
+                    notification.getLinkUrl(),
+                    notification.getExtraData(),
+                    notification.getCreateTime().format(DATE_TIME_FORMATTER)
+            );
 
             // 根据类型确定 Tag
             String tag = getTagByType(notification.getType());
@@ -503,7 +498,7 @@ public class NotificationServiceImpl implements NotificationService {
             String destination = NotificationConstants.NOTIFICATION_TOPIC + ":" + tag;
 
             // 构建消息
-            String payload = JSON.toJSONString(messageDTO);
+            String payload = JsonUtils.toJsonString(messageDTO);
             org.springframework.messaging.Message<String> message = MessageBuilder
                     .withPayload(payload)
                     .setHeader("notificationId", notification.getId())
@@ -525,6 +520,26 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
+     * 将通知实体转换为 UserNotificationDTO
+     *
+     * @param notification 通知实体
+     * @return UserNotificationDTO
+     */
+    private UserNotificationDTO toUserNotificationDTO(UserNotification notification) {
+        return new UserNotificationDTO(
+                notification.getId(),
+                notification.getTitle(),
+                notification.getContent(),
+                notification.getType(),
+                notification.getLevel(),
+                notification.getIsRead(),
+                notification.getLinkUrl(),
+                notification.getCreateTime(),
+                notification.getReadTime()
+        );
+    }
+
+    /**
      * 根据通知类型获取 RocketMQ Tag
      *
      * @param type 通知类型
@@ -535,14 +550,10 @@ public class NotificationServiceImpl implements NotificationService {
             return NotificationConstants.TAG_SYSTEM;
         }
 
-        switch (type.toLowerCase()) {
-            case "announcement":
-                return NotificationConstants.TAG_ANNOUNCEMENT;
-            case "reminder":
-                return NotificationConstants.TAG_REMINDER;
-            case "system":
-            default:
-                return NotificationConstants.TAG_SYSTEM;
-        }
+        return switch (type.toLowerCase()) {
+            case "announcement" -> NotificationConstants.TAG_ANNOUNCEMENT;
+            case "reminder" -> NotificationConstants.TAG_REMINDER;
+            default -> NotificationConstants.TAG_SYSTEM;
+        };
     }
 }

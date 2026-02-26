@@ -25,17 +25,17 @@ public class MetricsQueryServiceImpl implements MetricsQueryService {
 
     @Override
     public Map<String, Object> queryMetrics(MetricsQueryRequest request) {
-        log.info("Querying metrics: {}", request.getMetricName());
-        
+        log.info("Querying metrics: {}", request.metricName());
+
         Map<String, Object> result = new HashMap<>();
-        result.put("metricName", request.getMetricName());
-        result.put("startTime", request.getStartTime());
-        result.put("endTime", request.getEndTime());
-        
+        result.put("metricName", request.metricName());
+        result.put("startTime", request.startTime());
+        result.put("endTime", request.endTime());
+
         // 从Micrometer获取指标数据
         try {
             meterRegistry.getMeters().stream()
-                .filter(meter -> meter.getId().getName().equals(request.getMetricName()))
+                .filter(meter -> meter.getId().getName().equals(request.metricName()))
                 .findFirst()
                 .ifPresent(meter -> {
                     List<Map<String, Object>> dataPoints = new ArrayList<>();

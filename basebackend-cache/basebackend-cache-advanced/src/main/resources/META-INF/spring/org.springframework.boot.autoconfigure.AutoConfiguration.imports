@@ -1,0 +1,5 @@
+com.basebackend.cache.eviction.ScheduledEvictionAutoConfiguration
+com.basebackend.cache.hotkey.HotKeyAutoConfiguration
+com.basebackend.cache.invalidation.CacheInvalidationAutoConfiguration
+com.basebackend.cache.refresh.NearExpiryRefreshAutoConfiguration
+com.basebackend.cache.observability.CacheObservabilityConfiguration

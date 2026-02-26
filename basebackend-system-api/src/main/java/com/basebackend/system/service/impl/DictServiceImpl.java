@@ -182,7 +182,7 @@ public class DictServiceImpl implements DictService {
         sysDictDataMapper.insert(dictData);
         
         // 刷新该字典类型的缓存
-        refreshDictTypeCache(dictDataDTO.getDictType());
+        refreshDictTypeCache(dictDataDTO.dictType());
     }
 
     @Override
@@ -194,7 +194,7 @@ public class DictServiceImpl implements DictService {
         sysDictDataMapper.updateById(dictData);
         
         // 刷新该字典类型的缓存
-        refreshDictTypeCache(dictDataDTO.getDictType());
+        refreshDictTypeCache(dictDataDTO.dictType());
     }
 
     @Override
@@ -269,14 +269,14 @@ public class DictServiceImpl implements DictService {
             if (cached == null) {
                 return null;
             }
-            
+
             // 类型安全检查
             if (cached instanceof List<?> list) {
                 if (list.isEmpty()) {
                     // 空列表直接返回
                     return java.util.Collections.emptyList();
                 }
-                
+
                 // 检查列表元素类型
                 Object firstElement = list.get(0);
                 if (firstElement instanceof DictDataDTO) {
@@ -284,7 +284,7 @@ public class DictServiceImpl implements DictService {
                     List<DictDataDTO> result = (List<DictDataDTO>) cached;
                     return result;
                 }
-                
+
                 // 如果是LinkedHashMap（JSON反序列化的结果），需要手动转换
                 if (firstElement instanceof java.util.Map) {
                     return list.stream()
@@ -292,26 +292,24 @@ public class DictServiceImpl implements DictService {
                             .map(item -> {
                                 @SuppressWarnings("unchecked")
                                 java.util.Map<String, Object> map = (java.util.Map<String, Object>) item;
-                                DictDataDTO dto = new DictDataDTO();
-                                if (map.get("id") != null) {
-                                    dto.setId(((Number) map.get("id")).longValue());
-                                }
-                                dto.setDictType((String) map.get("dictType"));
-                                dto.setDictLabel((String) map.get("dictLabel"));
-                                dto.setDictValue((String) map.get("dictValue"));
-                                if (map.get("dictSort") != null) {
-                                    dto.setDictSort(((Number) map.get("dictSort")).intValue());
-                                }
-                                if (map.get("status") != null) {
-                                    dto.setStatus(((Number) map.get("status")).intValue());
-                                }
-                                dto.setRemark((String) map.get("remark"));
-                                return dto;
+                                Long id = map.get("id") != null ? ((Number) map.get("id")).longValue() : null;
+                                Long appId = map.get("appId") != null ? ((Number) map.get("appId")).longValue() : null;
+                                Integer dictSort = map.get("dictSort") != null ? ((Number) map.get("dictSort")).intValue() : null;
+                                String dictLabel = (String) map.get("dictLabel");
+                                String dictValue = (String) map.get("dictValue");
+                                String dictType = (String) map.get("dictType");
+                                String cssClass = (String) map.get("cssClass");
+                                String listClass = (String) map.get("listClass");
+                                Integer isDefault = map.get("isDefault") != null ? ((Number) map.get("isDefault")).intValue() : null;
+                                Integer status = map.get("status") != null ? ((Number) map.get("status")).intValue() : null;
+                                String remark = (String) map.get("remark");
+                                return new DictDataDTO(id, appId, dictSort, dictLabel, dictValue, dictType,
+                                        cssClass, listClass, isDefault, status, remark);
                             })
                             .collect(Collectors.toList());
                 }
             }
-            
+
             log.warn("缓存数据类型不匹配，key: {}, actualType: {}", cacheKey, cached.getClass().getName());
             return null;
         } catch (Exception e) {
@@ -324,17 +322,32 @@ public class DictServiceImpl implements DictService {
         if (dict == null) {
             return null;
         }
-        DictDTO dto = new DictDTO();
-        BeanUtils.copyProperties(dict, dto);
-        return dto;
+        return new DictDTO(
+                dict.getId(),
+                null, // appId not present in SysDict entity
+                dict.getDictName(),
+                dict.getDictType(),
+                dict.getStatus(),
+                dict.getRemark()
+        );
     }
 
     private DictDataDTO convertToDataDTO(SysDictData dictData) {
         if (dictData == null) {
             return null;
         }
-        DictDataDTO dto = new DictDataDTO();
-        BeanUtils.copyProperties(dictData, dto);
-        return dto;
+        return new DictDataDTO(
+                dictData.getId(),
+                null, // appId not present in SysDictData entity
+                dictData.getDictSort(),
+                dictData.getDictLabel(),
+                dictData.getDictValue(),
+                dictData.getDictType(),
+                dictData.getCssClass(),
+                dictData.getListClass(),
+                dictData.getIsDefault(),
+                dictData.getStatus(),
+                dictData.getRemark()
+        );
     }
 }

@@ -87,7 +87,7 @@ public class PermissionController {
     @PostMapping
     @Operation(summary = "创建权限", description = "创建新权限")
     public Result<String> create(@Validated @RequestBody PermissionDTO permissionDTO) {
-        log.info("创建权限: {}", permissionDTO.getPermissionName());
+        log.info("创建权限: {}", permissionDTO.permissionName());
         try {
             permissionService.create(permissionDTO);
             return Result.success("权限创建成功");
@@ -107,8 +107,7 @@ public class PermissionController {
             @Validated @RequestBody PermissionDTO permissionDTO) {
         log.info("更新权限: {}", id);
         try {
-            permissionDTO.setId(id);
-            permissionService.update(permissionDTO);
+            permissionService.update(permissionDTO.withId(id));
             return Result.success("权限更新成功");
         } catch (Exception e) {
             log.error("更新权限失败: {}", e.getMessage());

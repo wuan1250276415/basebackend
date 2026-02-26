@@ -1,6 +1,6 @@
 package com.basebackend.common.event;
 
-import com.basebackend.common.event.impl.SpringDomainEventPublisher;
+import com.basebackend.common.event.impl.ReliableDomainEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -36,8 +36,8 @@ class DomainEventPublisherTest {
     }
 
     @Test
-    void springDomainEventPublisherIsUsed() {
-        assertInstanceOf(SpringDomainEventPublisher.class, publisher);
+    void reliableDomainEventPublisherIsUsed() {
+        assertInstanceOf(ReliableDomainEventPublisher.class, publisher);
     }
 
     static class TestEvent extends DomainEvent {

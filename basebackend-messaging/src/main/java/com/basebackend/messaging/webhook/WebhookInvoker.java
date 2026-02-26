@@ -1,12 +1,11 @@
 package com.basebackend.messaging.webhook;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,17 +15,16 @@ import java.util.Map;
  * Webhook调用服务
  */
 @Slf4j
-@Service
 public class WebhookInvoker {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final WebhookSignatureService signatureService;
     private final MessageProducer messageProducer;
 
-    public WebhookInvoker(RestTemplate restTemplate,
-                          WebhookSignatureService signatureService,
-                          MessageProducer messageProducer) {
-        this.restTemplate = restTemplate;
+    public WebhookInvoker(RestClient restClient,
+            WebhookSignatureService signatureService,
+            MessageProducer messageProducer) {
+        this.restClient = restClient;
         this.signatureService = signatureService;
         this.messageProducer = messageProducer;
     }
@@ -38,7 +36,7 @@ public class WebhookInvoker {
      * @param event  事件数据
      * @return 调用日志
      */
-    public WebhookLog invoke(WebhookConfig config, WebhookEvent event) {
+    public WebhookLog invoke(WebhookProperties config, WebhookEvent event) {
         WebhookLog webhookLog = new WebhookLog();
         webhookLog.setWebhookId(config.getId());
         webhookLog.setEventId(event.getEventId());
@@ -55,12 +53,12 @@ public class WebhookInvoker {
 
             // 添加自定义请求头
             if (config.getHeaders() != null) {
-                Map<String, String> customHeaders = JSON.parseObject(config.getHeaders(), Map.class);
+                Map<String, String> customHeaders = JsonUtils.parseObject(config.getHeaders(), Map.class);
                 customHeaders.forEach(headers::set);
             }
 
             // 构建请求体
-            String requestBody = JSON.toJSONString(event);
+            String requestBody = JsonUtils.toJsonString(event);
             webhookLog.setRequestBody(requestBody);
 
             // 添加签名
@@ -68,17 +66,16 @@ public class WebhookInvoker {
                 signatureService.addSignatureHeaders(headers, requestBody, config.getSecret());
             }
 
-            webhookLog.setRequestHeaders(JSON.toJSONString(headers.toSingleValueMap()));
+            webhookLog.setRequestHeaders(JsonUtils.toJsonString(headers.toSingleValueMap()));
 
             // 发送请求
-            HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
             long startTime = System.currentTimeMillis();
 
             ResponseEntity<String> response;
             if ("POST".equalsIgnoreCase(config.getMethod())) {
-                response = restTemplate.postForEntity(config.getUrl(), requestEntity, String.class);
+                response = restClient.post().uri(config.getUrl()).headers(h -> h.addAll(headers)).body(requestBody).retrieve().toEntity(String.class);
             } else if ("PUT".equalsIgnoreCase(config.getMethod())) {
-                response = restTemplate.exchange(config.getUrl(), HttpMethod.PUT, requestEntity, String.class);
+                response = restClient.put().uri(config.getUrl()).headers(h -> h.addAll(headers)).body(requestBody).retrieve().toEntity(String.class);
             } else {
                 throw new UnsupportedOperationException("Unsupported HTTP method: " + config.getMethod());
             }
@@ -123,7 +120,13 @@ public class WebhookInvoker {
      * @param event      事件数据
      * @param retryCount 重试次数
      */
-    private void scheduleRetry(WebhookConfig config, WebhookEvent event, int retryCount) {
+    private void scheduleRetry(WebhookProperties config, WebhookEvent event, int retryCount) {
+        if (messageProducer == null) {
+            log.warn("MessageProducer not available, cannot schedule webhook retry: webhookId={}, eventId={}",
+                    config.getId(), event.getEventId());
+            return;
+        }
+
         // 计算重试延迟（指数退避）
         long delaySeconds = (long) (config.getRetryInterval() * Math.pow(2, retryCount - 1));
         long delayMillis = delaySeconds * 1000;
@@ -135,8 +138,7 @@ public class WebhookInvoker {
                 .payload(Map.of(
                         "config", config,
                         "event", event,
-                        "retryCount", retryCount
-                ))
+                        "retryCount", retryCount))
                 .build();
 
         // 发送延迟消息
@@ -152,14 +154,20 @@ public class WebhookInvoker {
      * @param config Webhook配置
      * @param event  事件数据
      */
-    public void invokeAsync(WebhookConfig config, WebhookEvent event) {
+    public void invokeAsync(WebhookProperties config, WebhookEvent event) {
+        if (messageProducer == null) {
+            log.warn("MessageProducer not available, falling back to sync invocation: webhookId={}, eventId={}",
+                    config.getId(), event.getEventId());
+            invoke(config, event);
+            return;
+        }
+
         Message<Map<String, Object>> message = Message.<Map<String, Object>>builder()
                 .topic("webhook.invoke")
                 .routingKey("webhook.invoke." + config.getId())
                 .payload(Map.of(
                         "config", config,
-                        "event", event
-                ))
+                        "event", event))
                 .build();
 
         messageProducer.send(message);

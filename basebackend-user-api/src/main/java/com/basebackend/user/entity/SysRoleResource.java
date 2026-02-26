@@ -1,38 +1,21 @@
 package com.basebackend.user.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.basebackend.database.entity.BaseEntity;
 import lombok.Data;
-
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 角色资源关联实体
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("sys_role_resource")
-public class SysRoleResource {
+public class SysRoleResource extends BaseEntity {
 
-    /**
-     * 主键ID
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-
-    /**
-     * 角色ID
-     */
     @TableField("role_id")
     private Long roleId;
 
-    /**
-     * 资源ID
-     */
     @TableField("resource_id")
     private Long resourceId;
-
-    /**
-     * 创建时间
-     */
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
 }

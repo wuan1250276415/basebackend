@@ -1,0 +1,5 @@
+com.basebackend.logging.cost.LogCostAutoConfiguration
+com.basebackend.logging.loglevel.DynamicLogLevelAutoConfiguration
+com.basebackend.logging.masking.MaskingAutoConfiguration
+com.basebackend.logging.pipeline.LogPipelineAutoConfiguration
+com.basebackend.logging.cache.HotLogCacheConfiguration

@@ -159,8 +159,7 @@ public class DataSourceUtils {
      * @param dataSource 数据源
      */
     public static void closeDataSource(DataSource dataSource) {
-        if (dataSource instanceof DruidDataSource) {
-            DruidDataSource druidDs = (DruidDataSource) dataSource;
+        if (dataSource instanceof DruidDataSource druidDs) {
             if (!druidDs.isClosed()) {
                 druidDs.close();
                 log.debug("数据源已关闭");
@@ -251,8 +250,8 @@ public class DataSourceUtils {
          * 检查数据源是否仍然有效
          */
         public boolean isValid() {
-            if (dataSource instanceof DruidDataSource) {
-                return !((DruidDataSource) dataSource).isClosed();
+            if (dataSource instanceof DruidDataSource druidDs) {
+                return !druidDs.isClosed();
             }
             return true;
         }

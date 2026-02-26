@@ -42,17 +42,14 @@ public class SimpleRateLimiter implements RateLimiter {
                     System.currentTimeMillis(), "限流已禁用");
         }
 
-        switch (policy.getLimitType()) {
-            case TOKEN_BUCKET:
-                return checkTokenBucket(key, policy);
-            case FIXED_WINDOW:
-                return checkFixedWindow(key, policy);
-            case SLIDING_WINDOW:
+        return switch (policy.getLimitType()) {
+            case TOKEN_BUCKET -> checkTokenBucket(key, policy);
+            case FIXED_WINDOW -> checkFixedWindow(key, policy);
+            case SLIDING_WINDOW ->
                 // TODO: 实现滑动窗口算法
                 throw new UnsupportedOperationException("滑动窗口限流算法待实现");
-            default:
-                throw new IllegalArgumentException("不支持的限流类型: " + policy.getLimitType());
-        }
+            default -> throw new IllegalArgumentException("不支持的限流类型: " + policy.getLimitType());
+        };
     }
 
     @Override

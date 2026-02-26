@@ -2,7 +2,7 @@ package com.basebackend.system.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.basebackend.feign.dto.log.UserOperationLogDTO;
+import com.basebackend.api.model.log.UserOperationLogDTO;
 import com.basebackend.system.entity.UserOperationLog;
 import com.basebackend.system.mapper.UserOperationLogMapper;
 import com.basebackend.system.service.OperationLogService;
@@ -54,7 +54,7 @@ public class OperationLogServiceImpl implements OperationLogService {
     @Transactional(rollbackFor = Exception.class)
     public void saveOperationLog(UserOperationLogDTO operationLog) {
         log.debug("保存操作日志: userId={}, operationType={}",
-                operationLog.getUserId(), operationLog.getOperationType());
+                operationLog.userId(), operationLog.operationType());
 
         UserOperationLog entity = BeanUtil.copyProperties(operationLog, UserOperationLog.class);
 

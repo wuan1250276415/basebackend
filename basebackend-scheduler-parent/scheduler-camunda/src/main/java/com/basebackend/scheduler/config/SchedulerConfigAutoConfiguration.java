@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
 
@@ -17,7 +16,6 @@ import jakarta.annotation.PostConstruct;
  * @since 2025-01-24
  */
 @Slf4j
-@Configuration
 @AutoConfiguration
 @EnableConfigurationProperties({
         SchedulerProperties.class,

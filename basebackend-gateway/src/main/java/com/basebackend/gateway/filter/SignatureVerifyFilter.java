@@ -1,7 +1,7 @@
 package com.basebackend.gateway.filter;
 
 import com.basebackend.gateway.enums.GatewayErrorCode;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.model.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -232,7 +232,7 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
 
         Result<?> result = Result.error(GatewayErrorCode.TOKEN_INVALID, message);
-        String body = JSON.toJSONString(result);
+        String body = JsonUtils.toJsonString(result);
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));

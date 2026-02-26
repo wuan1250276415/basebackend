@@ -2,7 +2,6 @@ package com.basebackend.backup.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import java.util.List;
  * 支持企业级备份功能：分布式锁、重试机制、校验、多副本存储、增量备份等
  */
 @Data
-@Component
 @ConfigurationProperties(prefix = "backup")
 public class BackupProperties {
 
@@ -56,6 +54,16 @@ public class BackupProperties {
      * 通知配置
      */
     private Notify notify = new Notify();
+
+    /**
+     * 加密配置
+     */
+    private Encryption encryption = new Encryption();
+
+    /**
+     * PostgreSQL数据库配置
+     */
+    private PostgresConfig postgres = new PostgresConfig();
 
     /**
      * MySQL数据库配置
@@ -345,5 +353,97 @@ public class BackupProperties {
          * 数据库密码
          */
         private String password = "";
+    }
+
+    /**
+     * 加密配置
+     */
+    @Data
+    public static class Encryption {
+        /**
+         * 是否启用加密
+         */
+        private boolean enabled = false;
+
+        /**
+         * 加密算法
+         */
+        private String algorithm = "AES/GCM/NoPadding";
+
+        /**
+         * 加密密钥
+         */
+        private String key;
+
+        /**
+         * 本地加密密钥（Base64编码）
+         */
+        private String localKey;
+
+        /**
+         * IV长度（字节）
+         */
+        private int ivLengthBytes = 12;
+
+        /**
+         * GCM Tag长度（位）
+         */
+        private int tagLengthBits = 128;
+    }
+
+    /**
+     * PostgreSQL数据库配置
+     */
+    @Data
+    public static class PostgresConfig {
+        /**
+         * 数据库名
+         */
+        private String database = "basebackend";
+
+        /**
+         * 数据库主机
+         */
+        private String host = "localhost";
+
+        /**
+         * 数据库端口
+         */
+        private int port = 5432;
+
+        /**
+         * 数据库用户名
+         */
+        private String username = "postgres";
+
+        /**
+         * 数据库密码
+         */
+        private String password = "";
+
+        /**
+         * 备份路径
+         */
+        private String backupPath = "/data/backups/postgresql";
+
+        /**
+         * 备份保留天数
+         */
+        private int retentionDays = 30;
+
+        /**
+         * pg_dump可执行文件路径
+         */
+        private String pgDumpPath = "pg_dump";
+
+        /**
+         * psql可执行文件路径
+         */
+        private String psqlPath = "psql";
+
+        /**
+         * pg_basebackup可执行文件路径
+         */
+        private String pgBasebackupPath = "pg_basebackup";
     }
 }

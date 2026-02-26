@@ -16,9 +16,9 @@ public class TestSecurityConfig {
 
     @Bean
     SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable()
-            .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
-            .headers(headers -> headers.frameOptions().disable());
+        http.csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
         return http.build();
     }
 }

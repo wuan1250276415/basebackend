@@ -26,18 +26,19 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- API Model (DTOs) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-feign-api</artifactId>
+            <artifactId>basebackend-api-model</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Base Backend Web -->
+        <!-- Service Client (@HttpExchange clients) -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-web</artifactId>
+            <artifactId>basebackend-service-client</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Base Backend Web -->
+
         <dependency>
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-backup</artifactId>
@@ -47,14 +48,14 @@
         <!-- Base Backend Database -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-database</artifactId>
+            <artifactId>database-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
         <!-- Base Backend Cache -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-cache</artifactId>
+            <artifactId>basebackend-cache-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -68,7 +69,7 @@
         <!-- Base Backend Logging -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-logging</artifactId>
+            <artifactId>basebackend-logging-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -79,10 +80,10 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Base Backend Observability -->
+        <!-- Base Backend Observability Metrics -->
         <dependency>
             <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-observability</artifactId>
+            <artifactId>observability-metrics</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -98,11 +99,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
-        <!-- Thymeleaf (for email templates) -->
+<!-- Thymeleaf (for email templates) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -124,6 +121,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     

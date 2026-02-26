@@ -21,9 +21,11 @@ public class MySQLMetadataReader implements DatabaseMetadataReader {
     @Override
     public List<String> getTableNames(DataSource dataSource, String schema) {
         List<String> tables = new ArrayList<>();
-        String sql = "SELECT TABLE_NAME FROM information_schema.TABLES " +
-                     "WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE' " +
-                     "ORDER BY TABLE_NAME";
+        String sql = """
+                SELECT TABLE_NAME FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'
+                ORDER BY TABLE_NAME
+                """;
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -90,11 +92,13 @@ public class MySQLMetadataReader implements DatabaseMetadataReader {
     @Override
     public List<ColumnMetadata> getColumns(DataSource dataSource, String tableName) {
         List<ColumnMetadata> columns = new ArrayList<>();
-        String sql = "SELECT COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, COLUMN_COMMENT, " +
-                     "IS_NULLABLE, COLUMN_KEY, EXTRA, COLUMN_DEFAULT, CHARACTER_MAXIMUM_LENGTH " +
-                     "FROM information_schema.COLUMNS " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? " +
-                     "ORDER BY ORDINAL_POSITION";
+        String sql = """
+                SELECT COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, COLUMN_COMMENT,
+                IS_NULLABLE, COLUMN_KEY, EXTRA, COLUMN_DEFAULT, CHARACTER_MAXIMUM_LENGTH
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+                ORDER BY ORDINAL_POSITION
+                """;
 
         List<String> primaryKeys = getPrimaryKeys(dataSource, tableName);
         Set<String> systemFields = Set.of("id", "create_time", "update_time", "create_by", "update_by", "deleted");

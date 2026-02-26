@@ -46,20 +46,47 @@ class MySQLBackupServiceTest {
     @Mock
     private BackupProperties.DatabaseConfig databaseConfig;
 
+    @Mock
+    private BackupProperties.DistributedLock distributedLock;
+
     @TempDir
     Path tempDir;
 
     private MySQLBackupServiceImpl backupService;
 
+    @Mock
     private  RetryTemplate retryTemplate;
+    @Mock
     private  LockManager lockManager;
+    @Mock
     private  ChecksumService checksumService;
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         backupService = new MySQLBackupServiceImpl(backupProperties,retryTemplate,lockManager,checksumService);
+
+        // 模拟 RetryTemplate：直接执行回调
+        when(retryTemplate.execute(any())).thenAnswer(invocation -> {
+            com.basebackend.backup.infrastructure.reliability.RetryCallback<?> callback = invocation.getArgument(0);
+            return callback.doWithRetry();
+        });
+
+        // 模拟 LockManager：直接执行回调（Callable 版本）
+        when(lockManager.withLock(anyString(), any(java.util.concurrent.Callable.class))).thenAnswer(invocation -> {
+            java.util.concurrent.Callable<?> action = invocation.getArgument(1);
+            return action.call();
+        });
+
+        // 模拟 LockManager：直接执行回调（Runnable 版本）
+        doAnswer(invocation -> {
+            Runnable action = invocation.getArgument(1);
+            action.run();
+            return null;
+        }).when(lockManager).withLock(anyString(), any(Runnable.class));
 
         // 模拟配置
         when(backupProperties.getDatabase()).thenReturn(databaseConfig);
+        when(backupProperties.getDistributedLock()).thenReturn(distributedLock);
+        when(distributedLock.getKeyPrefix()).thenReturn("backup:lock:");
         when(databaseConfig.getDatabase()).thenReturn("basebackend_admin");
         when(databaseConfig.getHost()).thenReturn("192.168.66.126");
         when(databaseConfig.getPort()).thenReturn(3306);
@@ -133,7 +160,7 @@ class MySQLBackupServiceTest {
         assertThat(record).isNotNull();
         assertThat(record.getBackupType()).isEqualTo(BackupType.INCREMENTAL);
         assertThat(record.getStatus()).isEqualTo(BackupStatus.SUCCESS);
-        assertThat(record.getDatabaseName()).isEqualTo("testdb");
+        assertThat(record.getDatabaseName()).isEqualTo("basebackend_admin");
     }
 
     @Test
@@ -300,18 +327,17 @@ class MySQLBackupServiceTest {
         assertThat(command.size()).isGreaterThan(10);
         assertThat(command).contains(
                 "/usr/bin/mysqldump",
-                "-h", "localhost",
+                "-h", "192.168.66.126",
                 "-P", "3306",
-                "-u", "root",
+                "-u", "basebackend_admin",
                 "--single-transaction",
                 "--master-data=2",
-                "testdb"
+                "basebackend_admin"
         );
 
-        // 验证包含-p参数但不检查具体值
-        boolean hasPasswordArg = command.stream()
-                .anyMatch(arg -> arg.startsWith("-p"));
-        assertThat(hasPasswordArg).isTrue();
+        // 密码通过环境变量 MYSQL_PWD 传递，不在命令行参数中
+        // 验证命令包含关键参数
+        assertThat(command).contains("--single-transaction");
     }
 
     @Test
@@ -325,19 +351,14 @@ class MySQLBackupServiceTest {
 
         // Then
         assertThat(command).isNotNull();
-        assertThat(command.size()).isGreaterThan(8);
+        assertThat(command.size()).isGreaterThan(5);
         assertThat(command).contains(
                 "/usr/bin/mysql",
-                "-h", "localhost",
+                "-h", "192.168.66.126",
                 "-P", "3306",
-                "-u", "root",
-                "testdb"
+                "-u", "basebackend_admin",
+                "basebackend_admin"
         );
-
-        // 验证包含-p参数
-        boolean hasPasswordArg = command.stream()
-                .anyMatch(arg -> arg.startsWith("-p"));
-        assertThat(hasPasswordArg).isTrue();
 
         // 验证source命令
         String sourceCommand = command.stream()
@@ -353,10 +374,10 @@ class MySQLBackupServiceTest {
         // Given
         List<String> command = List.of(
                 "mysqldump",
-                "-h", "localhost",
-                "-u", "root",
+                "-h", "192.168.66.126",
+                "-u", "basebackend_admin",
                 "-ppassword", // 明文密码
-                "testdb"
+                "basebackend_admin"
         );
 
         // When & Then - 测试私有方法
@@ -405,7 +426,7 @@ class MySQLBackupServiceTest {
         // Then - 验证必要字段
         assertThat(record).isNotNull();
         assertThat(record.getBackupType()).isEqualTo(BackupType.FULL);
-        assertThat(record.getDatabaseName()).isEqualTo("testdb");
+        assertThat(record.getDatabaseName()).isEqualTo("basebackend_admin");
         assertThat(record.getStartTime()).isNotNull();
     }
 

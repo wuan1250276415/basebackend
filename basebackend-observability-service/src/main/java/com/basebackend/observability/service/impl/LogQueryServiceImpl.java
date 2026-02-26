@@ -25,8 +25,8 @@ public class LogQueryServiceImpl implements LogQueryService {
 
     @Override
     public Map<String, Object> searchLogs(LogQueryRequest request) {
-        log.info("Searching logs: service={}, level={}, keyword={}", 
-            request.getServiceName(), request.getLevel(), request.getKeyword());
+        log.info("Searching logs: service={}, level={}, keyword={}",
+            request.serviceName(), request.level(), request.keyword());
         
         Map<String, Object> result = new HashMap<>();
         result.put("logs", generateMockLogs(request));
@@ -91,7 +91,7 @@ public class LogQueryServiceImpl implements LogQueryService {
      * 生成模拟日志数据
      */
     private List<Map<String, Object>> generateMockLogs(LogQueryRequest request) {
-        return generateMockLogs(request.getServiceName(), request.getLimit());
+        return generateMockLogs(request.serviceName(), request.limit());
     }
 
     /**

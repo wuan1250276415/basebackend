@@ -27,7 +27,7 @@ public class HeaderSanitizationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest.Builder mutatedBuilder = exchange.getRequest().mutate();
         mutatedBuilder.headers(headers -> {
             for (String header : SANITIZED_HEADERS) {
-                if (headers.containsKey(header)) {
+                if (headers.getFirst(header) != null) {
                     log.debug("Sanitized spoofed header: {}", header);
                     headers.remove(header);
                 }

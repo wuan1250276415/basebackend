@@ -14,133 +14,129 @@
 
     <modules>
         <module>basebackend-common</module>
-        <module>basebackend-web</module>
-        <module>basebackend-transaction</module>
         <module>basebackend-jwt</module>
         <module>basebackend-database</module>
         <module>basebackend-cache</module>
         <module>basebackend-logging</module>
         <module>basebackend-security</module>
-        <module>basebackend-security-starter</module>
         <module>basebackend-observability</module>
         <module>basebackend-messaging</module>
         <module>basebackend-file-service</module>
         <module>basebackend-backup</module>
         <module>basebackend-nacos</module>
-        <module>basebackend-feign-api</module>
-        <module>basebackend-feature-toggle</module>
+        <module>basebackend-api-model</module>
+        <module>basebackend-service-client</module>
         <module>basebackend-gateway</module>
         <module>basebackend-scheduler-parent</module>
         <module>basebackend-code-generator</module>
-<!--        <module>basebackend-admin-api</module>-->
         <!-- 新拆分的微服务模块 -->
         <module>basebackend-user-api</module>
         <module>basebackend-system-api</module>
         <module>basebackend-notification-service</module>
+        <module>basebackend-ai</module>
+        <module>basebackend-websocket</module>
+        <module>basebackend-search</module>
+        <module>basebackend-workflow</module>
         <module>basebackend-observability-service</module>
     </modules>
 
     <properties>
-        <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>25</java.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Spring Boot -->
-        <spring-boot.version>3.1.5</spring-boot.version>
-        <spring-cloud.version>2022.0.4</spring-cloud.version>
+        <!-- Spring Boot 4.0.3 + Spring Cloud 2025.1.1 (Oakwood) -->
+        <spring-boot.version>4.0.3</spring-boot.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
 
-        <!-- Nacos -->
-        <nacos.version>3.1.0</nacos.version>
+        <!-- Nacos — Spring Cloud Alibaba 2025.1.0.0 正式适配 Boot 4 + Cloud 2025.1.x -->
+        <nacos.version>3.1.1</nacos.version>
+        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
 
         <!-- Database -->
-        <mybatis-plus.version>3.5.5</mybatis-plus.version>
-        <mysql.version>8.0.33</mysql.version>
-        <druid.version>1.2.20</druid.version>
-        <flyway.version>9.22.3</flyway.version>
+        <mybatis-plus.version>3.5.16</mybatis-plus.version>
+        <mysql.version>9.3.0</mysql.version>
+        <druid.version>1.2.27</druid.version>
+        <flyway.version>11.8.2</flyway.version>
 
         <!-- Cache -->
-        <redisson.version>3.24.3</redisson.version>
+        <redisson.version>4.2.0</redisson.version>
 
         <!-- Message -->
-        <rocketmq-spring.version>2.3.0</rocketmq-spring.version>
+        <rocketmq-spring.version>2.3.5</rocketmq-spring.version>
         <rocketmq.version>5.2.0</rocketmq.version>
-        <kafka.version>3.1.2</kafka.version>
 
-        <!-- Seata -->
-        <seata.version>1.7.1</seata.version>
+        <!-- Seata — 2.x系列 -->
+        <seata.version>2.0.0</seata.version>
 
-        <!-- Observability -->
-        <micrometer.version>1.12.0</micrometer.version>
-        <opentelemetry.version>1.32.0</opentelemetry.version>
+        <!-- Observability — micrometer由Spring Boot 4 BOM管理 -->
+        <opentelemetry.version>1.51.0</opentelemetry.version>
 
         <!-- Security -->
-        <jjwt.version>0.12.3</jjwt.version>
-        <jasypt.version>3.0.5</jasypt.version>
-        <owasp-html-sanitizer.version>20200713.1</owasp-html-sanitizer.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <jasypt.version>4.0.4</jasypt.version>
+        <owasp-html-sanitizer.version>20240325.1</owasp-html-sanitizer.version>
 
         <!-- Utils -->
-        <lombok.version>1.18.36</lombok.version>
-        <hutool.version>5.8.24</hutool.version>
-        <fastjson2.version>2.0.43</fastjson2.version>
-        <commons-lang3.version>3.14.0</commons-lang3.version>
-        <commons-io.version>2.15.1</commons-io.version>
+        <lombok.version>1.18.38</lombok.version>
+        <hutool.version>5.8.36</hutool.version>
+        <commons-lang3.version>3.17.0</commons-lang3.version>
+        <commons-io.version>2.18.0</commons-io.version>
 
         <!-- Build & Quality -->
-        <dependency-check.version>9.1.0</dependency-check.version>
-        <jacoco.version>0.8.11</jacoco.version>
-        <sonar-maven-plugin.version>3.10.0.2594</sonar-maven-plugin.version>
+        <dependency-check.version>12.1.0</dependency-check.version>
+        <jacoco.version>0.8.13</jacoco.version>
+        <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
 
         <!-- Workflow -->
-        <camunda.version>7.21.0</camunda.version>
+        <camunda.version>7.23.0</camunda.version>
         <camunda-spin.version>1.23.0</camunda-spin.version>
 
         <!-- Feature Toggle -->
-        <unleash.version>9.2.2</unleash.version>
-        <flagsmith.version>7.2.0</flagsmith.version>
+        <unleash.version>10.0.0</unleash.version>
+        <flagsmith.version>7.4.2</flagsmith.version>
 
         <!-- API Documentation -->
-        <knife4j.version>4.3.0</knife4j.version>
-        <springdoc-openapi.version>2.2.0</springdoc-openapi.version>
+        <knife4j.version>4.5.0</knife4j.version>
+        <springdoc-openapi.version>2.8.6</springdoc-openapi.version>
 
         <!-- Logging -->
-        <logstash-logback.version>7.4</logstash-logback.version>
-        <loki-logback.version>1.5.1</loki-logback.version>
+        <logstash-logback.version>8.1</logstash-logback.version>
+        <loki-logback.version>2.0.0</loki-logback.version>
 
         <!-- Storage -->
-        <minio.version>8.5.7</minio.version>
+        <minio.version>8.5.17</minio.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
 
-        <!-- Observability -->
-        <context-propagation.version>1.0.5</context-propagation.version>
+        <!-- Observability extras -->
+        <context-propagation.version>1.1.2</context-propagation.version>
         <micrometer-jvm-extras.version>0.2.2</micrometer-jvm-extras.version>
-        <oshi-core.version>6.4.6</oshi-core.version>
+        <oshi-core.version>6.8.0</oshi-core.version>
 
         <!-- HTTP Client -->
         <okhttp3.version>4.12.0</okhttp3.version>
 
         <!-- Code Quality -->
-        <google-java-format.version>1.19.2</google-java-format.version>
+        <google-java-format.version>1.25.2</google-java-format.version>
 
         <!-- Compression -->
-        <commons-compress.version>1.25.0</commons-compress.version>
+        <commons-compress.version>1.28.0</commons-compress.version>
 
         <!-- Database Drivers -->
-        <postgresql.version>42.7.1</postgresql.version>
-        <ojdbc8.version>21.11.0.0</ojdbc8.version>
+        <postgresql.version>42.7.7</postgresql.version>
+        <ojdbc8.version>23.7.0.25.01</ojdbc8.version>
 
         <!-- Template Engines -->
-        <freemarker.version>2.3.32</freemarker.version>
-        <velocity.version>2.3</velocity.version>
-        <thymeleaf.version>3.1.2.RELEASE</thymeleaf.version>
+        <freemarker.version>2.3.34</freemarker.version>
+        <velocity.version>2.4.1</velocity.version>
+        <!-- thymeleaf 由 Spring Boot 4 BOM 管理 -->
 
         <!-- Code Generation -->
-        <openapi-generator.version>7.5.0</openapi-generator.version>
+        <openapi-generator.version>7.12.0</openapi-generator.version>
 
-        <!-- Sharding -->
+        <!-- Sharding — 5.4.1 仍是该artifactId最新GA -->
         <shardingsphere.version>5.4.1</shardingsphere.version>
-
-        <opentelemetry.version>1.37.0</opentelemetry.version>
     </properties>
 
     <dependencyManagement>
@@ -190,19 +186,24 @@
                 <artifactId>opentelemetry-semconv</artifactId>
                 <version>1.37.0</version>
             </dependency>
-            <!-- Nacos -->
+            <!-- Nacos / Spring Cloud Alibaba — 最新GA 2023.0.3.3，尚无Boot 4官方适配 -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-                <version>2022.0.0.0</version>
+                <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
 
-            <!-- MyBatis Plus -->
+            <!-- MyBatis Plus (Spring Boot 4 专用 starter) -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
@@ -216,8 +217,9 @@
             <!-- Druid -->
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <artifactId>druid-spring-boot-starter</artifactId>
                 <version>${druid.version}</version>
+                <scope>compile</scope>
             </dependency>
 
             <!-- Flyway -->
@@ -312,17 +314,21 @@
             <!-- Hutool -->
             <dependency>
                 <groupId>cn.hutool</groupId>
-                <artifactId>hutool-all</artifactId>
+                <artifactId>hutool-core</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-crypto</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-json</artifactId>
                 <version>${hutool.version}</version>
             </dependency>
 
             <!-- Fastjson2 -->
-            <dependency>
-                <groupId>com.alibaba.fastjson2</groupId>
-                <artifactId>fastjson2</artifactId>
-                <version>${fastjson2.version}</version>
-            </dependency>
-
             <!-- Commons Lang3 -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -475,11 +481,7 @@
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.thymeleaf</groupId>
-                <artifactId>thymeleaf</artifactId>
-                <version>${thymeleaf.version}</version>
-            </dependency>
+            <!-- thymeleaf 由 Spring Boot 4 BOM 管理，不再显式指定版本 -->
 
             <!-- Code Generation -->
             <dependency>
@@ -493,6 +495,27 @@
                 <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-jdbc-core</artifactId>
                 <version>${shardingsphere.version}</version>
+            </dependency>
+
+            <!-- Test: 统一排除不需要的传递依赖 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring-boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.hamcrest</groupId>
+                        <artifactId>hamcrest</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.xmlunit</groupId>
+                        <artifactId>xmlunit-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.skyscreamer</groupId>
+                        <artifactId>jsonassert</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -508,10 +531,9 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.14.0</version>
                     <configuration>
-                        <source>${java.version}</source>
-                        <target>${java.version}</target>
+                        <release>${java.version}</release>
                         <encoding>${project.build.sourceEncoding}</encoding>
                         <annotationProcessorPaths>
                             <path>

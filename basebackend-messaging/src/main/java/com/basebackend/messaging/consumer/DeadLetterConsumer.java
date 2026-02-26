@@ -1,6 +1,6 @@
 package com.basebackend.messaging.consumer;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.config.MessagingProperties;
 import com.basebackend.messaging.constants.RocketMQConstants;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +45,7 @@ public class DeadLetterConsumer implements RocketMQListener<String> {
 
             // 解析消息
             @SuppressWarnings("unchecked")
-            Map<String, Object> messageMap = JSON.parseObject(message, Map.class);
+            Map<String, Object> messageMap = JsonUtils.parseObject(message, Map.class);
 
             // 持久化到死信表
             saveToDeadLetterTable(messageMap, message);
@@ -68,15 +68,17 @@ public class DeadLetterConsumer implements RocketMQListener<String> {
         }
 
         try {
-            String sql = "INSERT INTO sys_dead_letter " +
-                    "(message_id, topic, tags, message_type, payload, original_message, error_message, retry_count, create_time, status) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = """
+                    INSERT INTO sys_dead_letter
+                    (message_id, topic, tags, message_type, payload, original_message, error_message, retry_count, create_time, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """;
 
             String messageId = (String) messageMap.getOrDefault("messageId", "unknown");
             String topic = (String) messageMap.getOrDefault("topic", "unknown");
             String tags = (String) messageMap.getOrDefault("tags", "");
             String messageType = (String) messageMap.getOrDefault("messageType", "unknown");
-            String payload = JSON.toJSONString(messageMap.get("payload"));
+            String payload = JsonUtils.toJsonString(messageMap.get("payload"));
             String errorMessage = "达到最大重试次数，进入死信队列";
             Integer retryCount = messagingProperties.getRetry().getMaxAttempts();
 

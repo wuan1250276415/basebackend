@@ -9,15 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -31,7 +30,7 @@ import static org.mockito.Mockito.*;
 class WebhookInvokerTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private RestClient restClient;
 
     @Mock
     private WebhookSignatureService signatureService;
@@ -39,18 +38,27 @@ class WebhookInvokerTest {
     @Mock
     private MessageProducer messageProducer;
 
-    @InjectMocks
     private WebhookInvoker webhookInvoker;
 
     @Captor
     private ArgumentCaptor<Message<?>> messageCaptor;
 
-    private WebhookConfig webhookConfig;
+    private WebhookProperties webhookConfig;
     private WebhookEvent webhookEvent;
+
+    // RestClient 链式调用 mock 对象
+    @Mock
+    private RestClient.RequestBodyUriSpec requestBodyUriSpec;
+    @Mock
+    private RestClient.RequestBodySpec requestBodySpec;
+    @Mock
+    private RestClient.ResponseSpec responseSpec;
 
     @BeforeEach
     void setUp() {
-        webhookConfig = new WebhookConfig();
+        webhookInvoker = new WebhookInvoker(restClient, signatureService, messageProducer);
+
+        webhookConfig = new WebhookProperties();
         webhookConfig.setId(1L);
         webhookConfig.setUrl("https://example.com/webhook");
         webhookConfig.setMethod("POST");
@@ -65,6 +73,44 @@ class WebhookInvokerTest {
         webhookEvent.setTimestamp(LocalDateTime.now());
     }
 
+    /**
+     * 模拟 RestClient POST 链式调用
+     */
+    @SuppressWarnings("unchecked")
+    private void mockPostChain(ResponseEntity<String> response) {
+        when(restClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.headers(any(Consumer.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.body(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.toEntity(String.class)).thenReturn(response);
+    }
+
+    /**
+     * 模拟 RestClient PUT 链式调用
+     */
+    @SuppressWarnings("unchecked")
+    private void mockPutChain(ResponseEntity<String> response) {
+        when(restClient.put()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.headers(any(Consumer.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.body(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.toEntity(String.class)).thenReturn(response);
+    }
+
+    /**
+     * 模拟 RestClient POST 链式调用抛出异常
+     */
+    @SuppressWarnings("unchecked")
+    private void mockPostChainThrows(Exception exception) {
+        when(restClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.headers(any(Consumer.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.body(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.retrieve()).thenThrow(exception);
+    }
+
     @Nested
     @DisplayName("Webhook调用测试")
     class InvokeTests {
@@ -74,8 +120,7 @@ class WebhookInvokerTest {
         void testInvoke_PostSuccess() {
             // Arrange
             ResponseEntity<String> response = new ResponseEntity<>("{\"status\":\"ok\"}", HttpStatus.OK);
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(response);
+            mockPostChain(response);
 
             // Act
             WebhookLog log = webhookInvoker.invoke(webhookConfig, webhookEvent);
@@ -95,8 +140,7 @@ class WebhookInvokerTest {
             // Arrange
             webhookConfig.setMethod("PUT");
             ResponseEntity<String> response = new ResponseEntity<>("{\"updated\":true}", HttpStatus.OK);
-            when(restTemplate.exchange(anyString(), eq(HttpMethod.PUT), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(response);
+            mockPutChain(response);
 
             // Act
             WebhookLog log = webhookInvoker.invoke(webhookConfig, webhookEvent);
@@ -111,9 +155,9 @@ class WebhookInvokerTest {
         @DisplayName("调用失败 - HTTP错误状态码")
         void testInvoke_HttpError() {
             // Arrange
-            ResponseEntity<String> response = new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(response);
+            ResponseEntity<String> response = new ResponseEntity<>("Internal Server Error",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+            mockPostChain(response);
 
             // Act
             WebhookLog log = webhookInvoker.invoke(webhookConfig, webhookEvent);
@@ -129,8 +173,7 @@ class WebhookInvokerTest {
         @DisplayName("调用失败 - 网络异常并触发重试")
         void testInvoke_NetworkException_ScheduleRetry() {
             // Arrange
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenThrow(new RestClientException("Connection refused"));
+            mockPostChainThrows(new RuntimeException("Connection refused"));
             when(messageProducer.sendDelay(any(Message.class), anyLong())).thenReturn("retry-msg-001");
 
             // Act
@@ -170,8 +213,7 @@ class WebhookInvokerTest {
             webhookConfig.setSignatureEnabled(true);
             webhookConfig.setSecret("webhook-secret");
             ResponseEntity<String> response = new ResponseEntity<>("{\"ok\":true}", HttpStatus.OK);
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(response);
+            mockPostChain(response);
             doNothing().when(signatureService).addSignatureHeaders(any(HttpHeaders.class), anyString(), anyString());
 
             // Act
@@ -193,8 +235,7 @@ class WebhookInvokerTest {
             // Arrange
             webhookConfig.setHeaders("{\"X-Custom-Header\":\"custom-value\",\"Authorization\":\"Bearer token\"}");
             ResponseEntity<String> response = new ResponseEntity<>("{\"ok\":true}", HttpStatus.OK);
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(response);
+            mockPostChain(response);
 
             // Act
             WebhookLog log = webhookInvoker.invoke(webhookConfig, webhookEvent);
@@ -234,15 +275,14 @@ class WebhookInvokerTest {
         @DisplayName("重试延迟使用指数退避")
         void testRetry_ExponentialBackoff() {
             // Arrange
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenThrow(new RestClientException("Timeout"));
+            mockPostChainThrows(new RuntimeException("Timeout"));
             when(messageProducer.sendDelay(any(Message.class), anyLong())).thenReturn("retry-msg");
 
             // Act
             webhookInvoker.invoke(webhookConfig, webhookEvent);
 
-            // Assert
-            verify(messageProducer).sendDelay(messageCaptor.capture(), eq(60000L)); // 第一次重试：60秒
+            // Assert - 第一次重试：60秒 = 60000ms
+            verify(messageProducer).sendDelay(messageCaptor.capture(), eq(60000L));
         }
 
         @Test
@@ -250,8 +290,7 @@ class WebhookInvokerTest {
         void testRetry_MaxRetriesExceeded() {
             // Arrange
             webhookConfig.setMaxRetries(0); // 不允许重试
-            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
-                    .thenThrow(new RestClientException("Timeout"));
+            mockPostChainThrows(new RuntimeException("Timeout"));
 
             // Act
             WebhookLog log = webhookInvoker.invoke(webhookConfig, webhookEvent);

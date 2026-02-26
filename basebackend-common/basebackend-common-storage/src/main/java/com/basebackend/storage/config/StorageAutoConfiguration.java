@@ -6,22 +6,23 @@ import com.basebackend.storage.provider.OssStorageProvider;
 import com.basebackend.storage.provider.S3StorageProvider;
 import com.basebackend.storage.spi.StorageProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 /**
  * 存储服务自动配置
- * 
+ *
  * @author BaseBackend
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
 @EnableConfigurationProperties(StorageProperties.class)
+@ConditionalOnProperty(prefix = "basebackend.storage", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class StorageAutoConfiguration {
     
     /**

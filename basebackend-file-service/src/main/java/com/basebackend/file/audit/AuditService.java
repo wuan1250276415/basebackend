@@ -163,8 +163,8 @@ public class AuditService {
                 }
                 json.append("\"").append(entry.getKey()).append("\":");
                 Object value = entry.getValue();
-                if (value instanceof String) {
-                    json.append("\"").append(escapeJsonString((String) value)).append("\"");
+                if (value instanceof String strValue) {
+                    json.append("\"").append(escapeJsonString(strValue)).append("\"");
                 } else if (value instanceof Number || value instanceof Boolean) {
                     json.append(value);
                 } else {

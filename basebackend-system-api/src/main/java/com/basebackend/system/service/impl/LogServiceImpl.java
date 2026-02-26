@@ -175,7 +175,7 @@ public class LogServiceImpl implements LogService {
     @Override
     @Transactional
     public void recordLoginLog(LoginLogDTO loginLogDTO) {
-        log.info("记录登录日志: {}", loginLogDTO.getUsername());
+        log.info("记录登录日志: {}", loginLogDTO.username());
         SysLoginLog loginLog = new SysLoginLog();
         BeanUtil.copyProperties(loginLogDTO, loginLog);
         loginLogMapper.insert(loginLog);
@@ -184,7 +184,7 @@ public class LogServiceImpl implements LogService {
     @Override
     @Transactional
     public void recordOperationLog(OperationLogDTO operationLogDTO) {
-        log.info("记录操作日志: {}", operationLogDTO.getOperation());
+        log.info("记录操作日志: {}", operationLogDTO.operation());
         SysOperationLog operationLog = new SysOperationLog();
         BeanUtil.copyProperties(operationLogDTO, operationLog);
         operationLogMapper.insert(operationLog);
@@ -194,17 +194,37 @@ public class LogServiceImpl implements LogService {
      * 转换为登录日志DTO
      */
     private LoginLogDTO convertToLoginLogDTO(SysLoginLog loginLog) {
-        LoginLogDTO dto = new LoginLogDTO();
-        BeanUtil.copyProperties(loginLog, dto);
-        return dto;
+        return new LoginLogDTO(
+                loginLog.getId() != null ? loginLog.getId().toString() : null,
+                loginLog.getUserId(),
+                loginLog.getUsername(),
+                loginLog.getIpAddress(),
+                loginLog.getLoginLocation(),
+                loginLog.getBrowser(),
+                loginLog.getOs(),
+                loginLog.getStatus(),
+                loginLog.getMsg(),
+                loginLog.getLoginTime()
+        );
     }
 
     /**
      * 转换为操作日志DTO
      */
     private OperationLogDTO convertToOperationLogDTO(SysOperationLog operationLog) {
-        OperationLogDTO dto = new OperationLogDTO();
-        BeanUtil.copyProperties(operationLog, dto);
-        return dto;
+        return new OperationLogDTO(
+                operationLog.getId() != null ? operationLog.getId().toString() : null,
+                operationLog.getUserId(),
+                operationLog.getUsername(),
+                operationLog.getOperation(),
+                operationLog.getMethod(),
+                operationLog.getParams(),
+                operationLog.getTime(),
+                operationLog.getIpAddress(),
+                operationLog.getLocation(),
+                operationLog.getStatus(),
+                operationLog.getErrorMsg(),
+                operationLog.getOperationTime()
+        );
     }
 }

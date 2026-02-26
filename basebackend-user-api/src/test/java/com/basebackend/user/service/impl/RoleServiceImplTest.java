@@ -49,6 +49,9 @@ class RoleServiceImplTest {
     @Mock
     private SysRoleDataPermissionMapper roleDataPermissionMapper;
 
+    @Mock
+    private com.basebackend.user.util.AuditHelper auditHelper;
+
     @InjectMocks
     private RoleServiceImpl roleService;
 
@@ -68,15 +71,10 @@ class RoleServiceImplTest {
         testRole.setCreateTime(LocalDateTime.now());
         testRole.setUpdateTime(LocalDateTime.now());
 
-        testRoleDTO = new RoleDTO();
-        testRoleDTO.setId(1L);
-        testRoleDTO.setRoleName("管理员");
-        testRoleDTO.setRoleKey("admin");
-        testRoleDTO.setRoleSort(1);
-        testRoleDTO.setDataScope(1);
-        testRoleDTO.setStatus(1);
-        testRoleDTO.setMenuIds(Arrays.asList(1L, 2L, 3L));
-        testRoleDTO.setPermissionIds(Arrays.asList(1L, 2L));
+        testRoleDTO = new RoleDTO(
+                1L, null, "管理员", "admin", 1, 1, 1, null,
+                Arrays.asList(1L, 2L, 3L), Arrays.asList(1L, 2L)
+        );
     }
 
     @Nested
@@ -95,8 +93,8 @@ class RoleServiceImplTest {
             RoleDTO result = roleService.getById(1L);
 
             assertNotNull(result);
-            assertEquals("管理员", result.getRoleName());
-            assertEquals("admin", result.getRoleKey());
+            assertEquals("管理员", result.roleName());
+            assertEquals("admin", result.roleKey());
         }
 
         @Test
@@ -205,8 +203,10 @@ class RoleServiceImplTest {
         @Test
         @DisplayName("创建角色 - 无菜单和权限")
         void testCreate_WithoutMenusAndPermissions() {
-            testRoleDTO.setMenuIds(null);
-            testRoleDTO.setPermissionIds(null);
+            testRoleDTO = new RoleDTO(
+                    1L, null, "管理员", "admin", 1, 1, 1, null,
+                    null, null
+            );
             when(roleMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
             when(roleMapper.insert(any(SysRole.class))).thenReturn(1);
 

@@ -3,7 +3,7 @@ package com.basebackend.gateway.filter;
 import com.basebackend.gateway.config.GatewaySecurityProperties;
 import com.basebackend.gateway.constant.GatewayConstants;
 import com.basebackend.gateway.enums.GatewayErrorCode;
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -228,7 +228,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         response.setStatusCode(HttpStatus.valueOf(errorCode.getHttpStatus()));
 
         Result<?> result = Result.error(errorCode);
-        String body = JSON.toJSONString(result);
+        String body = JsonUtils.toJsonString(result);
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));

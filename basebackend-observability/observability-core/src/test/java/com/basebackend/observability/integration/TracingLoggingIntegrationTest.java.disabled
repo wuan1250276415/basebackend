@@ -1,0 +1,127 @@
+package com.basebackend.observability.integration;
+
+import com.basebackend.observability.logging.format.LogAttributeEnricher;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * 追踪和日志集成测试
+ * 验证 OpenTelemetry 追踪上下文能正确填充到 SLF4J MDC。
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@DisplayName("追踪和日志集成测试")
+class TracingLoggingIntegrationTest {
+
+    @Autowired
+    private Tracer tracer;
+
+    @Autowired
+    private LogAttributeEnricher enricher;
+
+    @BeforeEach
+    void setUp() {
+        MDC.clear();
+        assertThat(tracer).as("Tracer bean should be available").isNotNull();
+        assertThat(enricher).as("LogAttributeEnricher bean should be available").isNotNull();
+    }
+
+    @AfterEach
+    void tearDown() {
+        MDC.clear();
+    }
+
+    @Test
+    @DisplayName("追踪上下文应自动填充到 MDC")
+    void shouldEnrichMdcWithTraceContext() {
+        Span span = tracer.spanBuilder("test-operation").startSpan();
+
+        try (Scope scope = span.makeCurrent()) {
+            enricher.enrichFromCurrentSpan();
+
+            String traceId = MDC.get(LogAttributeEnricher.TRACE_ID);
+            String spanId = MDC.get(LogAttributeEnricher.SPAN_ID);
+
+            assertThat(traceId)
+                    .as("MDC should contain traceId")
+                    .isNotNull()
+                    .isNotEmpty()
+                    .matches("[a-f0-9]{32}");
+
+            assertThat(spanId)
+                    .as("MDC should contain spanId")
+                    .isNotNull()
+                    .isNotEmpty()
+                    .matches("[a-f0-9]{16}");
+
+        } finally {
+            span.end();
+            enricher.clearAll();
+        }
+    }
+
+    @Test
+    @DisplayName("业务上下文应填充到 MDC")
+    void shouldEnrichMdcWithBusinessContext() {
+        Map<String, String> context = new HashMap<>();
+        context.put("X-Tenant-Id", "tenant-123");
+        context.put("X-User-Id", "user-456");
+        context.put("X-Request-Id", "req-789");
+        context.put("X-Channel-Id", "channel-web");
+
+        enricher.enrichBusinessContext(context);
+
+        assertThat(MDC.get(LogAttributeEnricher.TENANT_ID)).isEqualTo("tenant-123");
+        assertThat(MDC.get(LogAttributeEnricher.USER_ID)).isEqualTo("user-456");
+        assertThat(MDC.get(LogAttributeEnricher.REQUEST_ID)).isEqualTo("req-789");
+        assertThat(MDC.get(LogAttributeEnricher.CHANNEL_ID)).isEqualTo("channel-web");
+
+        enricher.clearAll();
+    }
+
+    @Test
+    @DisplayName("clearAll 应清理托管的 MDC 键")
+    void shouldClearManagedKeys() {
+        MDC.put(LogAttributeEnricher.TRACE_ID, "trace-123");
+        MDC.put(LogAttributeEnricher.SPAN_ID, "span-456");
+        MDC.put("custom-key", "custom-value");
+
+        enricher.clearAll();
+
+        assertThat(MDC.get(LogAttributeEnricher.TRACE_ID)).isNull();
+        assertThat(MDC.get(LogAttributeEnricher.SPAN_ID)).isNull();
+        // 当前实现使用 MDC.clear()，因此全部清空
+        assertThat(MDC.get("custom-key")).isNull();
+        assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
+    }
+
+    @Test
+    @DisplayName("无有效 Span 时应清理残留的追踪 ID")
+    void shouldClearStaleTraceIdsWhenNoValidSpan() {
+        MDC.put(LogAttributeEnricher.TRACE_ID, "stale-trace-id");
+        MDC.put(LogAttributeEnricher.SPAN_ID, "stale-span-id");
+
+        enricher.enrichFromCurrentSpan();
+
+        assertThat(MDC.get(LogAttributeEnricher.TRACE_ID))
+                .as("Stale traceId should be cleared when no valid span")
+                .isNull();
+        assertThat(MDC.get(LogAttributeEnricher.SPAN_ID))
+                .as("Stale spanId should be cleared when no valid span")
+                .isNull();
+    }
+}

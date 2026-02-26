@@ -4,6 +4,73 @@
 
 server:
   port: 8080
+spring:
+  application:
+    name: basebackend-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:gateway}
+
+  # ========== Spring Config Import (替代 bootstrap.yml) ==========
+  config:
+    import:
+      - optional:nacos:common-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:redis-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:security-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.66.126}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_TChiFW}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:5000ms}
+      lettuce:
+        pool:
+          max-active: ${REDIS_MAX_ACTIVE:20}
+          max-wait: ${REDIS_MAX_WAIT:2000ms}
+          max-idle: ${REDIS_MAX_IDLE:10}
+          min-idle: ${REDIS_MIN_IDLE:5}
+        shutdown-timeout: 100ms
+  # Redisson 配置（Redisson 4.x 使用 spring.redis.redisson 路径）
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:192.168.66.126}:${REDIS_PORT:6379}"
+          password: "${REDIS_PASSWORD:redis_TChiFW}"
+          database: ${REDIS_DATABASE:0}
+          connectionMinimumIdleSize: 5
+          connectionPoolSize: 20
+          timeout: 5000
+  # ========== Spring Cloud 集成配置 ==========
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+        cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+        service-name: ${spring.application.name}
+        ip: ${NACOS_DISCOVERY_IP:192.168.66.118}
+        port: ${NACOS_DISCOVERY_PORT:${server.port:8080}}
+        metadata:
+          version: ${APP_VERSION:1.0.0}
+          region: ${APP_REGION:beijing}
+          zone: ${APP_ZONE:zone-a}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+
 
 # ========================================
 # 网关安全配置
@@ -47,7 +114,6 @@ gateway:
       # stream
       - /basebackend-notification-service/api/notifications/stream
     # Actuator 端点白名单（安全限制，只开放必要端点）
-    # 注意：不要开放 /actuator/** 通配符，会暴露敏感信息
     actuator-whitelist:
       - /actuator/health
       - /actuator/health/**
@@ -85,10 +151,6 @@ gateway:
 # ========================================
 seata:
   enabled: false  # 临时禁用 Seata，需要时改为 true 并启动 Seata Server
-
-# ========================================
-# 请求签名验证配置
-# ========================================
 
 # ========================================
 # 日志配置

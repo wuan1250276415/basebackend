@@ -55,7 +55,7 @@ class LogServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
-        assertThat(result.getRecords().get(0).getUsername()).isEqualTo("admin");
+        assertThat(result.getRecords().getFirst().username()).isEqualTo("admin");
         verify(loginLogMapper).selectPage(any(), any());
     }
 
@@ -72,7 +72,7 @@ class LogServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
-        assertThat(result.getRecords().get(0).getUsername()).isEqualTo("admin");
+        assertThat(result.getRecords().getFirst().username()).isEqualTo("admin");
         verify(operationLogMapper).selectPage(any(), any());
     }
 
@@ -88,8 +88,8 @@ class LogServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("admin");
-        assertThat(result.getIpAddress()).isEqualTo("127.0.0.1");
+        assertThat(result.username()).isEqualTo("admin");
+        assertThat(result.ipAddress()).isEqualTo("127.0.0.1");
         verify(loginLogMapper).selectById(1L);
     }
 
@@ -105,8 +105,8 @@ class LogServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("admin");
-        assertThat(result.getOperation()).isEqualTo("创建用户");
+        assertThat(result.username()).isEqualTo("admin");
+        assertThat(result.operation()).isEqualTo("创建用户");
         verify(operationLogMapper).selectById(1L);
     }
 

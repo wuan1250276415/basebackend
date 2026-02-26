@@ -99,9 +99,7 @@ management:
     sampling:
       probability: 1.0  # 采样率：1.0 = 100%（开发环境）
     propagation:
-      type: b3  # 使用 B3 传播格式（Zipkin 标准）
-    brave:
-      span-joining-supported: true  # 支持 Span 合并
+      type: w3c  # 使用 W3C TraceContext 传播格式（OpenTelemetry 标准）
 
 # 可观测性扩展配置
 observability:

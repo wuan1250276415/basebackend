@@ -26,9 +26,11 @@ public class PostgreSQLMetadataReader extends AbstractDatabaseMetadataReader {
         List<String> tables = new ArrayList<>();
         String actualSchema = StrUtil.isBlank(schema) ? "public" : schema;
 
-        String sql = "SELECT table_name FROM information_schema.tables " +
-                "WHERE table_schema = ? AND table_type = 'BASE TABLE' " +
-                "ORDER BY table_name";
+        String sql = """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = ? AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+                """;
 
         try (Connection conn = dataSource.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {

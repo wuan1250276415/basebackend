@@ -1,7 +1,6 @@
 package com.basebackend.user.dto.security;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
@@ -11,28 +10,13 @@ import java.time.LocalDateTime;
  * @author Claude Code
  * @since 2025-10-30
  */
-@Data
 @Schema(description = "用户双因素认证信息")
-public class User2FADTO {
-
-    @Schema(description = "2FA ID")
-    private Long id;
-
-    @Schema(description = "2FA类型")
-    private String type;
-
-    @Schema(description = "是否启用")
-    private Integer enabled;
-
-    @Schema(description = "验证手机号（脱敏）")
-    private String verifyPhone;
-
-    @Schema(description = "验证邮箱（脱敏）")
-    private String verifyEmail;
-
-    @Schema(description = "最后验证时间")
-    private LocalDateTime lastVerifyTime;
-
-    @Schema(description = "创建时间")
-    private LocalDateTime createTime;
-}
+public record User2FADTO(
+        @Schema(description = "2FA ID") Long id,
+        @Schema(description = "2FA类型") String type,
+        @Schema(description = "是否启用") Integer enabled,
+        @Schema(description = "验证手机号（脱敏）") String verifyPhone,
+        @Schema(description = "验证邮箱（脱敏）") String verifyEmail,
+        @Schema(description = "最后验证时间") LocalDateTime lastVerifyTime,
+        @Schema(description = "创建时间") LocalDateTime createTime
+) {}

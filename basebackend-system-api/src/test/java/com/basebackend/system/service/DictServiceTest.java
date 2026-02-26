@@ -55,7 +55,7 @@ class DictServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
-        assertThat(result.getRecords().get(0).getDictName()).isEqualTo("用户类型");
+        assertThat(result.getRecords().get(0).dictName()).isEqualTo("用户类型");
         verify(dictMapper).selectPage(any(), any());
     }
 
@@ -71,8 +71,8 @@ class DictServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getDictName()).isEqualTo("用户类型");
-        assertThat(result.getDictType()).isEqualTo("user_type");
+        assertThat(result.dictName()).isEqualTo("用户类型");
+        assertThat(result.dictType()).isEqualTo("user_type");
         verify(dictMapper).selectById(1L);
     }
 
@@ -94,7 +94,6 @@ class DictServiceTest extends BaseServiceTest {
     void shouldUpdateDict() {
         // Given
         DictDTO dictDTO = fixtures.createValidDictDTO();
-        dictDTO.setDictName("更新后的字典名称");
 
         // When
         dictService.updateDict(1L, dictDTO);
@@ -130,7 +129,7 @@ class DictServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getDictLabel()).isEqualTo("管理员");
+        assertThat(result.get(0).dictLabel()).isEqualTo("管理员");
         verify(dictDataMapper).selectList(any());
     }
 
@@ -147,7 +146,7 @@ class DictServiceTest extends BaseServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
-        assertThat(result.getRecords().get(0).getDictLabel()).isEqualTo("管理员");
+        assertThat(result.getRecords().get(0).dictLabel()).isEqualTo("管理员");
         verify(dictDataMapper).selectPage(any(), any());
     }
 
@@ -163,7 +162,7 @@ class DictServiceTest extends BaseServiceTest {
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getDictLabel()).isEqualTo("管理员");
+        assertThat(result.dictLabel()).isEqualTo("管理员");
         verify(dictDataMapper).selectById(1L);
     }
 
@@ -185,7 +184,6 @@ class DictServiceTest extends BaseServiceTest {
     void shouldUpdateDictData() {
         // Given
         DictDataDTO dictDataDTO = fixtures.createValidDictDataDTO();
-        dictDataDTO.setDictLabel("更新后的标签");
 
         // When
         dictService.updateDictData(1L, dictDataDTO);

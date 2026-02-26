@@ -1,6 +1,6 @@
 package com.basebackend.security.filter;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.constant.CommonConstants;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUserDetails;
@@ -124,6 +124,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(CommonConstants.CONTENT_TYPE_JSON);
         response.setCharacterEncoding(CommonConstants.UTF8);
-        response.getWriter().write(JSON.toJSONString(Result.error(401, message)));
+        response.getWriter().write(JsonUtils.toJsonString(Result.error(401, message)));
     }
 }

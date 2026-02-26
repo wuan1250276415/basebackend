@@ -85,17 +85,12 @@ public class StorageServiceAdapter implements StorageService {
         com.basebackend.storage.spi.StorageType commonType = storageProvider.getStorageType();
 
         // 映射到 file-service 的枚举（如果类型相同可直接返回）
-        switch (commonType) {
-            case LOCAL:
-                return StorageType.LOCAL;
-            case MINIO:
-                return StorageType.MINIO;
-            case ALIYUN_OSS:
-                return StorageType.ALIYUN_OSS;
-            case AWS_S3:
-                return StorageType.AWS_S3;
-            default:
-                return StorageType.LOCAL;
-        }
+        return switch (commonType) {
+            case LOCAL -> StorageType.LOCAL;
+            case MINIO -> StorageType.MINIO;
+            case ALIYUN_OSS -> StorageType.ALIYUN_OSS;
+            case AWS_S3 -> StorageType.AWS_S3;
+            default -> StorageType.LOCAL;
+        };
     }
 }

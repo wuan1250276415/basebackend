@@ -45,27 +45,26 @@ public class MonitorServiceImpl implements MonitorService {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> userMap = (Map<String, Object>) userData;
 
-                    OnlineUserDTO user = new OnlineUserDTO();
-                    user.setUserId(getLongValue(userMap.get("userId")));
-                    user.setUsername((String) userMap.get("username"));
-                    user.setNickname((String) userMap.get("nickname"));
-                    user.setDeptName((String) userMap.get("deptName"));
-                    user.setLoginIp((String) userMap.get("loginIp"));
-                    user.setLoginLocation((String) userMap.get("loginLocation"));
-                    user.setBrowser((String) userMap.get("browser"));
-                    user.setOs((String) userMap.get("os"));
-                    user.setToken((String) userMap.get("token"));
-
                     // 解析时间
                     String loginTimeStr = (String) userMap.get("loginTime");
-                    if (loginTimeStr != null) {
-                        user.setLoginTime(LocalDateTime.parse(loginTimeStr));
-                    }
+                    LocalDateTime loginTime = loginTimeStr != null ? LocalDateTime.parse(loginTimeStr) : null;
 
                     String lastAccessTimeStr = (String) userMap.get("lastAccessTime");
-                    if (lastAccessTimeStr != null) {
-                        user.setLastAccessTime(LocalDateTime.parse(lastAccessTimeStr));
-                    }
+                    LocalDateTime lastAccessTime = lastAccessTimeStr != null ? LocalDateTime.parse(lastAccessTimeStr) : null;
+
+                    OnlineUserDTO user = new OnlineUserDTO(
+                            getLongValue(userMap.get("userId")),
+                            (String) userMap.get("username"),
+                            (String) userMap.get("nickname"),
+                            (String) userMap.get("deptName"),
+                            (String) userMap.get("loginIp"),
+                            (String) userMap.get("loginLocation"),
+                            (String) userMap.get("browser"),
+                            (String) userMap.get("os"),
+                            loginTime,
+                            lastAccessTime,
+                            (String) userMap.get("token")
+                    );
 
                     onlineUsers.add(user);
                 }
@@ -73,10 +72,10 @@ public class MonitorServiceImpl implements MonitorService {
 
             // 按登录时间降序排序
             onlineUsers.sort((a, b) -> {
-                if (a.getLoginTime() == null || b.getLoginTime() == null) {
+                if (a.loginTime() == null || b.loginTime() == null) {
                     return 0;
                 }
-                return b.getLoginTime().compareTo(a.getLoginTime());
+                return b.loginTime().compareTo(a.loginTime());
             });
 
         } catch (Exception e) {
@@ -123,123 +122,102 @@ public class MonitorServiceImpl implements MonitorService {
     @Override
     public ServerInfoDTO getServerInfo() {
         log.info("获取服务器信息");
-        
-        ServerInfoDTO serverInfo = new ServerInfoDTO();
-        
+
         // 获取运行时信息
         RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        
-        // 设置基本信息
-        serverInfo.setServerName("basebackend-admin-api");
-        serverInfo.setServerIp("127.0.0.1");
-        serverInfo.setOsName(osBean.getName());
-        serverInfo.setOsVersion(osBean.getVersion());
-        serverInfo.setOsArch(osBean.getArch());
-        
-        // 设置Java信息
-        serverInfo.setJavaVersion(System.getProperty("java.version"));
-        serverInfo.setJavaVendor(System.getProperty("java.vendor"));
-        serverInfo.setJvmName(System.getProperty("java.vm.name"));
-        serverInfo.setJvmVersion(System.getProperty("java.vm.version"));
-        serverInfo.setJvmVendor(System.getProperty("java.vm.vendor"));
-        
-        // 设置内存信息
-        long totalMemory = memoryBean.getHeapMemoryUsage().getMax();
-        long usedMemory = memoryBean.getHeapMemoryUsage().getUsed();
-        long freeMemory = totalMemory - usedMemory;
-        
-        serverInfo.setTotalMemory(formatBytes(totalMemory));
-        serverInfo.setUsedMemory(formatBytes(usedMemory));
-        serverInfo.setFreeMemory(formatBytes(freeMemory));
-        serverInfo.setMemoryUsage(String.format("%.2f%%", (double) usedMemory / totalMemory * 100));
-        
-        // 设置处理器信息
-        serverInfo.setProcessorCount(osBean.getAvailableProcessors());
-        serverInfo.setSystemLoad(String.format("%.2f", osBean.getSystemLoadAverage()));
-        
-        // 设置运行时间
-        long uptime = runtimeBean.getUptime();
-        serverInfo.setUptime(formatUptime(uptime));
-        
-        return serverInfo;
+
+        // 计算内存信息
+        long totalMemoryBytes = memoryBean.getHeapMemoryUsage().getMax();
+        long usedMemoryBytes = memoryBean.getHeapMemoryUsage().getUsed();
+        long freeMemoryBytes = totalMemoryBytes - usedMemoryBytes;
+
+        return new ServerInfoDTO(
+                "basebackend-admin-api",
+                "127.0.0.1",
+                osBean.getName(),
+                osBean.getVersion(),
+                osBean.getArch(),
+                System.getProperty("java.version"),
+                System.getProperty("java.vendor"),
+                System.getProperty("java.vm.name"),
+                System.getProperty("java.vm.version"),
+                System.getProperty("java.vm.vendor"),
+                formatBytes(totalMemoryBytes),
+                formatBytes(usedMemoryBytes),
+                formatBytes(freeMemoryBytes),
+                String.format("%.2f%%", (double) usedMemoryBytes / totalMemoryBytes * 100),
+                osBean.getAvailableProcessors(),
+                String.format("%.2f", osBean.getSystemLoadAverage()),
+                formatUptime(runtimeBean.getUptime())
+        );
     }
 
     @Override
     public List<CacheInfoDTO> getCacheInfo() {
         log.info("获取缓存信息");
-        
+
         List<CacheInfoDTO> cacheInfoList = new ArrayList<>();
-        
+
         try {
             // 获取Redis INFO信息
             Map<String, Object> redisInfo = getRedisInfo();
-            
+
             // 定义需要监控的缓存前缀
             String[] cachePatterns = {"sys:dict:*", "online_users:*", "login_tokens:*", "user:permissions:*"};
             String[] cacheNames = {"字典缓存", "在线用户", "登录令牌", "用户权限"};
-            
+
             for (int i = 0; i < cachePatterns.length; i++) {
-                CacheInfoDTO cacheInfo = new CacheInfoDTO();
-                cacheInfo.setCacheName(cacheNames[i]);
-                cacheInfo.setCacheType("Redis");
-                
                 // 获取该模式下的key数量
                 Set<String> keys = redisService.keys(cachePatterns[i]);
                 long keyCount = keys != null ? keys.size() : 0;
-                cacheInfo.setCacheSize(keyCount);
-                
-                // 从Redis INFO获取统计信息
+
+                Long hitCount = 0L;
+                Long missCount = 0L;
+                String hitRate = "N/A";
+                Long maxCapacity = 0L;
+                String usageRate = "N/A";
+
                 if (redisInfo != null) {
-                    Long hitCount = (Long) redisInfo.getOrDefault("keyspace_hits", 0L);
-                    Long missCount = (Long) redisInfo.getOrDefault("keyspace_misses", 0L);
-                    cacheInfo.setHitCount(hitCount);
-                    cacheInfo.setMissCount(missCount);
-                    
-                    // 计算命中率
+                    hitCount = (Long) redisInfo.getOrDefault("keyspace_hits", 0L);
+                    missCount = (Long) redisInfo.getOrDefault("keyspace_misses", 0L);
+
                     long total = hitCount + missCount;
                     if (total > 0) {
-                        cacheInfo.setHitRate(String.format("%.2f%%", (double) hitCount / total * 100));
-                    } else {
-                        cacheInfo.setHitRate("N/A");
+                        hitRate = String.format("%.2f%%", (double) hitCount / total * 100);
                     }
-                    
-                    // 获取内存使用
+
                     Long usedMemory = (Long) redisInfo.getOrDefault("used_memory", 0L);
                     Long maxMemory = (Long) redisInfo.getOrDefault("maxmemory", 0L);
                     if (maxMemory > 0) {
-                        cacheInfo.setMaxCapacity(maxMemory);
-                        cacheInfo.setUsageRate(String.format("%.2f%%", (double) usedMemory / maxMemory * 100));
-                    } else {
-                        cacheInfo.setMaxCapacity(0L);
-                        cacheInfo.setUsageRate("N/A");
+                        maxCapacity = maxMemory;
+                        usageRate = String.format("%.2f%%", (double) usedMemory / maxMemory * 100);
                     }
-                } else {
-                    cacheInfo.setHitCount(0L);
-                    cacheInfo.setMissCount(0L);
-                    cacheInfo.setHitRate("N/A");
-                    cacheInfo.setMaxCapacity(0L);
-                    cacheInfo.setUsageRate("N/A");
                 }
-                
-                cacheInfo.setExpireTime(3600L); // 默认过期时间
-                cacheInfo.setLastAccessTime(LocalDateTime.now().toString());
+
+                CacheInfoDTO cacheInfo = new CacheInfoDTO(
+                        cacheNames[i],
+                        "Redis",
+                        keyCount,
+                        hitCount,
+                        missCount,
+                        hitRate,
+                        maxCapacity,
+                        usageRate,
+                        3600L,
+                        LocalDateTime.now().toString()
+                );
                 cacheInfoList.add(cacheInfo);
             }
         } catch (Exception e) {
             log.error("获取缓存信息失败: {}", e.getMessage(), e);
-            // 返回基本信息
-            CacheInfoDTO errorInfo = new CacheInfoDTO();
-            errorInfo.setCacheName("Redis");
-            errorInfo.setCacheType("Redis");
-            errorInfo.setCacheSize(0L);
-            errorInfo.setHitRate("N/A");
-            errorInfo.setUsageRate("N/A");
-            errorInfo.setLastAccessTime(LocalDateTime.now().toString());
+            CacheInfoDTO errorInfo = new CacheInfoDTO(
+                    "Redis", "Redis", 0L, 0L, 0L, "N/A", 0L, "N/A", null, LocalDateTime.now().toString()
+            );
             cacheInfoList.add(errorInfo);
         }
-        
+
         return cacheInfoList;
     }
     
@@ -376,23 +354,19 @@ public class MonitorServiceImpl implements MonitorService {
      * 将Object转换为Long
      */
     private Long getLongValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-        if (value instanceof Integer) {
-            return ((Integer) value).longValue();
-        }
-        if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException e) {
-                return null;
+        return switch (value) {
+            case null -> null;
+            case Long l -> l;
+            case Integer i -> i.longValue();
+            case String s -> {
+                try {
+                    yield Long.parseLong(s);
+                } catch (NumberFormatException e) {
+                    yield null;
+                }
             }
-        }
-        return null;
+            default -> null;
+        };
     }
 
     /**
@@ -402,8 +376,8 @@ public class MonitorServiceImpl implements MonitorService {
         if (value == null) {
             return null;
         }
-        if (value instanceof String) {
-            return (String) value;
+        if (value instanceof String s) {
+            return s;
         }
         return value.toString();
     }

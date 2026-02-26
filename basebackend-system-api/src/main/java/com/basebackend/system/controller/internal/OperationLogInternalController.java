@@ -1,7 +1,7 @@
 package com.basebackend.system.controller.internal;
 
 import com.basebackend.common.model.Result;
-import com.basebackend.feign.dto.log.UserOperationLogDTO;
+import com.basebackend.api.model.log.UserOperationLogDTO;
 import com.basebackend.system.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ public class OperationLogInternalController {
     @PostMapping("/save")
     public Result<Void> saveOperationLog(@RequestBody UserOperationLogDTO operationLog) {
         log.debug("内部API - 保存操作日志: userId={}, operationType={}",
-                operationLog.getUserId(), operationLog.getOperationType());
+                operationLog.userId(), operationLog.operationType());
         operationLogService.saveOperationLog(operationLog);
         return Result.success();
     }

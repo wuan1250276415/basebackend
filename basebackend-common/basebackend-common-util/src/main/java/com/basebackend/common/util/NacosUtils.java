@@ -1,8 +1,7 @@
 package com.basebackend.common.util;
 
-import org.springframework.util.Base64Utils;
-
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 public class NacosUtils {
     /**
@@ -20,7 +19,7 @@ public class NacosUtils {
             System.out.println("密钥长度》》》" + nacosSecret.length());
             // 密钥进行Base64编码
             byte[] data = nacosSecret.getBytes(StandardCharsets.UTF_8);
-            System.out.println("密钥Base64编码》》》" + Base64Utils.encodeToString(data));
+            System.out.println("密钥Base64编码》》》" + Base64.getEncoder().encodeToString(data));
         }
 
 }

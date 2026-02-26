@@ -1,45 +1,24 @@
 package com.basebackend.generator.dto;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.util.List;
 import java.util.Map;
 
 /**
  * 代码生成结果DTO
+ *
+ * @param status       生成状态：SUCCESS/FAILED/PARTIAL
+ * @param files        生成的文件Map（文件路径 -> 文件内容）
+ * @param zipData      ZIP文件字节数组（下载模式）
+ * @param errorMessage 错误消息
+ * @param fileCount    生成的文件数量
+ * @param failedTables 失败的表列表
  */
-@Data
-@Builder
-public class GenerateResult {
-
-    /**
-     * 生成状态：SUCCESS/FAILED/PARTIAL
-     */
-    private String status;
-
-    /**
-     * 生成的文件Map（文件路径 -> 文件内容）
-     */
-    private Map<String, String> files;
-
-    /**
-     * ZIP文件字节数组（下载模式）
-     */
-    private byte[] zipData;
-
-    /**
-     * 错误消息
-     */
-    private String errorMessage;
-
-    /**
-     * 生成的文件数量
-     */
-    private Integer fileCount;
-
-    /**
-     * 失败的表列表
-     */
-    private List<String> failedTables;
+public record GenerateResult(
+        String status,
+        Map<String, String> files,
+        byte[] zipData,
+        String errorMessage,
+        Integer fileCount,
+        List<String> failedTables
+) {
 }

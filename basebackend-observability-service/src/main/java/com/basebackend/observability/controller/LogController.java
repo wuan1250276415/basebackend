@@ -32,7 +32,7 @@ public class LogController {
     @PostMapping("/search")
     @Operation(summary = "搜索日志")
     public Result<Map<String, Object>> searchLogs(@RequestBody LogQueryRequest request) {
-        log.info("Searching logs: service={}, level={}", request.getServiceName(), request.getLevel());
+        log.info("Searching logs: service={}, level={}", request.serviceName(), request.level());
         Map<String, Object> result = logQueryService.searchLogs(request);
         return Result.success(result);
     }

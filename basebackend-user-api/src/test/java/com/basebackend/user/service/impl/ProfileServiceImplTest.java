@@ -8,6 +8,8 @@ import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.util.DeptInfoHelper;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("个人资料服务测试")
 class ProfileServiceImplTest {
 
@@ -58,10 +61,7 @@ class ProfileServiceImplTest {
     @DisplayName("修改密码 - 两次密码不一致")
     void testChangePassword_PasswordMismatch() {
         doNothing().when(customMetrics).recordBusinessOperation(anyString(), anyString());
-        ChangePasswordDTO dto = new ChangePasswordDTO();
-        dto.setOldPassword("oldPassword");
-        dto.setNewPassword("newPassword123");
-        dto.setConfirmPassword("differentPassword");
+        ChangePasswordDTO dto = new ChangePasswordDTO("oldPassword", "newPassword123", "differentPassword");
         assertThrows(BusinessException.class, () -> profileService.changePassword(dto));
     }
 
@@ -69,10 +69,7 @@ class ProfileServiceImplTest {
     @DisplayName("修改密码 - 新旧密码相同")
     void testChangePassword_SamePassword() {
         doNothing().when(customMetrics).recordBusinessOperation(anyString(), anyString());
-        ChangePasswordDTO dto = new ChangePasswordDTO();
-        dto.setOldPassword("samePassword");
-        dto.setNewPassword("samePassword");
-        dto.setConfirmPassword("samePassword");
+        ChangePasswordDTO dto = new ChangePasswordDTO("samePassword", "samePassword", "samePassword");
         assertThrows(BusinessException.class, () -> profileService.changePassword(dto));
     }
 

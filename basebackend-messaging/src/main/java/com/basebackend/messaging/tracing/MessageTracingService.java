@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.alibaba.fastjson2.JSON;
+import com.basebackend.common.util.JsonUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -209,7 +209,7 @@ public class MessageTracingService {
             String key = TRACE_KEY_PREFIX + messageId;
             String json = redisTemplate.opsForValue().get(key);
             if (json != null) {
-                return JSON.parseObject(json, MessageTrace.class);
+                return JsonUtils.parseObject(json, MessageTrace.class);
             }
         } catch (Exception e) {
             log.error("Failed to get trace: messageId={}", messageId, e);
@@ -223,7 +223,7 @@ public class MessageTracingService {
     private void saveTrace(MessageTrace trace) {
         try {
             String key = TRACE_KEY_PREFIX + trace.getMessageId();
-            String json = JSON.toJSONString(trace);
+            String json = JsonUtils.toJsonString(trace);
             redisTemplate.opsForValue().set(key, json, TRACE_EXPIRE);
         } catch (Exception e) {
             log.error("Failed to save trace: messageId={}", trace.getMessageId(), e);

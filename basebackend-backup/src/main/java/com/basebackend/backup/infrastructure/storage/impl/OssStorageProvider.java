@@ -28,6 +28,7 @@ public class OssStorageProvider implements StorageProvider {
 
     private final BackupProperties backupProperties;
     private volatile OSS ossClient;
+    private final java.util.concurrent.locks.ReentrantLock clientLock = new java.util.concurrent.locks.ReentrantLock();
 
     private static final String STORAGE_TYPE = "oss";
 
@@ -39,7 +40,8 @@ public class OssStorageProvider implements StorageProvider {
         if (ossClient != null) {
             return ossClient;
         }
-        synchronized (this) {
+        clientLock.lock();
+        try {
             if (ossClient != null) {
                 return ossClient;
             }
@@ -50,6 +52,8 @@ public class OssStorageProvider implements StorageProvider {
                     ossConfig.getAccessKey(),
                     ossConfig.getSecretKey());
             return ossClient;
+        } finally {
+            clientLock.unlock();
         }
     }
 

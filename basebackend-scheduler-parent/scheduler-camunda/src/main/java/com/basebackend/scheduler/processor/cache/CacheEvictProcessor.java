@@ -7,8 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
+
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -49,15 +53,13 @@ public class CacheEvictProcessor implements TaskProcessor {
         long maxAgeSeconds = toLong(params.get("maxAge"), -1L);
         int batchSize = (int) Math.max(1, toLong(params.get("batchSize"), 100L));
 
-        // TODO: 后续集成Redis SCAN替代KEYS，避免阻塞主线程
-        // 当前使用KEYS方法，生产环境建议使用SCAN游标迭代
-        Set<String> keys = redisTemplate.keys(pattern);
-        if (keys == null) {
-            keys = Set.of();
-        }
-
-        if (keys.size() > batchSize) {
-            keys = keys.stream().limit(batchSize).collect(java.util.stream.Collectors.toSet());
+        // 使用 SCAN 游标迭代替代 KEYS，避免阻塞 Redis 主线程
+        Set<String> keys = new HashSet<>();
+        ScanOptions scanOptions = ScanOptions.scanOptions().match(pattern).count(batchSize).build();
+        try (Cursor<String> cursor = redisTemplate.scan(scanOptions)) {
+            while (cursor.hasNext() && keys.size() < batchSize) {
+                keys.add(cursor.next());
+            }
         }
 
         long deleted = 0;
@@ -101,8 +103,8 @@ public class CacheEvictProcessor implements TaskProcessor {
         if (value == null) {
             return defaultValue;
         }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
+        if (value instanceof Number n) {
+            return n.longValue();
         }
         try {
             return Long.parseLong(String.valueOf(value));

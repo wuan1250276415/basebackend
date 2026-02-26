@@ -112,7 +112,7 @@ public class EasyExcelExportService implements ExportService {
         return value.toString();
     }
 
-    static List<ExcelFieldMeta> resolveFields(Class<?> clazz) {
+    public static List<ExcelFieldMeta> resolveFields(Class<?> clazz) {
         List<ExcelFieldMeta> result = new ArrayList<>();
         for (Field field : clazz.getDeclaredFields()) {
             ExportField annotation = field.getAnnotation(ExportField.class);
@@ -127,16 +127,16 @@ public class EasyExcelExportService implements ExportService {
         return result;
     }
 
-    static class ExcelFieldMeta {
-        final Field field;
-        final String label;
-        final int order;
-        final int width;
-        final String format;
-        final Class<? extends FieldConverter> converterClass;
+    public static class ExcelFieldMeta {
+        public final Field field;
+        public final String label;
+        public final int order;
+        public final int width;
+        public final String format;
+        public final Class<? extends FieldConverter> converterClass;
 
-        ExcelFieldMeta(Field field, String label, int order, int width,
-                       String format, Class<? extends FieldConverter> converterClass) {
+        public ExcelFieldMeta(Field field, String label, int order, int width,
+                              String format, Class<? extends FieldConverter> converterClass) {
             this.field = field;
             this.label = label;
             this.order = order;

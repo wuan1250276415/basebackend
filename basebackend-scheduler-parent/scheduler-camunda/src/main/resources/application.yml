@@ -1,16 +1,6 @@
 # ========================================
 # Spring Boot Main Application Configuration
 # ========================================
-# 主配置文件,定义应用的核心配置项。
-# 该文件会被Nacos配置中心的配置覆盖(bootstrap.yml中定义的配置优先级更高)。
-#
-# 配置优先级(从高到低):
-# 1. Nacos配置中心(extension-configs)
-# 2. Nacos配置中心(shared-configs)
-# 3. bootstrap.yml
-# 4. application-{profile}.yml
-# 5. application.yml(本文件)
-# ========================================
 
 # ========== 服务器配置 ==========
 server:
@@ -29,6 +19,9 @@ server:
 
 # ========== Spring核心配置 ==========
 spring:
+  threads:
+    virtual:
+      enabled: true  # Java 21+ 虚拟线程：Tomcat、@Async、TaskExecutor 全部使用虚拟线程
   application:
     name: basebackend-scheduler
 
@@ -37,9 +30,16 @@ spring:
 
   main:
     web-application-type: servlet
-    allow-circular-references: ${SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES:true}
-    allow-bean-definition-overriding: ${SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING:true}
     lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
+
+  # ========== Spring Config Import (替代 bootstrap.yml) ==========
+  config:
+    import:
+      - optional:nacos:redis-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:security-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:rocketmq-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
 
   # ========== 自动配置排除 ==========
   autoconfigure:
@@ -51,8 +51,6 @@ spring:
       - org.springframework.boot.autoconfigure.h2.H2ConsoleAutoConfiguration
 
   # ========== Flyway 配置 ==========
-  # 禁用 Flyway 自动迁移（数据库用户缺少 performance_schema 权限）
-  # 如需启用，请先授权：GRANT SELECT ON performance_schema.* TO 'basebackend_scheduler'@'%';
   flyway:
     enabled: false
 
@@ -67,33 +65,14 @@ spring:
       FAIL_ON_UNKNOWN_PROPERTIES: false
     default-property-inclusion: NON_NULL
 
-  # ========== 数据源配置 (Fallback，优先使用Nacos配置) ==========
-  # 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
-#  datasource:
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: ${MYSQL_URL:}
-#    username: ${MYSQL_USERNAME:}
-#    password: ${MYSQL_PASSWORD:}
-#    hikari:
-#      pool-name: scheduler-hikari-pool
-#      minimum-idle: 5
-#      maximum-pool-size: 20
-#      idle-timeout: 600000
-#      max-lifetime: 1800000
-#      connection-timeout: 30000
-
   # ========== Redis配置 (Fallback，优先使用Nacos配置) ==========
-  # 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
   data:
     redis:
-      # Redis 连接信息（使用环境变量）
       host: ${REDIS_HOST:192.168.66.126}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
       timeout: ${REDIS_TIMEOUT:5000ms}
-
-      # Lettuce 连接池配置
       lettuce:
         pool:
           max-active: ${REDIS_MAX_ACTIVE:20}
@@ -102,12 +81,52 @@ spring:
           min-idle: ${REDIS_MIN_IDLE:5}
         shutdown-timeout: 100ms
 
-  # ========== Spring Cloud Bootstrap 配置 ==========
+  # ========== Spring Cloud 集成配置 ==========
   cloud:
-    bootstrap:
-      enabled: ${SPRING_CLOUD_BOOTSTRAP_ENABLED:true}
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+        cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+        service-name: ${spring.application.name}
+        metadata:
+          version: ${APP_VERSION:1.0.0}
+          region: ${APP_REGION:beijing}
+          zone: ${APP_ZONE:zone-a}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+        shared-configs:
+          - data-id: redis-config.yml
+            refresh: true
+          - data-id: security-config.yml
+            refresh: true
+          - data-id: rocketmq-config.yml
+            refresh: true
+          - data-id: observability-config.yml
+            refresh: true
+        extension-configs:
+          - data-id: ${spring.application.name}-${spring.profiles.active}.yml
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            refresh: true
 
 
+# Jasypt 加密配置
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:}
+    algorithm: PBEWITHHMACSHA512ANDAES_256
+    iv-generator-classname: org.jasypt.iv.RandomIvGenerator
 
 # ========================================
 # Scheduler Module Configuration
@@ -126,35 +145,24 @@ scheduler:
     max-page-size: ${SCHEDULER_PAGE_MAX_PAGE_SIZE:200}
     min-page-size: ${SCHEDULER_PAGE_MIN_PAGE_SIZE:1}
     allow-query-all: ${SCHEDULER_PAGE_ALLOW_QUERY_ALL:false}
-  # Scheduler Core Configuration (P1优化：可配置的缓存和线程池)
   core:
-    # 缓存配置
     cache:
-      # 工作流定义缓存
       definition-max-size: ${SCHEDULER_CACHE_DEFINITION_MAX_SIZE:1000}
       definition-expire-after-access: ${SCHEDULER_CACHE_DEFINITION_TTL:PT1H}
-      # 工作流实例缓存
       instance-max-size: ${SCHEDULER_CACHE_INSTANCE_MAX_SIZE:10000}
       instance-expire-after-access: ${SCHEDULER_CACHE_INSTANCE_TTL:PT30M}
-      # 处理器缓存
       processor-max-size: ${SCHEDULER_CACHE_PROCESSOR_MAX_SIZE:200}
       processor-expire-after-access: ${SCHEDULER_CACHE_PROCESSOR_TTL:PT1H}
-      # 性能指标缓存
       metrics-max-size: ${SCHEDULER_CACHE_METRICS_MAX_SIZE:500}
       metrics-expire-after-access: ${SCHEDULER_CACHE_METRICS_TTL:PT10M}
-    # 线程池配置
     thread-pool:
-      # 工作流执行器
       workflow-core-pool-size: ${SCHEDULER_THREAD_WORKFLOW_CORE:8}
       workflow-max-pool-size: ${SCHEDULER_THREAD_WORKFLOW_MAX:32}
       workflow-queue-capacity: ${SCHEDULER_THREAD_WORKFLOW_QUEUE:200}
-      # 重试执行器
       retry-core-pool-size: ${SCHEDULER_THREAD_RETRY_CORE:4}
       retry-max-pool-size: ${SCHEDULER_THREAD_RETRY_MAX:16}
       retry-queue-capacity: ${SCHEDULER_THREAD_RETRY_QUEUE:100}
-      # 线程空闲存活时间
       keep-alive-seconds: ${SCHEDULER_THREAD_KEEP_ALIVE:60}
-    # 断路器配置
     circuit-breaker:
       enabled: ${SCHEDULER_CIRCUIT_BREAKER_ENABLED:true}
       failure-rate-threshold: ${SCHEDULER_CIRCUIT_BREAKER_FAILURE_RATE:50}
@@ -179,25 +187,15 @@ rocketmq:
 # ========================================
 # Redisson 配置 (Fallback，优先使用Nacos配置)
 # ========================================
-# 安全提示：生产环境必须通过环境变量或密钥管理服务提供凭据
 redisson:
-  # 单机模式配置
   single-server-config:
-    # Redis 服务器地址
     address: ${REDIS_ADDRESS:redis://192.168.66.126:6379}
-    # 数据库索引
     database: ${REDIS_DATABASE:0}
-    # 密码
     password: ${REDIS_PASSWORD:}
-    # 连接超时时间
     connect-timeout: 3000
-    # 命令执行超时时间
     timeout: 3000
-    # 连接池大小
     connection-pool-size: 64
-    # 最小空闲连接数
     connection-minimum-idle-size: 10
-
 
 # ========================================
 # Management & Actuator Configuration
@@ -219,7 +217,7 @@ management:
     export:
       prometheus:
         enabled: true
-        descriptions: true  # 启用指标描述
+        descriptions: true
   prometheus:
     metrics:
       export:

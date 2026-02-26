@@ -5,7 +5,7 @@ import com.basebackend.backup.infrastructure.notification.BackupNotificationEven
 import com.basebackend.backup.infrastructure.notification.BackupNotificationSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 
@@ -16,7 +16,7 @@ import java.util.Map;
 public class SlackNotificationSender implements BackupNotificationSender {
 
     private final BackupProperties.Notify.Slack config;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient = RestClient.create();
 
     public SlackNotificationSender(BackupProperties.Notify.Slack config) {
         this.config = config;
@@ -39,8 +39,12 @@ public class SlackNotificationSender implements BackupNotificationSender {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(webhookUrl, request, String.class);
+            ResponseEntity<String> response = restClient.post()
+                    .uri(webhookUrl)
+                    .headers(h -> h.addAll(headers))
+                    .body(payload)
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("Slack通知发送成功, channel: {}", config.getChannel());

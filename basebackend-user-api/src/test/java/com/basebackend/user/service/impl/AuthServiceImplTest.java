@@ -1,8 +1,8 @@
 package com.basebackend.user.service.impl;
 
+import com.basebackend.api.model.user.LoginRequest;
+import com.basebackend.api.model.user.LoginResponse;
 import com.basebackend.cache.service.RedisService;
-import com.basebackend.feign.dto.user.LoginRequest;
-import com.basebackend.feign.dto.user.LoginResponse;
 import com.basebackend.jwt.JwtUtil;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.entity.SysUser;
@@ -61,9 +61,7 @@ class AuthServiceImplTest {
         testUser.setStatus(1);
         testUser.setCreateTime(LocalDateTime.now());
 
-        loginRequest = new LoginRequest();
-        loginRequest.setUsername("testuser");
-        loginRequest.setPassword("password123");
+        loginRequest = new LoginRequest("testuser", "password123", "captcha", "captchaId", true);
 
         MockHttpServletRequest mockRequest = new MockHttpServletRequest();
         mockRequest.setRemoteAddr("127.0.0.1");
@@ -90,7 +88,7 @@ class AuthServiceImplTest {
         LoginResponse response = authService.login(loginRequest);
 
         assertNotNull(response);
-        assertEquals("jwt-token", response.getAccessToken());
+        assertEquals("jwt-token", response.accessToken());
         verify(redisService).set(anyString(), anyString(), anyLong());
     }
 
@@ -98,7 +96,7 @@ class AuthServiceImplTest {
     @DisplayName("登录失败 - 用户不存在")
     void testLogin_UserNotFound() {
         when(userMapper.selectByUsername("nonexistent")).thenReturn(null);
-        loginRequest.setUsername("nonexistent");
+        loginRequest = new LoginRequest("nonexistent", "password123", "captcha", "captchaId", true);
         doNothing().when(logService).recordLoginLog(any());
 
         RuntimeException ex = assertThrows(RuntimeException.class, 
@@ -111,7 +109,7 @@ class AuthServiceImplTest {
     void testLogin_WrongPassword() {
         when(userMapper.selectByUsername("testuser")).thenReturn(testUser);
         when(passwordEncoder.matches("wrong", "encodedPassword")).thenReturn(false);
-        loginRequest.setPassword("wrong");
+        loginRequest = new LoginRequest("testuser", "wrong", "captcha", "captchaId", true);
         doNothing().when(logService).recordLoginLog(any());
 
         RuntimeException ex = assertThrows(RuntimeException.class, 
@@ -145,7 +143,7 @@ class AuthServiceImplTest {
         LoginResponse response = authService.refreshToken("valid-token");
 
         assertNotNull(response);
-        assertEquals("new-token", response.getAccessToken());
+        assertEquals("new-token", response.accessToken());
     }
 
     @Test
@@ -168,10 +166,7 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("修改密码 - 密码不一致")
     void testChangePassword_Mismatch() {
-        PasswordChangeDTO dto = new PasswordChangeDTO();
-        dto.setOldPassword("old");
-        dto.setNewPassword("new1");
-        dto.setConfirmPassword("new2");
+        PasswordChangeDTO dto = new PasswordChangeDTO("old", "new1", "new2");
 
         RuntimeException ex = assertThrows(RuntimeException.class, 
             () -> authService.changePassword(dto));

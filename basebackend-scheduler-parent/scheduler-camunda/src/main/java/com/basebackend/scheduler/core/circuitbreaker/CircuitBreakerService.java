@@ -227,27 +227,22 @@ public class CircuitBreakerService {
         boolean allowRequest() {
             State currentState = state.get();
 
-            switch (currentState) {
-                case CLOSED:
-                    return true;
-
-                case OPEN:
+            return switch (currentState) {
+                case CLOSED -> true;
+                case OPEN -> {
                     // 检查是否可以转换到半开状态
                     if (shouldTransitionToHalfOpen()) {
                         if (state.compareAndSet(State.OPEN, State.HALF_OPEN)) {
                             halfOpenCalls.set(0);
                             log.debug("Circuit breaker '{}' transitioned from OPEN to HALF_OPEN", name);
                         }
-                        return halfOpenCalls.incrementAndGet() <= config.getPermittedNumberOfCallsInHalfOpenState();
+                        yield halfOpenCalls.incrementAndGet() <= config.getPermittedNumberOfCallsInHalfOpenState();
                     }
-                    return false;
-
-                case HALF_OPEN:
-                    return halfOpenCalls.incrementAndGet() <= config.getPermittedNumberOfCallsInHalfOpenState();
-
-                default:
-                    return false;
-            }
+                    yield false;
+                }
+                case HALF_OPEN -> halfOpenCalls.incrementAndGet() <= config.getPermittedNumberOfCallsInHalfOpenState();
+                default -> false;
+            };
         }
 
         /**
