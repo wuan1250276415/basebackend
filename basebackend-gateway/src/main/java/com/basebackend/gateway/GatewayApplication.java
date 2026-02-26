@@ -1,10 +1,12 @@
 package com.basebackend.gateway;
 
 import com.basebackend.gateway.config.GatewayComponentScanConfig;
+import com.basebackend.gateway.config.GatewayNativeHints;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
  * 网关启动类
@@ -22,6 +24,7 @@ import org.springframework.context.annotation.Import;
                 "com.basebackend.common.starter.config.UserContextAutoConfiguration"
         })
 @Import(GatewayComponentScanConfig.class)
+@ImportRuntimeHints(GatewayNativeHints.class)
 @EnableDiscoveryClient
 public class GatewayApplication {
 
