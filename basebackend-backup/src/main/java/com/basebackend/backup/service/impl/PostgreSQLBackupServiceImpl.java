@@ -11,7 +11,7 @@ import com.basebackend.backup.infrastructure.executor.impl.PostgresWalParser;
 import com.basebackend.backup.infrastructure.reliability.LockManager;
 import com.basebackend.backup.infrastructure.reliability.impl.ChecksumService;
 import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
-import com.basebackend.backup.service.PostgreSQLBackupService;
+import com.basebackend.backup.service.BackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PostgreSQLBackupServiceImpl implements PostgreSQLBackupService {
+public class PostgreSQLBackupServiceImpl implements BackupService {
 
     private final BackupProperties backupProperties;
     private final RetryTemplate retryTemplate;

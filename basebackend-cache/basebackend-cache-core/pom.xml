@@ -98,11 +98,6 @@
         </dependency>
 
         <!-- Fastjson2 -->
-        <dependency>
-            <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2</artifactId>
-        </dependency>
-
         <!-- jqwik for property-based testing -->
         <dependency>
             <groupId>net.jqwik</groupId>
