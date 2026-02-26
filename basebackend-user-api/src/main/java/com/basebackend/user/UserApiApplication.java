@@ -1,10 +1,12 @@
 package com.basebackend.user;
 
+import com.basebackend.user.config.UserApiNativeHints;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
  * 用户服务启动"
@@ -20,6 +22,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 })
 @EnableDiscoveryClient
 @EnableAspectJAutoProxy
+@ImportRuntimeHints(UserApiNativeHints.class)
 public class UserApiApplication {
 
     public static void main(String[] args) {

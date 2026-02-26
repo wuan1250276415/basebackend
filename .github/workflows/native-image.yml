@@ -1,0 +1,164 @@
+name: Build Native Images (GraalVM)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+    paths:
+      - '**/src/**'
+      - '**/pom.xml'
+      - '**/Dockerfile.native'
+  workflow_dispatch:
+    inputs:
+      services:
+        description: '要构建的服务（逗号分隔，留空构建全部）'
+        required: false
+        default: 'all'
+
+env:
+  JAVA_VERSION: '25'
+  GRAALVM_DISTRIBUTION: 'graalvm-community'
+  REGISTRY: docker.io
+  REGISTRY_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  # ==========================================
+  # 构建原生镜像
+  # ==========================================
+  build-native:
+    name: Native Build — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - user-api
+          - system-api
+          - notification-service
+          - observability-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.GRAALVM_DISTRIBUTION }}
+          cache: 'maven'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify GraalVM
+        run: |
+          java -version
+          native-image --version
+
+      - name: Build native image
+        run: |
+          mvn clean package \
+            -pl basebackend-${{ matrix.service }} -am \
+            -Pnative \
+            -DskipTests \
+            -B
+
+      - name: Verify native binary
+        run: |
+          ls -lh basebackend-${{ matrix.service }}/target/basebackend-${{ matrix.service }}
+          file basebackend-${{ matrix.service }}/target/basebackend-${{ matrix.service }}
+
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.service }}
+          path: basebackend-${{ matrix.service }}/target/basebackend-${{ matrix.service }}
+          retention-days: 7
+
+  # ==========================================
+  # Docker 原生镜像
+  # ==========================================
+  docker-native:
+    name: Docker Native — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: build-native
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}/basebackend-${{ matrix.service }}-native
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=native-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push native Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: basebackend-${{ matrix.service }}/Dockerfile.native
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==========================================
+  # 总结
+  # ==========================================
+  summary:
+    name: Native Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-native]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 GraalVM 原生镜像构建" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 指标 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| GraalVM | ${{ env.JAVA_VERSION }} (${{ env.GRAALVM_DISTRIBUTION }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| 构建状态 | ${{ needs.build-native.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build-native.result }}" == "success" ]]; then
+            echo "✅ **原生镜像构建成功**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🏎️ 原生镜像 vs JVM 对比" >> $GITHUB_STEP_SUMMARY
+            echo "| 指标 | JVM | Native |" >> $GITHUB_STEP_SUMMARY
+            echo "|------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| 启动时间 | ~3-5s | ~0.1-0.3s |" >> $GITHUB_STEP_SUMMARY
+            echo "| 内存占用 | ~300-500MB | ~50-100MB |" >> $GITHUB_STEP_SUMMARY
+            echo "| 镜像大小 | ~250MB | ~80-120MB |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **构建失败**" >> $GITHUB_STEP_SUMMARY
+          fi
