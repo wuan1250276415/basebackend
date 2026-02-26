@@ -5,7 +5,7 @@ import com.basebackend.backup.entity.BackupRecord;
 import com.basebackend.backup.enums.BackupStatus;
 import com.basebackend.backup.infrastructure.storage.StorageProvider;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
-import com.basebackend.backup.service.MySQLBackupService;
+import com.basebackend.backup.service.BackupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +49,7 @@ class BackupIntegrationTest {
             .withInitScript("db/integration-test-init.sql");
 
     @Autowired
-    private MySQLBackupService backupService;
+    private BackupService backupService;
 
     @Autowired
     private StorageProvider storageProvider;

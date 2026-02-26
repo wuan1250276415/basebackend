@@ -1,6 +1,5 @@
 package com.basebackend.security.filter;
 
-import com.alibaba.fastjson2.JSON;
 import com.basebackend.common.model.Result;
 import com.basebackend.jwt.JwtUserDetails;
 import com.basebackend.jwt.JwtUtil;
