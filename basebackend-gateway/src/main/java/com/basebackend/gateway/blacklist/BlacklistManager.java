@@ -141,11 +141,16 @@ public class BlacklistManager {
     private boolean matchPath(String path, String pattern) {
         if (pattern.endsWith("/**")) {
             String prefix = pattern.substring(0, pattern.length() - 3);
-            return path.startsWith(prefix);
+            return path.equals(prefix) || path.startsWith(prefix + "/");
         }
         if (pattern.endsWith("/*")) {
             String prefix = pattern.substring(0, pattern.length() - 2);
-            return path.startsWith(prefix) && !path.substring(prefix.length()).contains("/");
+            // 匹配 prefix/ 后面只有一层路径（不含更多 /）
+            if (!path.startsWith(prefix + "/")) {
+                return false;
+            }
+            String remaining = path.substring(prefix.length() + 1);
+            return !remaining.isEmpty() && !remaining.contains("/");
         }
         return path.equals(pattern);
     }
