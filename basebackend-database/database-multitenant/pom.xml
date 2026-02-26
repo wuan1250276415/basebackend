@@ -25,6 +25,27 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Web (Filter/Servlet, optional) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AOP (@IgnoreTenant 切面, optional) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Cache (租户级缓存隔离, optional) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
