@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   basebackend-network:
     external: true
@@ -13,7 +11,7 @@ services:
       context: ../../..
       dockerfile: basebackend-gateway/Dockerfile
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
+      - "${GATEWAY_PORT:-8180}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       NACOS_SERVER: nacos:8848
@@ -23,9 +21,8 @@ services:
     depends_on:
       - user-api
       - system-api
-      - auth-api
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -43,7 +40,7 @@ services:
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,7 +64,7 @@ services:
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -79,11 +76,11 @@ services:
         delay: 5s
         max_attempts: 3
 
-  auth-api:
-    image: basebackend/auth-api:${VERSION:-latest}
+  file-service:
+    image: basebackend/file-service:${VERSION:-latest}
     build:
       context: ../../..
-      dockerfile: basebackend-auth-api/Dockerfile
+      dockerfile: basebackend-file-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       NACOS_SERVER: nacos:8848
@@ -91,14 +88,44 @@ services:
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    deploy:
-      replicas: ${AUTH_API_REPLICAS:-1}
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
+
+  notification-service:
+    image: basebackend/notification-service:${VERSION:-latest}
+    build:
+      context: ../../..
+      dockerfile: basebackend-notification-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      NACOS_SERVER: nacos:8848
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  observability-service:
+    image: basebackend/observability-service:${VERSION:-latest}
+    build:
+      context: ../../..
+      dockerfile: basebackend-observability-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      NACOS_SERVER: nacos:8848
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+    networks:
+      - basebackend-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
