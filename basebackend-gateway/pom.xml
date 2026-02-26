@@ -283,21 +283,17 @@
                                 <buildArg>-H:+AddAllCharsets</buildArg>
                                 <buildArg>-march=compatibility</buildArg>
                                 <!--
-                                    GraalVM Enterprise 25 bug: LegacyResourceConfigurationParser NPE
+                                    GraalVM 25 bug (CE+Enterprise): LegacyResourceConfigurationParser NPE
                                     (globRegistry is null) 解析旧格式 resource-config.json 时崩溃。
-                                    几乎所有库（包括 Netty 4.2.10、Log4j 2.25.3、SCA 2025）都仍使用旧格式。
-                                    排除所有第三方 JAR 的 resource-config.json，
+                                    几乎所有库（Netty 4.2、Log4j 2.25、SCA 2025）仍使用旧 "pattern" 格式。
+                                    排除所有 JAR 中任意路径的 resource-config.json，
                                     由 Spring AOT reachability-metadata.json（新格式）+ RuntimeHintsRegistrar 接管。
-                                    推荐方案：换用 GraalVM CE 25（不存在此 Enterprise 专有 bug）。
+                                    注意：.*resource-config\.json 匹配含子目录和不含子目录的两种情况。
                                 -->
                                 <buildArg>--exclude-config</buildArg>
                                 <buildArg>.*\.jar</buildArg>
-                                <buildArg>META-INF\/native-image\/.*\/resource-config\.json</buildArg>
-                                <!-- 排除直接放在 META-INF/native-image/ 下的 resource-config（SCA 的格式） -->
-                                <buildArg>--exclude-config</buildArg>
-                                <buildArg>spring-cloud-.*alibaba.*\.jar</buildArg>
-                                <buildArg>META-INF\/native-image\/resource-config\.json</buildArg>
-                                <!-- 排除 fastjson2/fastjson1 的 build-time 初始化（与 Spring AOT 冲突） -->
+                                <buildArg>.*resource-config\.json</buildArg>
+                                <!-- 排除 fastjson2/fastjson1 全部 native-image 配置（build-time 初始化冲突） -->
                                 <buildArg>--exclude-config</buildArg>
                                 <buildArg>fastjson.*\.jar</buildArg>
                                 <buildArg>META-INF\/native-image\/.*</buildArg>
