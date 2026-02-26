@@ -1,23 +1,25 @@
-version: '3.8'
+# Flyway 数据库迁移 — 开发环境
+# 用于本地开发自动执行数据库迁移
 
-# Flyway数据库迁移服务配置
-# 用于开发环境自动执行数据库迁移
+networks:
+  basebackend-network:
+    driver: bridge
 
 services:
-  # Admin API数据库
-  admin-db:
+  # MySQL 数据库
+  mysql:
     image: mysql:8.0
-    container_name: basebackend-admin-db
+    container_name: basebackend-mysql
     ports:
       - "3308:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: basebackend_admin
+      MYSQL_DATABASE: basebackend
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin123
       TZ: Asia/Shanghai
     volumes:
-      - admin-db-data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -27,29 +29,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - basebackend-network
-
-  # Flyway迁移服务（admin-api）
-  flyway-admin:
-    image: flyway/flyway:9.22.3
-    container_name: flyway-admin
-    command: migrate
-    environment:
-      FLYWAY_URL: jdbc:mysql://admin-db:3306/basebackend_admin?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai
-      FLYWAY_USER: root
-      FLYWAY_PASSWORD: root
-      FLYWAY_LOCATIONS: filesystem:/flyway/sql
-      FLYWAY_BASELINE_ON_MIGRATE: "true"
-      FLYWAY_BASELINE_VERSION: "0"
-      FLYWAY_ENCODING: UTF-8
-      FLYWAY_VALIDATE_ON_MIGRATE: "true"
-      FLYWAY_CLEAN_DISABLED: "true"
-    volumes:
-      - ./basebackend-admin-api/src/main/resources/db/migration:/flyway/sql:ro
-    depends_on:
-      admin-db:
-        condition: service_healthy
     networks:
       - basebackend-network
 
@@ -66,9 +45,5 @@ services:
       - basebackend-network
 
 volumes:
-  admin-db-data:
+  mysql-data:
   redis-data:
-
-networks:
-  basebackend-network:
-    driver: bridge

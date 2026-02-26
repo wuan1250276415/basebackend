@@ -9,14 +9,14 @@ on:
   workflow_dispatch:
     inputs:
       services:
-        description: '要构建的服务（用逗号分隔，留空则构建所有）'
+        description: '要构建的服务（逗号分隔，留空构建所有）'
         required: false
         default: 'all'
 
 env:
   REGISTRY: docker.io
   REGISTRY_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '25'
 
 jobs:
   # ==========================================
@@ -34,7 +34,7 @@ jobs:
         id: set-matrix
         run: |
           if [[ "${{ github.event.inputs.services }}" == "all" ]] || [[ -z "${{ github.event.inputs.services }}" ]]; then
-            echo 'services=["gateway","admin-api","demo-api","file-service"]' >> $GITHUB_OUTPUT
+            echo 'services=["gateway","user-api","system-api","file-service","notification-service","observability-service"]' >> $GITHUB_OUTPUT
           else
             services=$(echo "${{ github.event.inputs.services }}" | jq -R -s -c 'split(",")')
             echo "services=$services" >> $GITHUB_OUTPUT
@@ -49,7 +49,6 @@ jobs:
             VERSION=$(echo ${GITHUB_SHA} | cut -c1-7)
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Generated version: $VERSION"
 
   # ==========================================
   # 构建和推送镜像
@@ -58,6 +57,7 @@ jobs:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: prepare
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -78,24 +78,10 @@ jobs:
       - name: Set module name
         id: module
         run: |
-          case "${{ matrix.service }}" in
-            "gateway")
-              echo "name=basebackend-gateway" >> $GITHUB_OUTPUT
-              ;;
-            "admin-api")
-              echo "name=basebackend-admin-api" >> $GITHUB_OUTPUT
-              ;;
-            "demo-api")
-              echo "name=basebackend-demo-api" >> $GITHUB_OUTPUT
-              ;;
-            "file-service")
-              echo "name=basebackend-file-service" >> $GITHUB_OUTPUT
-              ;;
-          esac
+          echo "name=basebackend-${{ matrix.service }}" >> $GITHUB_OUTPUT
 
       - name: Build with Maven
-        run: |
-          mvn clean package -pl ${{ steps.module.outputs.name }} -am -DskipTests -B
+        run: mvn clean package -pl ${{ steps.module.outputs.name }} -am -DskipTests -B
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -113,20 +99,18 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}/basebackend-${{ matrix.service }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ needs.prepare.outputs.version }}
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ steps.module.outputs.name }}/Dockerfile
-          push: false
-          load: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -134,113 +118,12 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}/basebackend-${{ matrix.service }}:${{ needs.prepare.outputs.version }}
-          format: 'sarif'
-          output: 'trivy-results-${{ matrix.service }}.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # 不因漏洞而失败，仅报告
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
-          category: 'trivy-${{ matrix.service }}'
-
-      - name: Run Trivy vulnerability scanner (table output)
-        uses: aquasecurity/trivy-action@master
+        if: success()
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}/basebackend-${{ matrix.service }}:${{ needs.prepare.outputs.version }}
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'  # CRITICAL/HIGH漏洞时失败
-
-      - name: Push Docker image
-        if: success()
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ steps.module.outputs.name }}/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Generate SBOM
-        if: success()
-        uses: anchore/sbom-action@v0
-        with:
-          image: ${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}/basebackend-${{ matrix.service }}:${{ needs.prepare.outputs.version }}
-          format: spdx-json
-          output-file: sbom-${{ matrix.service }}.spdx.json
-
-      - name: Upload SBOM
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ matrix.service }}
-          path: sbom-${{ matrix.service }}.spdx.json
-          retention-days: 90
-
-  # ==========================================
-  # 更新GitOps仓库
-  # ==========================================
-  update-gitops:
-    name: Update GitOps Repository
-    runs-on: ubuntu-latest
-    needs: [prepare, build-and-push]
-    if: success() && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout main branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Checkout gitops branch
-        run: |
-          git fetch origin gitops:gitops
-          git checkout gitops
-
-      - name: Update image versions
-        run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-
-          for service in gateway admin-api demo-api file-service; do
-            if [[ " ${{ join(fromJson(needs.prepare.outputs.services), ' ') }} " =~ " ${service} " ]]; then
-              echo "Updating ${service} to version ${VERSION}"
-
-              # 更新所有环境的镜像版本
-              for env in dev test staging prod; do
-                file="overlays/${env}/${service}/kustomization.yaml"
-                if [ -f "$file" ]; then
-                  sed -i "s|newTag:.*|newTag: ${VERSION}|g" "$file"
-                fi
-              done
-            fi
-          done
-
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add overlays/*/*/kustomization.yaml
-
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: update image versions to ${{ needs.prepare.outputs.version }}
-
-            Updated services: ${{ join(fromJson(needs.prepare.outputs.services), ', ') }}
-            Commit: ${{ github.sha }}
-
-            🤖 Auto-generated by GitHub Actions"
-
-            git push origin gitops
-          fi
+          exit-code: '0'
 
   # ==========================================
   # 构建总结
@@ -248,33 +131,22 @@ jobs:
   summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [prepare, build-and-push, update-gitops]
+    needs: [prepare, build-and-push]
     if: always()
 
     steps:
       - name: Generate Summary
         run: |
-          echo "## 🐳 Docker镜像构建总结" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Docker 镜像构建总结" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 构建信息" >> $GITHUB_STEP_SUMMARY
           echo "- **版本**: \`${{ needs.prepare.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **构建服务**: ${{ join(fromJson(needs.prepare.outputs.services), ', ') }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **镜像仓库**: \`${{ env.REGISTRY }}/${{ env.REGISTRY_USERNAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **服务**: ${{ join(fromJson(needs.prepare.outputs.services), ', ') }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **构建状态**: ${{ needs.build-and-push.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### 任务状态" >> $GITHUB_STEP_SUMMARY
-          echo "- 镜像构建: ${{ needs.build-and-push.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- GitOps更新: ${{ needs.update-gitops.result }}" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.build-and-push.result }}" == "success" ]]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ **所有镜像构建成功并已推送**" >> $GITHUB_STEP_SUMMARY
-
-            if [[ "${{ needs.update-gitops.result }}" == "success" ]]; then
-              echo "✅ **GitOps配置已自动更新**" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "✅ **所有镜像构建成功**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "❌ **镜像构建失败，请查看详细日志**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **镜像构建失败**" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi

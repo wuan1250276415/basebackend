@@ -1,141 +1,107 @@
 # ==========================================
-# Stage 1: Build
+# BaseBackend Gateway — Multi-stage Dockerfile
+# Java 25 + Spring Boot 4.0.3
 # ==========================================
-FROM maven:3.9.5-eclipse-temurin-17 AS builder
 
-# 设置工作目录
+# Stage 1: Build
+FROM maven:3.9.9-eclipse-temurin-25 AS builder
 WORKDIR /build
 
-# 复制父POM和所有模块的POM文件（利用Docker缓存）
+# 复制所有 pom.xml（利用 Docker 缓存层）
 COPY pom.xml .
 COPY basebackend-common/pom.xml basebackend-common/
-COPY basebackend-jwt/pom.xml basebackend-jwt/
-COPY basebackend-database/pom.xml basebackend-database/
-COPY basebackend-cache/pom.xml basebackend-cache/
-COPY basebackend-logging/pom.xml basebackend-logging/
-COPY basebackend-security/pom.xml basebackend-security/
-COPY basebackend-observability/pom.xml basebackend-observability/
-COPY basebackend-messaging/pom.xml basebackend-messaging/
-COPY basebackend-file-service/pom.xml basebackend-file-service/
-COPY basebackend-backup/pom.xml basebackend-backup/
-COPY basebackend-nacos/pom.xml basebackend-nacos/
-COPY basebackend-gateway/pom.xml basebackend-gateway/
-COPY basebackend-web/pom.xml basebackend-web/
-COPY basebackend-transaction/pom.xml basebackend-transaction/
-COPY basebackend-security-starter/pom.xml basebackend-security-starter/
-COPY basebackend-feign-api/pom.xml basebackend-feign-api/
-COPY basebackend-feature-toggle/pom.xml basebackend-feature-toggle/
-COPY basebackend-scheduler-parent/pom.xml basebackend-scheduler-parent/
-COPY basebackend-code-generator/pom.xml basebackend-code-generator/
-COPY basebackend-user-api/pom.xml basebackend-user-api/
-COPY basebackend-system-api/pom.xml basebackend-system-api/
-COPY basebackend-notification-service/pom.xml basebackend-notification-service/
-COPY basebackend-observability-service/pom.xml basebackend-observability-service/
 COPY basebackend-common/basebackend-common-core/pom.xml basebackend-common/basebackend-common-core/
-COPY basebackend-common/basebackend-common-dto/pom.xml basebackend-common/basebackend-common-dto/
 COPY basebackend-common/basebackend-common-util/pom.xml basebackend-common/basebackend-common-util/
 COPY basebackend-common/basebackend-common-context/pom.xml basebackend-common/basebackend-common-context/
 COPY basebackend-common/basebackend-common-security/pom.xml basebackend-common/basebackend-common-security/
 COPY basebackend-common/basebackend-common-starter/pom.xml basebackend-common/basebackend-common-starter/
 COPY basebackend-common/basebackend-common-storage/pom.xml basebackend-common/basebackend-common-storage/
-COPY basebackend-scheduler-parent/scheduler-core/pom.xml basebackend-scheduler-parent/scheduler-core/
-COPY basebackend-scheduler-parent/scheduler-workflow/pom.xml basebackend-scheduler-parent/scheduler-workflow/
-COPY basebackend-scheduler-parent/scheduler-processor/pom.xml basebackend-scheduler-parent/scheduler-processor/
-COPY basebackend-scheduler-parent/scheduler-metrics/pom.xml basebackend-scheduler-parent/scheduler-metrics/
-COPY basebackend-scheduler-parent/scheduler-integration/pom.xml basebackend-scheduler-parent/scheduler-integration/
+COPY basebackend-common/basebackend-common-lock/pom.xml basebackend-common/basebackend-common-lock/
+COPY basebackend-common/basebackend-common-idempotent/pom.xml basebackend-common/basebackend-common-idempotent/
+COPY basebackend-common/basebackend-common-datascope/pom.xml basebackend-common/basebackend-common-datascope/
+COPY basebackend-common/basebackend-common-ratelimit/pom.xml basebackend-common/basebackend-common-ratelimit/
+COPY basebackend-common/basebackend-common-export/pom.xml basebackend-common/basebackend-common-export/
+COPY basebackend-common/basebackend-common-event/pom.xml basebackend-common/basebackend-common-event/
+COPY basebackend-common/basebackend-common-masking/pom.xml basebackend-common/basebackend-common-masking/
+COPY basebackend-common/basebackend-common-audit/pom.xml basebackend-common/basebackend-common-audit/
+COPY basebackend-common/basebackend-common-tree/pom.xml basebackend-common/basebackend-common-tree/
+COPY basebackend-jwt/pom.xml basebackend-jwt/
+COPY basebackend-database/pom.xml basebackend-database/
+COPY basebackend-database/database-core/pom.xml basebackend-database/database-core/
+COPY basebackend-database/database-security/pom.xml basebackend-database/database-security/
+COPY basebackend-database/database-multitenant/pom.xml basebackend-database/database-multitenant/
+COPY basebackend-database/database-failover/pom.xml basebackend-database/database-failover/
+COPY basebackend-database/database-migration/pom.xml basebackend-database/database-migration/
+COPY basebackend-cache/pom.xml basebackend-cache/
+COPY basebackend-cache/basebackend-cache-core/pom.xml basebackend-cache/basebackend-cache-core/
+COPY basebackend-cache/basebackend-cache-advanced/pom.xml basebackend-cache/basebackend-cache-advanced/
+COPY basebackend-cache/basebackend-cache-admin/pom.xml basebackend-cache/basebackend-cache-admin/
+COPY basebackend-logging/pom.xml basebackend-logging/
+COPY basebackend-logging/basebackend-logging-core/pom.xml basebackend-logging/basebackend-logging-core/
+COPY basebackend-logging/basebackend-logging-monitoring/pom.xml basebackend-logging/basebackend-logging-monitoring/
+COPY basebackend-logging/basebackend-logging-advanced/pom.xml basebackend-logging/basebackend-logging-advanced/
+COPY basebackend-logging/basebackend-logging-audit/pom.xml basebackend-logging/basebackend-logging-audit/
+COPY basebackend-security/pom.xml basebackend-security/
+COPY basebackend-observability/pom.xml basebackend-observability/
+COPY basebackend-observability/observability-core/pom.xml basebackend-observability/observability-core/
+COPY basebackend-observability/observability-metrics/pom.xml basebackend-observability/observability-metrics/
+COPY basebackend-observability/observability-alert/pom.xml basebackend-observability/observability-alert/
+COPY basebackend-observability/observability-slo/pom.xml basebackend-observability/observability-slo/
+COPY basebackend-observability/observability-logging/pom.xml basebackend-observability/observability-logging/
+COPY basebackend-messaging/pom.xml basebackend-messaging/
+COPY basebackend-nacos/pom.xml basebackend-nacos/
+COPY basebackend-api-model/pom.xml basebackend-api-model/
+COPY basebackend-service-client/pom.xml basebackend-service-client/
+COPY basebackend-ai/pom.xml basebackend-ai/
+COPY basebackend-search/pom.xml basebackend-search/
+COPY basebackend-websocket/pom.xml basebackend-websocket/
+COPY basebackend-workflow/pom.xml basebackend-workflow/
+COPY basebackend-backup/pom.xml basebackend-backup/
+COPY basebackend-code-generator/pom.xml basebackend-code-generator/
+COPY basebackend-scheduler-parent/pom.xml basebackend-scheduler-parent/
+COPY basebackend-scheduler-parent/scheduler-camunda/pom.xml basebackend-scheduler-parent/scheduler-camunda/
+COPY basebackend-file-service/pom.xml basebackend-file-service/
+COPY basebackend-gateway/pom.xml basebackend-gateway/
+COPY basebackend-user-api/pom.xml basebackend-user-api/
+COPY basebackend-system-api/pom.xml basebackend-system-api/
+COPY basebackend-notification-service/pom.xml basebackend-notification-service/
+COPY basebackend-observability-service/pom.xml basebackend-observability-service/
 
-# 下载依赖（利用Docker缓存层）
-RUN mvn dependency:go-offline -B -DskipTests
+# 下载依赖
+RUN mvn dependency:go-offline -B -DskipTests 2>/dev/null || true
 
-# 复制源代码
-COPY basebackend-jwt/src basebackend-jwt/src
-COPY basebackend-database/src basebackend-database/src
-COPY basebackend-cache/src basebackend-cache/src
-COPY basebackend-logging/src basebackend-logging/src
-COPY basebackend-security/src basebackend-security/src
-COPY basebackend-observability/src basebackend-observability/src
-COPY basebackend-messaging/src basebackend-messaging/src
-COPY basebackend-file-service/src basebackend-file-service/src
-COPY basebackend-backup/src basebackend-backup/src
-COPY basebackend-nacos/src basebackend-nacos/src
-COPY basebackend-gateway/src basebackend-gateway/src
-COPY basebackend-web/src basebackend-web/src
-COPY basebackend-transaction/src basebackend-transaction/src
-COPY basebackend-security-starter/src basebackend-security-starter/src
-COPY basebackend-feign-api/src basebackend-feign-api/src
-COPY basebackend-feature-toggle/src basebackend-feature-toggle/src
-COPY basebackend-code-generator/src basebackend-code-generator/src
-COPY basebackend-user-api/src basebackend-user-api/src
-COPY basebackend-system-api/src basebackend-system-api/src
-COPY basebackend-notification-service/src basebackend-notification-service/src
-COPY basebackend-observability-service/src basebackend-observability-service/src
-COPY basebackend-common/basebackend-common-core/src basebackend-common/basebackend-common-core/src
-COPY basebackend-common/basebackend-common-dto/src basebackend-common/basebackend-common-dto/src
-COPY basebackend-common/basebackend-common-util/src basebackend-common/basebackend-common-util/src
-COPY basebackend-common/basebackend-common-context/src basebackend-common/basebackend-common-context/src
-COPY basebackend-common/basebackend-common-security/src basebackend-common/basebackend-common-security/src
-COPY basebackend-common/basebackend-common-starter/src basebackend-common/basebackend-common-starter/src
-COPY basebackend-common/basebackend-common-storage/src basebackend-common/basebackend-common-storage/src
-COPY basebackend-scheduler-parent/scheduler-core/src basebackend-scheduler-parent/scheduler-core/src
-COPY basebackend-scheduler-parent/scheduler-workflow/src basebackend-scheduler-parent/scheduler-workflow/src
-COPY basebackend-scheduler-parent/scheduler-processor/src basebackend-scheduler-parent/scheduler-processor/src
-COPY basebackend-scheduler-parent/scheduler-metrics/src basebackend-scheduler-parent/scheduler-metrics/src
-COPY basebackend-scheduler-parent/scheduler-integration/src basebackend-scheduler-parent/scheduler-integration/src
-
-# 构建项目（跳过测试）
-# 使用全仓库打包以确保生成可执行的 Spring Boot fat jar
-RUN mvn -Dmaven.test.skip=true clean package -B
-
-# 打包完成后直接保留 jar 文件供运行镜像复制使用（不使用 layertools 提取）
+# 复制源代码并构建
+COPY . .
+RUN mvn clean package -pl basebackend-gateway -am -DskipTests -B
 
 # ==========================================
 # Stage 2: Runtime
 # ==========================================
 FROM eclipse-temurin:25-jre-alpine
 
-# 元数据标签
 LABEL maintainer="basebackend-team"
 LABEL service="gateway"
-LABEL version="1.0.0"
 
-# 安装必要工具和字体（支持中文）
-RUN apk add --no-cache \
-    curl \
-    tzdata \
-    ttf-dejavu \
+RUN apk add --no-cache curl tzdata \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
     && apk del tzdata
 
-# 创建非root用户
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
+RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
-# 创建应用目录
 WORKDIR /app
-# Ensure logs directory exists for Logback file appenders
-# Logback config writes to ./logs/*.log, so create and set ownership here
-RUN mkdir -p /app/logs \
-    && chown -R 1000:1000 /app/logs
-# 从 builder 阶段复制打包好的 jar 到运行镜像
+RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs
+
 COPY --from=builder --chown=appuser:appuser /build/basebackend-gateway/target/*.jar /app/app.jar
 
-# 切换到非root用户
 USER appuser
-
-# 暴露端口
 EXPOSE 8080
 
-# JVM参数配置
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heap-dump.hprof"
-
-# Spring Boot配置
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseZGC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heap-dump.hprof"
 ENV SPRING_PROFILES_ACTIVE=dev
 ENV SERVER_PORT=8080
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# 启动命令（直接运行 jar）
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
