@@ -1,3 +1,4 @@
+import { Undo2, Trash2, X, RefreshCw, AlertCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import {
   Card,
@@ -10,13 +11,7 @@ import {
   Tooltip,
   Progress,
 } from 'antd'
-import {
-  RollbackOutlined,
-  DeleteOutlined,
-  ClearOutlined,
-  ReloadOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import type { FileRecycleBin } from '@/types/file'
 import {
@@ -76,7 +71,7 @@ const RecycleBin: React.FC = () => {
   const handlePermanentDelete = (item: FileRecycleBin) => {
     Modal.confirm({
       title: '确认彻底删除',
-      icon: <ExclamationCircleOutlined />,
+      icon: <AlertCircle />,
       content: `确定要彻底删除文件 "${item.fileName}" 吗？此操作不可恢复！`,
       okText: '确认删除',
       okType: 'danger',
@@ -125,7 +120,7 @@ const RecycleBin: React.FC = () => {
 
     Modal.confirm({
       title: '确认批量彻底删除',
-      icon: <ExclamationCircleOutlined />,
+      icon: <AlertCircle />,
       content: `确定要彻底删除选中的 ${selectedRowKeys.length} 个文件吗？此操作不可恢复！`,
       okText: '确认删除',
       okType: 'danger',
@@ -147,7 +142,7 @@ const RecycleBin: React.FC = () => {
   const handleEmptyRecycleBin = () => {
     Modal.confirm({
       title: '确认清空回收站',
-      icon: <ExclamationCircleOutlined />,
+      icon: <AlertCircle />,
       content: '确定要清空回收站吗？所有文件将被彻底删除，此操作不可恢复！',
       okText: '确认清空',
       okType: 'danger',
@@ -259,7 +254,7 @@ const RecycleBin: React.FC = () => {
             <Button
               type="text"
               size="small"
-              icon={<RollbackOutlined />}
+              icon={<Undo2 />}
               onClick={() => handleRestore(record)}
             />
           </Tooltip>
@@ -268,7 +263,7 @@ const RecycleBin: React.FC = () => {
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 />}
               onClick={() => handlePermanentDelete(record)}
             />
           </Tooltip>
@@ -282,7 +277,7 @@ const RecycleBin: React.FC = () => {
       <Card
         title="回收站"
         extra={
-          <Button icon={<ReloadOutlined />} onClick={loadRecycleBinList}>
+          <Button icon={<RefreshCw />} onClick={loadRecycleBinList}>
             刷新
           </Button>
         }
@@ -291,7 +286,7 @@ const RecycleBin: React.FC = () => {
         <Space style={{ marginBottom: 16 }}>
           <Button
             type="primary"
-            icon={<RollbackOutlined />}
+            icon={<Undo2 />}
             disabled={selectedRowKeys.length === 0}
             onClick={handleBatchRestore}
           >
@@ -299,7 +294,7 @@ const RecycleBin: React.FC = () => {
           </Button>
           <Button
             danger
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             disabled={selectedRowKeys.length === 0}
             onClick={handleBatchPermanentDelete}
           >
@@ -307,7 +302,7 @@ const RecycleBin: React.FC = () => {
           </Button>
           <Button
             danger
-            icon={<ClearOutlined />}
+            icon={<X />}
             onClick={handleEmptyRecycleBin}
           >
             清空回收站
@@ -324,7 +319,7 @@ const RecycleBin: React.FC = () => {
             borderRadius: 4,
           }}
         >
-          <ExclamationCircleOutlined style={{ color: '#fa8c16', marginRight: 8 }} />
+          <AlertCircle style={{ color: '#fa8c16', marginRight: 8 }} />
           回收站中的文件将在30天后自动删除。彻底删除的文件无法恢复，请谨慎操作。
         </div>
 

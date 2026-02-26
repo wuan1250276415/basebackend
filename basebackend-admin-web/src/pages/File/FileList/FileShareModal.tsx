@@ -1,3 +1,4 @@
+import { Copy } from 'lucide-react';
 import React, { useState } from 'react'
 import {
   Modal,
@@ -11,7 +12,7 @@ import {
   Button,
   Alert,
 } from 'antd'
-import { CopyOutlined } from '@ant-design/icons'
+
 import type { FileMetadata } from '@/types/file'
 import { createFileShare } from '@/api/file'
 import dayjs from 'dayjs'
@@ -84,7 +85,7 @@ const FileShareModal: React.FC<FileShareModalProps> = ({
         shareInfo ? (
           <Space>
             <Button onClick={handleCancel}>关闭</Button>
-            <Button type="primary" icon={<CopyOutlined />} onClick={copyShareLink}>
+            <Button type="primary" icon={<Copy />} onClick={copyShareLink}>
               复制分享信息
             </Button>
           </Space>

@@ -1,15 +1,7 @@
+import { UserPlus, Users, FormInput, FilePlus, Monitor, LineChart, Webhook, Settings } from 'lucide-react';
 import React from 'react'
 import { Card, Row, Col } from 'antd'
-import {
-  UserAddOutlined,
-  TeamOutlined,
-  FormOutlined,
-  FileAddOutlined,
-  MonitorOutlined,
-  LineChartOutlined,
-  ApiOutlined,
-  SettingOutlined,
-} from '@ant-design/icons'
+
 import { useNavigate } from 'react-router-dom'
 import type { QuickAction } from '../types'
 
@@ -19,7 +11,7 @@ export const QuickActions: React.FC = React.memo(() => {
   const actions: QuickAction[] = [
     {
       key: 'addUser',
-      icon: <UserAddOutlined style={{ fontSize: 24 }} />,
+      icon: <UserPlus style={{ fontSize: 24 }} />,
       title: '新增用户',
       description: '快速添加系统用户',
       path: '/system/user',
@@ -27,7 +19,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'roleManagement',
-      icon: <TeamOutlined style={{ fontSize: 24 }} />,
+      icon: <Users style={{ fontSize: 24 }} />,
       title: '角色管理',
       description: '管理用户角色权限',
       path: '/system/role',
@@ -35,7 +27,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'startProcess',
-      icon: <FormOutlined style={{ fontSize: 24 }} />,
+      icon: <FormInput style={{ fontSize: 24 }} />,
       title: '发起流程',
       description: '创建新的工作流',
       path: '/workflow/template',
@@ -43,7 +35,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'uploadFile',
-      icon: <FileAddOutlined style={{ fontSize: 24 }} />,
+      icon: <FilePlus style={{ fontSize: 24 }} />,
       title: '上传文件',
       description: '上传和管理文件',
       path: '/file/list',
@@ -51,7 +43,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'serverMonitor',
-      icon: <MonitorOutlined style={{ fontSize: 24 }} />,
+      icon: <Monitor style={{ fontSize: 24 }} />,
       title: '服务器监控',
       description: '查看服务器状态',
       path: '/monitor/server',
@@ -59,7 +51,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'observability',
-      icon: <LineChartOutlined style={{ fontSize: 24 }} />,
+      icon: <LineChart style={{ fontSize: 24 }} />,
       title: '可观测性',
       description: '日志追踪和监控',
       path: '/monitor/observability/overview',
@@ -67,7 +59,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'apiDocs',
-      icon: <ApiOutlined style={{ fontSize: 24 }} />,
+      icon: <Webhook style={{ fontSize: 24 }} />,
       title: 'API文档',
       description: '查看接口文档',
       path: '/developer/api-docs',
@@ -75,7 +67,7 @@ export const QuickActions: React.FC = React.memo(() => {
     },
     {
       key: 'systemSettings',
-      icon: <SettingOutlined style={{ fontSize: 24 }} />,
+      icon: <Settings style={{ fontSize: 24 }} />,
       title: '系统设置',
       description: '菜单和配置管理',
       path: '/system/menu',

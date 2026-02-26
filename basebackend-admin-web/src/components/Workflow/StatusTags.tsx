@@ -1,12 +1,7 @@
+import { CheckCircle2, XCircle, RefreshCw, PauseCircle, Clock } from 'lucide-react';
 import React from 'react'
 import { Tag } from 'antd'
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-  PauseCircleOutlined,
-  ClockCircleOutlined,
-} from '@ant-design/icons'
+
 
 /**
  * 流程状态标签组件
@@ -26,7 +21,7 @@ export const ProcessStatusTag: React.FC<ProcessStatusTagProps> = ({
 }) => {
   if (deleteReason) {
     return (
-      <Tag icon={<CloseCircleOutlined />} color="error" style={style}>
+      <Tag icon={<XCircle />} color="error" style={style}>
         已终止
       </Tag>
     )
@@ -34,7 +29,7 @@ export const ProcessStatusTag: React.FC<ProcessStatusTagProps> = ({
 
   if (ended) {
     return (
-      <Tag icon={<CheckCircleOutlined />} color="success" style={style}>
+      <Tag icon={<CheckCircle2 />} color="success" style={style}>
         已完成
       </Tag>
     )
@@ -42,14 +37,14 @@ export const ProcessStatusTag: React.FC<ProcessStatusTagProps> = ({
 
   if (suspended) {
     return (
-      <Tag icon={<PauseCircleOutlined />} color="warning" style={style}>
+      <Tag icon={<PauseCircle />} color="warning" style={style}>
         已挂起
       </Tag>
     )
   }
 
   return (
-    <Tag icon={<SyncOutlined spin />} color="processing" style={style}>
+    <Tag icon={<RefreshCw className="anticon-spin" />} color="processing" style={style}>
       进行中
     </Tag>
   )
@@ -71,7 +66,7 @@ export const TaskStatusTag: React.FC<TaskStatusTagProps> = ({
 }) => {
   if (endTime) {
     return (
-      <Tag icon={<CheckCircleOutlined />} color="success" style={style}>
+      <Tag icon={<CheckCircle2 />} color="success" style={style}>
         已完成
       </Tag>
     )
@@ -84,13 +79,13 @@ export const TaskStatusTag: React.FC<TaskStatusTagProps> = ({
 
     if (hoursDiff < 0) {
       return (
-        <Tag icon={<CloseCircleOutlined />} color="error" style={style}>
+        <Tag icon={<XCircle />} color="error" style={style}>
           已超时
         </Tag>
       )
     } else if (hoursDiff < 24) {
       return (
-        <Tag icon={<ClockCircleOutlined />} color="warning" style={style}>
+        <Tag icon={<Clock />} color="warning" style={style}>
           即将超时
         </Tag>
       )
@@ -98,7 +93,7 @@ export const TaskStatusTag: React.FC<TaskStatusTagProps> = ({
   }
 
   return (
-    <Tag icon={<ClockCircleOutlined />} color="processing" style={style}>
+    <Tag icon={<Clock />} color="processing" style={style}>
       正常
     </Tag>
   )
@@ -188,11 +183,11 @@ export const DefinitionStatusTag: React.FC<DefinitionStatusTagProps> = ({
   style,
 }) => {
   return suspended ? (
-    <Tag color="warning" icon={<PauseCircleOutlined />} style={style}>
+    <Tag color="warning" icon={<PauseCircle />} style={style}>
       已挂起
     </Tag>
   ) : (
-    <Tag color="success" icon={<CheckCircleOutlined />} style={style}>
+    <Tag color="success" icon={<CheckCircle2 />} style={style}>
       激活
     </Tag>
   )

@@ -1,3 +1,4 @@
+import { ArrowLeft, CheckCircle2, Clock, RefreshCw, PauseCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -15,13 +16,7 @@ import {
   Col,
   Tabs,
 } from 'antd'
-import {
-  ArrowLeftOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  SyncOutlined,
-  PauseCircleOutlined,
-} from '@ant-design/icons'
+
 import dayjs from 'dayjs'
 
 import {
@@ -107,19 +102,19 @@ const ProcessInstanceDetail: React.FC = () => {
     if (!instance) return null
     if (instance.ended) {
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success" style={{ fontSize: 14 }}>
+        <Tag icon={<CheckCircle2 />} color="success" style={{ fontSize: 14 }}>
           已完成
         </Tag>
       )
     } else if (instance.suspended) {
       return (
-        <Tag icon={<PauseCircleOutlined />} color="warning" style={{ fontSize: 14 }}>
+        <Tag icon={<PauseCircle />} color="warning" style={{ fontSize: 14 }}>
           已挂起
         </Tag>
       )
     } else {
       return (
-        <Tag icon={<SyncOutlined spin />} color="processing" style={{ fontSize: 14 }}>
+        <Tag icon={<RefreshCw className="anticon-spin" />} color="processing" style={{ fontSize: 14 }}>
           进行中
         </Tag>
       )
@@ -155,7 +150,7 @@ const ProcessInstanceDetail: React.FC = () => {
       {/* 页面头部 */}
       <Card>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+          <Button icon={<ArrowLeft />} onClick={() => navigate(-1)}>
             返回
           </Button>
           <Divider type="vertical" />
@@ -289,11 +284,11 @@ const ProcessInstanceDetail: React.FC = () => {
                       color={isCompleted ? 'green' : isCurrent ? 'blue' : 'gray'}
                       dot={
                         isCompleted ? (
-                          <CheckCircleOutlined style={{ fontSize: 16 }} />
+                          <CheckCircle2 style={{ fontSize: 16 }} />
                         ) : isCurrent ? (
-                          <SyncOutlined spin style={{ fontSize: 16 }} />
+                          <RefreshCw className="anticon-spin" style={{ fontSize: 16 }} />
                         ) : (
-                          <ClockCircleOutlined style={{ fontSize: 16 }} />
+                          <Clock style={{ fontSize: 16 }} />
                         )
                       }
                     >

@@ -1,10 +1,6 @@
+import { Network, User, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, Row, Col, Statistic } from 'antd'
-import {
-  ApartmentOutlined,
-  UserOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-} from '@ant-design/icons'
+
 import { Dept } from '@/types'
 
 interface DeptStatisticsProps {
@@ -48,7 +44,7 @@ const DeptStatistics = ({ depts }: DeptStatisticsProps) => {
           <Statistic
             title="总部门数"
             value={stats.total}
-            prefix={<ApartmentOutlined style={{ color: '#1890ff' }} />}
+            prefix={<Network style={{ color: '#1890ff' }} />}
             valueStyle={{ color: '#1890ff' }}
           />
         </Card>
@@ -58,7 +54,7 @@ const DeptStatistics = ({ depts }: DeptStatisticsProps) => {
           <Statistic
             title="已配置负责人"
             value={stats.hasLeader}
-            prefix={<UserOutlined style={{ color: '#52c41a' }} />}
+            prefix={<User style={{ color: '#52c41a' }} />}
             valueStyle={{ color: '#52c41a' }}
             suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>/ {stats.total}</span>}
           />
@@ -69,7 +65,7 @@ const DeptStatistics = ({ depts }: DeptStatisticsProps) => {
           <Statistic
             title="启用部门"
             value={stats.enabled}
-            prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+            prefix={<CheckCircle2 style={{ color: '#52c41a' }} />}
             valueStyle={{ color: '#52c41a' }}
           />
         </Card>
@@ -79,7 +75,7 @@ const DeptStatistics = ({ depts }: DeptStatisticsProps) => {
           <Statistic
             title="禁用部门"
             value={stats.disabled}
-            prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+            prefix={<XCircle style={{ color: '#ff4d4f' }} />}
             valueStyle={{ color: '#ff4d4f' }}
           />
         </Card>

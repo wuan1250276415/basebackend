@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import {
   Row,
@@ -15,14 +16,7 @@ import {
   Select,
   InputNumber,
 } from 'antd'
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import {
   getDictPage,
@@ -300,7 +294,7 @@ const DictList = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenDictModal(record)}
           >
             编辑
@@ -311,7 +305,7 @@ const DictList = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -350,7 +344,7 @@ const DictList = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenDictDataModal(record)}
           >
             编辑
@@ -361,7 +355,7 @@ const DictList = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -406,11 +400,11 @@ const DictList = () => {
               </Form.Item>
               <Form.Item>
                 <Space>
-                  <Button type="primary" icon={<SearchOutlined />} onClick={() => loadDictData(1)}>
+                  <Button type="primary" icon={<Search />} onClick={() => loadDictData(1)}>
                     查询
                   </Button>
                   <Button
-                    icon={<ReloadOutlined />}
+                    icon={<RefreshCw />}
                     onClick={() => {
                       dictSearchForm.resetFields()
                       loadDictData(1)
@@ -427,10 +421,10 @@ const DictList = () => {
             title="字典列表"
             extra={
               <Space>
-                <Button icon={<SyncOutlined />} onClick={handleRefreshCache}>
+                <Button icon={<RefreshCw />} onClick={handleRefreshCache}>
                   刷新缓存
                 </Button>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenDictModal()}>
+                <Button type="primary" icon={<Plus />} onClick={() => handleOpenDictModal()}>
                   新增字典
                 </Button>
               </Space>
@@ -475,11 +469,11 @@ const DictList = () => {
                 </Form.Item>
                 <Form.Item>
                   <Space>
-                    <Button type="primary" icon={<SearchOutlined />} onClick={() => loadDictDataData(1)}>
+                    <Button type="primary" icon={<Search />} onClick={() => loadDictDataData(1)}>
                       查询
                     </Button>
                     <Button
-                      icon={<ReloadOutlined />}
+                      icon={<RefreshCw />}
                       onClick={() => {
                         dictDataSearchForm.resetFields()
                         loadDictDataData(1)
@@ -499,7 +493,7 @@ const DictList = () => {
                   <Button onClick={() => setSelectedDictType('')}>关闭</Button>
                   <Button
                     type="primary"
-                    icon={<PlusOutlined />}
+                    icon={<Plus />}
                     onClick={() => handleOpenDictDataModal()}
                   >
                     新增数据

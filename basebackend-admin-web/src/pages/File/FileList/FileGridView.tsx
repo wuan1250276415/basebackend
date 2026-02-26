@@ -1,19 +1,7 @@
+import { File, Folder, Download, Trash2, Eye, Share2, FileText, ImageIcon, FileSpreadsheet, FileArchive } from 'lucide-react';
 import React from 'react'
 import { Card, Row, Col, Space, Button, Tooltip, Tag, Empty, Spin } from 'antd'
-import {
-  FileOutlined,
-  FolderOutlined,
-  DownloadOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  ShareAltOutlined,
-  FilePdfOutlined,
-  FileImageOutlined,
-  FileWordOutlined,
-  FileExcelOutlined,
-  FileZipOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons'
+
 import type { FileMetadata } from '@/types/file'
 
 interface FileGridViewProps {
@@ -42,33 +30,33 @@ const FileGridView: React.FC<FileGridViewProps> = ({
   }
 
   const getFileIcon = (file: FileMetadata) => {
-    if (file.isFolder) return <FolderOutlined style={{ fontSize: 48 }} />
+    if (file.isFolder) return <Folder style={{ fontSize: 48 }} />
 
     const ext = file.fileExtension?.toLowerCase()
     const iconStyle = { fontSize: 48, color: '#1890ff' }
 
     switch (ext) {
       case 'pdf':
-        return <FilePdfOutlined style={{ ...iconStyle, color: '#f5222d' }} />
+        return <FileText style={{ ...iconStyle, color: '#f5222d' }} />
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
-        return <FileImageOutlined style={{ ...iconStyle, color: '#52c41a' }} />
+        return <Image style={{ ...iconStyle, color: '#52c41a' }} />
       case 'doc':
       case 'docx':
-        return <FileWordOutlined style={{ ...iconStyle, color: '#1890ff' }} />
+        return <FileText style={{ ...iconStyle, color: '#1890ff' }} />
       case 'xls':
       case 'xlsx':
-        return <FileExcelOutlined style={{ ...iconStyle, color: '#52c41a' }} />
+        return <FileSpreadsheet style={{ ...iconStyle, color: '#52c41a' }} />
       case 'zip':
       case 'rar':
       case '7z':
-        return <FileZipOutlined style={{ ...iconStyle, color: '#faad14' }} />
+        return <FileArchive style={{ ...iconStyle, color: '#faad14' }} />
       case 'txt':
-        return <FileTextOutlined style={iconStyle} />
+        return <FileText style={iconStyle} />
       default:
-        return <FileOutlined style={iconStyle} />
+        return <File style={iconStyle} />
     }
   }
 
@@ -136,7 +124,7 @@ const FileGridView: React.FC<FileGridViewProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    icon={<DownloadOutlined />}
+                    icon={<Download />}
                     onClick={() => onDownload(file)}
                   />
                 </Tooltip>
@@ -144,7 +132,7 @@ const FileGridView: React.FC<FileGridViewProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    icon={<EyeOutlined />}
+                    icon={<Eye />}
                     onClick={() => onViewDetail(file)}
                   />
                 </Tooltip>
@@ -152,7 +140,7 @@ const FileGridView: React.FC<FileGridViewProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    icon={<ShareAltOutlined />}
+                    icon={<Share2 />}
                     onClick={() => onShare(file)}
                   />
                 </Tooltip>
@@ -161,7 +149,7 @@ const FileGridView: React.FC<FileGridViewProps> = ({
                     type="text"
                     size="small"
                     danger
-                    icon={<DeleteOutlined />}
+                    icon={<Trash2 />}
                     onClick={() => onDelete(file)}
                   />
                 </Tooltip>

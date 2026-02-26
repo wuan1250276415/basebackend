@@ -1,12 +1,8 @@
+import { FileText, DollarSign, ShoppingCart, FormInput } from 'lucide-react';
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Row, Col, Button, Descriptions, Tag } from 'antd'
-import {
-  FileTextOutlined,
-  DollarOutlined,
-  ShoppingCartOutlined,
-  FormOutlined,
-} from '@ant-design/icons'
+
 
 interface TemplateCardProps {
   title: string
@@ -34,7 +30,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       actions={[
         <Button
           type="primary"
-          icon={<FormOutlined />}
+          icon={<FormInput />}
           onClick={() => navigate(route)}
           style={{ backgroundColor: color, borderColor: color }}
         >
@@ -82,7 +78,7 @@ const ProcessTemplateIndex: React.FC = () => {
     {
       title: '请假申请',
       description: '提交各类请假申请，包括年假、病假、事假、婚假、产假等',
-      icon: <FileTextOutlined />,
+      icon: <FileText />,
       route: '/workflow/template/leave',
       color: '#1890ff',
       features: ['请假类型选择', '日期范围选择', '自动计算天数', '附件上传', '审批人指定'],
@@ -90,7 +86,7 @@ const ProcessTemplateIndex: React.FC = () => {
     {
       title: '报销申请',
       description: '提交各类费用报销申请，支持多条费用明细和发票上传',
-      icon: <DollarOutlined />,
+      icon: <DollarSign />,
       route: '/workflow/template/expense',
       color: '#52c41a',
       features: ['费用分类', '多条明细', '自动汇总', '发票上传', '必填附件验证'],
@@ -98,7 +94,7 @@ const ProcessTemplateIndex: React.FC = () => {
     {
       title: '采购申请',
       description: '提交采购需求申请，支持多物品采购和供应商报价',
-      icon: <ShoppingCartOutlined />,
+      icon: <ShoppingCart />,
       route: '/workflow/template/purchase',
       color: '#faad14',
       features: ['采购清单', '规格型号', '自动计价', '供应商管理', '报价单上传'],

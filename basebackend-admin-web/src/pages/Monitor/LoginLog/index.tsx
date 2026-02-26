@@ -1,6 +1,7 @@
+import { Search, Trash2, Eye, X } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Space, Input, Select, message, Modal, Tag, DatePicker } from 'antd'
-import { SearchOutlined, DeleteOutlined, EyeOutlined, ClearOutlined } from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import { LoginLog } from '@/types'
 import {
@@ -214,7 +215,7 @@ const LoginLogPage = () => {
           <Button
             type="link"
             size="small"
-            icon={<EyeOutlined />}
+            icon={<Eye />}
             onClick={() => handleViewDetail(record)}
           >
             详情
@@ -223,7 +224,7 @@ const LoginLogPage = () => {
             type="link"
             size="small"
             danger
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             onClick={() => handleDelete(record.id!)}
           >
             删除
@@ -278,7 +279,7 @@ const LoginLogPage = () => {
           />
           <Button
             type="primary"
-            icon={<SearchOutlined />}
+            icon={<Search />}
             onClick={handleSearch}
           >
             搜索
@@ -290,7 +291,7 @@ const LoginLogPage = () => {
         <Space>
           <Button
             danger
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             onClick={handleBatchDelete}
             disabled={selectedRowKeys.length === 0}
           >
@@ -298,7 +299,7 @@ const LoginLogPage = () => {
           </Button>
           <Button
             danger
-            icon={<ClearOutlined />}
+            icon={<X />}
             onClick={handleClean}
           >
             清空

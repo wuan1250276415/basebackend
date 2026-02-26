@@ -337,6 +337,7 @@ public class RestClientSearchClient implements SearchClient {
     private Map<String, Object> buildCondition(SearchQuery.Condition condition) {
         return switch (condition.type()) {
             case MATCH -> Map.of("match", Map.of(condition.field(), condition.value()));
+            case MULTI_MATCH -> throw new UnsupportedOperationException("MULTI_MATCH not supported yet");
             case MATCH_PHRASE -> Map.of("match_phrase", Map.of(condition.field(), condition.value()));
             case TERM -> Map.of("term", Map.of(condition.field(), condition.value()));
             case TERMS -> Map.of("terms", Map.of(condition.field(), condition.value()));

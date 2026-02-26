@@ -1,3 +1,4 @@
+import { RefreshCw, AlertCircle, TriangleAlert, CheckCircle2, FileText, Link2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react'
 import {
     Card,
@@ -17,14 +18,7 @@ import {
     Timeline,
     Alert,
 } from 'antd'
-import {
-    ReloadOutlined,
-    ExclamationCircleOutlined,
-    WarningOutlined,
-    CheckCircleOutlined,
-    FileTextOutlined,
-    LinkOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -179,9 +173,9 @@ const IncidentCenter: React.FC = () => {
     const getTypeTag = (type: string) => {
         switch (type) {
             case 'failedJob':
-                return <Tag color="error" icon={<WarningOutlined />}>作业失败</Tag>
+                return <Tag color="error" icon={<TriangleAlert />}>作业失败</Tag>
             case 'failedExternalTask':
-                return <Tag color="error" icon={<ExclamationCircleOutlined />}>外部任务失败</Tag>
+                return <Tag color="error" icon={<AlertCircle />}>外部任务失败</Tag>
             default:
                 return <Tag color="default">{type}</Tag>
         }
@@ -261,7 +255,7 @@ const IncidentCenter: React.FC = () => {
             render: (text) =>
                 text ? (
                     <Tooltip title={text}>
-                        <Tag icon={<FileTextOutlined />} color="blue">
+                        <Tag icon={<FileText />} color="blue">
                             已备注
                         </Tag>
                     </Tooltip>
@@ -287,7 +281,7 @@ const IncidentCenter: React.FC = () => {
                             <Button
                                 type="text"
                                 size="small"
-                                icon={<CheckCircleOutlined />}
+                                icon={<CheckCircle2 />}
                                 style={{ color: '#52c41a' }}
                             />
                         </Popconfirm>
@@ -296,7 +290,7 @@ const IncidentCenter: React.FC = () => {
                         <Button
                             type="text"
                             size="small"
-                            icon={<FileTextOutlined />}
+                            icon={<FileText />}
                             onClick={() => handleOpenAnnotation(record)}
                         />
                     </Tooltip>
@@ -304,7 +298,7 @@ const IncidentCenter: React.FC = () => {
                         <Button
                             type="text"
                             size="small"
-                            icon={<LinkOutlined />}
+                            icon={<Link2 size={16} />}
                             onClick={() => handleViewDetail(record)}
                         />
                     </Tooltip>
@@ -321,7 +315,7 @@ const IncidentCenter: React.FC = () => {
                     message={`当前存在 ${statistics.totalCount} 个未解决的异常事件`}
                     type="warning"
                     showIcon
-                    icon={<ExclamationCircleOutlined />}
+                    icon={<AlertCircle />}
                     style={{ marginBottom: 16 }}
                 />
             )}
@@ -334,7 +328,7 @@ const IncidentCenter: React.FC = () => {
                             title="异常事件总数"
                             value={statistics?.totalCount || 0}
                             valueStyle={{ color: '#cf1322' }}
-                            prefix={<ExclamationCircleOutlined />}
+                            prefix={<AlertCircle />}
                         />
                     </Card>
                 </Col>
@@ -384,7 +378,7 @@ const IncidentCenter: React.FC = () => {
             <Card
                 title={
                     <Space>
-                        <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+                        <AlertCircle style={{ color: '#faad14' }} />
                         异常事件中心
                     </Space>
                 }
@@ -400,7 +394,7 @@ const IncidentCenter: React.FC = () => {
                             }}
                         />
                         <Button
-                            icon={<ReloadOutlined />}
+                            icon={<RefreshCw />}
                             onClick={() => {
                                 loadIncidents()
                                 loadStatistics()
@@ -445,7 +439,7 @@ const IncidentCenter: React.FC = () => {
                             </Button>
                             <Button
                                 type="primary"
-                                icon={<CheckCircleOutlined />}
+                                icon={<CheckCircle2 />}
                                 onClick={() => {
                                     handleResolve(currentIncident.id)
                                     setDetailModalVisible(false)

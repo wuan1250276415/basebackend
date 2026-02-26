@@ -1,3 +1,4 @@
+import { CheckCircle2, Clock, User, Users, AlertCircle, TriangleAlert, RefreshCw, Check, Send } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,18 +18,9 @@ import {
     Col,
     Alert,
 } from 'antd'
-import {
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    UserOutlined,
-    TeamOutlined,
-    ExclamationCircleOutlined,
-    WarningOutlined,
-    ReloadOutlined,
-    CheckOutlined,
-    SendOutlined,
-} from '@ant-design/icons'
-import type { ColumnsType, TableRowSelection } from 'antd/es/table'
+
+import type { ColumnsType } from 'antd/es/table'
+import type { TableRowSelection } from 'antd/es/table/interface'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
@@ -268,14 +260,14 @@ const TodoList: React.FC = () => {
         if (due.isBefore(now)) {
             // 已超时
             return (
-                <Tag icon={<ExclamationCircleOutlined />} color="error">
+                <Tag icon={<AlertCircle />} color="error">
                     已超时
                 </Tag>
             )
         } else if (due.diff(now, 'hour') <= 24) {
             // 24小时内超时
             return (
-                <Tag icon={<WarningOutlined />} color="warning">
+                <Tag icon={<TriangleAlert />} color="warning">
                     即将超时
                 </Tag>
             )
@@ -356,7 +348,7 @@ const TodoList: React.FC = () => {
                         <Button
                             type="primary"
                             size="small"
-                            icon={<CheckCircleOutlined />}
+                            icon={<CheckCircle2 />}
                             onClick={() => handleProcess(record)}
                         >
                             办理
@@ -382,7 +374,7 @@ const TodoList: React.FC = () => {
             key: 'assigned',
             label: (
                 <span>
-                    <UserOutlined />
+                    <User />
                     我的待办
                 </span>
             ),
@@ -391,7 +383,7 @@ const TodoList: React.FC = () => {
             key: 'candidate',
             label: (
                 <span>
-                    <TeamOutlined />
+                    <Users />
                     待认领
                 </span>
             ),
@@ -401,7 +393,7 @@ const TodoList: React.FC = () => {
             label: (
                 <Badge count={overdueCount} size="small" offset={[8, 0]}>
                     <span style={{ color: overdueCount > 0 ? '#ff4d4f' : 'inherit' }}>
-                        <ExclamationCircleOutlined />
+                        <AlertCircle />
                         已超时
                     </span>
                 </Badge>
@@ -412,7 +404,7 @@ const TodoList: React.FC = () => {
             label: (
                 <Badge count={dueSoonCount} size="small" offset={[8, 0]}>
                     <span style={{ color: dueSoonCount > 0 ? '#faad14' : 'inherit' }}>
-                        <ClockCircleOutlined />
+                        <Clock />
                         即将超时
                     </span>
                 </Badge>
@@ -425,7 +417,7 @@ const TodoList: React.FC = () => {
             title="待办任务"
             extra={
                 <Space>
-                    <Button icon={<ReloadOutlined />} onClick={() => { loadTasks(); loadOverdueStats() }}>
+                    <Button icon={<RefreshCw />} onClick={() => { loadTasks(); loadOverdueStats() }}>
                         刷新
                     </Button>
                 </Space>
@@ -437,7 +429,7 @@ const TodoList: React.FC = () => {
                     message={`您有 ${overdueCount} 个已超时任务需要处理！`}
                     type="error"
                     showIcon
-                    icon={<ExclamationCircleOutlined />}
+                    icon={<AlertCircle />}
                     style={{ marginBottom: 16 }}
                     action={
                         <Button size="small" danger onClick={() => setActiveTab('overdue')}>
@@ -454,7 +446,7 @@ const TodoList: React.FC = () => {
                         <Statistic
                             title="我的待办"
                             value={activeTab === 'assigned' ? tasks.length : '-'}
-                            prefix={<UserOutlined />}
+                            prefix={<User />}
                         />
                     </Card>
                 </Col>
@@ -463,7 +455,7 @@ const TodoList: React.FC = () => {
                         <Statistic
                             title="待认领"
                             value={activeTab === 'candidate' ? tasks.length : '-'}
-                            prefix={<TeamOutlined />}
+                            prefix={<Users />}
                         />
                     </Card>
                 </Col>
@@ -473,7 +465,7 @@ const TodoList: React.FC = () => {
                             title="已超时"
                             value={overdueCount}
                             valueStyle={{ color: overdueCount > 0 ? '#ff4d4f' : undefined }}
-                            prefix={<ExclamationCircleOutlined />}
+                            prefix={<AlertCircle />}
                         />
                     </Card>
                 </Col>
@@ -483,7 +475,7 @@ const TodoList: React.FC = () => {
                             title="即将超时(24h)"
                             value={dueSoonCount}
                             valueStyle={{ color: dueSoonCount > 0 ? '#faad14' : undefined }}
-                            prefix={<ClockCircleOutlined />}
+                            prefix={<Clock />}
                         />
                     </Card>
                 </Col>
@@ -501,7 +493,7 @@ const TodoList: React.FC = () => {
                                 <Button
                                     type="primary"
                                     size="small"
-                                    icon={<CheckOutlined />}
+                                    icon={<Check />}
                                     loading={batchLoading}
                                     onClick={handleBatchComplete}
                                 >
@@ -521,7 +513,7 @@ const TodoList: React.FC = () => {
                             )}
                             <Button
                                 size="small"
-                                icon={<SendOutlined />}
+                                icon={<Send />}
                                 onClick={() => {
                                     if (selectedRowKeys.length === 0) {
                                         message.warning('请先选择要委派的任务')

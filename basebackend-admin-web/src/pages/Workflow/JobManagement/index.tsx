@@ -1,3 +1,4 @@
+import { RefreshCw, Trash2, PlayCircle, PauseCircle, AlertCircle, Clock, TriangleAlert, CheckCircle2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react'
 import {
     Card,
@@ -16,17 +17,7 @@ import {
     Badge,
     Popconfirm,
 } from 'antd'
-import {
-    ReloadOutlined,
-    DeleteOutlined,
-    PlayCircleOutlined,
-    PauseCircleOutlined,
-    ExclamationCircleOutlined,
-    ClockCircleOutlined,
-    SyncOutlined,
-    WarningOutlined,
-    CheckCircleOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -229,7 +220,7 @@ const JobManagement: React.FC = () => {
 
         confirm({
             title: '批量重试',
-            icon: <ExclamationCircleOutlined />,
+            icon: <AlertCircle />,
             content: `确定要重试选中的 ${selectedRowKeys.length} 个作业吗？`,
             onOk: async () => {
                 try {
@@ -259,7 +250,7 @@ const JobManagement: React.FC = () => {
 
         confirm({
             title: '批量删除',
-            icon: <ExclamationCircleOutlined />,
+            icon: <AlertCircle />,
             content: `确定要删除选中的 ${selectedRowKeys.length} 个作业吗？此操作不可恢复！`,
             okType: 'danger',
             onOk: async () => {
@@ -284,15 +275,15 @@ const JobManagement: React.FC = () => {
     // 获取状态标签
     const getStatusTag = (job: Job) => {
         if (job.failed) {
-            return <Tag color="error" icon={<WarningOutlined />}>失败</Tag>
+            return <Tag color="error" icon={<TriangleAlert />}>失败</Tag>
         }
         if (job.suspended) {
-            return <Tag color="warning" icon={<PauseCircleOutlined />}>挂起</Tag>
+            return <Tag color="warning" icon={<PauseCircle />}>挂起</Tag>
         }
         if (job.retries > 0 && job.duedate && dayjs(job.duedate).isBefore(dayjs())) {
-            return <Tag color="processing" icon={<SyncOutlined spin />}>可执行</Tag>
+            return <Tag color="processing" icon={<RefreshCw className="anticon-spin" />}>可执行</Tag>
         }
-        return <Tag color="default" icon={<ClockCircleOutlined />}>等待</Tag>
+        return <Tag color="default" icon={<Clock />}>等待</Tag>
     }
 
     // 表格列定义
@@ -393,7 +384,7 @@ const JobManagement: React.FC = () => {
                         <Button
                             type="text"
                             size="small"
-                            icon={<ReloadOutlined />}
+                            icon={<RefreshCw />}
                             onClick={() => handleRetry(record.id)}
                         />
                     </Tooltip>
@@ -401,7 +392,7 @@ const JobManagement: React.FC = () => {
                         <Button
                             type="text"
                             size="small"
-                            icon={<PlayCircleOutlined />}
+                            icon={<PlayCircle />}
                             onClick={() => handleExecute(record.id)}
                             disabled={record.suspended}
                         />
@@ -410,7 +401,7 @@ const JobManagement: React.FC = () => {
                         <Button
                             type="text"
                             size="small"
-                            icon={record.suspended ? <CheckCircleOutlined /> : <PauseCircleOutlined />}
+                            icon={record.suspended ? <CheckCircle2 /> : <PauseCircle />}
                             onClick={() => handleSuspend(record)}
                         />
                     </Tooltip>
@@ -421,7 +412,7 @@ const JobManagement: React.FC = () => {
                         cancelText="取消"
                     >
                         <Tooltip title="删除">
-                            <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                            <Button type="text" size="small" danger icon={<Trash2 />} />
                         </Tooltip>
                     </Popconfirm>
                 </Space>
@@ -445,7 +436,7 @@ const JobManagement: React.FC = () => {
                             title="失败作业"
                             value={statistics?.failedJobCount || 0}
                             valueStyle={{ color: '#cf1322' }}
-                            prefix={<WarningOutlined />}
+                            prefix={<TriangleAlert />}
                         />
                     </Card>
                 </Col>
@@ -455,7 +446,7 @@ const JobManagement: React.FC = () => {
                             title="可执行作业"
                             value={statistics?.executableJobCount || 0}
                             valueStyle={{ color: '#3f8600' }}
-                            prefix={<PlayCircleOutlined />}
+                            prefix={<PlayCircle />}
                         />
                     </Card>
                 </Col>
@@ -496,7 +487,7 @@ const JobManagement: React.FC = () => {
                                 setCurrent(1)
                             }}
                         />
-                        <Button icon={<ReloadOutlined />} onClick={() => { loadJobs(); loadStatistics(); }}>
+                        <Button icon={<RefreshCw />} onClick={() => { loadJobs(); loadStatistics(); }}>
                             刷新
                         </Button>
                     </Space>
@@ -514,7 +505,7 @@ const JobManagement: React.FC = () => {
                             <Button
                                 type="primary"
                                 ghost
-                                icon={<ReloadOutlined />}
+                                icon={<RefreshCw />}
                                 disabled={selectedRowKeys.length === 0}
                                 onClick={handleBatchRetry}
                             >
@@ -523,7 +514,7 @@ const JobManagement: React.FC = () => {
                             <Button
                                 danger
                                 ghost
-                                icon={<DeleteOutlined />}
+                                icon={<Trash2 />}
                                 disabled={selectedRowKeys.length === 0}
                                 onClick={handleBatchDelete}
                             >
@@ -533,9 +524,9 @@ const JobManagement: React.FC = () => {
                     }
                 >
                     <TabPane tab="全部作业" key="all" />
-                    <TabPane tab={<span><WarningOutlined /> 失败作业</span>} key="failed" />
-                    <TabPane tab={<span><PlayCircleOutlined /> 可执行作业</span>} key="executable" />
-                    <TabPane tab={<span><PauseCircleOutlined /> 挂起作业</span>} key="suspended" />
+                    <TabPane tab={<span><TriangleAlert /> 失败作业</span>} key="failed" />
+                    <TabPane tab={<span><PlayCircle /> 可执行作业</span>} key="executable" />
+                    <TabPane tab={<span><PauseCircle /> 挂起作业</span>} key="suspended" />
                 </Tabs>
 
                 <Table
@@ -648,12 +639,12 @@ const JobManagement: React.FC = () => {
 
                         <div style={{ marginTop: 24, textAlign: 'right' }}>
                             <Space>
-                                <Button icon={<ReloadOutlined />} onClick={() => handleRetry(currentJob.id)}>
+                                <Button icon={<RefreshCw />} onClick={() => handleRetry(currentJob.id)}>
                                     重试
                                 </Button>
                                 <Button
                                     type="primary"
-                                    icon={<PlayCircleOutlined />}
+                                    icon={<PlayCircle />}
                                     onClick={() => {
                                         handleExecute(currentJob.id)
                                         setDetailModalVisible(false)

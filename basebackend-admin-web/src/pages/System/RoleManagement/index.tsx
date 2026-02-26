@@ -1,6 +1,7 @@
+import { User, Shield } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { Layout, Tabs, Card, Empty, Select, Space, message } from 'antd'
-import { UserOutlined, SafetyOutlined } from '@ant-design/icons'
+
 import { Role, Application } from '@/types'
 import RoleTree from './components/RoleTree'
 import RoleUserTab from './components/RoleUserTab'
@@ -56,7 +57,7 @@ const RoleManagement: React.FC = () => {
       key: 'users',
       label: (
         <span>
-          <UserOutlined />
+          <User />
           角色用户
         </span>
       ),
@@ -70,7 +71,7 @@ const RoleManagement: React.FC = () => {
       key: 'permissions',
       label: (
         <span>
-          <SafetyOutlined />
+          <Shield />
           角色权限
         </span>
       ),

@@ -1,3 +1,4 @@
+import { Eye, CheckCircle2, XCircle, RefreshCw, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -15,15 +16,7 @@ import {
   Col,
   Modal,
 } from 'antd'
-import {
-  EyeOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-  PauseCircleOutlined,
-  PlayCircleOutlined,
-  DeleteOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -213,19 +206,19 @@ const ProcessInstanceList: React.FC = () => {
   const getStatusTag = (instance: ProcessInstance) => {
     if (instance.ended) {
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
+        <Tag icon={<CheckCircle2 />} color="success">
           已完成
         </Tag>
       )
     } else if (instance.suspended) {
       return (
-        <Tag icon={<PauseCircleOutlined />} color="warning">
+        <Tag icon={<PauseCircle />} color="warning">
           已挂起
         </Tag>
       )
     } else {
       return (
-        <Tag icon={<SyncOutlined spin />} color="processing">
+        <Tag icon={<RefreshCw className="anticon-spin" />} color="processing">
           进行中
         </Tag>
       )
@@ -320,7 +313,7 @@ const ProcessInstanceList: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
+          <Button type="link" size="small" icon={<Eye />} onClick={() => handleView(record)}>
             查看
           </Button>
           {!record.ended && (
@@ -329,7 +322,7 @@ const ProcessInstanceList: React.FC = () => {
                 <Button
                   type="link"
                   size="small"
-                  icon={<PlayCircleOutlined />}
+                  icon={<PlayCircle />}
                   onClick={() => handleActivate(record)}
                 >
                   激活
@@ -338,7 +331,7 @@ const ProcessInstanceList: React.FC = () => {
                 <Button
                   type="link"
                   size="small"
-                  icon={<PauseCircleOutlined />}
+                  icon={<PauseCircle />}
                   onClick={() => handleSuspend(record)}
                 >
                   挂起
@@ -351,7 +344,7 @@ const ProcessInstanceList: React.FC = () => {
               type="link"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 />}
               onClick={() => handleDelete(record)}
             >
               删除

@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2, Search, RefreshCw, Key } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import {
   Card,
@@ -12,14 +13,7 @@ import {
   Popconfirm,
   Select,
 } from 'antd'
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  KeyOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import {
   getUserPage,
@@ -216,7 +210,7 @@ const UserList = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenModal(record)}
           >
             编辑
@@ -224,7 +218,7 @@ const UserList = () => {
           <Button
             type="link"
             size="small"
-            icon={<KeyOutlined />}
+            icon={<Key />}
             onClick={() => handleResetPassword(record.id!)}
           >
             重置密码
@@ -242,7 +236,7 @@ const UserList = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -272,10 +266,10 @@ const UserList = () => {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button type="primary" icon={<SearchOutlined />} onClick={() => loadData(1)}>
+              <Button type="primary" icon={<Search />} onClick={() => loadData(1)}>
                 查询
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={() => {
+              <Button icon={<RefreshCw />} onClick={() => {
                 searchForm.resetFields()
                 loadData(1)
               }}>
@@ -289,7 +283,7 @@ const UserList = () => {
       <Card
         title="用户列表"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
+          <Button type="primary" icon={<Plus />} onClick={() => handleOpenModal()}>
             新增用户
           </Button>
         }

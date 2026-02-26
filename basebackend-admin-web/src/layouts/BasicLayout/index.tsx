@@ -1,19 +1,8 @@
+import { PanelLeftClose, PanelLeftOpen, LayoutDashboard, User, Users, Network, Book, Monitor, LogOut, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Avatar, Dropdown, theme, Spin } from 'antd'
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  DashboardOutlined,
-  UserOutlined,
-  TeamOutlined,
-  ApartmentOutlined,
-  SafetyOutlined,
-  BookOutlined,
-  MonitorOutlined,
-  LogoutOutlined,
-  SettingOutlined,
-} from '@ant-design/icons'
+
 import type { MenuProps } from 'antd'
 import { useAuthStore } from '@/stores/auth'
 import { useMenuStore } from '@/stores/menu'
@@ -28,19 +17,19 @@ const { Header, Sider, Content } = Layout
 
 // 图标映射
 const iconMap: Record<string, any> = {
-  dashboard: DashboardOutlined,
-  system: SettingOutlined,
-  monitor: MonitorOutlined,
-  user: UserOutlined,
-  peoples: TeamOutlined,
-  'tree-table': BookOutlined,
-  tree: ApartmentOutlined,
-  dict: BookOutlined,
-  docs: BookOutlined,
-  form: BookOutlined,
-  logininfor: MonitorOutlined,
-  online: MonitorOutlined,
-  server: MonitorOutlined,
+  dashboard: LayoutDashboard,
+  system: Settings,
+  monitor: Monitor,
+  user: User,
+  peoples: Users,
+  'tree-table': Book,
+  tree: Network,
+  dict: Book,
+  docs: Book,
+  form: Book,
+  logininfor: Monitor,
+  online: Monitor,
+  server: Monitor,
 }
 
 const BasicLayout = () => {
@@ -51,7 +40,7 @@ const BasicLayout = () => {
   const [loading, setLoading] = useState(false)
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgContainer, borderRadiusLG, boxShadow },
   } = theme.useToken()
 
   // 初始化通知轮询
@@ -143,7 +132,7 @@ const BasicLayout = () => {
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
-      icon: <UserOutlined />,
+      icon: <User />,
       label: '个人中心',
       onClick: () => navigate('/user/profile'),
     },
@@ -152,7 +141,7 @@ const BasicLayout = () => {
     },
     {
       key: 'logout',
-      icon: <LogoutOutlined />,
+      icon: <LogOut />,
       label: '退出登录',
       onClick: () => {
         logout()
@@ -164,10 +153,10 @@ const BasicLayout = () => {
 
   return (
     <Layout className="layout-container">
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed} 
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
         className="fluent-sider fluent-acrylic"
         width={260}
         style={{ background: 'transparent' }}
@@ -189,19 +178,19 @@ const BasicLayout = () => {
         )}
       </Sider>
       <Layout style={{ background: 'transparent' }}>
-        <Header 
-          className="fluent-header fluent-acrylic" 
+        <Header
+          className="fluent-header fluent-acrylic"
           style={{ padding: 0, background: 'transparent' }}
         >
           <div className="header-content">
             <div className="header-left">
               {collapsed ? (
-                <MenuUnfoldOutlined
+                <PanelLeftOpen
                   className="trigger"
                   onClick={() => setCollapsed(!collapsed)}
                 />
               ) : (
-                <MenuFoldOutlined
+                <PanelLeftClose
                   className="trigger"
                   onClick={() => setCollapsed(!collapsed)}
                 />
@@ -211,7 +200,7 @@ const BasicLayout = () => {
               <NotificationBell />
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                 <div className="user-info">
-                  <Avatar icon={<UserOutlined />} src={userInfo?.avatar} />
+                  <Avatar icon={<User />} src={userInfo?.avatar} />
                   <span className="user-name">{userInfo?.nickname || userInfo?.username}</span>
                 </div>
               </Dropdown>
@@ -226,7 +215,7 @@ const BasicLayout = () => {
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
             overflow: 'auto',
-            boxShadow: 'var(--fluent-shadow-4)',
+            boxShadow: boxShadow,
           }}
         >
           <Outlet />

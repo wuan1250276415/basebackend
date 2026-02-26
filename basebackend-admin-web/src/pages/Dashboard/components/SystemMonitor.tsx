@@ -1,6 +1,7 @@
+import { Database, Webhook, Zap } from 'lucide-react';
 import React from 'react'
 import { Card, Row, Col, Statistic, Progress, Tag } from 'antd'
-import { DatabaseOutlined, ApiOutlined, ThunderboltOutlined } from '@ant-design/icons'
+
 import type { SystemMonitorData } from '../types'
 
 interface SystemMonitorProps {
@@ -73,7 +74,7 @@ export const SystemMonitor: React.FC<SystemMonitorProps> = React.memo(({ data, l
             <Statistic
               title="JVM 堆内存"
               value={`${formatMemory(data.jvmMemoryUsed)} / ${formatMemory(data.jvmMemoryTotal)}`}
-              prefix={<DatabaseOutlined />}
+              prefix={<Database />}
             />
           </Col>
           <Col span={12}>
@@ -91,7 +92,7 @@ export const SystemMonitor: React.FC<SystemMonitorProps> = React.memo(({ data, l
           <Statistic
             title="API 调用/分钟"
             value={data.apiCallsPerMin}
-            prefix={<ApiOutlined />}
+            prefix={<Webhook />}
           />
         </Col>
         <Col span={8}>
@@ -108,7 +109,7 @@ export const SystemMonitor: React.FC<SystemMonitorProps> = React.memo(({ data, l
             title="平均响应时间"
             value={data.avgResponseTime}
             suffix="ms"
-            prefix={<ThunderboltOutlined />}
+            prefix={<Zap />}
           />
         </Col>
       </Row>

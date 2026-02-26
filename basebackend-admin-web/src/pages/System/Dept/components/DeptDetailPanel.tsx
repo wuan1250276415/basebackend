@@ -1,5 +1,6 @@
+import { Edit, Trash2, Plus } from 'lucide-react';
 import { Card, Descriptions, Tag, Space, Button, Empty } from 'antd'
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+
 import { Dept } from '@/types'
 
 interface DeptDetailPanelProps {
@@ -33,14 +34,14 @@ const DeptDetailPanel = ({ dept, onEdit, onDelete, onAddChild }: DeptDetailPanel
       extra={
         <Space>
           <Button
-            icon={<PlusOutlined />}
+            icon={<Plus />}
             onClick={() => onAddChild(dept)}
             size="small"
           >
             新增子部门
           </Button>
           <Button
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => onEdit(dept)}
             type="primary"
             size="small"
@@ -48,7 +49,7 @@ const DeptDetailPanel = ({ dept, onEdit, onDelete, onAddChild }: DeptDetailPanel
             编辑
           </Button>
           <Button
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             onClick={() => onDelete(dept.id!)}
             danger
             size="small"

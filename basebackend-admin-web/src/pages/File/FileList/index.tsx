@@ -1,3 +1,4 @@
+import { UploadCloud, Trash2, Download, Eye, Share2, Folder, File, LayoutGrid, AlignJustify, History, Settings, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import {
   Card,
@@ -15,20 +16,7 @@ import {
   Col,
   Statistic,
 } from 'antd'
-import {
-  UploadOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  EyeOutlined,
-  ShareAltOutlined,
-  FolderOutlined,
-  FileOutlined,
-  AppstoreOutlined,
-  BarsOutlined,
-  HistoryOutlined,
-  SettingOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import type { FileMetadata, ViewMode } from '@/types/file'
 import {
@@ -201,7 +189,7 @@ const FileList: React.FC = () => {
       ellipsis: true,
       render: (text: string, record: FileMetadata) => (
         <Space>
-          {record.isFolder ? <FolderOutlined /> : <FileOutlined />}
+          {record.isFolder ? <Folder /> : <FileOutlined />}
           <a onClick={() => handleViewDetail(record)}>{text}</a>
         </Space>
       ),
@@ -267,7 +255,7 @@ const FileList: React.FC = () => {
             <Button
               type="text"
               size="small"
-              icon={<DownloadOutlined />}
+              icon={<Download />}
               onClick={() => handleDownload(record)}
             />
           </Tooltip>
@@ -275,7 +263,7 @@ const FileList: React.FC = () => {
             <Button
               type="text"
               size="small"
-              icon={<EyeOutlined />}
+              icon={<Eye />}
               onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
@@ -283,7 +271,7 @@ const FileList: React.FC = () => {
             <Button
               type="text"
               size="small"
-              icon={<HistoryOutlined />}
+              icon={<History />}
               onClick={() => handleViewVersions(record)}
             />
           </Tooltip>
@@ -291,7 +279,7 @@ const FileList: React.FC = () => {
             <Button
               type="text"
               size="small"
-              icon={<ShareAltOutlined />}
+              icon={<Share2 />}
               onClick={() => handleShare(record)}
             />
           </Tooltip>
@@ -300,7 +288,7 @@ const FileList: React.FC = () => {
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 />}
               onClick={() => handleDelete(record)}
             />
           </Tooltip>
@@ -357,11 +345,11 @@ const FileList: React.FC = () => {
           <Space>
             <Tooltip title={viewMode === 'list' ? '切换到网格视图' : '切换到列表视图'}>
               <Button
-                icon={viewMode === 'list' ? <AppstoreOutlined /> : <BarsOutlined />}
+                icon={viewMode === 'list' ? <LayoutGrid /> : <Menu />}
                 onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
               />
             </Tooltip>
-            <Button icon={<ReloadOutlined />} onClick={loadFileList}>
+            <Button icon={<RefreshCw />} onClick={loadFileList}>
               刷新
             </Button>
           </Space>
@@ -371,14 +359,14 @@ const FileList: React.FC = () => {
         <Space style={{ marginBottom: 16 }}>
           <Button
             type="primary"
-            icon={<UploadOutlined />}
+            icon={<Upload />}
             onClick={() => setUploadModalVisible(true)}
           >
             上传文件
           </Button>
           <Button
             danger
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             disabled={selectedRowKeys.length === 0}
             onClick={handleBatchDelete}
           >

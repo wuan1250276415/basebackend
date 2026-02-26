@@ -1,12 +1,7 @@
+import { CheckCircle2, Clock, XCircle, Send, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react'
 import { Card, Row, Col, Statistic, Table, Tag, Button, Space, message } from 'antd'
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  SendOutlined,
-  ReloadOutlined
-} from '@ant-design/icons'
+
 import { getMessageStatistics, getQueueMonitor } from '@/api/integration/messageMonitor'
 
 const MessageMonitor = () => {
@@ -86,14 +81,14 @@ const MessageMonitor = () => {
               {autoRefresh ? '自动刷新' : '手动刷新'}
             </Tag>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<RefreshCw />}
               onClick={() => setAutoRefresh(!autoRefresh)}
             >
               {autoRefresh ? '停止刷新' : '启动刷新'}
             </Button>
             <Button
               type="primary"
-              icon={<ReloadOutlined />}
+              icon={<RefreshCw />}
               onClick={fetchStatistics}
               loading={loading}
             >
@@ -118,7 +113,7 @@ const MessageMonitor = () => {
               <Statistic
                 title="待发送"
                 value={statistics.pending || 0}
-                prefix={<ClockCircleOutlined />}
+                prefix={<Clock />}
                 valueStyle={{ color: '#faad14' }}
               />
             </Card>
@@ -128,7 +123,7 @@ const MessageMonitor = () => {
               <Statistic
                 title="已发送"
                 value={statistics.sent || 0}
-                prefix={<SendOutlined />}
+                prefix={<Send />}
                 valueStyle={{ color: '#52c41a' }}
               />
             </Card>
@@ -138,7 +133,7 @@ const MessageMonitor = () => {
               <Statistic
                 title="已消费"
                 value={statistics.consumed || 0}
-                prefix={<CheckCircleOutlined />}
+                prefix={<CheckCircle2 />}
                 valueStyle={{ color: '#52c41a' }}
               />
             </Card>
@@ -151,7 +146,7 @@ const MessageMonitor = () => {
               <Statistic
                 title="失败"
                 value={statistics.failed || 0}
-                prefix={<CloseCircleOutlined />}
+                prefix={<XCircle />}
                 valueStyle={{ color: '#ff4d4f' }}
               />
             </Card>
@@ -161,7 +156,7 @@ const MessageMonitor = () => {
               <Statistic
                 title="死信"
                 value={statistics.deadLetter || 0}
-                prefix={<CloseCircleOutlined />}
+                prefix={<XCircle />}
                 valueStyle={{ color: '#ff4d4f' }}
               />
             </Card>

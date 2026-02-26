@@ -1,5 +1,6 @@
+import { Edit, Trash2, Plus, Copy } from 'lucide-react';
 import { Card, Descriptions, Tag, Space, Button, Empty } from 'antd'
-import { EditOutlined, DeleteOutlined, PlusOutlined, CopyOutlined } from '@ant-design/icons'
+
 import { Menu, Application } from '@/types'
 
 interface MenuDetailPanelProps {
@@ -60,14 +61,14 @@ const MenuDetailPanel = ({
       extra={
         <Space>
           <Button
-            icon={<PlusOutlined />}
+            icon={<Plus />}
             onClick={() => onAddChild(menu)}
             size="small"
           >
             新增子菜单
           </Button>
           <Button
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => onEdit(menu)}
             type="primary"
             size="small"
@@ -75,7 +76,7 @@ const MenuDetailPanel = ({
             编辑
           </Button>
           <Button
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             onClick={() => onDelete(menu.id!)}
             danger
             size="small"

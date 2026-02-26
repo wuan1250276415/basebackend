@@ -1,11 +1,7 @@
+import { LineChart, LayoutDashboard, TriangleAlert, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Row, Col, Statistic, Spin, Alert } from 'antd'
-import {
-  LineChartOutlined,
-  DashboardOutlined,
-  WarningOutlined,
-  CheckCircleOutlined
-} from '@ant-design/icons'
+
 import { getSystemOverview } from '@/api/observability/metrics'
 import { getLogStats } from '@/api/observability/logs'
 import { getTraceStats } from '@/api/observability/traces'
@@ -70,7 +66,7 @@ const ObservabilityOverview = () => {
     <div style={{ padding: '24px' }}>
       <Spin spinning={loading}>
         <h2 style={{ marginBottom: '24px' }}>
-          <DashboardOutlined /> 可观测性概览
+          <LayoutDashboard /> 可观测性概览
         </h2>
 
         {/* 系统指标 */}
@@ -99,7 +95,7 @@ const ObservabilityOverview = () => {
                 title="API 调用数/分钟"
                 value={metricsData.apiCallsTotal || 0}
                 precision={0}
-                prefix={<LineChartOutlined />}
+                prefix={<LineChart />}
               />
             </Col>
             <Col span={6}>
@@ -153,7 +149,7 @@ const ObservabilityOverview = () => {
                 title="ERROR"
                 value={logData.errorCount || 0}
                 valueStyle={{ color: '#f5222d' }}
-                prefix={<WarningOutlined />}
+                prefix={<TriangleAlert />}
               />
             </Col>
             <Col span={6}>
@@ -187,7 +183,7 @@ const ObservabilityOverview = () => {
                 title="慢追踪 (>1s)"
                 value={traceData.slowTraces || 0}
                 valueStyle={{ color: '#faad14' }}
-                prefix={<WarningOutlined />}
+                prefix={<TriangleAlert />}
               />
             </Col>
           </Row>
@@ -221,7 +217,7 @@ const ObservabilityOverview = () => {
               <Statistic
                 title="通知成功率"
                 value={alertData.notifySuccessRate || '0%'}
-                prefix={<CheckCircleOutlined />}
+                prefix={<CheckCircle2 />}
                 valueStyle={{ color: '#52c41a' }}
               />
             </Col>

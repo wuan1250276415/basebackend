@@ -1,3 +1,4 @@
+import { Lock, Shield, Laptop, History, Trash2, Check } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import {
   Card,
@@ -12,14 +13,7 @@ import {
   Popconfirm,
   Tabs,
 } from 'antd'
-import {
-  LockOutlined,
-  SafetyOutlined,
-  LaptopOutlined,
-  HistoryOutlined,
-  DeleteOutlined,
-  CheckOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import { ProfileDetail, ChangePasswordRequest } from '@/types'
 import { changePassword } from '@/api/profile'
@@ -187,7 +181,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
             <Button
               type="link"
               size="small"
-              icon={<CheckOutlined />}
+              icon={<Check />}
               onClick={() => handleTrustDevice(record.id)}
             >
               信任
@@ -199,7 +193,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" danger size="small" icon={<DeleteOutlined />}>
+            <Button type="link" danger size="small" icon={<Trash2 />}>
               移除
             </Button>
           </Popconfirm>
@@ -264,7 +258,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
       key: 'password',
       label: (
         <span>
-          <LockOutlined />
+          <Lock />
           修改密码
         </span>
       ),
@@ -300,7 +294,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
             >
               <Input.Password
                 placeholder="请输入当前密码"
-                prefix={<LockOutlined />}
+                prefix={<Lock />}
                 size="large"
               />
             </Form.Item>
@@ -319,7 +313,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
             >
               <Input.Password
                 placeholder="请输入新密码"
-                prefix={<LockOutlined />}
+                prefix={<Lock />}
                 size="large"
               />
             </Form.Item>
@@ -342,7 +336,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
             >
               <Input.Password
                 placeholder="请再次输入新密码"
-                prefix={<LockOutlined />}
+                prefix={<Lock />}
                 size="large"
               />
             </Form.Item>
@@ -365,7 +359,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
       key: 'devices',
       label: (
         <span>
-          <LaptopOutlined />
+          <Laptop />
           设备管理
         </span>
       ),
@@ -395,7 +389,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
       key: 'logs',
       label: (
         <span>
-          <HistoryOutlined />
+          <History />
           操作日志
         </span>
       ),
@@ -424,7 +418,7 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
   ]
 
   return (
-    <Card title={<><SafetyOutlined /> 安全设置</>}>
+    <Card title={<><Shield /> 安全设置</>}>
       <Tabs items={tabItems} defaultActiveKey="password" />
     </Card>
   )

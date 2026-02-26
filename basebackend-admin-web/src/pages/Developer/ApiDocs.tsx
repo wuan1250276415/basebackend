@@ -1,11 +1,7 @@
+import { CloudDownload, FileText, RefreshCw, Clipboard } from 'lucide-react';
 import { useEffect, useState } from 'react'
 import { Button, Card, Empty, Space, Spin, Typography, message } from 'antd'
-import {
-  CloudDownloadOutlined,
-  FileTextOutlined,
-  ReloadOutlined,
-  SnippetsOutlined,
-} from '@ant-design/icons'
+
 import SwaggerUI from 'swagger-ui-react'
 import 'swagger-ui-react/swagger-ui.css'
 
@@ -143,7 +139,7 @@ const ApiDocs = () => {
           </Paragraph>
           <Space wrap>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<RefreshCw />}
               loading={loadingSpec}
               onClick={() => fetchSpec()}
               type="default"
@@ -151,7 +147,7 @@ const ApiDocs = () => {
               刷新文档
             </Button>
             <Button
-              icon={<FileTextOutlined />}
+              icon={<FileText />}
               loading={downloading === 'json'}
               onClick={() =>
                 downloadFile(OPENAPI_JSON_URL, 'admin-api-openapi.json', 'json')
@@ -160,7 +156,7 @@ const ApiDocs = () => {
               下载 JSON 规范
             </Button>
             <Button
-              icon={<SnippetsOutlined />}
+              icon={<Clipboard />}
               loading={downloading === 'yaml'}
               onClick={() =>
                 downloadFile(OPENAPI_YAML_URL, 'admin-api-openapi.yaml', 'yaml')
@@ -170,7 +166,7 @@ const ApiDocs = () => {
             </Button>
             <Button
               type="primary"
-              icon={<CloudDownloadOutlined />}
+              icon={<CloudDownload />}
               loading={downloading === 'sdk'}
               onClick={() =>
                 downloadFile(SDK_ZIP_URL, 'basebackend-admin-sdk.zip', 'sdk')

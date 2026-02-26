@@ -1,6 +1,7 @@
+import { Bell } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Badge, Dropdown, Button, List, Typography, Space, Empty, Spin } from 'antd';
-import { BellOutlined } from '@ant-design/icons';
+;
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -173,7 +174,7 @@ const NotificationBell = () => {
       <Badge count={unreadCount} overflowCount={99}>
         <Button
           type="text"
-          icon={<BellOutlined style={{ fontSize: 18 }} />}
+          icon={<Bell style={{ fontSize: 18 }} />}
           className={`${styles.bellButton} ${shake ? styles.shake : ''}`}
         />
       </Badge>

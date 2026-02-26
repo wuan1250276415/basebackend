@@ -1,11 +1,7 @@
+import { User, MapPin, Clock, Bell } from 'lucide-react';
 import React from 'react'
 import { Card, Tabs, List, Tag, Badge, Empty } from 'antd'
-import {
-  UserOutlined,
-  EnvironmentOutlined,
-  ClockCircleOutlined,
-  BellOutlined,
-} from '@ant-design/icons'
+
 import type { RecentLoginRecord, RecentOperationLog, SystemNotification } from '../types'
 
 interface RecentActivitiesProps {
@@ -29,7 +25,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
             renderItem={(item) => (
               <List.Item>
                 <List.Item.Meta
-                  avatar={<UserOutlined style={{ fontSize: 20, color: '#1890ff' }} />}
+                  avatar={<User style={{ fontSize: 20, color: '#1890ff' }} />}
                   title={
                     <span>
                       {item.username}
@@ -47,10 +43,10 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
                   description={
                     <div>
                       <div>
-                        <EnvironmentOutlined /> {item.ip} {item.location && `(${item.location})`}
+                        <MapPin /> {item.ip} {item.location && `(${item.location})`}
                       </div>
                       <div>
-                        <ClockCircleOutlined /> {item.loginTime}
+                        <Clock /> {item.loginTime}
                       </div>
                     </div>
                   }
@@ -82,7 +78,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
                     <div>
                       <div>{item.description || '无描述'}</div>
                       <div style={{ marginTop: 4, color: '#8c8c8c' }}>
-                        <ClockCircleOutlined /> {item.operationTime}
+                        <Clock /> {item.operationTime}
                       </div>
                     </div>
                   }
@@ -109,7 +105,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
             renderItem={(item) => (
               <List.Item>
                 <List.Item.Meta
-                  avatar={<BellOutlined style={{ fontSize: 20, color: '#faad14' }} />}
+                  avatar={<Bell style={{ fontSize: 20, color: '#faad14' }} />}
                   title={
                     <span>
                       {item.title}
@@ -122,7 +118,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
                     <div>
                       <div>{item.content}</div>
                       <div style={{ marginTop: 4, color: '#8c8c8c' }}>
-                        <ClockCircleOutlined /> {item.createTime}
+                        <Clock /> {item.createTime}
                       </div>
                     </div>
                   }

@@ -1,6 +1,7 @@
+import { Plus, Edit, Trash2, Folder, File, Webhook, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Tree, Button, Space, Form, Modal, message, Tag, Popconfirm, Input, Select, InputNumber, Row, Col } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, FolderOutlined, FileOutlined, ApiOutlined, ReloadOutlined } from '@ant-design/icons'
+
 import type { DataNode } from 'antd/es/tree'
 import { getMenuTree, createMenu, updateMenu, deleteMenu } from '@/api/menu'
 import { getEnabledApplications } from '@/api/application'
@@ -164,13 +165,13 @@ const MenuList = () => {
   const getMenuIcon = (menuType: string) => {
     switch (menuType) {
       case 'M':
-        return <FolderOutlined style={{ color: '#1890ff' }} />
+        return <Folder style={{ color: '#1890ff' }} />
       case 'C':
-        return <FileOutlined style={{ color: '#52c41a' }} />
+        return <File style={{ color: '#52c41a' }} />
       case 'F':
-        return <ApiOutlined style={{ color: '#faad14' }} />
+        return <Webhook style={{ color: '#faad14' }} />
       default:
-        return <FileOutlined />
+        return <File />
     }
   }
 
@@ -203,7 +204,7 @@ const MenuList = () => {
             <Button
               type="link"
               size="small"
-              icon={<PlusOutlined />}
+              icon={<Plus />}
               onClick={(e) => {
                 e.stopPropagation()
                 handleOpenModal(undefined, menu)
@@ -214,7 +215,7 @@ const MenuList = () => {
             <Button
               type="link"
               size="small"
-              icon={<EditOutlined />}
+              icon={<Edit />}
               onClick={(e) => {
                 e.stopPropagation()
                 handleOpenModal(menu)
@@ -232,7 +233,7 @@ const MenuList = () => {
                 type="link"
                 size="small"
                 danger
-                icon={<DeleteOutlined />}
+                icon={<Trash2 />}
                 onClick={(e) => e.stopPropagation()}
               >
                 删除
@@ -332,10 +333,10 @@ const MenuList = () => {
             title="菜单树"
             extra={
               <Space>
-                <Button icon={<ReloadOutlined />} onClick={loadData} size="small">
+                <Button icon={<RefreshCw />} onClick={loadData} size="small">
                   刷新
                 </Button>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()} size="small">
+                <Button type="primary" icon={<Plus />} onClick={() => handleOpenModal()} size="small">
                   新增根菜单
                 </Button>
               </Space>
