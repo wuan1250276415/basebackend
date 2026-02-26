@@ -277,6 +277,12 @@
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>-H:+AddAllCharsets</buildArg>
                                 <buildArg>-march=compatibility</buildArg>
+                                <buildArg>--exclude-config</buildArg>
+                                <buildArg>nacos-client.*\.jar</buildArg>
+                                <buildArg>META-INF\/native-image\/.*\/native-image\.properties</buildArg>
+                                <buildArg>--exclude-config</buildArg>
+                                <buildArg>nacos-client.*\.jar</buildArg>
+                                <buildArg>META-INF\/native-image\/.*\/resource-config\.json</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
