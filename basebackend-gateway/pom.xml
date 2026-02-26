@@ -84,6 +84,13 @@
             <groupId>com.basebackend</groupId>
             <artifactId>basebackend-nacos</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!-- Gateway 不需要分布式事务，排除 Seata 避免 GraalVM 25 native-image NPE -->
+                <exclusion>
+                    <groupId>io.seata</groupId>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Redis (用于限流) -->
