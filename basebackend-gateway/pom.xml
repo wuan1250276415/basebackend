@@ -122,12 +122,7 @@
             <artifactId>spring-retry</artifactId>
         </dependency>
 
-        <!-- Seata (Optional for distributed transaction support) -->
-        <dependency>
-            <groupId>io.seata</groupId>
-            <artifactId>seata-spring-boot-starter</artifactId>
-            <optional>true</optional>
-        </dependency>
+        <!-- Seata 已移除：Gateway 不需要分布式事务，且 seata-all 包含旧格式 native-image 配置触发 GraalVM 25 NPE -->
 
         <!-- Caffeine 本地缓存 -->
         <dependency>
@@ -271,18 +266,37 @@
                         <configuration>
                             <imageName>${project.artifactId}</imageName>
                             <mainClass>com.basebackend.gateway.GatewayApplication</mainClass>
+                            <!--
+                                禁用 graalvm-reachability-metadata 自动下载。
+                                它加载旧版本库（netty 4.1.80、jackson 2.15.2 等）的元数据，
+                                这些旧格式 resource-config.json 触发 GraalVM Enterprise 25 的
+                                LegacyResourceConfigurationParser NPE (globRegistry is null)。
+                                Spring Boot 4 + 现代库已自带 native-image 元数据，无需外部元数据仓库。
+                            -->
+                            <metadataRepository>
+                                <enabled>false</enabled>
+                            </metadataRepository>
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>-H:+AddAllCharsets</buildArg>
                                 <buildArg>-march=compatibility</buildArg>
+                                <!-- 排除 nacos-client 内嵌的旧格式 native-image 配置（shaded netty grpc） -->
                                 <buildArg>--exclude-config</buildArg>
                                 <buildArg>nacos-client.*\.jar</buildArg>
+                                <buildArg>META-INF\/native-image\/io\.grpc\.netty\.shaded\.io\.netty\/.*</buildArg>
+                                <buildArg>--exclude-config</buildArg>
+                                <buildArg>nacos-client.*\.jar</buildArg>
+                                <buildArg>META-INF\/native-image\/com\.alibaba\.nacos\/nacos-client\/resource-config\.json</buildArg>
+                                <!-- 排除 fastjson2 的 build-time 初始化配置，可能与 Spring AOT 冲突 -->
+                                <buildArg>--exclude-config</buildArg>
+                                <buildArg>fastjson2-.*\.jar</buildArg>
                                 <buildArg>META-INF\/native-image\/.*\/native-image\.properties</buildArg>
+                                <!-- 排除旧版 fastjson1 兼容包 -->
                                 <buildArg>--exclude-config</buildArg>
-                                <buildArg>nacos-client.*\.jar</buildArg>
-                                <buildArg>META-INF\/native-image\/.*\/resource-config\.json</buildArg>
+                                <buildArg>fastjson-.*\.jar</buildArg>
+                                <buildArg>META-INF\/native-image\/.*</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
