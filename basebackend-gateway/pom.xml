@@ -266,13 +266,6 @@
                         <configuration>
                             <imageName>${project.artifactId}</imageName>
                             <mainClass>com.basebackend.gateway.GatewayApplication</mainClass>
-                            <!--
-                                禁用 graalvm-reachability-metadata 自动下载。
-                                它加载旧版本库（netty 4.1.80、jackson 2.15.2 等）的元数据，
-                                这些旧格式 resource-config.json 触发 GraalVM Enterprise 25 的
-                                LegacyResourceConfigurationParser NPE (globRegistry is null)。
-                                Spring Boot 4 + 现代库已自带 native-image 元数据，无需外部元数据仓库。
-                            -->
                             <metadataRepository>
                                 <enabled>false</enabled>
                             </metadataRepository>
@@ -282,21 +275,6 @@
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>-H:+AddAllCharsets</buildArg>
                                 <buildArg>-march=compatibility</buildArg>
-                                <!--
-                                    GraalVM 25 bug (CE+Enterprise): LegacyResourceConfigurationParser NPE
-                                    (globRegistry is null) 解析旧格式 resource-config.json 时崩溃。
-                                    几乎所有库（Netty 4.2、Log4j 2.25、SCA 2025）仍使用旧 "pattern" 格式。
-                                    排除所有 JAR 中任意路径的 resource-config.json，
-                                    由 Spring AOT reachability-metadata.json（新格式）+ RuntimeHintsRegistrar 接管。
-                                    注意：.*resource-config\.json 匹配含子目录和不含子目录的两种情况。
-                                -->
-                                <buildArg>--exclude-config</buildArg>
-                                <buildArg>.*\.jar</buildArg>
-                                <buildArg>.*resource-config\.json</buildArg>
-                                <!-- 排除 fastjson2/fastjson1 全部 native-image 配置（build-time 初始化冲突） -->
-                                <buildArg>--exclude-config</buildArg>
-                                <buildArg>fastjson.*\.jar</buildArg>
-                                <buildArg>META-INF\/native-image\/.*</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
