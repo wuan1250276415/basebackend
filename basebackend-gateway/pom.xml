@@ -229,11 +229,17 @@
             <id>native</id>
             <build>
                 <plugins>
-                    <!-- Spring Boot AOT 处理 -->
+                    <!-- 在 native 模式下跳过 repackage，避免 Fat JAR 导致 native-image 找不到主类 -->
                     <plugin>
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <executions>
+                            <execution>
+                                <id>default</id>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
                             <execution>
                                 <id>process-aot</id>
                                 <goals>
@@ -257,6 +263,7 @@
                         </executions>
                         <configuration>
                             <imageName>${project.artifactId}</imageName>
+                            <mainClass>com.basebackend.gateway.GatewayApplication</mainClass>
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
