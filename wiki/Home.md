@@ -1,6 +1,16 @@
 # BaseBackend Wiki
 
-> 企业级微服务基础后台架构 — 基于 Java 17 + Spring Boot 3 + Spring Cloud 2022
+> 企业级微服务基础架构 — 基于 Java 25 + Spring Boot 4.0.3 + Spring Cloud 2025.1.1
+
+## 📊 项目概况
+
+| 指标 | 数量 |
+|------|------|
+| 顶层模块 | 24 |
+| 子模块总计 | 68 |
+| Java 源文件 | 1,291 |
+| 单元测试 | 710+ |
+| 代码行数 | ~191K |
 
 ## 📖 目录
 
@@ -33,6 +43,13 @@
 - [通知服务](通知服务)
 - [可观测性](可观测性)
 
+### 🤖 扩展模块 (新增)
+- [AI 模块](AI模块) — OpenAI/DeepSeek/通义千问 多模型适配
+- [搜索模块](搜索模块) — Elasticsearch/OpenSearch 全文搜索
+- [工作流模块](工作流模块) — 审批流/条件分支/超时处理
+- [WebSocket 模块](WebSocket模块) — 实时通信/频道/消息路由
+- [多租户增强](多租户增强) — 租户解析/缓存/生命周期
+
 ### 🛠️ 开发指南
 - [开发规范](开发规范)
 - [新增微服务指南](新增微服务指南)
@@ -50,18 +67,16 @@
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| 语言 | Java | 17 |
-| 框架 | Spring Boot | 3.1.5 |
-| 微服务 | Spring Cloud | 2022.0.4 |
-| 前端 | React + TypeScript + Ant Design | 18 / 5 |
-| 数据库 | MySQL + MyBatis Plus + Flyway | 8 / 3.5 |
-| 缓存 | Redis + Redisson | 7 / 3.x |
+| 语言 | Java | 25 |
+| 框架 | Spring Boot | 4.0.3 |
+| 微服务 | Spring Cloud | 2025.1.1 |
+| 微服务扩展 | Spring Cloud Alibaba | 2025.1.0.0 |
+| 数据库 | MySQL + MyBatis Plus | 8.0 / 3.5.16 |
+| 缓存 | Redis + Redisson | 7.x / 3.x |
 | 消息队列 | RocketMQ | 5.2.0 |
 | 注册/配置中心 | Nacos | 2.x |
-| 分布式事务 | Seata (AT模式) | 1.7 |
-| 工作流 | Camunda BPM | 7.x |
-| 网关 | Spring Cloud Gateway | - |
-| 文件存储 | MinIO | - |
+| 网关 | Spring Cloud Gateway | 2025.1.1 |
+| 文件存储 | MinIO / S3 / OSS | - |
 | 可观测性 | OpenTelemetry + Prometheus + Loki + Tempo | - |
 | CI/CD | GitHub Actions + Docker | - |
 
