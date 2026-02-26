@@ -275,6 +275,15 @@
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>-H:+AddAllCharsets</buildArg>
                                 <buildArg>-march=compatibility</buildArg>
+                                <!--
+                                    Logback + Netty + Lettuce build-time 初始化链：
+                                    lettuce DefaultClientResources.<clinit> → netty SystemPropertyUtil
+                                    → Slf4J LocationAwareSlf4JLogger → logback Logger
+                                    GraalVM 25 默认 run-time 初始化，需要显式声明 build-time。
+                                -->
+                                <buildArg>--initialize-at-build-time=ch.qos.logback.classic.Logger,ch.qos.logback.classic.Level,ch.qos.logback.core.status.InfoStatus,ch.qos.logback.core.status.StatusBase,ch.qos.logback.core.util.Loader,ch.qos.logback.core.util.StatusPrinter,ch.qos.logback.classic.PatternLayout,ch.qos.logback.core.CoreConstants</buildArg>
+                                <buildArg>--initialize-at-build-time=org.slf4j.LoggerFactory,org.slf4j.impl.StaticLoggerBinder,org.slf4j.MDC</buildArg>
+                                <buildArg>--initialize-at-build-time=io.netty.util.internal.logging.Slf4JLoggerFactory,io.netty.util.internal.logging.LocationAwareSlf4JLogger,io.netty.util.internal.logging.InternalLoggerFactory</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
