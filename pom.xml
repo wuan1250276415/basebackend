@@ -38,6 +38,7 @@
         <module>basebackend-search</module>
         <module>basebackend-workflow</module>
         <module>basebackend-observability-service</module>
+        <module>basebackend-chat-api</module>
     </modules>
 
     <properties>
