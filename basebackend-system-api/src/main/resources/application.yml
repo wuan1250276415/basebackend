@@ -47,10 +47,6 @@ spring:
             enable: true
             required: true
           timeout: 5000
-  main:
-  autoconfigure:
-    exclude:
-      - com.basebackend.observability.otel.config.OtelAutoConfiguration
 
   # ========== Spring Config Import (替代 bootstrap.yml) ==========
   config:
