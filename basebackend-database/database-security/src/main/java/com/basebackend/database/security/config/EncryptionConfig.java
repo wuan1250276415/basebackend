@@ -7,6 +7,7 @@ import com.basebackend.database.security.service.AlertService;
 import com.basebackend.database.security.service.EncryptionService;
 import com.basebackend.database.security.service.impl.AESEncryptionService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,15 @@ public class EncryptionConfig {
         log.info("Initializing encryption service with algorithm: {}",
                 properties.getSecurity().getEncryption().getAlgorithm());
         return new AESEncryptionService(properties);
+    }
+
+    /**
+     * 告警服务Bean
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AlertService alertService() {
+        return new AlertService();
     }
 
     /**
