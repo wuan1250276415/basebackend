@@ -2,6 +2,7 @@ import React from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import router from './router';
+import './index.css';
 
 function App() {
   return (
