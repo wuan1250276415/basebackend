@@ -8,25 +8,25 @@ import type { DeptDTO } from '@/types';
 export const deptApi = {
   /** 查询部门树 */
   tree: (): Promise<DeptDTO[]> =>
-    request.get('/api/system/depts/tree'),
+    request.get('/basebackend-system-api/api/system/depts/tree'),
 
   /** 查询部门列表（支持按名称和状态筛选） */
   list: (params?: { deptName?: string; status?: number }): Promise<DeptDTO[]> =>
-    request.get('/api/system/depts', { params }),
+    request.get('/basebackend-system-api/api/system/depts', { params }),
 
   /** 创建部门 */
   create: (data: Partial<DeptDTO>): Promise<void> =>
-    request.post('/api/system/depts', data),
+    request.post('/basebackend-system-api/api/system/depts', data),
 
   /** 更新部门 */
   update: (id: number, data: Partial<DeptDTO>): Promise<void> =>
-    request.put(`/api/system/depts/${id}`, data),
+    request.put(`/basebackend-system-api/api/system/depts/${id}`, data),
 
   /** 删除部门 */
   delete: (id: number): Promise<void> =>
-    request.delete(`/api/system/depts/${id}`),
+    request.delete(`/basebackend-system-api/api/system/depts/${id}`),
 
   /** 校验部门名称唯一性 */
   checkName: (params: { deptName: string; parentId: number }): Promise<boolean> =>
-    request.get('/api/system/depts/check-dept-name', { params }),
+    request.get('/basebackend-system-api/api/system/depts/check-dept-name', { params }),
 };

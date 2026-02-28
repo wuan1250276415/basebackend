@@ -8,21 +8,21 @@ import type { OnlineUserDTO, ServerInfoDTO, CacheInfoDTO } from '@/types';
 export const monitorApi = {
   /** 查询在线用户列表 */
   onlineUsers: (params?: { username?: string }): Promise<OnlineUserDTO[]> =>
-    request.get('/api/system/monitor/online', { params }),
+    request.get('/basebackend-system-api/api/system/monitor/online', { params }),
 
   /** 强制下线用户 */
   forceLogout: (token: string): Promise<void> =>
-    request.delete(`/api/system/monitor/online/${token}`),
+    request.delete(`/basebackend-system-api/api/system/monitor/online/${token}`),
 
   /** 获取服务器信息 */
   serverInfo: (): Promise<ServerInfoDTO> =>
-    request.get('/api/system/monitor/server'),
+    request.get('/basebackend-system-api/api/system/monitor/server'),
 
   /** 获取缓存信息 */
   cacheInfo: (): Promise<CacheInfoDTO[]> =>
-    request.get('/api/system/monitor/cache'),
+    request.get('/basebackend-system-api/api/system/monitor/cache'),
 
   /** 获取系统统计数据 */
   systemStats: (): Promise<any> =>
-    request.get('/api/system/monitor/stats'),
+    request.get('/basebackend-system-api/api/system/monitor/stats'),
 };

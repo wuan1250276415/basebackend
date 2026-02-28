@@ -137,9 +137,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
         return reactiveRedisTemplate.opsForValue().get(redisTokenKey)
                 .timeout(timeout)
+                .defaultIfEmpty("TOKEN_NOT_FOUND_MARKER")
                 .flatMap(redisToken -> {
-                    // 防止NPE：显式检查null
-                    if (redisToken == null) {
+                    // 防止NPE：显式检查null (虽然现在用了defaultIfEmpty不会为null，但保持严谨)
+                    if (redisToken == null || "TOKEN_NOT_FOUND_MARKER".equals(redisToken)) {
                         log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", finalUserId);
                         return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
                     }
@@ -161,11 +162,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
                     return chain.filter(exchange.mutate().request(mutatedRequest).build());
                 })
-                // 处理Redis返回空值的情况（key不存在时）
-                .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("用户 {} 的Token在Redis中不存在，可能已被强制下线", finalUserId);
-                    return unauthorized(exchange.getResponse(), GatewayErrorCode.TOKEN_EXPIRED);
-                }))
                 .onErrorResume(TimeoutException.class, e -> {
                     log.error("Redis验证Token超时，用户ID: {}", finalUserId);
                     return unauthorized(exchange.getResponse(), GatewayErrorCode.AUTH_SERVICE_BUSY);
