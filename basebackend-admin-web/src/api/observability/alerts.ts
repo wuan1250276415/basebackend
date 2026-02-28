@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 
 /**
  * 可观测性 - 告警相关 API

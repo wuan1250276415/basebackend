@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { useAuthStore } from '@/stores/auth'
-import { getCurrentUserInfo } from '@/api/auth'
+import { useAuthStore } from '@/stores/authStore'
+import { getCurrentUserInfo } from '@/api/authApi'
 import { UserInfo } from '@/types'
 
 /**

@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 import { Result } from '@/types'
 
 /**

@@ -1,32 +1,36 @@
 import request from '@/api/request';
-import type { PermissionDTO, MenuItem } from '@/types';
+import type { MenuItem } from '@/types';
 
 /**
- * 权限/菜单管理 API
- * 对接后端 /api/system/permissions/* 接口
+ * 菜单/资源管理 API
+ * 对接后端 /api/system/application/resource/* 接口
  */
 export const menuApi = {
-  /** 查询权限列表 */
-  list: (): Promise<PermissionDTO[]> =>
-    request.get('/basebackend-system-api/api/system/permissions'),
+  /** 当前用户菜单 */
+  getCurrentUserMenus: (): Promise<MenuItem[]> =>
+    request.get('/api/system/application/resource/current-user'),
 
-  /** 创建权限 */
-  create: (data: Partial<PermissionDTO>): Promise<void> =>
-    request.post('/basebackend-system-api/api/system/permissions', data),
+  /** 菜单树 */
+  getTree: () =>
+    request.get('/api/system/application/resource/tree'),
 
-  /** 更新权限 */
-  update: (id: number, data: Partial<PermissionDTO>): Promise<void> =>
-    request.put(`/basebackend-system-api/api/system/permissions/${id}`, data),
+  /** 资源列表 */
+  list: () =>
+    request.get('/api/system/application/resource'),
 
-  /** 删除权限 */
+  /** 创建菜单 */
+  create: (data: any): Promise<void> =>
+    request.post('/api/system/application/resource', data),
+
+  /** 更新菜单 */
+  update: (id: number, data: any): Promise<void> =>
+    request.put(`/api/system/application/resource/${id}`, data),
+
+  /** 删除菜单 */
   delete: (id: number): Promise<void> =>
-    request.delete(`/basebackend-system-api/api/system/permissions/${id}`),
+    request.delete(`/api/system/application/resource/${id}`),
 
-  /** 根据用户ID查询菜单列表 */
+  /** 根据用户ID查询菜单列表 (用于兼容或其他需要) */
   getByUser: (userId: number): Promise<MenuItem[]> =>
-    request.get(`/basebackend-system-api/api/system/permissions/user/${userId}`),
-
-  /** 根据角色ID查询权限列表 */
-  getByRole: (roleId: number): Promise<PermissionDTO[]> =>
-    request.get(`/basebackend-system-api/api/system/permissions/role/${roleId}`),
+    request.get(`/api/system/application/resource/user/${userId}`),
 };

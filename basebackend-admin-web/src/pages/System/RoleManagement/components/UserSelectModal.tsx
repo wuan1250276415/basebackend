@@ -4,7 +4,7 @@ import { Modal, Table, Input, Space, message } from 'antd'
 
 import type { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { User } from '@/types'
-import request from '@/utils/request'
+import request from '@/api/request'
 
 interface UserSelectModalProps {
   visible: boolean

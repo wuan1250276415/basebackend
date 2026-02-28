@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { getDeptTree, getDeptList } from '@/api/dept'
+import { getDeptTree, getDeptList } from '@/api/deptApi'
 import { Dept } from '@/types'
 
 /**

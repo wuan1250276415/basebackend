@@ -21,7 +21,7 @@ import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 
 import { startProcessInstance } from '@/api/workflow/processInstance'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 const { TextArea } = Input
 const { Option } = Select

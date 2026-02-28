@@ -6,7 +6,7 @@ import { Role, Application } from '@/types'
 import RoleTree from './components/RoleTree'
 import RoleUserTab from './components/RoleUserTab'
 import RolePermissionTab from './components/RolePermissionTab'
-import request from '@/utils/request'
+import request from '@/api/request'
 import './index.css'
 
 const { Content, Sider } = Layout

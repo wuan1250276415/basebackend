@@ -19,7 +19,7 @@ import {
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 import { ProfileDetail, UpdateProfileRequest } from '@/types'
-import { updateProfile } from '@/api/profile'
+import { updateProfile } from '@/api/profileApi'
 
 interface BasicInfoProps {
   data: ProfileDetail

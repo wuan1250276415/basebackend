@@ -36,7 +36,7 @@ import {
     batchClaimTasks,
     batchDelegateTasks,
 } from '@/api/workflow/task'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Task } from '@/types/workflow'
 
 dayjs.extend(relativeTime)

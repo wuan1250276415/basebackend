@@ -14,21 +14,21 @@ export const configApi = {
     configKey?: string;
     configType?: number;
   }): Promise<PageResult<ConfigDTO>> =>
-    request.get('/basebackend-system-api/api/system/configs', { params }),
+    request.get('/api/system/configs', { params }),
 
   /** 根据ID查询配置详情 */
   getById: (id: number): Promise<ConfigDTO> =>
-    request.get(`/basebackend-system-api/api/system/configs/${id}`),
+    request.get(`/api/system/configs/${id}`),
 
   /** 创建配置参数 */
   create: (data: Partial<ConfigDTO>): Promise<void> =>
-    request.post('/basebackend-system-api/api/system/configs', data),
+    request.post('/api/system/configs', data),
 
   /** 更新配置参数 */
   update: (id: number, data: Partial<ConfigDTO>): Promise<void> =>
-    request.put(`/basebackend-system-api/api/system/configs/${id}`, data),
+    request.put(`/api/system/configs/${id}`, data),
 
   /** 删除配置参数 */
   delete: (id: number): Promise<void> =>
-    request.delete(`/basebackend-system-api/api/system/configs/${id}`),
+    request.delete(`/api/system/configs/${id}`),
 };

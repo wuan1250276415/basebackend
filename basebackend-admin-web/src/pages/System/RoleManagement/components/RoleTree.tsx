@@ -4,7 +4,7 @@ import { Tree, Button, Input, Modal, Form, InputNumber, Select, Space, message }
 
 import type { DataNode } from 'antd/es/tree'
 import { Role } from '@/types'
-import { getRoleTree, createRole } from '@/api/role'
+import { getRoleTree, createRole } from '@/api/roleApi'
 
 interface RoleTreeProps {
   appId?: string

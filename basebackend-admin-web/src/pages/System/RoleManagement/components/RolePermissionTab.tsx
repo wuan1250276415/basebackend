@@ -23,8 +23,8 @@ import {
   getRoleListOperations,
   configureListOperations,
   configureDataPermissions,
-} from '@/api/role'
-import request from '@/utils/request'
+} from '@/api/roleApi'
+import request from '@/api/request'
 
 const { Panel } = Collapse
 const { TextArea } = Input

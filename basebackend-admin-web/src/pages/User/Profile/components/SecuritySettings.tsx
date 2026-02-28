@@ -16,7 +16,7 @@ import {
 
 import type { ColumnsType } from 'antd/es/table'
 import { ProfileDetail, ChangePasswordRequest } from '@/types'
-import { changePassword } from '@/api/profile'
+import { changePassword } from '@/api/profileApi'
 import {
   getUserDevices,
   removeDevice,

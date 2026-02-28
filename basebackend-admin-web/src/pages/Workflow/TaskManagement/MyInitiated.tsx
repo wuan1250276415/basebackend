@@ -22,7 +22,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 
 import { listHistoricProcessInstances } from '@/api/workflow/history'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { HistoricProcessInstance } from '@/types/workflow'
 
 dayjs.extend(relativeTime)

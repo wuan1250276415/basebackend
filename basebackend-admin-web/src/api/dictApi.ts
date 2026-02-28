@@ -8,37 +8,37 @@ import type { DictTypeDTO, DictDataDTO, PageResult } from '@/types';
 export const dictApi = {
   /** 分页查询字典类型列表 */
   typePage: (params: { current: number; size: number; dictName?: string; dictType?: string; status?: number }): Promise<PageResult<DictTypeDTO>> =>
-    request.get('/basebackend-system-api/api/system/dicts', { params }),
+    request.get('/api/system/dicts', { params }),
 
   /** 根据字典类型标识查询字典数据列表 */
   dataByType: (dictType: string): Promise<DictDataDTO[]> =>
-    request.get(`/basebackend-system-api/api/system/dicts/data/type/${dictType}`),
+    request.get(`/api/system/dicts/data/type/${dictType}`),
 
   /** 创建字典类型 */
   createType: (data: Partial<DictTypeDTO>): Promise<void> =>
-    request.post('/basebackend-system-api/api/system/dicts', data),
+    request.post('/api/system/dicts', data),
 
   /** 更新字典类型 */
   updateType: (id: number, data: Partial<DictTypeDTO>): Promise<void> =>
-    request.put(`/basebackend-system-api/api/system/dicts/${id}`, data),
+    request.put(`/api/system/dicts/${id}`, data),
 
   /** 删除字典类型 */
   deleteType: (id: number): Promise<void> =>
-    request.delete(`/basebackend-system-api/api/system/dicts/${id}`),
+    request.delete(`/api/system/dicts/${id}`),
 
   /** 创建字典数据 */
   createData: (data: Partial<DictDataDTO>): Promise<void> =>
-    request.post('/basebackend-system-api/api/system/dicts/data', data),
+    request.post('/api/system/dicts/data', data),
 
   /** 更新字典数据 */
   updateData: (id: number, data: Partial<DictDataDTO>): Promise<void> =>
-    request.put(`/basebackend-system-api/api/system/dicts/data/${id}`, data),
+    request.put(`/api/system/dicts/data/${id}`, data),
 
   /** 删除字典数据 */
   deleteData: (id: number): Promise<void> =>
-    request.delete(`/basebackend-system-api/api/system/dicts/data/${id}`),
+    request.delete(`/api/system/dicts/data/${id}`),
 
   /** 刷新字典缓存 */
   refreshCache: (): Promise<void> =>
-    request.post('/basebackend-system-api/api/system/dicts/refresh-cache'),
+    request.post('/api/system/dicts/refresh-cache'),
 };

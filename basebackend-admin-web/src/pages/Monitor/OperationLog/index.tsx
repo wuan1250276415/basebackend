@@ -10,7 +10,7 @@ import {
   deleteOperationLog,
   deleteOperationLogBatch,
   cleanOperationLog,
-} from '@/api/log'
+} from '@/api/logApi'
 import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker

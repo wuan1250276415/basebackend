@@ -4,7 +4,7 @@ import { Table, Button, Input, Space, Popconfirm, message } from 'antd'
 
 import type { ColumnsType } from 'antd/es/table/interface'
 import { User } from '@/types'
-import { getRoleUsers, assignUsersToRole, removeUserFromRole } from '@/api/role'
+import { getRoleUsers, assignUsersToRole, removeUserFromRole } from '@/api/roleApi'
 import UserSelectModal from './UserSelectModal'
 
 interface RoleUserTabProps {

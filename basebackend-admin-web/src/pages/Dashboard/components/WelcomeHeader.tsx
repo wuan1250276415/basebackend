@@ -2,7 +2,7 @@ import { RefreshCw, Clock } from 'lucide-react';
 import React from 'react'
 import { Card, Space, Button, Typography } from 'antd'
 
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 const { Title, Text } = Typography
 

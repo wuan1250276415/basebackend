@@ -2,7 +2,7 @@ import { User, Shield, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Tabs, message, Spin } from 'antd'
 
-import { getProfile } from '@/api/profile'
+import { getProfile } from '@/api/profileApi'
 import { ProfileDetail } from '@/types'
 import BasicInfo from './components/BasicInfo'
 import SecuritySettings from './components/SecuritySettings'

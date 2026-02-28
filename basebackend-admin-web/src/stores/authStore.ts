@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>()(
         const userContext = await authApi.getUserInfo();
 
         // 获取用户菜单
-        const menus = await menuApi.getByUser(userContext.userId);
+        const menus = await menuApi.getCurrentUserMenus();
 
         // 根据菜单生成动态路由
         const dynamicRoutes = generateRoutes(menus);

@@ -28,7 +28,7 @@ import {
 } from '@/api/workflow/task'
 import { listHistoricActivities } from '@/api/workflow/history'
 import { getProcessInstanceById } from '@/api/workflow/processInstance'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import type { Task, ProcessInstance } from '@/types/workflow'
 
 const { TextArea } = Input

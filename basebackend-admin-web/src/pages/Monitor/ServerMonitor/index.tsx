@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Card, Row, Col, Descriptions, Progress, Statistic, Button, message, Spin } from 'antd'
 
 import { ServerInfo } from '@/types'
-import { getServerInfo } from '@/api/monitor'
+import { getServerInfo } from '@/api/monitorApi'
 
 const ServerMonitorPage = () => {
   const [loading, setLoading] = useState(false)

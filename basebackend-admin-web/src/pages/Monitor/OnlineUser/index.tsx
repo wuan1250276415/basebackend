@@ -4,7 +4,7 @@ import { Card, Table, Button, Space, message, Modal, Tag, Statistic, Row, Col } 
 
 import type { ColumnsType } from 'antd/es/table'
 import { OnlineUser } from '@/types'
-import { getOnlineUsers, forceLogout } from '@/api/monitor'
+import { getOnlineUsers, forceLogout } from '@/api/monitorApi'
 import dayjs from 'dayjs'
 
 const OnlineUserPage = () => {

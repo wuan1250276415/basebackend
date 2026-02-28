@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 import type { ApiResponse, PageResult } from '@/types/workflow'
 
 const BASE_URL = '/api/camunda/ops/incidents'
