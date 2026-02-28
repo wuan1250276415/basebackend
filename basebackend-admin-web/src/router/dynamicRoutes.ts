@@ -113,8 +113,8 @@ export function generateRoutes(
   const routes: RouteObject[] = [];
 
   for (const menu of sorted) {
-    // 跳过按钮类型，不生成路由
-    if (menu.type === 2) {
+    // 跳过按钮类型和无路径的菜单项
+    if (menu.type === 2 || !menu.path) {
       continue;
     }
 
