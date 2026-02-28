@@ -1,0 +1,107 @@
+/* 仪表盘页面样式 */
+
+.dashboard-container {
+  padding: 0;
+}
+
+/* 统计卡片行 */
+.dashboard-stat-row {
+  margin-bottom: 24px;
+}
+
+.dashboard-stat-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.dashboard-stat-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-stat-card .ant-card-body {
+  padding: 20px 24px;
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  font-size: 28px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.stat-card-icon.users {
+  background: linear-gradient(135deg, #1677ff, #4096ff);
+}
+
+.stat-card-icon.messages {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+.stat-card-icon.requests {
+  background: linear-gradient(135deg, #fa8c16, #ffa940);
+}
+
+.stat-card-icon.online {
+  background: linear-gradient(135deg, #722ed1, #9254de);
+}
+
+/* 图表卡片 */
+.dashboard-chart-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.dashboard-chart-card .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dashboard-chart-card .ant-card-head-title {
+  font-weight: 600;
+}
+
+/* 系统信息面板 */
+.dashboard-info-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.dashboard-info-card .ant-card-head-title {
+  font-weight: 600;
+}
+
+.server-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.server-info-item:last-child {
+  border-bottom: none;
+}
+
+.server-info-label {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+}
+
+.server-info-value {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  font-weight: 500;
+}

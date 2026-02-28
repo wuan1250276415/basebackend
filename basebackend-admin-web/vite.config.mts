@@ -1,42 +1,35 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
-// https://vitejs.dev/config/
+// Vite 构建配置
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // 路径别名，@ 指向 src 目录
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  css: {
+    // Less 预处理器配置
+    preprocessorOptions: {
+      less: {
+        javascriptEnabled: true,
+        modifyVars: {
+          // Ant Design 主题色
+          '@primary-color': '#1677ff',
+        },
+      },
     },
   },
   server: {
     port: 3000,
     open: true,
     proxy: {
-      // 用户服务 API
-      '/basebackend-user-api': {
-        target: 'http://192.168.66.126:8280',
-        changeOrigin: true,
-      },
-      // 系统服务 API
-      '/basebackend-system-api': {
-        target: 'http://192.168.66.126:8280',
-        changeOrigin: true,
-      },
-      // notification
-      '/basebackend-notification-service': {
-        target: 'http://192.168.66.126:8280',
-        changeOrigin: true,
-      },
-      // workflow 服务 - 转换为 camunda 路径
-      '/basebackend-scheduler': {
-        target: 'http://192.168.66.126:8280',
-        changeOrigin: true,
-      },
-      // 其他 API 请求走默认网关路由
+      // 统一代理 /api 请求到后端网关
       '/api': {
-        target: 'http://192.168.66.126:8280',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
@@ -53,4 +46,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

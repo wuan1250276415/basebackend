@@ -43,7 +43,7 @@ export const lightTheme: ThemeConfig = {
     colorBorder: '#e2e8f0',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)', // Soft shadow
-    fontSizeBase: 14,
+    fontSize: 14,
   },
   components: {
     Layout: {

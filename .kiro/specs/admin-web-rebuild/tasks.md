@@ -1,0 +1,345 @@
+# Implementation Plan: Admin Web Rebuild
+
+## Overview
+
+使用 Vite + React 18 + TypeScript + Ant Design Pro 全新重构后台管理系统前端。按照从基础设施到业务页面的顺序，逐步构建项目脚手架、API 层、状态管理、路由系统、布局组件、通用组件、业务页面，最后进行集成验证。
+
+## Tasks
+
+- [x] 1. Project scaffolding and build configuration
+  - [x] 1.1 Initialize Vite + React 18 + TypeScript project
+    - Run `npm create vite@latest` with React + TypeScript template
+    - Install core dependencies: `antd`, `@ant-design/pro-components`, `@ant-design/charts`, `zustand`, `react-router-dom`, `axios`, `less`
+    - Install dev dependencies: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `fast-check`, `msw`, `jsdom`, `eslint`, `prettier`, `@types/react`, `@types/react-dom`
+    - Configure `tsconfig.json` with strict mode enabled and `@/` path alias
+    - _Requirements: 1.1_
+  - [x] 1.2 Configure Vite, environment files, and code quality tools
+    - Create `vite.config.mts` with `/api` proxy to `http://localhost:8080`, Less support, and `@/` path alias
+    - Create `.env.development` with `VITE_API_BASE_URL=/api`
+    - Create `.env.production` with `VITE_API_BASE_URL` placeholder
+    - Create `.eslintrc.cjs` with TypeScript strict rules
+    - Create `.prettierrc` with consistent formatting rules
+    - Create `vitest.config.ts` with jsdom environment and setup file
+    - _Requirements: 1.2, 1.3, 1.4_
+  - [x] 1.3 Create project directory structure and entry files
+    - Create all directories per design: `src/api/`, `src/stores/`, `src/router/`, `src/layouts/`, `src/components/`, `src/hooks/`, `src/pages/`, `src/types/`, `src/styles/`, `src/utils/`, `src/__tests__/`
+    - Create `src/main.tsx` entry point with React 18 `createRoot`
+    - Create `src/App.tsx` root component placeholder
+    - Create `src/styles/global.less` with primary color `#1677ff`, rounded cards, shadow effects
+    - _Requirements: 1.1, 20.1, 20.2_
+
+- [x] 2. TypeScript type definitions
+  - [x] 2.1 Define all TypeScript types matching backend DTOs
+    - Create `src/types/api.d.ts` with `Result<T>`, `PageResult<T>`, `SimplePageResult<T>`
+    - Create `src/types/auth.d.ts` with `LoginParams`, `LoginResult`, `UserInfo`, `UserContext`, `ProfileDetail`, `UpdateProfileParams`, `ChangePasswordParams`
+    - Create `src/types/user.d.ts` with `UserDTO`, `UserCreateDTO`, `UserQueryDTO`
+    - Create `src/types/role.d.ts` with `RoleDTO`
+    - Create `src/types/menu.d.ts` with `PermissionDTO`, `MenuItem`
+    - Create `src/types/dept.d.ts` with `DeptDTO`
+    - Create `src/types/dict.d.ts` with `DictTypeDTO`, `DictDataDTO`
+    - Create `src/types/log.d.ts` with `OperationLogDTO`, `LoginLogDTO`
+    - Create `src/types/monitor.d.ts` with `OnlineUserDTO`, `ServerInfoDTO`, `CacheInfoDTO`
+    - Create `src/types/chat.d.ts` with `ChatMessage`, `ChatGroup`, `ChatGroupMember`
+    - Create `src/types/index.ts` barrel export
+    - _Requirements: 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, 2.14_
+
+- [x] 3. HTTP client and utility functions
+  - [x] 3.1 Implement Axios HTTP client with interceptors (`src/api/request.ts`)
+    - Create Axios instance with `baseURL` from env and timeout config
+    - Implement request interceptor: attach Bearer token from AuthStore, support `skipAuth` option
+    - Implement response interceptor: unwrap `Result<T>` on success, handle 401 (clear store + redirect), 403 (notification), network/timeout errors (notification)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  - [x] 3.2 Write property tests for HTTP client (Property 1, 2)
+    - **Property 1: Token attached to every request** — Generate random token strings, verify Authorization header equals `Bearer <token>`
+    - **Validates: Requirements 2.1**
+    - **Property 2: HTTP error handling by status code** — Generate random HTTP status codes (401/403/network error), verify corresponding handling behavior
+    - **Validates: Requirements 2.2, 2.3, 2.4**
+  - [x] 3.3 Implement utility functions
+    - Create `src/utils/storage.ts` with typed localStorage get/set/remove helpers
+    - Create `src/utils/tree.ts` with `listToTree`, `flattenTree`, `findInTree` utility functions
+    - _Requirements: 3.7, 4.4_
+
+- [x] 4. Checkpoint - Verify foundation
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. API modules
+  - [x] 5.1 Implement authApi and profileApi
+    - Create `src/api/authApi.ts` with login, logout, refreshToken, getUserInfo, changePassword methods
+    - Create `src/api/profileApi.ts` with getProfile, updateProfile, changePassword methods
+    - _Requirements: 2.6_
+  - [x] 5.2 Implement userApi and roleApi
+    - Create `src/api/userApi.ts` with page, getById, create, update, delete, resetPassword, assignRoles, changeStatus methods
+    - Create `src/api/roleApi.ts` with page, getById, create, update, delete, assignMenus, assignPermissions, manageDataPermissions methods
+    - _Requirements: 2.7, 2.8_
+  - [x] 5.3 Implement menuApi, deptApi, and dictApi
+    - Create `src/api/menuApi.ts` with list, create, update, delete, getByUser, getByRole methods
+    - Create `src/api/deptApi.ts` with tree, list, create, update, delete, checkName methods
+    - Create `src/api/dictApi.ts` with typePage, dataByType, createType, updateType, deleteType, createData, updateData, deleteData, refreshCache methods
+    - _Requirements: 2.9, 2.10, 2.11_
+  - [x] 5.4 Implement logApi, monitorApi, and chatApi
+    - Create `src/api/logApi.ts` with loginLogPage, operationLogPage, logDetail, delete, batchDelete, clean methods
+    - Create `src/api/monitorApi.ts` with onlineUsers, forceLogout, serverInfo, cacheInfo, systemStats methods
+    - Create `src/api/chatApi.ts` with messageList, groupList, groupInfo, groupMembers, dissolveGroup, deleteMessage methods
+    - _Requirements: 2.12, 2.13, 2.14_
+
+- [x] 6. Zustand stores
+  - [x] 6.1 Implement AuthStore (`src/stores/authStore.ts`)
+    - Implement AuthState interface with token, userInfo, permissions, roles, menus, dynamicRoutes
+    - Implement login action: call authApi.login, store token, call fetchUserInfo
+    - Implement logout action: call authApi.logout, clear state, redirect to /login
+    - Implement fetchUserInfo action: call authApi.getUserInfo, populate permissions/roles/menus, generate dynamic routes
+    - Implement hasPermission method with wildcard support (`*:*:*`, `*`)
+    - Use `zustand/middleware` persist to localStorage
+    - _Requirements: 3.2, 3.3, 3.6, 3.7_
+  - [x] 6.2 Write property tests for AuthStore (Property 3, 4)
+    - **Property 3: Login error message propagation** — Generate random error messages, verify login failure displays message and AuthStore remains unchanged
+    - **Validates: Requirements 3.5**
+    - **Property 4: Token persistence round-trip** — Generate random token strings, verify store→localStorage→restore yields same token
+    - **Validates: Requirements 3.7**
+  - [x] 6.3 Implement TabStore (`src/stores/tabStore.ts`)
+    - Implement TabState interface with tabs array, activeKey
+    - Implement addTab: add if not exists, set as active
+    - Implement removeTab: remove tab, activate nearest remaining tab
+    - Implement setActiveTab
+    - Dashboard tab (/) should be non-closable
+    - _Requirements: 4.5_
+  - [x] 6.4 Write property test for TabStore (Property 6)
+    - **Property 6: Tab bar reflects navigation history** — Generate random route path sequences, verify TabStore contains one tab per unique route, active tab matches current, closing activates nearest
+    - **Validates: Requirements 4.5**
+  - [x] 6.5 Implement SettingStore (`src/stores/settingStore.ts`)
+    - Implement SettingState with theme ('light'|'dark'), primaryColor (#1677ff), collapsed
+    - Implement toggleTheme, toggleCollapsed actions
+    - Persist to localStorage
+    - _Requirements: 4.6, 20.5_
+  - [x] 6.6 Write property test for SettingStore (Property 13)
+    - **Property 13: Theme preference persistence round-trip** — Generate random theme values, verify store→localStorage→restore yields same theme
+    - **Validates: Requirements 20.5**
+
+- [x] 7. Router and permission system
+  - [x] 7.1 Implement dynamic route generation (`src/router/dynamicRoutes.ts`)
+    - Implement `generateRoutes(menus: MenuItem[]): RouteObject[]`
+    - Map type=0 (directory) to route groups, type=1 (menu) to lazy-loaded pages, type=2 (button) to nothing
+    - Use `React.lazy()` + `import()` for code splitting
+    - _Requirements: 5.1_
+  - [x] 7.2 Write property test for dynamic route generation (Property 7)
+    - **Property 7: Dynamic route generation from menu data** — Generate random MenuItem arrays, verify leaf route count equals type=1 count, type=2 produces no routes
+    - **Validates: Requirements 5.1**
+  - [x] 7.3 Implement RouterGuard (`src/router/guard.tsx`)
+    - Whitelist routes: /login, /403, /404, /500 — always pass
+    - No token → redirect to /login
+    - Token but no userInfo → call fetchUserInfo
+    - Token + userInfo → check route in user menus, redirect /403 if not found
+    - _Requirements: 5.2, 5.3_
+  - [x] 7.4 Write property tests for RouterGuard (Property 8, 9)
+    - **Property 8: Unauthenticated access redirects to login** — Generate random protected route paths, verify no-token redirects to /login
+    - **Validates: Requirements 5.2**
+    - **Property 9: Unauthorized route access shows 403** — Generate random route paths not in menu list, verify redirect to /403
+    - **Validates: Requirements 5.3**
+  - [x] 7.5 Implement useAuth hook and Permission component
+    - Create `src/hooks/useAuth.ts` with single permission and multi-permission (any/all mode) overloads
+    - Create `src/components/Permission.tsx` declarative wrapper using useAuth
+    - _Requirements: 5.4, 5.5_
+  - [x] 7.6 Write property test for useAuth (Property 10)
+    - **Property 10: useAuth permission check correctness** — Generate random permission strings and permission sets, verify `useAuth(p)` returns true iff `p ∈ S` or wildcard present
+    - **Validates: Requirements 5.4**
+  - [x] 7.7 Set up router configuration (`src/router/index.tsx`)
+    - Define static routes: /login, /403, /404, /500
+    - Integrate dynamic routes from AuthStore
+    - Wrap protected routes with RouterGuard
+    - Configure catch-all route to 404
+    - Wire into App.tsx with BrowserRouter
+    - _Requirements: 5.1, 5.2, 5.6_
+
+- [x] 8. Checkpoint - Verify core infrastructure
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 9. Layout components
+  - [x] 9.1 Implement BasicLayout (`src/layouts/BasicLayout.tsx`)
+    - Use ProLayout with dark sidebar (`navTheme: 'realDark'`), white content area
+    - Generate sidebar menu from authStore.menus, filter type=0 and type=1 only
+    - Add breadcrumb in content area
+    - Add top-right area: fullscreen toggle, theme toggle, UserDropdown
+    - Apply primary color `#1677ff`, rounded cards, shadow effects
+    - _Requirements: 4.1, 4.2, 4.4, 4.6, 4.7, 4.8, 20.1, 20.2_
+  - [x] 9.2 Write property test for sidebar menu generation (Property 5)
+    - **Property 5: Sidebar menu generation from AuthStore menus** — Generate random MenuItem arrays with types 0/1/2, verify sidebar contains only type 0 and 1, preserving hierarchy and sort order
+    - **Validates: Requirements 4.4**
+  - [x] 9.3 Implement TabBar (`src/layouts/TabBar.tsx`)
+    - Render tabs from tabStore, highlight active tab
+    - Support close individual tab (except dashboard)
+    - Navigate on tab click
+    - _Requirements: 4.5_
+  - [x] 9.4 Implement UserDropdown (`src/layouts/UserDropdown.tsx`)
+    - Display user avatar and nickname from authStore
+    - Dropdown menu: 个人中心, 修改密码, 退出登录
+    - Logout calls authStore.logout
+    - _Requirements: 4.3_
+  - [x] 9.5 Write property test for responsive sidebar (Property 12)
+    - **Property 12: Responsive sidebar collapse** — Generate random viewport widths (100-2000px), verify collapsed state when width < 768px
+    - **Validates: Requirements 20.4**
+
+- [x] 10. Common components and hooks
+  - [x] 10.1 Implement IconSelector component (`src/components/IconSelector.tsx`)
+    - Display a grid of Ant Design icons for selection
+    - Support search/filter icons by name
+    - Return selected icon name on click
+    - _Requirements: 8.2_
+  - [x] 10.2 Implement DeptTreeSelect component (`src/components/DeptTreeSelect.tsx`)
+    - Fetch department tree from deptApi.tree
+    - Render as Ant Design TreeSelect
+    - Support single selection with search
+    - _Requirements: 6.2, 9.2_
+  - [x] 10.3 Implement useDict hook (`src/hooks/useDict.ts`)
+    - Accept dictType string, fetch dict data from dictApi.dataByType
+    - Cache results to avoid repeated requests
+    - Return dict data array and loading state
+    - _Requirements: 10.2_
+
+- [x] 11. Login page
+  - [x] 11.1 Implement login page (`src/pages/login/index.tsx`)
+    - Centered login card with animated/gradient background
+    - Username and password fields with Ant Design Form
+    - Submit button calls authStore.login
+    - Display server error message on login failure
+    - Redirect to dashboard on success
+    - _Requirements: 3.1, 3.2, 3.4, 3.5_
+  - [x] 11.2 Write property test for login error display (Property 3 integration)
+    - **Property 3: Login error message propagation** — Verify error messages from server are displayed on the form
+    - **Validates: Requirements 3.5**
+
+- [x] 12. Error pages
+  - [x] 12.1 Implement error pages
+    - Create `src/pages/error/403.tsx` — Forbidden page with back-to-home link
+    - Create `src/pages/error/404.tsx` — Not Found page with back-to-home link
+    - Create `src/pages/error/500.tsx` — Server Error page with back-to-home link
+    - _Requirements: 5.6_
+
+- [x] 13. Dashboard page
+  - [x] 13.1 Implement dashboard page (`src/pages/dashboard/index.tsx`)
+    - Statistic cards: today's user count, message count, request count, online user count with icons
+    - Line chart using @ant-design/charts for 7-day trends (users, messages, requests)
+    - System info panel: JVM info, memory usage, disk usage from monitorApi.serverInfo
+    - Rounded card containers with shadow, `#1677ff` color scheme
+    - _Requirements: 18.1, 18.2, 18.3, 18.4_
+
+- [x] 14. Checkpoint - Verify layout and core pages
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 15. System management pages - User and Role
+  - [x] 15.1 Implement user management page (`src/pages/system/user/index.tsx`)
+    - ProTable with columns: username, nickname, department, phone, email, status (switch), creation time
+    - Server-side pagination and search filters
+    - Icon action buttons: edit, delete, more (assign roles, reset password)
+    - Add button opens ProForm drawer (username, nickname, password, dept tree select, phone, email, status)
+    - Edit button opens pre-filled ProForm drawer
+    - Assign roles modal with checkbox list
+    - Reset password confirmation dialog
+    - Status toggle calls userApi.changeStatus
+    - Permission-controlled buttons using Permission component
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 20.3_
+  - [x] 15.2 Implement role management page (`src/pages/system/role/index.tsx`)
+    - ProTable with columns: role name, role key, sort order, status, creation time
+    - Create/edit form: role name, role key, sort order, status, remark
+    - Assign permissions: tree checkbox list from menuApi, pre-select current
+    - Assign menus: tree checkbox list, pre-select current
+    - Data permissions configuration interface
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+
+- [x] 16. System management pages - Menu, Dept, Dict, Config
+  - [x] 16.1 Implement menu management page (`src/pages/system/menu/index.tsx`)
+    - Tree-structured table: name, icon, permission key, type, sort order, status
+    - Create/edit form: parent menu (tree select), name, icon (IconSelector), permission key, type (directory/menu/button), route path, sort order, status
+    - Expand/collapse controls
+    - Delete warning for items with children
+    - _Requirements: 8.1, 8.2, 8.3, 8.4_
+  - [x] 16.2 Implement department management page (`src/pages/system/dept/index.tsx`)
+    - Tree-structured table: dept name, dept code, sort order, status, creation time
+    - Create/edit form: parent dept (tree select), dept name, dept code, sort order, status
+    - Fetch tree from deptApi.tree with expand/collapse
+    - Validate dept name uniqueness via deptApi.checkName
+    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [x] 16.3 Implement dictionary management page (`src/pages/system/dict/index.tsx`)
+    - ProTable for dict types: dict name, dict type, status, remark, creation time
+    - Click row navigates to dict data sub-table for that type
+    - Create/edit forms for both dict type and dict data
+    - Refresh cache button calls dictApi.refreshCache
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+  - [x] 16.4 Implement system config page (`src/pages/system/config/index.tsx`)
+    - ProTable: parameter name, parameter key, parameter value, type, remark
+    - Create/edit form: parameter name, key, value, type (system/custom), remark
+    - _Requirements: 11.1, 11.2_
+
+- [x] 17. Monitoring pages
+  - [x] 17.1 Implement online user monitoring page (`src/pages/monitor/online/index.tsx`)
+    - ProTable: username, IP, login location, browser, OS, login time from monitorApi.onlineUsers
+    - Force logout button with confirmation dialog, calls monitorApi.forceLogout
+    - Refresh list after force logout
+    - _Requirements: 12.1, 12.2, 12.3_
+  - [x] 17.2 Implement operation log page (`src/pages/monitor/operlog/index.tsx`)
+    - ProTable: operation description, operator, request method, status, operation time, duration
+    - Search filters: username, operation, status, date range
+    - Click row opens detail modal/drawer with full log info (URL, params, response, error)
+    - Batch delete and clean all buttons
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [x] 17.3 Implement login log page (`src/pages/monitor/loginlog/index.tsx`)
+    - ProTable: username, IP, login location, browser, OS, status, login time
+    - Search filters: username, IP, status, date range
+    - Batch delete and clean all buttons
+    - _Requirements: 14.1, 14.2_
+
+- [x] 18. Checkpoint - Verify system management and monitoring pages
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 19. Chat management pages
+  - [x] 19.1 Implement chat statistics page (`src/pages/chat/stats/index.tsx`)
+    - Dashboard cards: today's message count, active user count, group count
+    - Line chart using @ant-design/charts for 7-day messaging trends
+    - Fetch data from chatApi
+    - _Requirements: 15.1, 15.2, 15.3_
+  - [x] 19.2 Implement chat message management page (`src/pages/chat/message/index.tsx`)
+    - ProTable: sender, conversation, message type, content preview, send time, status
+    - Search filters: sender, content keyword, date range
+    - Delete with confirmation dialog
+    - Click row opens detail drawer with full message content
+    - _Requirements: 16.1, 16.2, 16.3_
+  - [x] 19.3 Implement chat group management page (`src/pages/chat/group/index.tsx`)
+    - ProTable: group name, owner, member count, creation time, status
+    - View members modal with member list and roles
+    - Dissolve group with confirmation dialog
+    - _Requirements: 17.1, 17.2, 17.3_
+
+- [x] 20. Profile page
+  - [x] 20.1 Implement profile page (`src/pages/profile/index.tsx`)
+    - Display user info: avatar, nickname, username, department, email, phone from profileApi.getProfile
+    - Edit profile form: nickname, email, phone, submit via profileApi.updateProfile
+    - Change password form: old password, new password, confirm password
+    - Validate new password === confirm password before submit
+    - Submit password change via profileApi.changePassword
+    - _Requirements: 19.1, 19.2, 19.3, 19.4_
+  - [x] 20.2 Write property test for password confirmation (Property 11)
+    - **Property 11: Password confirmation validation** — Generate random password pairs, verify form only submits when newPassword === confirmPassword and both non-empty
+    - **Validates: Requirements 19.4**
+
+- [x] 21. Responsive design and theme
+  - [x] 21.1 Implement responsive sidebar and dark mode
+    - Auto-collapse sidebar to icon-only when viewport < 768px
+    - Implement dark/light mode toggle applying Ant Design theme tokens globally
+    - Persist theme preference to localStorage via settingStore
+    - Ensure `#1677ff` primary color, rounded corners (8px), subtle shadows on all cards
+    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5_
+
+- [x] 22. Final checkpoint - Build verification
+  - Run `npm run build` and verify zero TypeScript compilation errors
+  - Ensure all unit tests and property tests pass
+  - Verify all source code files use Chinese comments
+  - Ensure all tests pass, ask the user if questions arise.
+  - _Requirements: 1.5, 1.6_
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties from the design document (13 properties total)
+- All code should use Chinese comments per Requirement 1.6
+- All API modules follow the unified pattern defined in the design document

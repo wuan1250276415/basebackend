@@ -1,52 +1,32 @@
-import { useEffect } from 'react'
-import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from 'react-query'
-import { ConfigProvider, theme as antdTheme } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
-import enUS from 'antd/locale/en_US'
-import { useTranslation } from 'react-i18next'
-import AppRouter from './router'
-import { useThemeStore } from './stores/theme'
-import { AppProvider } from './contexts'
+/**
+ * 应用根组件
+ * 集成 BrowserRouter、Ant Design ConfigProvider（全局主题）和路由配置
+ */
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { ConfigProvider, theme } from 'antd';
+import { useSettingStore } from '@/stores/settingStore';
+import AppRoutes from '@/router';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-})
-
-function App() {
-  const { i18n } = useTranslation()
-  const { themeConfig, actualMode, updateThemeConfig } = useThemeStore()
-
-  // 组件挂载时更新主题配置
-  useEffect(() => {
-    updateThemeConfig()
-  }, [updateThemeConfig])
-
-  // 根据语言选择 Ant Design 的语言包
-  const locale = i18n.language === 'en-US' ? enUS : zhCN
+const App: React.FC = () => {
+  const { theme: appTheme, primaryColor } = useSettingStore();
 
   return (
     <ConfigProvider
-      locale={locale}
       theme={{
-        ...themeConfig,
-        algorithm: actualMode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        /* 根据用户偏好切换暗色/亮色算法 */
+        algorithm: appTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: primaryColor, // #1677ff
+          borderRadius: 8,
+        },
       }}
     >
-      <AppProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <AppRouter />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </AppProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </ConfigProvider>
-  )
-}
+  );
+};
 
-export default App
+export default App;

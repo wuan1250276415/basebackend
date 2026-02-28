@@ -1,57 +1,70 @@
-import React from 'react'
-import { TreeSelect } from 'antd'
-import { Dept } from '@/types'
+import React, { useEffect, useState } from 'react';
+import { TreeSelect, type TreeSelectProps } from 'antd';
+import { deptApi } from '@/api/deptApi';
+import type { DeptDTO } from '@/types';
 
-interface DeptTreeSelectProps {
-  value?: string
-  onChange?: (value: string) => void
-  placeholder?: string
-  disabled?: boolean
-  allowClear?: boolean
-  treeData?: Dept[]
+/**
+ * 部门树选择器组件
+ *
+ * 从后端获取部门树数据，渲染为 Ant Design TreeSelect，
+ * 支持单选和搜索过滤。用于用户管理（选择所属部门）和部门管理页面。
+ *
+ * @example
+ * <DeptTreeSelect value={deptId} onChange={(id) => setDeptId(id)} />
+ */
+
+/** 组件属性，继承 TreeSelect 常用属性 */
+interface DeptTreeSelectProps
+  extends Omit<TreeSelectProps, 'treeData' | 'loading' | 'showSearch' | 'treeNodeFilterProp'> {
+  /** 当前选中的部门 ID */
+  value?: number;
+  /** 选中部门时的回调 */
+  onChange?: (value: number) => void;
 }
 
-interface DeptTreeSelectComponent extends React.FC<DeptTreeSelectProps> {
-  TreeNode: typeof TreeSelect.TreeNode
+/** 将 DeptDTO 树转换为 TreeSelect 的 treeData 格式 */
+function transformToTreeData(
+  depts: DeptDTO[],
+): TreeSelectProps['treeData'] {
+  return depts.map((dept) => ({
+    title: dept.deptName,
+    value: dept.id,
+    children: dept.children?.length ? transformToTreeData(dept.children) : undefined,
+  }));
 }
 
-const DeptTreeSelect: DeptTreeSelectComponent = ({
-  value,
-  onChange,
-  placeholder = '请选择部门',
-  disabled = false,
-  allowClear = true,
-  treeData = [],
-}) => {
-  // 将部门树形数据转换为TreeSelect需要的格式
-  const convertDeptToTreeData = (depts: Dept[], level = 0): any[] => {
-    return depts.map(dept => ({
-      title: dept.deptName,
-      value: dept.id,
-      key: dept.id,
-      children: dept.children ? convertDeptToTreeData(dept.children, level + 1) : undefined,
-    }))
-  }
+const DeptTreeSelect: React.FC<DeptTreeSelectProps> = ({ value, onChange, ...restProps }) => {
+  const [treeData, setTreeData] = useState<TreeSelectProps['treeData']>([]);
+  const [loading, setLoading] = useState(false);
 
-  const treeSelectData = convertDeptToTreeData(treeData)
+  /** 组件挂载时获取部门树数据 */
+  useEffect(() => {
+    setLoading(true);
+    deptApi
+      .tree()
+      .then((data) => {
+        setTreeData(transformToTreeData(data));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <TreeSelect
       value={value}
       onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      allowClear={allowClear}
-      treeData={treeSelectData}
+      treeData={treeData}
+      loading={loading}
       showSearch
       treeNodeFilterProp="title"
-      dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+      placeholder="请选择部门"
+      allowClear
+      treeDefaultExpandAll
       style={{ width: '100%' }}
+      {...restProps}
     />
-  )
-}
+  );
+};
 
-// 为了保持API兼容性，添加TreeNode属性
-DeptTreeSelect.TreeNode = TreeSelect.TreeNode
-
-export default DeptTreeSelect
+export default DeptTreeSelect;

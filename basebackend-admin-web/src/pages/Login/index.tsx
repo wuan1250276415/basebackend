@@ -1,61 +1,73 @@
-import { User, Lock } from 'lucide-react';
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Form, Input, Button, Card, message } from 'antd'
+/**
+ * 登录页面
+ * 居中登录卡片 + 动画渐变背景
+ * 使用 Ant Design Form 进行表单验证和提交
+ */
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Form, Input, Button, Card, Alert } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useAuthStore } from '@/stores/authStore';
+import './index.css';
 
-import { login } from '@/api/auth'
-import { useAuthStore } from '@/stores/auth'
-import { LoginRequest } from '@/types'
-import './index.css'
+const Login: React.FC = () => {
+  const navigate = useNavigate();
+  const login = useAuthStore((s) => s.login);
+  const [loading, setLoading] = useState(false);
+  /** 服务端返回的错误信息 */
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
-const Login = () => {
-  const navigate = useNavigate()
-  const { setToken, setUserInfo, setPermissions, setRoles } = useAuthStore()
-  const [loading, setLoading] = useState(false)
-
-  const onFinish = async (values: LoginRequest) => {
-    setLoading(true)
+  /** 表单提交：调用 authStore.login，成功跳转首页，失败显示错误 */
+  const onFinish = async (values: { username: string; password: string }) => {
+    setErrorMsg('');
+    setLoading(true);
     try {
-      const response = await login(values)
-      const { accessToken, userInfo, permissions, roles } = response.data
-
-      // 保存认证信息
-      setToken(accessToken)
-      setUserInfo(userInfo)
-      setPermissions(permissions)
-      setRoles(roles)
-      localStorage.setItem('token', accessToken)
-      localStorage.setItem('userInfo', JSON.stringify(userInfo))
-
-      message.success('登录成功')
-      navigate('/dashboard')
-    } catch (error: any) {
-      message.error(error.message || '登录失败')
+      await login(values.username, values.password);
+      // 登录成功，跳转到仪表盘首页
+      navigate('/', { replace: true });
+    } catch (err: unknown) {
+      // authStore.login 失败时抛出异常，提取错误信息显示在表单上
+      const message =
+        err instanceof Error ? err.message : '登录失败，请稍后重试';
+      setErrorMsg(message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="login-container">
       <div className="login-box">
-        <Card className="login-card">
+        <Card className="login-card" bordered={false}>
           <div className="login-header">
             <h1>后台管理系统</h1>
             <p>BaseBackend Admin System</p>
           </div>
+
+          {/* 服务端错误信息展示 */}
+          {errorMsg && (
+            <Alert
+              message={errorMsg}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setErrorMsg('')}
+              style={{ marginBottom: 24 }}
+            />
+          )}
+
           <Form
             name="login"
-            initialValues={{ username: 'admin', password: 'password' }}
             onFinish={onFinish}
             size="large"
+            autoComplete="off"
           >
             <Form.Item
               name="username"
               rules={[{ required: true, message: '请输入用户名' }]}
             >
               <Input
-                prefix={<User />}
+                prefix={<UserOutlined />}
                 placeholder="用户名"
                 autoComplete="username"
               />
@@ -66,25 +78,27 @@ const Login = () => {
               rules={[{ required: true, message: '请输入密码' }]}
             >
               <Input.Password
-                prefix={<Lock />}
+                prefix={<LockOutlined />}
                 placeholder="密码"
                 autoComplete="current-password"
               />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} block>
-                登录
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+              >
+                登 录
               </Button>
             </Form.Item>
           </Form>
-          <div className="login-footer">
-            <p>默认账号: admin / password</p>
-          </div>
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

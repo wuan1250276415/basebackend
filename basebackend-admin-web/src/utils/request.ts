@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosInstance, AxiosResponse } from 'axios'
 import { message } from 'antd'
 import { Result } from '@/types'
 
@@ -43,7 +43,8 @@ request.interceptors.response.use(
       message.error(errorMessage)
 
       // 401: 未登录或token过期
-      if (res.code === 401 || res.errorCode === 401) {
+      const resAny = res as unknown as Record<string, unknown>
+      if (res.code === 401 || resAny.errorCode === 401) {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
         window.location.href = '/login'
@@ -52,7 +53,8 @@ request.interceptors.response.use(
       return Promise.reject(new Error(errorMessage))
     }
 
-    return res
+    // 返回解包后的数据，类型断言以兼容拦截器签名
+    return res as unknown as AxiosResponse<Result>
   },
   (error) => {
     console.error('响应错误:', error)
