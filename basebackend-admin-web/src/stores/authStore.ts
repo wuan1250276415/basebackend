@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { RouteObject } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
 import { menuApi } from '@/api/menuApi';
+import { generateRoutes } from '@/router/dynamicRoutes';
 import type { UserInfo, MenuItem } from '@/types';
 
 /**
@@ -92,8 +93,8 @@ export const useAuthStore = create<AuthState>()(
         // 获取用户菜单
         const menus = await menuApi.getByUser(userContext.userId);
 
-        // TODO: Task 7.1 实现 generateRoutes 后替换
-        const dynamicRoutes: RouteObject[] = [];
+        // 根据菜单生成动态路由
+        const dynamicRoutes = generateRoutes(menus);
 
         set({
           userInfo: {
