@@ -127,6 +127,18 @@ spring:
                 name: observabilityServiceCircuitBreaker
                 fallbackUri: forward:/fallback/observability
 
+        # ==================== 工单服务路由 ====================
+        - id: ticket-api
+          uri: lb://basebackend-ticket-api
+          predicates:
+            - Path=/basebackend-ticket-api/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: ticketServiceCircuitBreaker
+                fallbackUri: forward:/fallback/ticket
+
         # ==================== 文件服务路由 ====================
         - id: file-service
           uri: lb://basebackend-file-service
@@ -179,6 +191,8 @@ resilience4j:
         baseConfig: default
       adminServiceCircuitBreaker:
         baseConfig: default
+      ticketServiceCircuitBreaker:
+        baseConfig: default
 
   timelimiter:
     configs:
@@ -198,4 +212,6 @@ resilience4j:
       fileServiceCircuitBreaker:
         baseConfig: default
       adminServiceCircuitBreaker:
+        baseConfig: default
+      ticketServiceCircuitBreaker:
         baseConfig: default

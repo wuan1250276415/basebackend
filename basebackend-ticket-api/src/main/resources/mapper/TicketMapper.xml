@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.basebackend.ticket.mapper.TicketMapper">
+
+    <!-- 工单列表VO映射 -->
+    <resultMap id="TicketListVOMap" type="com.basebackend.ticket.dto.TicketListVO">
+        <id column="id" property="id"/>
+        <result column="ticket_no" property="ticketNo"/>
+        <result column="title" property="title"/>
+        <result column="status" property="status"/>
+        <result column="priority" property="priority"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="reporter_id" property="reporterId"/>
+        <result column="reporter_name" property="reporterName"/>
+        <result column="assignee_id" property="assigneeId"/>
+        <result column="assignee_name" property="assigneeName"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="sla_deadline" property="slaDeadline"/>
+        <result column="sla_breached" property="slaBreached"/>
+        <result column="comment_count" property="commentCount"/>
+        <result column="attachment_count" property="attachmentCount"/>
+        <result column="tags" property="tags"/>
+        <result column="source" property="source"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 分页查询工单列表（含分类名称JOIN） -->
+    <select id="selectTicketPage" resultMap="TicketListVOMap">
+        SELECT
+            t.id, t.ticket_no, t.title, t.status, t.priority,
+            t.category_id, c.name AS category_name,
+            t.reporter_id, t.reporter_name,
+            t.assignee_id, t.assignee_name,
+            t.dept_id, t.sla_deadline, t.sla_breached,
+            t.comment_count, t.attachment_count,
+            t.tags, t.source,
+            t.create_time, t.update_time
+        FROM ticket t
+        LEFT JOIN ticket_category c ON t.category_id = c.id AND c.deleted = 0
+        WHERE t.deleted = 0
+        <if test="query.status != null and query.status != ''">
+            AND t.status = #{query.status}
+        </if>
+        <if test="query.priority != null">
+            AND t.priority = #{query.priority}
+        </if>
+        <if test="query.categoryId != null">
+            AND t.category_id = #{query.categoryId}
+        </if>
+        <if test="query.assigneeId != null">
+            AND t.assignee_id = #{query.assigneeId}
+        </if>
+        <if test="query.reporterId != null">
+            AND t.reporter_id = #{query.reporterId}
+        </if>
+        <if test="query.deptId != null">
+            AND t.dept_id = #{query.deptId}
+        </if>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (t.title LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR t.ticket_no LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <if test="query.startDate != null">
+            AND t.create_time &gt;= #{query.startDate}
+        </if>
+        <if test="query.endDate != null">
+            AND t.create_time &lt;= #{query.endDate}
+        </if>
+        ORDER BY
+            CASE t.priority WHEN 1 THEN 0 WHEN 2 THEN 1 WHEN 3 THEN 2 WHEN 4 THEN 3 END ASC,
+            t.create_time DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                 xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                 xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                 id="Definitions_TicketApproval"
+                 targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ticket-approval" name="工单审批流程" isExecutable="true">
+    <bpmn:documentation>
+      工单审批工作流程
+      支持一级/二级审批
+      审批结果影响工单状态
+      支持退回操作
+    </bpmn:documentation>
+
+    <!-- 开始事件 -->
+    <bpmn:startEvent id="StartEvent_TicketApproval" name="提交审批">
+      <bpmn:outgoing>Flow_Start_To_Level1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- 一级审批 -->
+    <bpmn:userTask id="Task_Level1_Approval" name="一级审批"
+                  camunda:candidateUsers="${approver1}">
+      <bpmn:documentation>
+        一级审批节点
+        审批人由流程变量 approver1 指定
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_Start_To_Level1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Level1_To_Gateway1</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- 一级审批结果网关 -->
+    <bpmn:exclusiveGateway id="Gateway_Level1_Result" name="一级审批结果">
+      <bpmn:incoming>Flow_Level1_To_Gateway1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Level1_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Level1_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Level1_Return</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- 是否需要二级审批网关 -->
+    <bpmn:exclusiveGateway id="Gateway_NeedLevel2" name="是否需要二级审批">
+      <bpmn:incoming>Flow_Level1_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_Level2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Skip_Level2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- 二级审批 -->
+    <bpmn:userTask id="Task_Level2_Approval" name="二级审批"
+                  camunda:candidateUsers="${approver2}">
+      <bpmn:documentation>
+        二级审批节点
+        审批人由流程变量 approver2 指定
+      </bpmn:documentation>
+      <bpmn:incoming>Flow_To_Level2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Level2_To_Gateway2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- 二级审批结果网关 -->
+    <bpmn:exclusiveGateway id="Gateway_Level2_Result" name="二级审批结果">
+      <bpmn:incoming>Flow_Level2_To_Gateway2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Level2_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Level2_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- 审批通过 - 更新工单状态 -->
+    <bpmn:serviceTask id="Task_Approve_Ticket" name="审批通过处理"
+                     camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:documentation>
+        更新工单状态为 APPROVED
+        输入变量: ticketId, ticketNo
+      </bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="serviceUrl">/api/ticket/tickets/${ticketId}/approvals/approve</camunda:inputParameter>
+          <camunda:inputParameter name="httpMethod">POST</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Skip_Level2</bpmn:incoming>
+      <bpmn:incoming>Flow_Level2_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- 审批拒绝 - 更新工单状态 -->
+    <bpmn:serviceTask id="Task_Reject_Ticket" name="审批拒绝处理"
+                     camunda:delegateExpression="${microserviceCallDelegate}">
+      <bpmn:documentation>
+        更新工单状态为 REJECTED
+        输入变量: ticketId, ticketNo
+      </bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="serviceUrl">/api/ticket/tickets/${ticketId}/approvals/reject</camunda:inputParameter>
+          <camunda:inputParameter name="httpMethod">POST</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Level1_Rejected</bpmn:incoming>
+      <bpmn:incoming>Flow_Level2_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_Rejected_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- 结束事件 -->
+    <bpmn:endEvent id="EndEvent_TicketApproval" name="审批结束">
+      <bpmn:incoming>Flow_Approved_To_End</bpmn:incoming>
+      <bpmn:incoming>Flow_Rejected_To_End</bpmn:incoming>
+      <bpmn:incoming>Flow_Level1_Return</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- 连线 -->
+    <bpmn:sequenceFlow id="Flow_Start_To_Level1" sourceRef="StartEvent_TicketApproval"
+                      targetRef="Task_Level1_Approval"/>
+
+    <bpmn:sequenceFlow id="Flow_Level1_To_Gateway1" sourceRef="Task_Level1_Approval"
+                      targetRef="Gateway_Level1_Result"/>
+
+    <bpmn:sequenceFlow id="Flow_Level1_Approved" name="通过" sourceRef="Gateway_Level1_Result"
+                      targetRef="Gateway_NeedLevel2">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${approved == true && action == 'APPROVE'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Level1_Rejected" name="拒绝" sourceRef="Gateway_Level1_Result"
+                      targetRef="Task_Reject_Ticket">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${approved == false && action == 'REJECT'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Level1_Return" name="退回" sourceRef="Gateway_Level1_Result"
+                      targetRef="EndEvent_TicketApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${action == 'RETURN'}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_To_Level2" name="需要二级审批" sourceRef="Gateway_NeedLevel2"
+                      targetRef="Task_Level2_Approval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${needLevel2 == true}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Skip_Level2" name="无需二级审批" sourceRef="Gateway_NeedLevel2"
+                      targetRef="Task_Approve_Ticket">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${needLevel2 == false}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Level2_To_Gateway2" sourceRef="Task_Level2_Approval"
+                      targetRef="Gateway_Level2_Result"/>
+
+    <bpmn:sequenceFlow id="Flow_Level2_Approved" name="通过" sourceRef="Gateway_Level2_Result"
+                      targetRef="Task_Approve_Ticket">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${approved == true}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Level2_Rejected" name="拒绝" sourceRef="Gateway_Level2_Result"
+                      targetRef="Task_Reject_Ticket">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">
+        <![CDATA[${approved == false}]]>
+      </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Approved_To_End" sourceRef="Task_Approve_Ticket"
+                      targetRef="EndEvent_TicketApproval"/>
+    <bpmn:sequenceFlow id="Flow_Rejected_To_End" sourceRef="Task_Reject_Ticket"
+                      targetRef="EndEvent_TicketApproval"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_TicketApproval">
+    <bpmndi:BPMNPlane id="BPMNPlane_TicketApproval" bpmnElement="ticket-approval">
+      <!-- 可视化元素定义 -->
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

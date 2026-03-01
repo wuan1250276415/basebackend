@@ -40,6 +40,7 @@
         <module>basebackend-observability-service</module>
         <module>basebackend-chat-api</module>
         <module>basebackend-album-api</module>
+        <module>basebackend-ticket-api</module>
     </modules>
 
     <properties>
