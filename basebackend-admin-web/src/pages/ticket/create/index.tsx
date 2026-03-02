@@ -17,6 +17,7 @@ import {
 import {
   ArrowLeftOutlined,
   InboxOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import { ticketApi } from '@/api/ticketApi';
@@ -63,6 +64,7 @@ const TicketCreatePage: React.FC = () => {
   const [uploadedAttachments, setUploadedAttachments] = useState<
     { fileId: number; fileName: string; fileSize: number; fileType: string; fileUrl: string }[]
   >([]);
+  const [aiClassifying, setAiClassifying] = useState(false);
 
   useEffect(() => {
     ticketApi.getCategoryTree().then(setCategories);
@@ -118,6 +120,30 @@ const TicketCreatePage: React.FC = () => {
     }
   };
 
+  const handleAiClassify = async () => {
+    const title = form.getFieldValue('title');
+    if (!title) {
+      message.warning('请先输入标题');
+      return;
+    }
+    setAiClassifying(true);
+    try {
+      const result = await ticketApi.aiClassify(title, form.getFieldValue('description') || '');
+      if (result.categoryId) {
+        form.setFieldValue('categoryId', result.categoryId);
+        message.success(
+          `AI 推荐分类: ${result.categoryName} (置信度 ${Math.round((result.confidence || 0) * 100)}%)`,
+        );
+      } else {
+        message.info('AI 未能确定分类，请手动选择');
+      }
+    } catch {
+      message.error('AI 分类失败，请手动选择');
+    } finally {
+      setAiClassifying(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -170,6 +196,16 @@ const TicketCreatePage: React.FC = () => {
                 treeDefaultExpandAll
                 allowClear
               />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                icon={<RobotOutlined />}
+                loading={aiClassifying}
+                onClick={handleAiClassify}
+              >
+                AI 智能分类
+              </Button>
             </Form.Item>
 
             <Form.Item name="priority" label="优先级">

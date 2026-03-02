@@ -158,6 +158,68 @@ export interface PageResult<T> {
   pages: number;
 }
 
+// ==================== Phase 2 Types ====================
+
+export interface TrendPoint {
+  date: string;
+  openCount: number;
+  resolvedCount: number;
+  closedCount: number;
+}
+
+export interface ResolutionTimeStats {
+  avgHours: number;
+  medianHours: number;
+  p90Hours: number;
+}
+
+export interface SlaCompliance {
+  totalCount: number;
+  breachedCount: number;
+  complianceRate: number;
+}
+
+export interface AssigneeRank {
+  assigneeId: number;
+  assigneeName: string;
+  resolvedCount: number;
+  avgResolutionHours: number;
+}
+
+export interface TicketClassifyResult {
+  categoryId: number;
+  categoryName: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface SearchHit<T> {
+  id: string;
+  score: number;
+  source: T;
+  highlights: Record<string, string[]>;
+}
+
+export interface SearchResult<T> {
+  hits: SearchHit<T>[];
+  totalHits: number;
+  tookMs: number;
+}
+
+export interface TicketSearchDoc {
+  id: string;
+  title: string;
+  description: string;
+  ticketNo: string;
+  status: string;
+  priority: number;
+  categoryName: string;
+  reporterName: string;
+  assigneeName: string;
+  tags: string;
+  createTime: string;
+}
+
 // ==================== API ====================
 
 export const ticketApi = {
@@ -257,4 +319,62 @@ export const ticketApi = {
     request.post('/api/ticket/tickets', data, {
       headers: { 'X-Idempotent-Token': token },
     }),
+
+  // ==================== Phase 2: 统计增强 ====================
+
+  getTrend: (days = 30): Promise<TrendPoint[]> =>
+    request.get('/api/ticket/statistics/trend', { params: { days } }),
+
+  getResolutionTime: (): Promise<ResolutionTimeStats> =>
+    request.get('/api/ticket/statistics/resolution-time'),
+
+  getSlaCompliance: (): Promise<SlaCompliance> =>
+    request.get('/api/ticket/statistics/sla-compliance'),
+
+  getTopAssignees: (limit = 10): Promise<AssigneeRank[]> =>
+    request.get('/api/ticket/statistics/top-assignees', { params: { limit } }),
+
+  // ==================== Phase 2: 全文搜索 ====================
+
+  searchTickets: (keyword: string, filters: Partial<TicketQueryDTO> = {}, page = 1, size = 10): Promise<SearchResult<TicketSearchDoc>> =>
+    request.get('/api/ticket/search', { params: { keyword, ...filters, page, size } }),
+
+  reindexSearch: (): Promise<void> =>
+    request.post('/api/ticket/search/reindex'),
+
+  // ==================== Phase 2: AI 智能 ====================
+
+  aiClassify: (title: string, description?: string): Promise<TicketClassifyResult> =>
+    request.post('/api/ticket/ai/classify', { title, description }),
+
+  aiSummarize: (ticketId: number): Promise<string> =>
+    request.get(`/api/ticket/ai/summary/${ticketId}`),
+
+  aiSuggestReply: (ticketId: number): Promise<string[]> =>
+    request.get(`/api/ticket/ai/suggest-reply/${ticketId}`),
+
+  // ==================== Phase 2: 导出 ====================
+
+  exportTickets: (params: Partial<TicketQueryDTO>, format: 'csv' | 'excel' = 'excel'): Promise<Blob> =>
+    request.get('/api/ticket/export', {
+      params: { ...params, format },
+      responseType: 'blob',
+    }),
+
+  asyncExport: (params: Partial<TicketQueryDTO>, format: 'csv' | 'excel' = 'excel'): Promise<string> =>
+    request.get('/api/ticket/export/async', { params: { ...params, format } }),
+
+  getExportStatus: (taskId: string): Promise<{ taskId: string; status: string }> =>
+    request.get(`/api/ticket/export/status/${taskId}`),
+
+  downloadExport: (taskId: string): Promise<Blob> =>
+    request.get(`/api/ticket/export/download/${taskId}`, { responseType: 'blob' }),
+
+  // ==================== Phase 2: 实时推送 ====================
+
+  subscribeRealtime: (ticketId: number): Promise<void> =>
+    request.post(`/api/ticket/realtime/subscribe/${ticketId}`),
+
+  unsubscribeRealtime: (ticketId: number): Promise<void> =>
+    request.delete(`/api/ticket/realtime/unsubscribe/${ticketId}`),
 };

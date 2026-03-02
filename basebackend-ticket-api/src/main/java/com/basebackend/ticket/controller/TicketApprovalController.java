@@ -4,6 +4,9 @@ import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
+import com.basebackend.observability.metrics.annotations.Counted;
+import com.basebackend.observability.metrics.annotations.Timed;
+import com.basebackend.observability.slo.annotation.SloMonitored;
 import com.basebackend.security.annotation.RequiresPermission;
 import com.basebackend.api.model.scheduler.TaskFeignDTO;
 import com.basebackend.ticket.dto.TicketApprovalSubmitDTO;
@@ -62,6 +65,9 @@ public class TicketApprovalController {
     @Operation(summary = "提交审批", description = "提交工单进入Camunda审批流程")
     @OperationLog(operation = "提交工单审批", businessType = BusinessType.UPDATE)
     @RequiresPermission("ticket:approve:submit")
+    @Timed(name = "ticket.approval.submit")
+    @Counted(name = "ticket.approval.submit.count")
+    @SloMonitored(sloName = "ticket.approval.latency")
     public Result<String> submit(
             @Parameter(description = "工单ID") @PathVariable Long ticketId,
             @RequestBody @Valid TicketApprovalSubmitDTO dto) {

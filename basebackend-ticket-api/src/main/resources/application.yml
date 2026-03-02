@@ -110,6 +110,28 @@ basebackend:
     enabled: true
     multi-level:
       enabled: true
+  # Phase 2: 全文搜索配置
+  search:
+    enabled: true
+    type: elasticsearch
+    elasticsearch:
+      url: ${ES_URL:http://192.168.66.126:9200}
+      username: ${ES_USERNAME:elastic}
+      password: ${ES_PASSWORD:}
+      index-prefix: ${ES_INDEX_PREFIX:basebackend_}
+  # Phase 2: AI 智能配置
+  ai:
+    enabled: true
+    provider: ${AI_PROVIDER:deepseek}
+    deepseek:
+      api-key: ${AI_DEEPSEEK_API_KEY:}
+      base-url: ${AI_DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      model: ${AI_DEEPSEEK_MODEL:deepseek-chat}
+  # Phase 2: WebSocket 配置
+  websocket:
+    enabled: true
+    path: /ws
+    heartbeat-interval: 30000
 
 # Knife4j配置
 knife4j:

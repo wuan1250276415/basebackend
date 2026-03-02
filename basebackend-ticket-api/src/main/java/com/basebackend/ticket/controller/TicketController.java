@@ -10,6 +10,8 @@ import com.basebackend.common.model.Result;
 import com.basebackend.common.ratelimit.RateLimit;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
+import com.basebackend.observability.metrics.annotations.Counted;
+import com.basebackend.observability.metrics.annotations.Timed;
 import com.basebackend.security.annotation.RequiresPermission;
 import com.basebackend.ticket.dto.*;
 import com.basebackend.ticket.entity.Ticket;
@@ -43,6 +45,8 @@ public class TicketController {
     @RequiresPermission("ticket:create")
     @Idempotent(strategy = IdempotentStrategy.TOKEN)
     @RateLimit(limit = 30, window = 60, message = "创建工单过于频繁")
+    @Timed(name = "ticket.api.create")
+    @Counted(name = "ticket.api.create.count")
     public Result<TicketDetailVO> create(@RequestBody @Valid TicketCreateDTO dto) {
         log.info("创建工单: title={}", dto.title());
         Ticket ticket = ticketService.create(dto);
@@ -55,6 +59,7 @@ public class TicketController {
     @OperationLog(operation = "分页查询工单", businessType = BusinessType.SELECT)
     @RequiresPermission("ticket:list")
     @DataScope(type = DataScopeType.DEPT_AND_BELOW, deptAlias = "t", deptField = "dept_id")
+    @Timed(name = "ticket.api.page")
     public Result<IPage<TicketListVO>> page(
             TicketQueryDTO query,
             @Parameter(description = "当前页") @RequestParam(defaultValue = "1") long current,
@@ -103,6 +108,8 @@ public class TicketController {
     @OperationLog(operation = "变更工单状态", businessType = BusinessType.UPDATE)
     @RequiresPermission("ticket:update")
     @Idempotent(strategy = IdempotentStrategy.SPEL, key = "'ticket:status:' + #id + ':' + #dto.toStatus()")
+    @Timed(name = "ticket.api.changeStatus")
+    @Counted(name = "ticket.api.changeStatus.count")
     public Result<String> changeStatus(
             @Parameter(description = "工单ID") @PathVariable Long id,
             @RequestBody @Valid TicketStatusChangeDTO dto) {
@@ -140,6 +147,7 @@ public class TicketController {
     @Operation(summary = "删除工单", description = "逻辑删除工单")
     @OperationLog(operation = "删除工单", businessType = BusinessType.DELETE)
     @RequiresPermission("ticket:delete")
+    @Counted(name = "ticket.api.delete.count")
     public Result<String> delete(@Parameter(description = "工单ID") @PathVariable Long id) {
         log.info("删除工单: id={}", id);
         ticketService.delete(id);

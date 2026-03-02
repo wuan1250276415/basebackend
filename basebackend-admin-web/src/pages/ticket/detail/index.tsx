@@ -20,6 +20,7 @@ import {
   ExclamationCircleOutlined,
   MoreOutlined,
   UserSwitchOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useTicketStore } from '@/stores/ticketStore';
@@ -29,6 +30,7 @@ import CommentSection from '@/components/ticket/CommentSection';
 import AttachmentList from '@/components/ticket/AttachmentList';
 import ApprovalTimeline from '@/components/ticket/ApprovalTimeline';
 import StatusLog from '@/components/ticket/StatusLog';
+import AiAssistantPanel from '@/components/ticket/AiAssistantPanel';
 import { ticketApi } from '@/api/ticketApi';
 import { Permission } from '@/components/Permission';
 
@@ -73,6 +75,7 @@ const TicketDetailPage: React.FC = () => {
   const [assigneeId, setAssigneeId] = useState<number | undefined>();
   const [assigneeName, setAssigneeName] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => {
     if (id) fetchDetail(id);
@@ -173,6 +176,9 @@ const TicketDetailPage: React.FC = () => {
           返回列表
         </Button>
         <Space>
+          <Button icon={<RobotOutlined />} onClick={() => setAiPanelOpen(true)}>
+            AI 助手
+          </Button>
           {transitions.map((t) => (
             <Button
               key={t.value}
@@ -329,6 +335,13 @@ const TicketDetailPage: React.FC = () => {
           </div>
         </Space>
       </Modal>
+
+      {/* AI Assistant Panel */}
+      <AiAssistantPanel
+        open={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        ticketId={id}
+      />
     </div>
   );
 };

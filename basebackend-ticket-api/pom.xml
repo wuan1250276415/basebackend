@@ -136,6 +136,38 @@
             <artifactId>seata-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Phase 2: 平台能力集成 -->
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-search</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-ai</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-websocket</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>observability-slo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-common-masking</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.basebackend</groupId>
+            <artifactId>basebackend-common-export</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

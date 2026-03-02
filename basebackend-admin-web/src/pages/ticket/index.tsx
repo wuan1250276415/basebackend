@@ -10,6 +10,7 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
@@ -25,6 +26,7 @@ const TicketPage: React.FC = () => {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<TicketOverview | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const fetchOverview = async () => {
     try {
@@ -68,6 +70,26 @@ const TicketPage: React.FC = () => {
         fetchOverview();
       },
     });
+  };
+
+  const handleExport = async (format: 'csv' | 'excel') => {
+    setExportLoading(true);
+    try {
+      const blob = await ticketApi.exportTickets({}, format);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `工单导出.${format === 'csv' ? 'csv' : 'xlsx'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      message.success('导出成功');
+    } catch {
+      // handled by interceptor
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const columns: ProColumns<TicketListItem>[] = [
@@ -315,6 +337,12 @@ const TicketPage: React.FC = () => {
         pagination={{ defaultPageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         search={{ labelWidth: 'auto', defaultCollapsed: false, span: 6 }}
         toolBarRender={() => [
+          <Button key="export-excel" icon={<DownloadOutlined />} loading={exportLoading} onClick={() => handleExport('excel')}>
+            导出 Excel
+          </Button>,
+          <Button key="export-csv" loading={exportLoading} onClick={() => handleExport('csv')}>
+            导出 CSV
+          </Button>,
           <Button key="refresh" icon={<ReloadOutlined />} onClick={() => { actionRef.current?.reload(); fetchOverview(); }}>
             刷新
           </Button>,

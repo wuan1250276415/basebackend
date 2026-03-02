@@ -16,12 +16,15 @@ import com.basebackend.ticket.event.TicketAssignedEvent;
 import com.basebackend.ticket.event.TicketCreatedEvent;
 import com.basebackend.ticket.event.TicketStatusChangedEvent;
 import com.basebackend.ticket.mapper.*;
+import com.basebackend.ticket.search.TicketSearchService;
 import com.basebackend.ticket.service.TicketService;
 import com.basebackend.ticket.util.AuditHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,10 +54,16 @@ public class TicketServiceImpl implements TicketService {
     private final StringRedisTemplate redisTemplate;
     private final DomainEventPublisher eventPublisher;
 
+    @Autowired(required = false)
+    private TicketSearchService ticketSearchService;
+
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.BASIC_ISO_DATE;
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "ticket:stats", allEntries = true)
+    })
     public Ticket create(TicketCreateDTO dto) {
         log.info("创建工单: title={}", dto.title());
 
@@ -276,6 +285,9 @@ public class TicketServiceImpl implements TicketService {
                 fromStatus.name(), toStatus.name(),
                 statusLog.getOperatorId(), statusLog.getOperatorName(),
                 remark));
+
+        // Phase 2: 清除统计缓存
+        evictStatsCache();
     }
 
     @Override
@@ -330,6 +342,17 @@ public class TicketServiceImpl implements TicketService {
         Ticket ticket = getById(id);
         log.info("删除工单: id={}, ticketNo={}", id, ticket.getTicketNo());
         ticketMapper.deleteById(id);
+
+        // Phase 2: 删除搜索索引
+        if (ticketSearchService != null) {
+            try {
+                ticketSearchService.removeTicket(id);
+            } catch (Exception e) {
+                log.warn("删除工单搜索索引失败: ticketId={}", id, e);
+            }
+        }
+
+        evictStatsCache();
     }
 
     @Override
@@ -345,5 +368,16 @@ public class TicketServiceImpl implements TicketService {
             redisTemplate.expire(key, 2, TimeUnit.DAYS);
         }
         return String.format("TK-%s-%04d", dateStr, seq);
+    }
+
+    private void evictStatsCache() {
+        try {
+            var keys = redisTemplate.keys("ticket:stats::*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception e) {
+            log.warn("清除统计缓存失败", e);
+        }
     }
 }
