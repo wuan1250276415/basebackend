@@ -31,7 +31,7 @@ class TicketRealtimeServiceTest {
     private ChannelManager channelManager;
 
     @Spy
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
     @DisplayName("notifyTicketUpdate - 有订阅者时应推送")

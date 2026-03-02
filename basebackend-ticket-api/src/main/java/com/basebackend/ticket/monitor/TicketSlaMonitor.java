@@ -1,7 +1,7 @@
 package com.basebackend.ticket.monitor;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.basebackend.ticket.entity.Ticket;
 import com.basebackend.ticket.enums.TicketStatus;
 import com.basebackend.ticket.mapper.TicketMapper;
@@ -50,9 +50,9 @@ public class TicketSlaMonitor {
         log.warn("检测到 {} 个工单 SLA 违约", breachedTickets.size());
 
         for (Ticket ticket : breachedTickets) {
-            LambdaUpdateWrapper<Ticket> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(Ticket::getId, ticket.getId())
-                    .set(Ticket::getSlaBreached, 1);
+            UpdateWrapper<Ticket> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", ticket.getId())
+                    .set("sla_breached", 1);
             ticketMapper.update(null, updateWrapper);
 
             log.warn("SLA 违约: ticketNo={}, slaDeadline={}, status={}",
