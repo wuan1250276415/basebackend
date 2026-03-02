@@ -54,6 +54,7 @@ public class TicketApprovalController {
     @GetMapping
     @Operation(summary = "审批记录列表", description = "查询工单的审批记录")
     @OperationLog(operation = "查询工单审批记录", businessType = BusinessType.SELECT)
+    @RequiresPermission("ticket:approve")
     public Result<List<TicketApproval>> list(
             @Parameter(description = "工单ID") @PathVariable Long ticketId) {
         log.info("查询工单审批记录: ticketId={}", ticketId);
@@ -82,6 +83,7 @@ public class TicketApprovalController {
     @GetMapping("/tasks")
     @Operation(summary = "活跃审批任务", description = "查询工单的当前活跃审批任务")
     @OperationLog(operation = "查询活跃审批任务", businessType = BusinessType.SELECT)
+    @RequiresPermission("ticket:approve")
     public Result<List<TaskFeignDTO>> activeTasks(
             @Parameter(description = "工单ID") @PathVariable Long ticketId) {
         log.info("查询活跃审批任务: ticketId={}", ticketId);

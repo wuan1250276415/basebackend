@@ -4,6 +4,9 @@ import com.basebackend.common.export.AsyncExportService;
 import com.basebackend.common.export.ExportFormat;
 import com.basebackend.common.export.ExportManager;
 import com.basebackend.common.export.ExportResult;
+import com.basebackend.common.context.TenantContextHolder;
+import com.basebackend.common.context.UserContextHolder;
+import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
@@ -26,9 +29,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 工单导出控制器
@@ -44,6 +49,7 @@ public class TicketExportController {
     private final TicketCategoryMapper categoryMapper;
     private final ExportManager exportManager;
     private final AsyncExportService asyncExportService;
+    private final Map<String, ExportTaskOwner> exportTaskOwners = new ConcurrentHashMap<>();
 
     @GetMapping
     @Operation(summary = "同步导出工单", description = "同步导出工单数据为 CSV 或 Excel")
@@ -77,14 +83,23 @@ public class TicketExportController {
         ExportFormat exportFormat = "csv".equalsIgnoreCase(format) ? ExportFormat.CSV : ExportFormat.XLSX;
         String taskId = asyncExportService.exportAsync(
                 () -> queryExportData(filters), TicketExportDTO.class, exportFormat);
+        exportTaskOwners.put(taskId, new ExportTaskOwner(UserContextHolder.getUserId(), TenantContextHolder.getTenantId()));
         return Result.success("导出任务已提交", taskId);
     }
 
     @GetMapping("/status/{taskId}")
     @Operation(summary = "查询导出状态", description = "查询异步导出任务状态")
+    @RequiresPermission("ticket:export")
     public Result<Object> exportStatus(
             @Parameter(description = "任务ID") @PathVariable String taskId) {
+        if (!isCurrentUserTaskOwner(taskId)) {
+            return Result.error(CommonErrorCode.NOT_FOUND);
+        }
         var status = asyncExportService.getExportStatus(taskId);
+        if (status == null) {
+            exportTaskOwners.remove(taskId);
+            return Result.error(CommonErrorCode.NOT_FOUND);
+        }
         Map<String, Object> result = new HashMap<>();
         result.put("taskId", taskId);
         result.put("status", status.getStatus().name());
@@ -93,18 +108,36 @@ public class TicketExportController {
 
     @GetMapping("/download/{taskId}")
     @Operation(summary = "下载导出文件", description = "下载异步导出的文件")
+    @RequiresPermission("ticket:export")
     public ResponseEntity<byte[]> download(
             @Parameter(description = "任务ID") @PathVariable String taskId) {
+        if (!isCurrentUserTaskOwner(taskId)) {
+            return ResponseEntity.notFound().build();
+        }
         ExportResult result = asyncExportService.getExportResult(taskId);
         if (result == null) {
+            exportTaskOwners.remove(taskId);
             return ResponseEntity.notFound().build();
         }
 
         String encodedFileName = URLEncoder.encode(result.getFileName(), StandardCharsets.UTF_8);
+        exportTaskOwners.remove(taskId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
                 .contentType(MediaType.parseMediaType(result.getContentType()))
                 .body(result.getContent());
+    }
+
+    private boolean isCurrentUserTaskOwner(String taskId) {
+        ExportTaskOwner owner = exportTaskOwners.get(taskId);
+        if (owner == null) {
+            return false;
+        }
+        return Objects.equals(owner.userId(), UserContextHolder.getUserId())
+                && Objects.equals(owner.tenantId(), TenantContextHolder.getTenantId());
+    }
+
+    private record ExportTaskOwner(Long userId, Long tenantId) {
     }
 
     private List<TicketExportDTO> queryExportData(TicketQueryDTO filters) {

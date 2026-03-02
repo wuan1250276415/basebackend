@@ -4,10 +4,15 @@ import com.basebackend.common.export.AsyncExportService;
 import com.basebackend.common.export.ExportFormat;
 import com.basebackend.common.export.ExportManager;
 import com.basebackend.common.export.ExportResult;
+import com.basebackend.common.context.TenantContextHolder;
+import com.basebackend.common.context.UserContext;
+import com.basebackend.common.context.UserContextHolder;
+import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.ticket.entity.Ticket;
 import com.basebackend.ticket.entity.TicketCategory;
 import com.basebackend.ticket.mapper.TicketCategoryMapper;
 import com.basebackend.ticket.mapper.TicketMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +47,12 @@ class TicketExportControllerTest {
     @Mock
     private AsyncExportService asyncExportService;
 
+    @AfterEach
+    void cleanupContext() {
+        UserContextHolder.clear();
+        TenantContextHolder.clear();
+    }
+
     private Ticket buildTicket(Long id, String ticketNo) {
         Ticket t = new Ticket();
         t.setId(id);
@@ -65,10 +76,11 @@ class TicketExportControllerTest {
         when(categoryMapper.selectList(any())).thenReturn(List.of(cat));
         when(ticketMapper.selectList(any())).thenReturn(List.of(buildTicket(1L, "TK-001")));
 
-        ExportResult mockResult = new ExportResult();
-        mockResult.setFileName("tickets.xlsx");
-        mockResult.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        mockResult.setContent(new byte[]{1, 2, 3});
+        ExportResult mockResult = ExportResult.builder()
+                .fileName("tickets.xlsx")
+                .contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .content(new byte[]{1, 2, 3})
+                .build();
         when(exportManager.export(anyList(), eq(TicketExportDTO.class), eq(ExportFormat.XLSX)))
                 .thenReturn(mockResult);
 
@@ -85,10 +97,11 @@ class TicketExportControllerTest {
         when(categoryMapper.selectList(any())).thenReturn(List.of());
         when(ticketMapper.selectList(any())).thenReturn(List.of());
 
-        ExportResult mockResult = new ExportResult();
-        mockResult.setFileName("tickets.csv");
-        mockResult.setContentType("text/csv");
-        mockResult.setContent(new byte[]{});
+        ExportResult mockResult = ExportResult.builder()
+                .fileName("tickets.csv")
+                .contentType("text/csv")
+                .content(new byte[]{})
+                .build();
         when(exportManager.export(anyList(), eq(TicketExportDTO.class), eq(ExportFormat.CSV)))
                 .thenReturn(mockResult);
 
@@ -112,10 +125,56 @@ class TicketExportControllerTest {
     @Test
     @DisplayName("下载 - 任务不存在时应返回404")
     void shouldReturn404WhenTaskNotFound() {
-        when(asyncExportService.getExportResult("no-such-task")).thenReturn(null);
-
         ResponseEntity<byte[]> response = exportController.download("no-such-task");
 
         assertThat(response.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("查询状态 - 任务不存在时应返回404错误结果")
+    void shouldReturnNotFoundWhenStatusTaskMissing() {
+        mockUserContext(100L, 10L);
+        when(asyncExportService.exportAsync(any(), eq(TicketExportDTO.class), eq(ExportFormat.XLSX)))
+                .thenReturn("missing-task");
+        exportController.asyncExport(null, "excel");
+
+        when(asyncExportService.getExportStatus("missing-task")).thenReturn(null);
+
+        var result = exportController.exportStatus("missing-task");
+
+        assertThat(result.getCode()).isEqualTo(CommonErrorCode.NOT_FOUND.getCode());
+    }
+
+    @Test
+    @DisplayName("查询状态 - 非任务拥有者应被拒绝")
+    void shouldRejectStatusWhenNotTaskOwner() {
+        mockUserContext(100L, 10L);
+        when(asyncExportService.exportAsync(any(), eq(TicketExportDTO.class), eq(ExportFormat.XLSX)))
+                .thenReturn("task-100");
+        exportController.asyncExport(null, "excel");
+
+        mockUserContext(101L, 10L);
+        var result = exportController.exportStatus("task-100");
+
+        assertThat(result.getCode()).isEqualTo(CommonErrorCode.NOT_FOUND.getCode());
+    }
+
+    @Test
+    @DisplayName("下载 - 非任务拥有者应返回404")
+    void shouldRejectDownloadWhenNotTaskOwner() {
+        mockUserContext(100L, 10L);
+        when(asyncExportService.exportAsync(any(), eq(TicketExportDTO.class), eq(ExportFormat.XLSX)))
+                .thenReturn("task-200");
+        exportController.asyncExport(null, "excel");
+
+        mockUserContext(101L, 10L);
+        ResponseEntity<byte[]> response = exportController.download("task-200");
+
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
+    }
+
+    private void mockUserContext(Long userId, Long tenantId) {
+        UserContextHolder.set(UserContext.builder().userId(userId).nickname("tester").build());
+        TenantContextHolder.set(() -> tenantId);
     }
 }

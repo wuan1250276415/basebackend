@@ -4,6 +4,7 @@ import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
+import com.basebackend.security.annotation.RequiresPermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ public class TicketRealtimeController {
     @PostMapping("/subscribe/{ticketId}")
     @Operation(summary = "订阅工单更新", description = "订阅指定工单的实时更新推送")
     @OperationLog(operation = "订阅工单实时推送", businessType = BusinessType.INSERT)
+    @RequiresPermission("ticket:query")
     public Result<String> subscribe(
             @Parameter(description = "工单ID") @PathVariable Long ticketId) {
         String userId = String.valueOf(UserContextHolder.getUserId());
@@ -38,6 +40,7 @@ public class TicketRealtimeController {
     @DeleteMapping("/unsubscribe/{ticketId}")
     @Operation(summary = "取消订阅工单更新", description = "取消订阅指定工单的实时更新推送")
     @OperationLog(operation = "取消订阅工单实时推送", businessType = BusinessType.DELETE)
+    @RequiresPermission("ticket:query")
     public Result<String> unsubscribe(
             @Parameter(description = "工单ID") @PathVariable Long ticketId) {
         String userId = String.valueOf(UserContextHolder.getUserId());
