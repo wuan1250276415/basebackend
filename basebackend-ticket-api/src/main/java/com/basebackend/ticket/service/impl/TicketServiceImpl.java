@@ -22,6 +22,8 @@ import com.basebackend.ticket.util.AuditHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -52,6 +54,7 @@ public class TicketServiceImpl implements TicketService {
     private final TicketCcMapper ccMapper;
     private final AuditHelper auditHelper;
     private final StringRedisTemplate redisTemplate;
+    private final CacheManager cacheManager;
     private final DomainEventPublisher eventPublisher;
 
     @Autowired(required = false)
@@ -81,12 +84,14 @@ public class TicketServiceImpl implements TicketService {
         if (ticket.getPriority() == null) {
             ticket.setPriority(3); // 默认中优先级
         }
-        if (ticket.getReporterId() == null) {
-            ticket.setReporterId(UserContextHolder.getUserId());
+        Long currentUserId = UserContextHolder.getUserId();
+        if (currentUserId != null) {
+            ticket.setReporterId(currentUserId);
             ticket.setReporterName(UserContextHolder.getNickname());
         }
-        if (ticket.getDeptId() == null) {
-            ticket.setDeptId(UserContextHolder.getDeptId());
+        Long currentDeptId = UserContextHolder.getDeptId();
+        if (currentDeptId != null) {
+            ticket.setDeptId(currentDeptId);
         }
 
         ticket.setCommentCount(0);
@@ -234,6 +239,7 @@ public class TicketServiceImpl implements TicketService {
 
         auditHelper.setUpdateAuditFields(ticket);
         ticketMapper.updateById(ticket);
+        evictTicketNoCache(ticket.getTicketNo());
     }
 
     @Override
@@ -288,6 +294,7 @@ public class TicketServiceImpl implements TicketService {
 
         // Phase 2: 清除统计缓存
         evictStatsCache();
+        evictTicketNoCache(ticket.getTicketNo());
     }
 
     @Override
@@ -327,6 +334,7 @@ public class TicketServiceImpl implements TicketService {
         eventPublisher.publish(new TicketAssignedEvent(
                 "ticket-service", id, ticket.getTicketNo(),
                 assigneeId, assigneeName, operatorId, operatorName));
+        evictTicketNoCache(ticket.getTicketNo());
     }
 
     @Override
@@ -353,6 +361,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         evictStatsCache();
+        evictTicketNoCache(ticket.getTicketNo());
     }
 
     @Override
@@ -378,6 +387,16 @@ public class TicketServiceImpl implements TicketService {
             }
         } catch (Exception e) {
             log.warn("清除统计缓存失败", e);
+        }
+    }
+
+    private void evictTicketNoCache(String ticketNo) {
+        if (ticketNo == null || ticketNo.isBlank()) {
+            return;
+        }
+        Cache cache = cacheManager.getCache("ticket");
+        if (cache != null) {
+            cache.evict("no:" + ticketNo);
         }
     }
 }

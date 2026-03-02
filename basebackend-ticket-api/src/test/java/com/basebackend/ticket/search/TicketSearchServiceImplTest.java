@@ -1,5 +1,6 @@
 package com.basebackend.ticket.search;
 
+import com.basebackend.common.context.TenantContextHolder;
 import com.basebackend.search.client.SearchClient;
 import com.basebackend.search.model.SearchResult;
 import com.basebackend.search.query.SearchQuery;
@@ -8,10 +9,12 @@ import com.basebackend.ticket.entity.Ticket;
 import com.basebackend.ticket.entity.TicketCategory;
 import com.basebackend.ticket.mapper.TicketCategoryMapper;
 import com.basebackend.ticket.mapper.TicketMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,6 +42,11 @@ class TicketSearchServiceImplTest {
     @Mock
     private TicketCategoryMapper categoryMapper;
 
+    @AfterEach
+    void cleanupContext() {
+        TenantContextHolder.clear();
+    }
+
     private Ticket buildTicket(Long id, String ticketNo, String title) {
         Ticket t = new Ticket();
         t.setId(id);
@@ -61,6 +69,8 @@ class TicketSearchServiceImplTest {
         @DisplayName("应成功索引工单文档")
         void shouldIndexTicketDocument() {
             Ticket ticket = buildTicket(1L, "TK-001", "测试工单");
+            ticket.setAssigneeId(321L);
+            ticket.setTenantId(9L);
             TicketCategory cat = new TicketCategory();
             cat.setId(1L);
             cat.setName("技术支持");
@@ -69,7 +79,10 @@ class TicketSearchServiceImplTest {
 
             searchService.indexTicket(ticket);
 
-            verify(searchClient).index(eq("ticket"), eq("1"), any(TicketSearchDocument.class));
+            ArgumentCaptor<TicketSearchDocument> captor = ArgumentCaptor.forClass(TicketSearchDocument.class);
+            verify(searchClient).index(eq("ticket"), eq("1"), captor.capture());
+            assertThat(captor.getValue().getAssigneeId()).isEqualTo(321L);
+            assertThat(captor.getValue().getTenantId()).isEqualTo(9L);
         }
 
         @Test
@@ -122,6 +135,8 @@ class TicketSearchServiceImplTest {
             TicketQueryDTO filters = new TicketQueryDTO();
             filters.setStatus("OPEN");
             filters.setPriority(1);
+            filters.setAssigneeId(123L);
+            TenantContextHolder.set(() -> 10L);
 
             SearchResult<TicketSearchDocument> mockResult = SearchResult.empty();
             when(searchClient.search(any(SearchQuery.class), eq(TicketSearchDocument.class)))
@@ -130,7 +145,18 @@ class TicketSearchServiceImplTest {
             SearchResult<TicketSearchDocument> result = searchService.search("关键词", filters, 1, 20);
 
             assertThat(result).isNotNull();
-            verify(searchClient).search(any(SearchQuery.class), eq(TicketSearchDocument.class));
+            ArgumentCaptor<SearchQuery> captor = ArgumentCaptor.forClass(SearchQuery.class);
+            verify(searchClient).search(captor.capture(), eq(TicketSearchDocument.class));
+            SearchQuery query = captor.getValue();
+            assertThat(query.getFilterConditions())
+                    .anySatisfy(c -> {
+                        assertThat(c.field()).isEqualTo("assigneeId");
+                        assertThat(c.value()).isEqualTo(123L);
+                    })
+                    .anySatisfy(c -> {
+                        assertThat(c.field()).isEqualTo("tenantId");
+                        assertThat(c.value()).isEqualTo(10L);
+                    });
         }
     }
 

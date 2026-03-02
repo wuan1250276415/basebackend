@@ -77,11 +77,17 @@ public class TicketAttachmentServiceImpl implements TicketAttachmentService {
     @Transactional
     public void delete(Long ticketId, Long attachmentId) {
         log.info("移除工单附件: ticketId={}, attachmentId={}", ticketId, attachmentId);
+        TicketAttachment attachment = attachmentMapper.selectById(attachmentId);
+        if (attachment == null || !ticketId.equals(attachment.getTicketId())) {
+            throw new RuntimeException("附件不存在或不属于该工单: " + attachmentId);
+        }
         attachmentMapper.deleteById(attachmentId);
 
         Ticket ticket = ticketMapper.selectById(ticketId);
-        if (ticket != null && ticket.getAttachmentCount() > 0) {
-            ticket.setAttachmentCount(ticket.getAttachmentCount() - 1);
+        if (ticket != null) {
+            long latestCount = attachmentMapper.selectCount(new LambdaQueryWrapper<TicketAttachment>()
+                    .eq(TicketAttachment::getTicketId, ticketId));
+            ticket.setAttachmentCount((int) latestCount);
             ticketMapper.updateById(ticket);
         }
     }

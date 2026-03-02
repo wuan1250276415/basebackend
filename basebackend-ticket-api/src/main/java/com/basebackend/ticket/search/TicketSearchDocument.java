@@ -47,6 +47,12 @@ public class TicketSearchDocument {
     @SearchField(type = FieldType.KEYWORD)
     private String assigneeName;
 
+    @SearchField(type = FieldType.LONG)
+    private Long assigneeId;
+
+    @SearchField(type = FieldType.LONG)
+    private Long tenantId;
+
     @SearchField(type = FieldType.TEXT, analyzer = "ik_max_word")
     private String tags;
 

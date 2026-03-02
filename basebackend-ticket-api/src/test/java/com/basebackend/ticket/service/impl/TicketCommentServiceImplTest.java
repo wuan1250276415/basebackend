@@ -1,8 +1,10 @@
 package com.basebackend.ticket.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -113,6 +115,11 @@ class TicketCommentServiceImplTest {
         @Test
         @DisplayName("delete - 应删除评论并减少计数")
         void shouldDeleteAndDecrementCount() {
+            TicketComment comment = new TicketComment();
+            comment.setId(10L);
+            comment.setTicketId(1L);
+            given(commentMapper.selectById(10L)).willReturn(comment);
+            given(commentMapper.selectCount(any())).willReturn(4L);
             given(ticketMapper.selectById(1L)).willReturn(testTicket);
 
             commentService.delete(1L, 10L);
@@ -125,12 +132,32 @@ class TicketCommentServiceImplTest {
         @Test
         @DisplayName("delete - 计数为0时不应变为负数")
         void shouldNotGoNegative() {
-            testTicket.setCommentCount(0);
+            TicketComment comment = new TicketComment();
+            comment.setId(10L);
+            comment.setTicketId(1L);
+            given(commentMapper.selectById(10L)).willReturn(comment);
+            given(commentMapper.selectCount(any())).willReturn(0L);
             given(ticketMapper.selectById(1L)).willReturn(testTicket);
 
             commentService.delete(1L, 10L);
 
             assertThat(testTicket.getCommentCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("delete - 评论不属于当前工单时应拒绝")
+        void shouldRejectDeleteWhenCommentNotBelongTicket() {
+            TicketComment comment = new TicketComment();
+            comment.setId(10L);
+            comment.setTicketId(2L);
+            given(commentMapper.selectById(10L)).willReturn(comment);
+
+            assertThatThrownBy(() -> commentService.delete(1L, 10L))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("评论不存在或不属于该工单");
+
+            verify(commentMapper, never()).deleteById(10L);
+            verify(ticketMapper, never()).updateById(any(Ticket.class));
         }
     }
 

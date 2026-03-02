@@ -1,6 +1,7 @@
 package com.basebackend.ticket.search;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.basebackend.common.context.TenantContextHolder;
 import com.basebackend.search.client.SearchClient;
 import com.basebackend.search.model.IndexDefinition;
 import com.basebackend.search.model.SearchResult;
@@ -51,6 +52,8 @@ public class TicketSearchServiceImpl implements TicketSearchService {
                 .keywordField("categoryName")
                 .keywordField("reporterName")
                 .keywordField("assigneeName")
+                .longField("assigneeId")
+                .longField("tenantId")
                 .textField("tags", "ik_max_word")
                 .dateField("createTime")
                 .dateField("updateTime")
@@ -74,6 +77,8 @@ public class TicketSearchServiceImpl implements TicketSearchService {
                 .categoryName(categoryName)
                 .reporterName(ticket.getReporterName())
                 .assigneeName(ticket.getAssigneeName())
+                .assigneeId(ticket.getAssigneeId())
+                .tenantId(ticket.getTenantId())
                 .tags(ticket.getTags())
                 .createTime(ticket.getCreateTime())
                 .updateTime(ticket.getUpdateTime())
@@ -109,7 +114,7 @@ public class TicketSearchServiceImpl implements TicketSearchService {
                 builder.filter(Condition.term("priority", filters.getPriority()));
             }
             if (filters.getAssigneeId() != null) {
-                builder.filter(Condition.term("assigneeName", filters.getAssigneeId()));
+                builder.filter(Condition.term("assigneeId", filters.getAssigneeId()));
             }
             if (filters.getStartDate() != null) {
                 builder.filter(Condition.range("createTime", filters.getStartDate(), null));
@@ -117,6 +122,11 @@ public class TicketSearchServiceImpl implements TicketSearchService {
             if (filters.getEndDate() != null) {
                 builder.filter(Condition.range("createTime", null, filters.getEndDate()));
             }
+        }
+
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId != null) {
+            builder.filter(Condition.term("tenantId", tenantId));
         }
 
         builder.page(page, size)

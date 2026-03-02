@@ -72,12 +72,18 @@ public class TicketCommentServiceImpl implements TicketCommentService {
     @Transactional
     public void delete(Long ticketId, Long commentId) {
         log.info("删除工单评论: ticketId={}, commentId={}", ticketId, commentId);
+        TicketComment comment = commentMapper.selectById(commentId);
+        if (comment == null || !ticketId.equals(comment.getTicketId())) {
+            throw new RuntimeException("评论不存在或不属于该工单: " + commentId);
+        }
         commentMapper.deleteById(commentId);
 
         // 更新工单评论计数
         Ticket ticket = ticketMapper.selectById(ticketId);
-        if (ticket != null && ticket.getCommentCount() > 0) {
-            ticket.setCommentCount(ticket.getCommentCount() - 1);
+        if (ticket != null) {
+            long latestCount = commentMapper.selectCount(new LambdaQueryWrapper<TicketComment>()
+                    .eq(TicketComment::getTicketId, ticketId));
+            ticket.setCommentCount((int) latestCount);
             ticketMapper.updateById(ticket);
         }
     }

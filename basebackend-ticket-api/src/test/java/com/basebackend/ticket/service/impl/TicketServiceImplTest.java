@@ -9,8 +9,11 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.basebackend.common.context.UserContext;
+import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.event.DomainEventPublisher;
 import com.basebackend.ticket.dto.TicketCreateDTO;
+import com.basebackend.ticket.dto.TicketUpdateDTO;
 import com.basebackend.ticket.entity.Ticket;
 import com.basebackend.ticket.entity.TicketCategory;
 import com.basebackend.ticket.entity.TicketStatusLog;
@@ -25,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -32,6 +36,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -50,6 +56,8 @@ class TicketServiceImplTest {
     @Mock private TicketApprovalMapper approvalMapper;
     @Mock private TicketCcMapper ccMapper;
     @Mock private AuditHelper auditHelper;
+    @Mock private CacheManager cacheManager;
+    @Mock private Cache ticketCache;
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOperations;
     @Mock private DomainEventPublisher eventPublisher;
@@ -79,6 +87,12 @@ class TicketServiceImplTest {
         testTicket.setCreateTime(LocalDateTime.now());
 
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(cacheManager.getCache("ticket")).willReturn(ticketCache);
+    }
+
+    @AfterEach
+    void cleanupContext() {
+        UserContextHolder.clear();
     }
 
     @Nested
@@ -132,6 +146,29 @@ class TicketServiceImplTest {
             assertThat(result.getSlaDeadline()).isNull();
             verify(ticketMapper).insert(any(Ticket.class));
         }
+
+        @Test
+        @DisplayName("创建工单 - 应使用当前登录用户覆盖 reporter 和 dept")
+        void shouldOverrideReporterAndDeptFromCurrentUserContext() {
+            UserContextHolder.set(UserContext.builder()
+                    .userId(999L)
+                    .nickname("当前用户")
+                    .deptId(88L)
+                    .build());
+
+            TicketCreateDTO dto = new TicketCreateDTO(
+                    "伪造身份工单", "描述", 10L, null, null,
+                    123L, "伪造提交人", null, null, 77L, null, null
+            );
+            given(categoryMapper.selectById(10L)).willReturn(null);
+            given(valueOperations.increment(any(String.class))).willReturn(3L);
+
+            Ticket result = ticketService.create(dto);
+
+            assertThat(result.getReporterId()).isEqualTo(999L);
+            assertThat(result.getReporterName()).isEqualTo("当前用户");
+            assertThat(result.getDeptId()).isEqualTo(88L);
+        }
     }
 
     @Nested
@@ -179,6 +216,7 @@ class TicketServiceImplTest {
             verify(ticketMapper).updateById(testTicket);
             verify(statusLogMapper).insert(any(TicketStatusLog.class));
             verify(eventPublisher).publish(any(TicketStatusChangedEvent.class));
+            verify(ticketCache).evict("no:" + testTicket.getTicketNo());
         }
 
         @Test
@@ -242,6 +280,7 @@ class TicketServiceImplTest {
             assertThat(testTicket.getAssigneeName()).isEqualTo("李四");
             verify(ticketMapper).updateById(testTicket);
             verify(eventPublisher).publish(any(TicketAssignedEvent.class));
+            verify(ticketCache).evict("no:" + testTicket.getTicketNo());
         }
 
         @Test
@@ -308,6 +347,22 @@ class TicketServiceImplTest {
             ticketService.delete(1L);
 
             verify(ticketMapper).deleteById(1L);
+            verify(ticketCache).evict("no:" + testTicket.getTicketNo());
+        }
+    }
+
+    @Nested
+    @DisplayName("更新工单")
+    class UpdateTests {
+
+        @Test
+        @DisplayName("更新工单 - 应清理工单号缓存")
+        void shouldEvictTicketNoCacheOnUpdate() {
+            given(ticketMapper.selectById(1L)).willReturn(testTicket);
+
+            ticketService.update(1L, new TicketUpdateDTO("更新标题", null, null, null, null));
+
+            verify(ticketCache).evict("no:" + testTicket.getTicketNo());
         }
     }
 }
