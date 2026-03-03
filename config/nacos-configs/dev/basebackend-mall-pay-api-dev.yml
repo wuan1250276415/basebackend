@@ -1,0 +1,22 @@
+# 商城支付服务（dev）Nacos 模板
+server:
+  port: 8093
+
+seata:
+  enabled: false
+
+basebackend:
+  idempotent:
+    enabled: true
+  common:
+    event:
+      enabled: true
+
+messaging:
+  rocketmq:
+    default-topic: mall-pay-topic
+    topic-prefix: mall.pay.
+
+mall:
+  business-idempotent:
+    ttl-seconds: 86400

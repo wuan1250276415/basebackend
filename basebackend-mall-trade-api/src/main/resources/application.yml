@@ -1,0 +1,101 @@
+server:
+  port: 8092
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: basebackend-mall-trade-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import:
+      - optional:nacos:common-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:mysql-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:redis-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:rocketmq-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:seata-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:security-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        service-name: ${spring.application.name}
+        port: ${NACOS_DISCOVERY_PORT:${server.port:8092}}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+
+# 平台能力开关（交易域）
+basebackend:
+  idempotent:
+    enabled: true
+  lock:
+    type: redis
+  common:
+    ratelimit:
+      enabled: true
+      type: redis
+      algorithm: TOKEN_BUCKET
+    event:
+      enabled: true
+      store:
+        type: memory
+      retry:
+        enabled: true
+        max-retries: 3
+
+# 消息配置
+messaging:
+  rocketmq:
+    enabled: true
+    default-topic: mall-trade-topic
+    topic-prefix: mall.trade.
+  retry:
+    enabled: true
+    max-attempts: 16
+  dead-letter:
+    enabled: true
+    topic: mall-trade-dlq-topic
+    consumer-group: mall-trade-dlq-consumer-group
+  idempotency:
+    enabled: true
+    expire-time: 3600
+    key-prefix: "mall:trade:msg:idempotent:"
+
+knife4j:
+  enable: true
+  openapi:
+    title: 商城交易服务API
+    description: 购物车、下单、订单流转接口
+    version: 1.0.0
+    concat: mall@basebackend.com
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# 订单超时关单调度
+mall:
+  business-idempotent:
+    ttl-seconds: 86400
+  trade:
+    timeout-close:
+      enabled: true
+      minutes: 15
+      fixed-delay-ms: 60000
