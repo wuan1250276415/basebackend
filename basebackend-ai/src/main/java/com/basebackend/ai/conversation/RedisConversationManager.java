@@ -6,9 +6,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,6 +21,48 @@ public class RedisConversationManager implements ConversationManager {
 
     private static final String KEY_PREFIX = "ai:conversation:";
     private static final TypeReference<List<AiMessage>> MESSAGE_LIST_TYPE = new TypeReference<>() {};
+    private static final String APPEND_AND_TRIM_SCRIPT = """
+            local key = KEYS[1]
+            local messageJson = ARGV[1]
+            local maxHistory = tonumber(ARGV[2])
+            local ttlMillis = tonumber(ARGV[3])
+
+            local messages = {}
+            local existing = redis.call('GET', key)
+            if existing and existing ~= '' then
+                local ok, decoded = pcall(cjson.decode, existing)
+                if (not ok) or type(decoded) ~= 'table' then
+                    return redis.error_reply('conversation payload corrupted')
+                end
+                messages = decoded
+            end
+
+            local messageOk, message = pcall(cjson.decode, messageJson)
+            if (not messageOk) or type(message) ~= 'table' then
+                return redis.error_reply('message payload invalid')
+            end
+
+            table.insert(messages, message)
+
+            if maxHistory and maxHistory > 0 then
+                while #messages > maxHistory do
+                    if #messages > 1 and messages[1] and messages[1]['role'] == 'system' then
+                        table.remove(messages, 2)
+                    else
+                        table.remove(messages, 1)
+                    end
+                end
+            end
+
+            local encoded = cjson.encode(messages)
+            if ttlMillis and ttlMillis > 0 then
+                redis.call('PSETEX', key, ttlMillis, encoded)
+            else
+                redis.call('SET', key, encoded)
+            end
+            return encoded
+            """;
+    private static final DefaultRedisScript<String> APPEND_AND_TRIM_REDIS_SCRIPT = buildAppendAndTrimScript();
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -37,25 +79,22 @@ public class RedisConversationManager implements ConversationManager {
     @Override
     public void addMessage(String conversationId, AiMessage message) {
         String key = buildKey(conversationId);
-        List<AiMessage> messages = getMessages(conversationId);
-
-        List<AiMessage> mutable = new ArrayList<>(messages);
-        mutable.add(message);
-
-        // 超出最大历史时裁剪
-        while (mutable.size() > maxHistory) {
-            if (mutable.size() > 1 && AiMessage.ROLE_SYSTEM.equals(mutable.getFirst().role())) {
-                mutable.remove(1);
-            } else {
-                mutable.removeFirst();
-            }
-        }
 
         try {
-            String json = objectMapper.writeValueAsString(mutable);
-            redisTemplate.opsForValue().set(key, json, ttl);
+            String messageJson = objectMapper.writeValueAsString(message);
+            redisTemplate.execute(
+                    APPEND_AND_TRIM_REDIS_SCRIPT,
+                    List.of(key),
+                    messageJson,
+                    String.valueOf(maxHistory),
+                    String.valueOf(ttl.toMillis())
+            );
         } catch (JsonProcessingException e) {
-            log.error("序列化对话消息失败, conversationId={}", conversationId, e);
+            log.error("序列化消息失败, conversationId={}", conversationId, e);
+            throw new IllegalStateException("序列化对话消息失败, conversationId=" + conversationId, e);
+        } catch (Exception e) {
+            log.error("Redis 原子写入对话失败, conversationId={}", conversationId, e);
+            throw new IllegalStateException("Redis 写入对话消息失败, conversationId=" + conversationId, e);
         }
     }
 
@@ -70,7 +109,7 @@ public class RedisConversationManager implements ConversationManager {
             return objectMapper.readValue(json, MESSAGE_LIST_TYPE);
         } catch (JsonProcessingException e) {
             log.error("反序列化对话消息失败, conversationId={}", conversationId, e);
-            return List.of();
+            throw new IllegalStateException("反序列化对话消息失败, conversationId=" + conversationId, e);
         }
     }
 
@@ -95,5 +134,12 @@ public class RedisConversationManager implements ConversationManager {
 
     private String buildKey(String conversationId) {
         return KEY_PREFIX + conversationId;
+    }
+
+    private static DefaultRedisScript<String> buildAppendAndTrimScript() {
+        DefaultRedisScript<String> script = new DefaultRedisScript<>();
+        script.setScriptText(APPEND_AND_TRIM_SCRIPT);
+        script.setResultType(String.class);
+        return script;
     }
 }

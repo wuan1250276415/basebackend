@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ class RagTest {
 
     @Nested
     @DisplayName("TextSplitter 测试")
+    @Timeout(2)
     class TextSplitterTest {
 
         @Test
@@ -40,6 +42,14 @@ class RagTest {
                 String chunk1End = chunks.get(0).substring(chunks.get(0).length() - 3);
                 assertThat(chunks.get(1)).startsWith(chunk1End);
             }
+        }
+
+        @Test
+        @DisplayName("overlap 场景能正确到达尾块并结束")
+        void splitWithOverlapReachesTail() {
+            TextSplitter splitter = new TextSplitter(10, 3);
+            List<String> chunks = splitter.split("abcdefghijklmnopqrst");
+            assertThat(chunks.getLast()).isEqualTo("opqrst");
         }
 
         @Test

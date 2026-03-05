@@ -47,13 +47,22 @@ public class TextSplitter {
                 }
             }
 
-            chunks.add(text.substring(start, end).trim());
-            start = end - chunkOverlap;
-
-            // 防止无限循环
-            if (start >= end) {
-                start = end;
+            String chunk = text.substring(start, end).trim();
+            if (!chunk.isEmpty()) {
+                chunks.add(chunk);
             }
+
+            // 到达文本尾部后直接结束，避免 overlap 回退导致死循环
+            if (end >= length) {
+                break;
+            }
+
+            int nextStart = end - chunkOverlap;
+            // 保证起点单调递增，避免异常断点或大 overlap 造成回退/卡死
+            if (nextStart <= start) {
+                nextStart = start + 1;
+            }
+            start = nextStart;
         }
 
         return chunks;

@@ -6,8 +6,12 @@ import com.basebackend.ai.client.AiRequest;
 import com.basebackend.ai.client.AiResponse;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +36,8 @@ public class RagService {
     private final TextSplitter textSplitter;
     private final int topK;
     private final double similarityThreshold;
+    private final Map<String, List<String>> sourceChunkIds = new ConcurrentHashMap<>();
+    private final Map<String, Object> sourceLocks = new ConcurrentHashMap<>();
 
     public RagService(AiClient aiClient, EmbeddingClient embeddingClient,
                       VectorStore vectorStore, TextSplitter textSplitter,
@@ -52,14 +58,38 @@ public class RagService {
      * @return 生成的文档块数量
      */
     public int indexText(String text, String sourceId) {
-        List<String> chunks = textSplitter.split(text);
-        log.info("文本索引: sourceId={}, 原文长度={}, 分块数={}", sourceId, text.length(), chunks.size());
+        if (sourceId == null || sourceId.isBlank()) {
+            throw new IllegalArgumentException("sourceId 不能为空");
+        }
 
-        for (int i = 0; i < chunks.size(); i++) {
-            String chunkId = sourceId + "#" + i;
-            String chunk = chunks.get(i);
-            float[] vector = embeddingClient.embed(chunk);
-            vectorStore.store(chunkId, chunk, vector);
+        String safeText = text == null ? "" : text;
+        List<String> chunks = textSplitter.split(safeText);
+        log.info("文本索引: sourceId={}, 原文长度={}, 分块数={}", sourceId, safeText.length(), chunks.size());
+
+        Object lock = sourceLocks.computeIfAbsent(sourceId, id -> new Object());
+        synchronized (lock) {
+            List<String> previousChunkIds = sourceChunkIds.getOrDefault(sourceId, List.of());
+            Set<String> newChunkIds = new LinkedHashSet<>(chunks.size());
+
+            for (int i = 0; i < chunks.size(); i++) {
+                String chunkId = sourceId + "#" + i;
+                String chunk = chunks.get(i);
+                float[] vector = embeddingClient.embed(chunk);
+                vectorStore.store(chunkId, chunk, vector);
+                newChunkIds.add(chunkId);
+            }
+
+            for (String oldChunkId : previousChunkIds) {
+                if (!newChunkIds.contains(oldChunkId)) {
+                    vectorStore.delete(oldChunkId);
+                }
+            }
+
+            if (newChunkIds.isEmpty()) {
+                sourceChunkIds.remove(sourceId);
+            } else {
+                sourceChunkIds.put(sourceId, new ArrayList<>(newChunkIds));
+            }
         }
 
         return chunks.size();
@@ -132,6 +162,8 @@ public class RagService {
      */
     public void clearIndex() {
         vectorStore.clear();
+        sourceChunkIds.clear();
+        sourceLocks.clear();
         log.info("RAG 索引已清空");
     }
 }
