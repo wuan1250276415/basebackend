@@ -19,6 +19,8 @@ public class ResponseCacheProperties {
 
     private long maxCacheSize = 10000;
 
+    private long maxCacheableBodyBytes = 1024 * 1024;
+
     private List<String> cachePaths = new ArrayList<>();
 
     private List<String> excludePaths = new ArrayList<>();

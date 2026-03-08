@@ -11,11 +11,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import jakarta.annotation.PostConstruct;
+import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 /**
  * Nacos路由刷新器
@@ -43,6 +51,12 @@ public class NacosRouteRefresher {
 
     private static final String ROUTE_DATA_ID = "gateway-routes";
     private static final String ROUTE_GROUP = "DEFAULT_GROUP";
+    private static final Duration ROUTE_REFRESH_TIMEOUT = Duration.ofSeconds(30);
+
+    /**
+     * 当前已加载的路由 ID 集合（用于删减同步）
+     */
+    private final Set<String> currentRouteIds = ConcurrentHashMap.newKeySet();
 
     @PostConstruct
     public void init() {
@@ -92,13 +106,52 @@ public class NacosRouteRefresher {
                     new TypeReference<List<RouteDefinition>>() {}
             );
 
-            for (RouteDefinition route : routes) {
-                dynamicRouteService.updateRoute(route);
-            }
-
-            log.info("更新路由配置成功，共{}条", routes.size());
+            applyRouteChanges(routes).block(ROUTE_REFRESH_TIMEOUT);
+            log.info("更新路由配置成功，共{}条，当前生效路由{}条", routes.size(), currentRouteIds.size());
         } catch (Exception e) {
             log.error("更新路由配置失败", e);
         }
+    }
+
+    /**
+     * 串行应用路由变更：
+     * 1) 删除 Nacos 中已移除的路由
+     * 2) 串行 upsert 当前路由
+     */
+    private Mono<Void> applyRouteChanges(List<RouteDefinition> routes) {
+        Set<String> nextRouteIds = routes.stream()
+                .map(RouteDefinition::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+
+        Set<String> staleRouteIds = new HashSet<>(currentRouteIds);
+        staleRouteIds.removeAll(nextRouteIds);
+
+        return Flux.fromIterable(staleRouteIds)
+                .concatMap(routeId -> executeRouteOperation("删除", routeId, dynamicRouteService.deleteRoute(routeId)))
+                .thenMany(Flux.fromIterable(routes)
+                        .filter(route -> {
+                            if (StringUtils.hasText(route.getId())) {
+                                return true;
+                            }
+                            log.warn("忽略无效路由定义（缺少 id）: {}", route);
+                            return false;
+                        })
+                        .concatMap(route -> executeRouteOperation("更新", route.getId(), dynamicRouteService.updateRoute(route))))
+                .then(Mono.fromRunnable(() -> {
+                    currentRouteIds.clear();
+                    currentRouteIds.addAll(nextRouteIds);
+                }));
+    }
+
+    private Mono<Void> executeRouteOperation(String operation, String routeId, Mono<String> resultMono) {
+        return resultMono.flatMap(result -> {
+            if (!"success".equalsIgnoreCase(result)) {
+                return Mono.error(new IllegalStateException(
+                        String.format("%s路由失败: routeId=%s, result=%s", operation, routeId, result)));
+            }
+            log.info("{}路由成功: {}", operation, routeId);
+            return Mono.empty();
+        });
     }
 }

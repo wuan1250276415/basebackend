@@ -151,9 +151,12 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
 
         // 验证 nonce 防重放
         String nonceKey = NONCE_KEY_PREFIX + nonce;
-        return reactiveRedisTemplate.hasKey(nonceKey)
-                .flatMap(exists -> {
-                    if (Boolean.TRUE.equals(exists)) {
+        Duration nonceTtl = Duration.ofMillis(timestampValidity * 2);
+        return reactiveRedisTemplate.opsForValue()
+                .setIfAbsent(nonceKey, "1", nonceTtl)
+                .onErrorResume(throwable -> handleRedisException(exchange.getResponse(), nonceKey, throwable).then(Mono.empty()))
+                .flatMap(setSuccess -> {
+                    if (!Boolean.TRUE.equals(setSuccess)) {
                         log.warn("签名验证失败 - nonce 已使用: nonce={}", nonce);
                         return unauthorized(exchange.getResponse(), "签名验证失败，请求已处理");
                     }
@@ -164,14 +167,12 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
 
                     if (!signature.equals(expectedSignature)) {
                         log.warn("签名验证失败 - 签名不匹配: path={}, appId={}", path, appId);
-                        return unauthorized(exchange.getResponse(), "签名验证失败，签名不正确");
+                        return reactiveRedisTemplate.delete(nonceKey)
+                                .onErrorResume(throwable -> handleRedisException(exchange.getResponse(), nonceKey, throwable).then(Mono.empty()))
+                                .flatMap(ignore -> unauthorized(exchange.getResponse(), "签名验证失败，签名不正确"));
                     }
 
-                    // 存储 nonce，防止重放
-                    Duration nonceTtl = Duration.ofMillis(timestampValidity * 2);
-                    return reactiveRedisTemplate.opsForValue()
-                            .set(nonceKey, "1", nonceTtl)
-                            .then(chain.filter(exchange));
+                    return chain.filter(exchange);
                 });
     }
 
@@ -236,6 +237,11 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));
+    }
+
+    private Mono<Void> handleRedisException(ServerHttpResponse response, String nonceKey, Throwable throwable) {
+        log.error("签名验证失败 - Redis 操作异常: nonceKey={}", nonceKey, throwable);
+        return unauthorized(response, "签名验证失败，请稍后重试");
     }
 
     @Override

@@ -1,19 +1,20 @@
 package com.basebackend.gateway.blacklist;
 
+import com.basebackend.gateway.util.IpAddressUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
-import java.util.Objects;
+import java.util.List;
 
 /**
  * 黑白名单全局过滤器
@@ -26,10 +27,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class BlacklistFilter implements GlobalFilter, Ordered {
 
-    private static final String[] IP_HEADERS = {
-            "X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP",
-            "WL-Proxy-Client-IP", "HTTP_X_FORWARDED_FOR"
-    };
+    private static final String UNKNOWN = "unknown";
 
     private final BlacklistManager blacklistManager;
 
@@ -67,15 +65,72 @@ public class BlacklistFilter implements GlobalFilter, Ordered {
     }
 
     private String resolveClientIp(ServerHttpRequest request) {
-        HttpHeaders headers = request.getHeaders();
-        for (String header : IP_HEADERS) {
-            String ip = headers.getFirst(header);
-            if (ip != null && !ip.isBlank() && !"unknown".equalsIgnoreCase(ip)) {
-                // X-Forwarded-For 可能包含多个 IP，取第一个
-                return ip.contains(",") ? ip.split(",")[0].trim() : ip.trim();
-            }
+        String remoteIp = resolveRemoteIp(request);
+        if (!isFromTrustedProxy(remoteIp)) {
+            return remoteIp;
         }
+
+        String xForwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
+        String forwardedIp = extractHeaderIp(xForwardedFor);
+        if (StringUtils.hasText(forwardedIp)) {
+            return forwardedIp;
+        }
+
+        String xRealIp = request.getHeaders().getFirst("X-Real-IP");
+        String realIp = normalizeIp(xRealIp);
+        return StringUtils.hasText(realIp) ? realIp : remoteIp;
+    }
+
+    private boolean isFromTrustedProxy(String remoteIp) {
+        if (!StringUtils.hasText(remoteIp) || UNKNOWN.equalsIgnoreCase(remoteIp)) {
+            return false;
+        }
+
+        List<String> trustedProxyCidrs = blacklistManager.getTrustedProxyCidrs();
+        if (trustedProxyCidrs == null || trustedProxyCidrs.isEmpty()) {
+            return false;
+        }
+
+        return trustedProxyCidrs.stream()
+                .filter(StringUtils::hasText)
+                .anyMatch(cidr -> IpAddressUtil.matchesCidr(remoteIp, cidr.trim()));
+    }
+
+    private String resolveRemoteIp(ServerHttpRequest request) {
         InetSocketAddress remoteAddress = request.getRemoteAddress();
-        return remoteAddress != null ? remoteAddress.getAddress().getHostAddress() : "unknown";
+        if (remoteAddress == null) {
+            return UNKNOWN;
+        }
+
+        if (remoteAddress.getAddress() != null) {
+            return remoteAddress.getAddress().getHostAddress();
+        }
+
+        String hostString = remoteAddress.getHostString();
+        return StringUtils.hasText(hostString) ? IpAddressUtil.stripPort(hostString) : UNKNOWN;
+    }
+
+    private String extractHeaderIp(String headerValue) {
+        if (!StringUtils.hasText(headerValue)) {
+            return null;
+        }
+
+        String firstIp = headerValue.contains(",")
+                ? headerValue.substring(0, headerValue.indexOf(','))
+                : headerValue;
+        return normalizeIp(firstIp);
+    }
+
+    private String normalizeIp(String ip) {
+        if (!StringUtils.hasText(ip)) {
+            return null;
+        }
+
+        String trimmed = ip.trim();
+        if (UNKNOWN.equalsIgnoreCase(trimmed)) {
+            return null;
+        }
+
+        return IpAddressUtil.stripPort(trimmed);
     }
 }

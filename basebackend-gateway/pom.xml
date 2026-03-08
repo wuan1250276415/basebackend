@@ -73,6 +73,12 @@
             </exclusions>
         </dependency>
 
+        <!-- WebFlux Security（用于保护管理面与本地控制器端点） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Spring Cloud LoadBalancer -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

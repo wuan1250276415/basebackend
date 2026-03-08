@@ -325,6 +325,149 @@ class GrayLoadBalancerTest {
             assertEquals(result1.getMetadata().get("version"), result2.getMetadata().get("version"));
             assertEquals(result2.getMetadata().get("version"), result3.getMetadata().get("version"));
         }
+
+        @Test
+        @DisplayName("weight 大于100时应按100执行")
+        void shouldClampWeightWhenGreaterThan100() {
+            // Given
+            GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
+            rule.setServiceName("test-service");
+            rule.setStrategy("weight");
+            rule.setWeight(150);
+            rule.setGrayVersion("v2");
+            rule.setStableVersion("v1");
+            grayRouteProperties.setRules(Collections.singletonList(rule));
+            grayLoadBalancer = new GrayLoadBalancer(grayRouteProperties);
+
+            List<ServiceInstance> instances = Arrays.asList(
+                    createMockInstance("instance1", "v1"),
+                    createMockInstance("instance2", "v2"));
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("/api/test").build());
+
+            // When
+            ServiceInstance result = grayLoadBalancer.choose("test-service", exchange, instances);
+
+            // Then
+            assertNotNull(result);
+            assertEquals("v2", result.getMetadata().get("version"));
+        }
+
+        @Test
+        @DisplayName("weight 小于0时应按0执行")
+        void shouldClampWeightWhenLessThan0() {
+            // Given
+            GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
+            rule.setServiceName("test-service");
+            rule.setStrategy("weight");
+            rule.setWeight(-10);
+            rule.setGrayVersion("v2");
+            rule.setStableVersion("v1");
+            grayRouteProperties.setRules(Collections.singletonList(rule));
+            grayLoadBalancer = new GrayLoadBalancer(grayRouteProperties);
+
+            List<ServiceInstance> instances = Arrays.asList(
+                    createMockInstance("instance1", "v1"),
+                    createMockInstance("instance2", "v2"));
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("/api/test").build());
+
+            // When
+            ServiceInstance result = grayLoadBalancer.choose("test-service", exchange, instances);
+
+            // Then
+            assertNotNull(result);
+            assertEquals("v1", result.getMetadata().get("version"));
+        }
+    }
+
+    @Nested
+    @DisplayName("空字段防护测试")
+    class NullFieldSafetyTests {
+
+        @Test
+        @DisplayName("serviceName 为空时不应抛异常")
+        void shouldNotThrowWhenServiceNameIsNull() {
+            // Given
+            GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
+            rule.setServiceName(null);
+            rule.setStrategy("header");
+            rule.setHeaderName("X-Gray");
+            rule.setHeaderValue("true");
+            rule.setGrayVersion("v2");
+            rule.setStableVersion("v1");
+            grayRouteProperties.setRules(Collections.singletonList(rule));
+            grayLoadBalancer = new GrayLoadBalancer(grayRouteProperties);
+
+            List<ServiceInstance> instances = Collections.singletonList(createMockInstance("instance1", "v1"));
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("/api/test").build());
+
+            // When
+            ServiceInstance result = assertDoesNotThrow(
+                    () -> grayLoadBalancer.choose("test-service", exchange, instances));
+
+            // Then
+            assertNotNull(result);
+            assertEquals("instance1", result.getInstanceId());
+        }
+
+        @Test
+        @DisplayName("headerName/headerValue 为空时不应抛异常")
+        void shouldNotThrowWhenHeaderFieldsAreNull() {
+            // Given
+            GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
+            rule.setServiceName("test-service");
+            rule.setStrategy("header");
+            rule.setHeaderName(null);
+            rule.setHeaderValue(null);
+            rule.setGrayVersion("v2");
+            rule.setStableVersion("v1");
+            grayRouteProperties.setRules(Collections.singletonList(rule));
+            grayLoadBalancer = new GrayLoadBalancer(grayRouteProperties);
+
+            List<ServiceInstance> instances = Arrays.asList(
+                    createMockInstance("instance1", "v1"),
+                    createMockInstance("instance2", "v2"));
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("/api/test").build());
+
+            // When
+            ServiceInstance result = assertDoesNotThrow(
+                    () -> grayLoadBalancer.choose("test-service", exchange, instances));
+
+            // Then
+            assertNotNull(result);
+            assertEquals("v1", result.getMetadata().get("version"));
+        }
+
+        @Test
+        @DisplayName("weight 为空时不应抛异常并走稳定版本")
+        void shouldNotThrowWhenWeightIsNull() {
+            // Given
+            GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
+            rule.setServiceName("test-service");
+            rule.setStrategy("weight");
+            rule.setWeight(null);
+            rule.setGrayVersion("v2");
+            rule.setStableVersion("v1");
+            grayRouteProperties.setRules(Collections.singletonList(rule));
+            grayLoadBalancer = new GrayLoadBalancer(grayRouteProperties);
+
+            List<ServiceInstance> instances = Arrays.asList(
+                    createMockInstance("instance1", "v1"),
+                    createMockInstance("instance2", "v2"));
+            MockServerWebExchange exchange = MockServerWebExchange.from(
+                    MockServerHttpRequest.get("/api/test").build());
+
+            // When
+            ServiceInstance result = assertDoesNotThrow(
+                    () -> grayLoadBalancer.choose("test-service", exchange, instances));
+
+            // Then
+            assertNotNull(result);
+            assertEquals("v1", result.getMetadata().get("version"));
+        }
     }
 
     @Nested

@@ -11,12 +11,14 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -85,9 +87,14 @@ public class IdempotencyFilter implements GlobalFilter, Ordered {
             HttpMethod.DELETE);
 
     private static final String HEADER_IDEMPOTENCY_KEY = "X-Idempotency-Key";
+    private static final String HEADER_USER_ID = "X-User-Id";
+    private static final String HEADER_TENANT_ID = "X-Tenant-Id";
+    private static final String PRINCIPAL_AUTH_PREFIX = "auth";
     private static final String IDEMPOTENCY_KEY_PREFIX = "gateway:idempotency:";
     private static final String PROCESSING = "PROCESSING";
     private static final String COMPLETED = "COMPLETED";
+    private static final String DEFAULT_USER_SEGMENT = "anonymous";
+    private static final String DEFAULT_TENANT_SEGMENT = "default";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -191,11 +198,11 @@ public class IdempotencyFilter implements GlobalFilter, Ordered {
         // 优先使用客户端提供的幂等性键
         String clientKey = request.getHeaders().getFirst(HEADER_IDEMPOTENCY_KEY);
         if (StringUtils.hasText(clientKey)) {
-            return clientKey;
+            return buildScopedClientKey(request, clientKey);
         }
 
         // 自动生成：基于用户 ID + 路径
-        String userId = request.getHeaders().getFirst("X-User-Id");
+        String userId = request.getHeaders().getFirst(HEADER_USER_ID);
         if (!StringUtils.hasText(userId)) {
             return null;
         }
@@ -204,6 +211,42 @@ public class IdempotencyFilter implements GlobalFilter, Ordered {
         String method = request.getMethod() != null ? request.getMethod().name() : "POST";
 
         return userId + ":" + method + ":" + path;
+    }
+
+    /**
+     * 绑定用户/租户/方法/路径上下文，防止客户端幂等键跨用户冲突
+     */
+    private String buildScopedClientKey(ServerHttpRequest request, String clientKey) {
+        String principal = resolvePrincipalSegment(request);
+        String tenantId = resolveHeader(request, HEADER_TENANT_ID, DEFAULT_TENANT_SEGMENT);
+        String method = request.getMethod() != null ? request.getMethod().name() : "POST";
+        String path = request.getPath().toString();
+
+        return tenantId + ":" + principal + ":" + method + ":" + path + ":" + clientKey.trim();
+    }
+
+    private String resolveHeader(ServerHttpRequest request, String headerName, String defaultValue) {
+        String value = request.getHeaders().getFirst(headerName);
+        return StringUtils.hasText(value) ? value.trim() : defaultValue;
+    }
+
+    /**
+     * 优先使用用户 ID；匿名场景退化为 Authorization 指纹，降低跨会话冲突概率
+     */
+    private String resolvePrincipalSegment(ServerHttpRequest request) {
+        String userId = request.getHeaders().getFirst(HEADER_USER_ID);
+        if (StringUtils.hasText(userId)) {
+            return userId.trim();
+        }
+
+        String authorization = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (StringUtils.hasText(authorization)) {
+            String authFingerprint = DigestUtils.md5DigestAsHex(authorization.trim()
+                    .getBytes(StandardCharsets.UTF_8));
+            return PRINCIPAL_AUTH_PREFIX + ":" + authFingerprint;
+        }
+
+        return DEFAULT_USER_SEGMENT;
     }
 
     /**

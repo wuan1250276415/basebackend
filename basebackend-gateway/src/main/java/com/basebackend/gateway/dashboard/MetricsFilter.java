@@ -1,8 +1,6 @@
 package com.basebackend.gateway.dashboard;
 
-import com.basebackend.gateway.util.IpAddressUtil;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.Route;
@@ -18,7 +16,6 @@ import reactor.core.publisher.Mono;
  * <p>
  * 在请求完成后自动记录路由、状态码、耗时等指标到 {@link GatewayMetricsCollector}。
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MetricsFilter implements GlobalFilter, Ordered {
@@ -31,7 +28,7 @@ public class MetricsFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         exchange.getAttributes().put(START_TIME_ATTR, System.currentTimeMillis());
 
-        return chain.filter(exchange).then(Mono.fromRunnable(() -> recordMetrics(exchange)));
+        return chain.filter(exchange).doFinally(signalType -> recordMetrics(exchange));
     }
 
     private void recordMetrics(ServerWebExchange exchange) {
