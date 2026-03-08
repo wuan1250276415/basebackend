@@ -89,7 +89,7 @@ nacos:
 
   discovery:
     namespace: ${nacos.tenant-id}
-    group: ${nacos.tenant.id}_DEFAULT_GROUP
+    group: ${nacos.tenant-id}_DEFAULT_GROUP
     metadata:
       tenant-id: ${nacos.tenant-id}
 

@@ -208,6 +208,11 @@ public class NacosConfig {
 }
 ```
 
+说明：
+- `@EnableNacosSupport(config = ..., discovery = ...)` 会在当前 Spring `Environment` 中覆盖
+  `nacos.config.enabled` / `nacos.discovery.enabled`，仅对当前应用上下文生效。
+- 不会写入 JVM 全局系统属性（不使用 `System.setProperty`）。
+
 ### 方式三：配置刷新
 
 使用 `@NacosRefreshScope` 注解实现 Bean 自动刷新：
@@ -242,7 +247,7 @@ public class GrayReleaseDemo {
     public void startGrayReleaseByIp() {
         GrayReleaseConfig grayConfig = new GrayReleaseConfig();
         grayConfig.setDataId("my-config.yml");
-        grayConfig.setStrategyType("IP");
+        grayConfig.setStrategyType("ip");
         grayConfig.setTargetInstances("192.168.1.10,192.168.1.11");
 
         GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);
@@ -259,7 +264,7 @@ public class GrayReleaseDemo {
 public void startGrayReleaseByPercentage() {
     GrayReleaseConfig grayConfig = new GrayReleaseConfig();
     grayConfig.setDataId("my-config.yml");
-    grayConfig.setStrategyType("PERCENTAGE");
+    grayConfig.setStrategyType("percentage");
     grayConfig.setPercentage(20); // 20%实例灰度
 
     GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);
@@ -272,7 +277,7 @@ public void startGrayReleaseByPercentage() {
 public void startGrayReleaseByLabel() {
     GrayReleaseConfig grayConfig = new GrayReleaseConfig();
     grayConfig.setDataId("my-config.yml");
-    grayConfig.setStrategyType("LABEL");
+    grayConfig.setStrategyType("label");
     grayConfig.setLabels("{\"version\":\"1.0\",\"region\":\"beijing\"}");
 
     GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);

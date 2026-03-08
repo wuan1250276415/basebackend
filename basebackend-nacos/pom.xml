@@ -117,6 +117,48 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <!-- 防止模块测试空跑仍然通过 -->
+                    <failIfNoTests>true</failIfNoTests>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-nacos-starter-layout</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- 防止打出“空壳”starter -->
+                                <fail message="basebackend-nacos 缺少核心自动配置类产物：com/basebackend/nacos/config/NacosAutoConfiguration.class">
+                                    <condition>
+                                        <not>
+                                            <available file="${project.build.outputDirectory}/com/basebackend/nacos/config/NacosAutoConfiguration.class"/>
+                                        </not>
+                                    </condition>
+                                </fail>
+                                <fail message="basebackend-nacos 缺少自动配置元数据：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports">
+                                    <condition>
+                                        <not>
+                                            <available file="${project.build.outputDirectory}/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"/>
+                                        </not>
+                                    </condition>
+                                </fail>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

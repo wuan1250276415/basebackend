@@ -27,9 +27,9 @@ nacos:
     group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
     file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
 
-    # 用户名密码
-    username: ${NACOS_CONFIG_USERNAME:nacos}
-    password: ${NACOS_CONFIG_PASSWORD:nacos}
+    # 用户名密码（不提供默认值，避免弱口令误用）
+    username: ${NACOS_CONFIG_USERNAME:}
+    password: ${NACOS_CONFIG_PASSWORD:}
 
     # 是否启用导入检查
     import-check-enabled: true
@@ -75,9 +75,9 @@ nacos:
     # 服务名（可选，如果不配置则使用spring.application.name）
     service-name: ${spring.application.name}
 
-    # 用户名密码
-    username: ${NACOS_DISCOVERY_USERNAME:nacos}
-    password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+    # 用户名密码（不提供默认值，避免弱口令误用）
+    username: ${NACOS_DISCOVERY_USERNAME:}
+    password: ${NACOS_DISCOVERY_PASSWORD:}
 
     # 实例元数据（用于灰度发布）
     metadata:

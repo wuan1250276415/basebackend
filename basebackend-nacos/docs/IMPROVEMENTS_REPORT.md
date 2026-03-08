@@ -11,6 +11,14 @@
 
 ## 改进内容概览
 
+### 2026-03-08 增量修复 ✅
+
+| 改进项 | 描述 | 状态 |
+|--------|------|------|
+| 注解开关副作用收敛 | `NacosImportSelector` 改为覆盖当前 `Environment`，不再写 JVM 全局系统属性 | ✅ 已完成 |
+| 注解开关行为验证 | 新增 `EnableNacosSupportToggleIntegrationTest`，覆盖自动配置链路下开关生效性 | ✅ 已完成 |
+| 自动配置元数据清理 | 删除重复的 `AutoConfiguration.imports` 嵌套副本，仅保留标准路径文件 | ✅ 已完成 |
+
 ### P0 立即修复 ✅
 
 | 改进项 | 描述 | 状态 |
@@ -45,6 +53,8 @@
 - **密钥派生**: PBKDF2WithHmacSHA256
 - **前缀识别**: `ENC(...)` 格式标识加密内容
 - **自动解密**: `decryptIfNeeded()` 方法自动识别并解密
+- **安全默认值**: `username/password` 默认空字符串，避免弱口令默认值
+- **严格模式**: 生产环境默认禁止使用内置默认密钥（可通过配置显式控制）
 
 #### 1.2 使用方式
 ```java
@@ -68,12 +78,25 @@ String password = encryptionService.decryptIfNeeded(value);
 # application.yml
 nacos:
   config:
-    username: nacos
-    password: ENC(xxxxxxxxxxxxxxxxxxxxxx)  # 支持加密密码
+    username: ${NACOS_CONFIG_USERNAME:}
+    password: ${NACOS_CONFIG_PASSWORD:}
+  discovery:
+    username: ${NACOS_DISCOVERY_USERNAME:}
+    password: ${NACOS_DISCOVERY_PASSWORD:}
 
+# 若需要加密存储，可使用 ENC(...) 形式
+# nacos:
+#   config:
+#     password: ENC(xxxxxxxxxxxxxxxxxxxxxx)
+#
 # 设置加密密钥（生产环境必须配置）
 # 环境变量: NACOS_ENCRYPTION_KEY=your-secret-key
 # 或JVM参数: -Dnacos.encryption.key=your-secret-key
+#
+# 默认密钥策略：
+# - nacos.encryption.fail-on-default-key=true  -> 严格禁止默认密钥
+# - NACOS_ENCRYPTION_FAIL_ON_DEFAULT_KEY=true -> 严格禁止默认密钥
+# - 未显式配置时，prod/production profile 默认启用严格模式
 ```
 
 ---
