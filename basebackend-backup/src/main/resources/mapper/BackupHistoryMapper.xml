@@ -105,7 +105,9 @@
         WHERE task_id = #{taskId}
         AND started_at >= #{startTime}
         AND #{endTime} > started_at
-        AND status = #{status}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
     </select>
 
     <!-- 查询最新的全量备份 -->

@@ -82,7 +82,9 @@
         WHERE task_id = #{taskId}
         AND started_at >= #{startTime}
         AND #{endTime} > started_at
-        AND status = #{status}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
     </select>
 
     <!-- 查询最近的PITR恢复记录 -->
@@ -91,8 +93,9 @@
             <include refid="Base_Column_List"/>
         FROM restore_record
         WHERE task_id = #{taskId}
+        AND status = 'SUCCESS'
         AND target_point IS NOT NULL
-        AND target_point != ''
+        AND TRIM(target_point) != ''
         ORDER BY started_at DESC
         LIMIT 1
     </select>

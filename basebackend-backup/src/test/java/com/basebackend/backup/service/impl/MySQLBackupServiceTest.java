@@ -151,31 +151,29 @@ class MySQLBackupServiceTest {
     }
 
     @Test
-    @DisplayName("增量备份成功")
-    void shouldPerformIncrementalBackupSuccessfully() {
+    @DisplayName("增量备份未实现时应返回失败状态")
+    void shouldMarkIncrementalBackupFailedWhenNotImplemented() {
         // When
         BackupRecord record = backupService.incrementalBackup();
 
         // Then
         assertThat(record).isNotNull();
         assertThat(record.getBackupType()).isEqualTo(BackupType.INCREMENTAL);
-        assertThat(record.getStatus()).isEqualTo(BackupStatus.SUCCESS);
+        assertThat(record.getStatus()).isEqualTo(BackupStatus.FAILED);
+        assertThat(record.getErrorMessage()).contains("未实现");
         assertThat(record.getDatabaseName()).isEqualTo("basebackend_admin");
     }
 
     @Test
     @DisplayName("增量备份异常处理")
     void shouldHandleIncrementalBackupException() {
-        // Given - 模拟创建目录时的异常
-        when(backupProperties.getBackupPath()).thenThrow(new RuntimeException("模拟异常"));
-
         // When
         BackupRecord record = backupService.incrementalBackup();
 
         // Then
         assertThat(record).isNotNull();
         assertThat(record.getStatus()).isEqualTo(BackupStatus.FAILED);
-        assertThat(record.getErrorMessage()).isEqualTo("模拟异常");
+        assertThat(record.getErrorMessage()).contains("未实现");
     }
 
     @Test

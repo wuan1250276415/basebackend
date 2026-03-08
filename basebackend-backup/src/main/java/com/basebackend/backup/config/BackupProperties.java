@@ -91,6 +91,11 @@ public class BackupProperties {
     private String mysqlPath = "mysql";
 
     /**
+     * mysqlbinlog可执行文件路径
+     */
+    private String mysqlbinlogPath = "mysqlbinlog";
+
+    /**
      * 是否启用增量备份
      */
     private boolean incrementalBackupEnabled = false;
@@ -445,5 +450,146 @@ public class BackupProperties {
          * pg_basebackup可执行文件路径
          */
         private String pgBasebackupPath = "pg_basebackup";
+
+        /**
+         * pg_waldump可执行文件路径
+         */
+        private String pgWalDumpPath = "pg_waldump";
+
+        /**
+         * pg_ctl可执行文件路径（用于内建物理回放编排）
+         */
+        private String pgCtlPath = "pg_ctl";
+
+        /**
+         * 是否启用PostgreSQL增量回放能力
+         * <p>
+         * 当前默认关闭：避免在回放链路未完整实现前继续产出不可恢复的增量备份。
+         */
+        private boolean incrementalReplayEnabled = false;
+
+        /**
+         * PostgreSQL增量回放模式：
+         * logical_snapshot - 逻辑快照回放（默认）
+         * wal_external - WAL导出 + 外部命令回放
+         * wal_physical_builtin - WAL导出 + 内建物理回放编排
+         */
+        private String incrementalReplayMode = "logical_snapshot";
+
+        /**
+         * WAL回放外部命令模板（仅在 wal_external 模式下生效）
+         * <p>
+         * 支持占位符：
+         * ${artifact} ${targetDatabase} ${walStart} ${walEnd}
+         * ${host} ${port} ${username} ${password}
+         */
+        private String walReplayCommand = "";
+
+        /**
+         * 内建物理回放数据目录（PostgreSQL -D 目录）
+         */
+        private String physicalReplayDataDir = "/var/lib/postgresql/data";
+
+        /**
+         * 内建物理回放 WAL 归档目录（restore_command 从此目录读取 WAL 文件）
+         */
+        private String physicalReplayArchiveDir = "/var/lib/postgresql/wal_archive";
+
+        /**
+         * 内建物理回放基线目录（pg_basebackup 输出目录根路径）
+         */
+        private String physicalReplayBaselineDir = "/var/lib/postgresql/physical_baselines";
+
+        /**
+         * 内建物理回放 restore_command 模板
+         * <p>
+         * 默认会展开 ${archiveDir} 占位符，且必须包含 %f 与 %p
+         */
+        private String physicalReplayRestoreCommandTemplate = "cp ${archiveDir}/%f \"%p\"";
+
+        /**
+         * 内建物理回放 pg_basebackup 超时（秒）
+         */
+        private int physicalReplayBasebackupTimeoutSeconds = 300;
+
+        /**
+         * 内建物理回放 pg_basebackup checkpoint 模式（fast/spread）
+         */
+        private boolean physicalReplayBasebackupFastCheckpoint = true;
+
+        /**
+         * 内建物理回放：pg_basebackup 失败时是否自动清理残留基线目录
+         */
+        private boolean physicalReplayBaselineCleanupOnBasebackupFailure = true;
+
+        /**
+         * 内建物理回放停止超时（秒）
+         */
+        private int physicalReplayStopTimeoutSeconds = 60;
+
+        /**
+         * 内建物理回放启动超时（秒）
+         */
+        private int physicalReplayStartTimeoutSeconds = 120;
+
+        /**
+         * 内建物理回放成功后保留的基线数量
+         */
+        private int physicalReplayKeepLatestBaselines = 3;
+
+        /**
+         * 回放失败时是否自动执行回滚启动
+         */
+        private boolean physicalReplayRollbackOnFailure = true;
+
+        /**
+         * 回放失败自动回滚启动超时（秒）
+         */
+        private int physicalReplayRollbackStartTimeoutSeconds = 120;
+
+        /**
+         * 回放失败自动回滚后是否执行健康探针（进程 + SQL）
+         */
+        private boolean physicalReplayRollbackHealthProbeEnabled = true;
+
+        /**
+         * 回放失败自动回滚健康探针最大尝试次数
+         */
+        private int physicalReplayRollbackHealthProbeMaxAttempts = 1;
+
+        /**
+         * 回放失败自动回滚健康探针重试间隔（秒）
+         */
+        private int physicalReplayRollbackHealthProbeIntervalSeconds = 1;
+
+        /**
+         * 回放失败自动回滚健康探针超时（秒）
+         */
+        private int physicalReplayRollbackHealthProbeTimeoutSeconds = 1;
+
+        /**
+         * 回放失败自动回滚后是否执行业务一致性探针
+         */
+        private boolean physicalReplayRollbackBusinessProbeEnabled = false;
+
+        /**
+         * 回放失败自动回滚业务一致性探针SQL（需返回至少1行1列）
+         */
+        private String physicalReplayRollbackBusinessProbeSql = "";
+
+        /**
+         * 回放失败自动回滚业务一致性探针期望值（首列比对，留空表示仅要求非空）
+         */
+        private String physicalReplayRollbackBusinessProbeExpectedValue = "";
+
+        /**
+         * 内建物理回放 recovery_target_action（pause/promote/shutdown）
+         */
+        private String physicalReplayRecoveryTargetAction = "promote";
+
+        /**
+         * 内建物理回放启动端口覆盖，<=0 表示不覆盖默认端口
+         */
+        private int physicalReplayPort = -1;
     }
 }

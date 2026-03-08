@@ -5,6 +5,8 @@ import com.basebackend.backup.domain.entity.BackupHistory;
 import com.basebackend.backup.domain.mapper.BackupHistoryMapper;
 import com.basebackend.backup.infrastructure.executor.BackupArtifact;
 import com.basebackend.backup.infrastructure.executor.BackupRequest;
+import com.basebackend.backup.infrastructure.executor.IncrementalBackupRequest;
+import com.basebackend.backup.infrastructure.monitoring.BackupMetricsRegistrar;
 import com.basebackend.backup.infrastructure.reliability.Checksum;
 import com.basebackend.backup.infrastructure.reliability.LockManager;
 import com.basebackend.backup.infrastructure.reliability.impl.ChecksumService;
@@ -12,6 +14,7 @@ import com.basebackend.backup.infrastructure.reliability.impl.RetryTemplate;
 import com.basebackend.backup.infrastructure.storage.StorageProvider;
 import com.basebackend.backup.infrastructure.storage.StorageResult;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +48,8 @@ public abstract class AbstractBackupExecutor {
     protected final StorageProvider storageProvider;
     protected final ChecksumService checksumService;
     protected final BackupHistoryMapper backupHistoryMapper;
+    @Nullable
+    protected final BackupMetricsRegistrar backupMetricsRegistrar;
 
     /**
      * 安全地记录命令（隐藏敏感信息）
@@ -88,44 +93,60 @@ public abstract class AbstractBackupExecutor {
      * @throws Exception 备份过程中发生的任何异常
      */
     public BackupHistory execute(BackupRequest request) throws Exception {
+        long startMs = System.currentTimeMillis();
+        if (backupMetricsRegistrar != null) {
+            backupMetricsRegistrar.recordBackupStart();
+        }
+
         // 生成唯一的分布式锁键，格式：backup:{数据源类型}:{任务ID}
         String lockKey = "backup:" + request.getDatasourceType() + ":" + request.getTaskId();
+        try {
+            // 使用重试模板执行，在分布式锁保护下的备份流程
+            BackupHistory result = retryTemplate.execute(() ->
+                // 获取分布式锁，确保同一时间只有一个备份任务在执行
+                lockManager.withLock(lockKey, () -> {
+                    // 1. 创建备份历史记录，初始状态为 RUNNING
+                    BackupHistory history = createHistoryRecord(request);
 
-        // 使用重试模板执行，在分布式锁保护下的备份流程
-        return retryTemplate.execute(() ->
-            // 获取分布式锁，确保同一时间只有一个备份任务在执行
-            lockManager.withLock(lockKey, () -> {
-                // 1. 创建备份历史记录，初始状态为 RUNNING
-                BackupHistory history = createHistoryRecord(request);
+                    try {
+                        log.info("开始执行备份任务: {}, 类型: {}", request.getTaskId(), request.getBackupType());
 
-                try {
-                    log.info("开始执行备份任务: {}, 类型: {}", request.getTaskId(), request.getBackupType());
+                        // 2. 执行具体备份逻辑（由子类实现）
+                        BackupArtifact artifact = doBackup(request, history);
 
-                    // 2. 执行具体备份逻辑（由子类实现）
-                    BackupArtifact artifact = doBackup(request, history);
+                        // 3. 计算备份文件校验和（MD5和SHA256）
+                        Checksum checksum = calculateChecksum(artifact);
 
-                    // 3. 计算备份文件校验和（MD5和SHA256）
-                    Checksum checksum = calculateChecksum(artifact);
+                        // 4. 上传备份文件到存储系统（本地/S3/OSS等）
+                        StorageResult storageResult = storeBackup(artifact);
 
-                    // 4. 上传备份文件到存储系统（本地/S3/OSS等）
-                    StorageResult storageResult = storeBackup(artifact);
+                        // 5. 更新历史记录为成功状态，包含校验和和存储位置
+                        updateHistoryRecord(history, artifact, checksum, storageResult);
 
-                    // 5. 更新历史记录为成功状态，包含校验和和存储位置
-                    updateHistoryRecord(history, artifact, checksum, storageResult);
+                        log.info("备份任务执行成功: {}, 文件: {}", request.getTaskId(), artifact.getFile());
 
-                    log.info("备份任务执行成功: {}, 文件: {}", request.getTaskId(), artifact.getFile());
+                        return history;
 
-                    return history;
+                    } catch (Exception e) {
+                        // 备份失败时更新历史记录为失败状态
+                        updateFailureRecord(history, e);
+                        log.error("备份任务执行失败: {}", request.getTaskId(), e);
+                        // 重新抛出异常，触发重试机制
+                        throw e;
+                    }
+                })
+            );
 
-                } catch (Exception e) {
-                    // 备份失败时更新历史记录为失败状态
-                    updateFailureRecord(history, e);
-                    log.error("备份任务执行失败: {}", request.getTaskId(), e);
-                    // 重新抛出异常，触发重试机制
-                    throw e;
-                }
-            })
-        );
+            if (backupMetricsRegistrar != null) {
+                backupMetricsRegistrar.recordBackupSuccess(System.currentTimeMillis() - startMs);
+            }
+            return result;
+        } catch (Exception ex) {
+            if (backupMetricsRegistrar != null) {
+                backupMetricsRegistrar.recordBackupFailure(System.currentTimeMillis() - startMs);
+            }
+            throw ex;
+        }
     }
 
     /**
@@ -142,6 +163,9 @@ public abstract class AbstractBackupExecutor {
         history.setTaskName("备份任务_" + request.getTaskId());
         history.setStatus("RUNNING");
         history.setBackupType(request.getBackupType());
+        if (request instanceof IncrementalBackupRequest incrementalRequest) {
+            history.setBaseFullId(incrementalRequest.getBaseFullBackupId());
+        }
         history.setStartedAt(LocalDateTime.now());
         history.setStartedAtMs(System.currentTimeMillis());
 
@@ -223,6 +247,7 @@ public abstract class AbstractBackupExecutor {
                 log.info("备份文件上传成功: {}, 存储位置: {}", key, storageResult.getLocation());
             } else {
                 log.error("备份文件上传失败: {}, 错误信息: {}", key, storageResult.getErrorMessage());
+                throw new IllegalStateException("备份文件上传失败: " + storageResult.getErrorMessage());
             }
 
             return storageResult;
@@ -248,6 +273,10 @@ public abstract class AbstractBackupExecutor {
         history.setFinishedAtMs(System.currentTimeMillis());
         history.setDurationSeconds((int) (history.getFinishedAtMs() - history.getStartedAtMs()) / 1000);
         history.setFileSize(artifact.getFileSize());
+        history.setBinlogStart(artifact.getBinlogStartPosition());
+        history.setBinlogEnd(artifact.getBinlogEndPosition());
+        history.setWalStart(artifact.getWalStartPosition());
+        history.setWalEnd(artifact.getWalEndPosition());
         history.setChecksumMd5(checksum.getMd5());
         history.setChecksumSha256(checksum.getSha256());
         String storageJson = JsonUtils.toJsonString(java.util.Collections.singletonList(storageResult));

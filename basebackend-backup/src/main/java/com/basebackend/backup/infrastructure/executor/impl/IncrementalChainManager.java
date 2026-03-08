@@ -117,7 +117,22 @@ public class IncrementalChainManager {
             return null;
         }
 
-        return buildChain(taskId);
+        BackupHistory baseFullBackup = backups.stream()
+            .filter(BackupHistory::isFull)
+            .max((b1, b2) -> b1.getStartedAt().compareTo(b2.getStartedAt()))
+            .orElse(null);
+
+        if (baseFullBackup == null) {
+            log.warn("任务 {} 在时间 {} 之前没有全量备份", taskId, targetTime);
+            return null;
+        }
+
+        List<BackupHistory> incrementals = backups.stream()
+            .filter(BackupHistory::isIncremental)
+            .filter(b -> b.getBaseFullId() != null && b.getBaseFullId().equals(baseFullBackup.getId()))
+            .collect(Collectors.toList());
+
+        return buildChainFromBase(taskId, baseFullBackup, incrementals);
     }
 
     /**
@@ -137,7 +152,8 @@ public class IncrementalChainManager {
             return null;
         }
 
-        return buildChain(taskId);
+        List<BackupHistory> incrementals = backupHistoryMapper.selectIncrementalChain(latestFullBackup.getId());
+        return buildChainFromBase(taskId, latestFullBackup, incrementals);
     }
 
     /**
@@ -227,5 +243,29 @@ public class IncrementalChainManager {
      */
     private String generateChainId(Long taskId, Long fullBackupId) {
         return String.format("chain_%d_%d", taskId, fullBackupId);
+    }
+
+    private IncrementalChain buildChainFromBase(Long taskId, BackupHistory fullBackup,
+                                                List<BackupHistory> incrementals) {
+        List<BackupHistory> safeIncrementals = incrementals == null ? List.of() : incrementals;
+        safeIncrementals.sort((b1, b2) -> b1.getStartedAt().compareTo(b2.getStartedAt()));
+
+        IncrementalChain chain = IncrementalChain.builder()
+            .chainId(generateChainId(taskId, fullBackup.getId()))
+            .fullBackup(fullBackup)
+            .incrementalBackups(safeIncrementals)
+            .incrementalCount(safeIncrementals.size())
+            .createdAt(LocalDateTime.now())
+            .lastUpdated(LocalDateTime.now())
+            .build();
+
+        if (!safeIncrementals.isEmpty()) {
+            chain.setEarliestIncrementalTime(safeIncrementals.get(0).getStartedAt());
+            chain.setLatestIncrementalTime(safeIncrementals.get(safeIncrementals.size() - 1).getStartedAt());
+        }
+
+        chain.calculateTotalSize();
+        chain.checkChainIntegrity();
+        return chain;
     }
 }

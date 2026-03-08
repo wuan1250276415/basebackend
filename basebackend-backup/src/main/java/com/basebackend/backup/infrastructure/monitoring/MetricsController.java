@@ -1,10 +1,12 @@
 package com.basebackend.backup.infrastructure.monitoring;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
+import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -21,9 +23,10 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @WebEndpoint(id = "backup-metrics")
+@ConditionalOnBean(BackupMetricsRegistrar.class)
+@ConditionalOnProperty(name = "backup.metrics.enabled", havingValue = "true")
 public class MetricsController {
 
-    private final MeterRegistry meterRegistry;
     private final BackupMetricsRegistrar backupMetricsRegistrar;
 
     /**
@@ -47,6 +50,10 @@ public class MetricsController {
         metrics.put("restore_success", snapshot.getRestoreSuccess());
         metrics.put("restore_failure", snapshot.getRestoreFailure());
         metrics.put("restore_success_rate", backupMetricsRegistrar.getRestoreSuccessRate());
+
+        metrics.put("postgres_physical_baseline_failure", snapshot.getPostgresPhysicalBaselineFailure());
+        metrics.put("postgres_physical_baseline_cleanup_success", snapshot.getPostgresPhysicalBaselineCleanupSuccess());
+        metrics.put("postgres_physical_baseline_cleanup_failure", snapshot.getPostgresPhysicalBaselineCleanupFailure());
 
         metrics.put("active_backup_tasks", snapshot.getActiveBackupTasks());
         metrics.put("active_restore_tasks", snapshot.getActiveRestoreTasks());
@@ -76,12 +83,23 @@ public class MetricsController {
     }
 
     /**
-     * 获取Prometheus格式的指标
+     * 获取子指标：
+     * - /actuator/backup-metrics/prometheus
+     * - /actuator/backup-metrics/health
      */
     @ReadOperation
-    public String getPrometheusMetrics() {
-        log.debug("获取Prometheus格式指标");
+    public Object getBackupMetricsByType(@Selector String type) {
+        if ("prometheus".equalsIgnoreCase(type)) {
+            return buildPrometheusMetrics();
+        }
+        if ("health".equalsIgnoreCase(type)) {
+            return buildHealthStatus();
+        }
+        throw new IllegalArgumentException("不支持的指标类型: " + type);
+    }
 
+    private String buildPrometheusMetrics() {
+        log.debug("获取Prometheus格式指标");
         StringBuilder sb = new StringBuilder();
 
         // 生成Prometheus格式指标
@@ -112,6 +130,21 @@ public class MetricsController {
         sb.append("# HELP backup_restore_failure_total Total number of failed restore operations\n");
         sb.append("# TYPE backup_restore_failure_total counter\n");
         sb.append("backup_restore_failure_total ").append(snapshot.getRestoreFailure()).append("\n");
+
+        sb.append("# HELP backup_postgres_physical_baseline_failure_total Total number of failed pg_basebackup baseline creations\n");
+        sb.append("# TYPE backup_postgres_physical_baseline_failure_total counter\n");
+        sb.append("backup_postgres_physical_baseline_failure_total ")
+            .append(snapshot.getPostgresPhysicalBaselineFailure()).append("\n");
+
+        sb.append("# HELP backup_postgres_physical_baseline_cleanup_success_total Total number of successful pg_basebackup failed baseline cleanups\n");
+        sb.append("# TYPE backup_postgres_physical_baseline_cleanup_success_total counter\n");
+        sb.append("backup_postgres_physical_baseline_cleanup_success_total ")
+            .append(snapshot.getPostgresPhysicalBaselineCleanupSuccess()).append("\n");
+
+        sb.append("# HELP backup_postgres_physical_baseline_cleanup_failure_total Total number of failed pg_basebackup failed baseline cleanups\n");
+        sb.append("# TYPE backup_postgres_physical_baseline_cleanup_failure_total counter\n");
+        sb.append("backup_postgres_physical_baseline_cleanup_failure_total ")
+            .append(snapshot.getPostgresPhysicalBaselineCleanupFailure()).append("\n");
 
         // 活跃任务
         sb.append("# HELP backup_active_backup_tasks Number of currently running backup tasks\n");
@@ -152,8 +185,7 @@ public class MetricsController {
     /**
      * 健康检查
      */
-    @ReadOperation
-    public Map<String, Object> getHealthStatus() {
+    private Map<String, Object> buildHealthStatus() {
         BackupMetricsRegistrar.MetricsSnapshot snapshot = backupMetricsRegistrar.getSnapshot();
 
         Map<String, Object> health = new HashMap<>();

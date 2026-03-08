@@ -239,21 +239,12 @@ public class MySQLBackupServiceImpl implements BackupService {
                 .createTime(startTime)
                 .build();
 
-        try {
-            String backupDir = backupProperties.getBackupPath() + File.separator + "incremental";
-            FileUtil.mkdir(backupDir);
-
-            // TODO: 真正的Binlog增量实现
-            record.setStatus(BackupStatus.SUCCESS);
-            record.setEndTime(LocalDateTime.now());
-
-            log.info("增量备份成功");
-        } catch (Exception e) {
-            log.error("增量备份异常", e);
-            record.setStatus(BackupStatus.FAILED);
-            record.setErrorMessage(e.getMessage());
-            record.setEndTime(LocalDateTime.now());
-        }
+        String message = "MySQL增量备份尚未实现真实Binlog采集与回放链路，已禁止返回伪成功";
+        record.setStatus(BackupStatus.FAILED);
+        record.setErrorMessage(message);
+        record.setEndTime(LocalDateTime.now());
+        record.setDuration(ChronoUnit.SECONDS.between(startTime, record.getEndTime()));
+        log.warn(message);
 
         backupCache.put(backupId, record);
         return record;

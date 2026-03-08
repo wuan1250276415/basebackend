@@ -183,7 +183,6 @@ public class PostgreSQLBackupServiceImpl implements BackupService {
     }
 
     private BackupRecord doIncrementalBackup() throws Exception {
-        BackupProperties.PostgresConfig pg = backupProperties.getPostgres();
         String backupId = IdUtil.fastSimpleUUID();
         LocalDateTime startTime = LocalDateTime.now();
 
@@ -191,101 +190,17 @@ public class PostgreSQLBackupServiceImpl implements BackupService {
                 .backupId(backupId)
                 .backupType(BackupType.INCREMENTAL)
                 .status(BackupStatus.RUNNING)
-                .databaseName(pg.getDatabase())
+                .databaseName(backupProperties.getPostgres().getDatabase())
                 .startTime(startTime)
                 .createTime(startTime)
                 .build();
 
-        String backupFile = null;
-        try {
-            String backupDir = pg.getBackupPath() + File.separator + "incremental";
-            FileUtil.mkdir(backupDir);
-
-            // 获取起始WAL位置
-            String startLsn = findLastIncrementalEndLsn();
-            if (startLsn == null) {
-                startLsn = walParser.getCurrentPosition(
-                        pg.getHost(), pg.getPort(), pg.getUsername(), pg.getPassword(), pg.getDatabase());
-                log.info("首次增量备份，使用当前WAL LSN: {}", startLsn);
-            }
-
-            // 获取当前WAL位置
-            String endLsn = walParser.getCurrentPosition(
-                    pg.getHost(), pg.getPort(), pg.getUsername(), pg.getPassword(), pg.getDatabase());
-
-            if (startLsn.equals(endLsn)) {
-                log.info("WAL无变化，跳过增量备份");
-                record.setStatus(BackupStatus.SUCCESS);
-                record.setEndTime(LocalDateTime.now());
-                record.setDuration(0L);
-                backupCache.put(backupId, record);
-                return record;
-            }
-
-            // 使用pg_dump在两个LSN之间导出变更（近似增量）
-            String timestamp = DateUtil.format(DateUtil.date(), "yyyyMMdd_HHmmss");
-            backupFile = backupDir + File.separator
-                    + pg.getDatabase() + "_incr_" + timestamp + ".sql";
-
-            // pg_dump with --data-only for incremental-like backup
-            List<String> command = buildPgDumpIncrementalCommand(backupFile);
-            logCommand(command);
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            applyPgPassword(pb, pg.getPassword());
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            consumeProcessOutput(process.getInputStream());
-
-            boolean completed = process.waitFor(
-                    backupProperties.getRetry().getMaxAttempts() * 60, TimeUnit.SECONDS);
-            if (!completed) {
-                process.destroyForcibly();
-                throw new RuntimeException("pg_dump增量执行超时");
-            }
-
-            int exitCode = process.exitValue();
-            LocalDateTime endTime = LocalDateTime.now();
-            long duration = ChronoUnit.SECONDS.between(startTime, endTime);
-
-            if (exitCode == 0) {
-                File file = new File(backupFile);
-                record.setStatus(BackupStatus.SUCCESS);
-                record.setFilePath(backupFile);
-                record.setFileSize(file.length());
-                record.setEndTime(endTime);
-                record.setDuration(duration);
-                record.setBinlogStartPosition(startLsn);
-                record.setBinlogEndPosition(endLsn);
-
-                log.info("PostgreSQL增量备份成功: {}, WAL LSN范围: {} -> {}, 大小: {}",
-                        backupFile, startLsn, endLsn, FileUtil.readableFileSize(file.length()));
-            } else {
-                record.setStatus(BackupStatus.FAILED);
-                record.setErrorMessage("pg_dump退出码: " + exitCode);
-                record.setEndTime(endTime);
-                record.setDuration(duration);
-                log.error("PostgreSQL增量备份失败, pg_dump退出码: {}", exitCode);
-            }
-
-        } catch (Exception e) {
-            log.error("PostgreSQL增量备份异常", e);
-            record.setStatus(BackupStatus.FAILED);
-            record.setErrorMessage(e.getMessage());
-            record.setEndTime(LocalDateTime.now());
-
-            if (backupFile != null) {
-                try {
-                    FileUtil.del(backupFile);
-                } catch (Exception cleanupEx) {
-                    log.warn("清理临时增量备份文件失败: {}", backupFile, cleanupEx);
-                }
-            }
-
-            backupCache.put(backupId, record);
-            throw e;
-        }
+        String message = "PostgreSQL增量备份尚未实现真实WAL归档链路，已禁止返回伪成功";
+        record.setStatus(BackupStatus.FAILED);
+        record.setErrorMessage(message);
+        record.setEndTime(LocalDateTime.now());
+        record.setDuration(ChronoUnit.SECONDS.between(startTime, record.getEndTime()));
+        log.warn(message);
 
         backupCache.put(backupId, record);
         return record;

@@ -46,6 +46,9 @@ public class BackupMetricsRegistrar {
     private Counter restoreTotalCounter;
     private Counter restoreSuccessCounter;
     private Counter restoreFailureCounter;
+    private Counter postgresPhysicalBaselineFailureCounter;
+    private Counter postgresPhysicalBaselineCleanupSuccessCounter;
+    private Counter postgresPhysicalBaselineCleanupFailureCounter;
 
     // 定时器
     private Timer backupDurationTimer;
@@ -96,6 +99,18 @@ public class BackupMetricsRegistrar {
 
         restoreFailureCounter = Counter.builder(prefix + "_restore_failure_total")
             .description("Total number of failed restore operations")
+            .register(meterRegistry);
+
+        postgresPhysicalBaselineFailureCounter = Counter.builder(prefix + "_postgres_physical_baseline_failure_total")
+            .description("Total number of failed pg_basebackup baseline creations")
+            .register(meterRegistry);
+
+        postgresPhysicalBaselineCleanupSuccessCounter = Counter.builder(prefix + "_postgres_physical_baseline_cleanup_success_total")
+            .description("Total number of successful pg_basebackup failed baseline cleanups")
+            .register(meterRegistry);
+
+        postgresPhysicalBaselineCleanupFailureCounter = Counter.builder(prefix + "_postgres_physical_baseline_cleanup_failure_total")
+            .description("Total number of failed pg_basebackup failed baseline cleanups")
             .register(meterRegistry);
 
         // 创建定时器
@@ -192,6 +207,24 @@ public class BackupMetricsRegistrar {
     }
 
     /**
+     * 记录 PostgreSQL 物理基线创建失败
+     */
+    public void recordPostgresPhysicalBaselineFailure() {
+        postgresPhysicalBaselineFailureCounter.increment();
+    }
+
+    /**
+     * 记录 PostgreSQL 物理基线失败残留清理结果
+     */
+    public void recordPostgresPhysicalBaselineCleanup(boolean success) {
+        if (success) {
+            postgresPhysicalBaselineCleanupSuccessCounter.increment();
+        } else {
+            postgresPhysicalBaselineCleanupFailureCounter.increment();
+        }
+    }
+
+    /**
      * 记录存储使用量
      */
     public void recordStorageUsage(String storageType, long bytes, int objectCount) {
@@ -220,12 +253,15 @@ public class BackupMetricsRegistrar {
      */
     public MetricsSnapshot getSnapshot() {
         return MetricsSnapshot.builder()
-            .backupTotal(Math.round(backupTotalCounter.count()))
-            .backupSuccess(Math.round(backupSuccessCounter.count()))
-            .backupFailure(Math.round(backupFailureCounter.count()))
-            .restoreTotal(Math.round(restoreTotalCounter.count()))
-            .restoreSuccess(Math.round(restoreSuccessCounter.count()))
-            .restoreFailure(Math.round(restoreFailureCounter.count()))
+            .backupTotal(counterValue(backupTotalCounter))
+            .backupSuccess(counterValue(backupSuccessCounter))
+            .backupFailure(counterValue(backupFailureCounter))
+            .restoreTotal(counterValue(restoreTotalCounter))
+            .restoreSuccess(counterValue(restoreSuccessCounter))
+            .restoreFailure(counterValue(restoreFailureCounter))
+            .postgresPhysicalBaselineFailure(counterValue(postgresPhysicalBaselineFailureCounter))
+            .postgresPhysicalBaselineCleanupSuccess(counterValue(postgresPhysicalBaselineCleanupSuccessCounter))
+            .postgresPhysicalBaselineCleanupFailure(counterValue(postgresPhysicalBaselineCleanupFailureCounter))
             .activeBackupTasks(activeBackupTasks.get())
             .activeRestoreTasks(activeRestoreTasks.get())
             .totalRetries(totalRetries.get())
@@ -233,6 +269,13 @@ public class BackupMetricsRegistrar {
             .storageSizeMap(new ConcurrentHashMap<>(storageSizeMap))
             .storageCountMap(new ConcurrentHashMap<>(storageCountMap))
             .build();
+    }
+
+    private long counterValue(Counter counter) {
+        if (counter == null) {
+            return 0L;
+        }
+        return Math.round(counter.count());
     }
 
     /**
@@ -292,6 +335,9 @@ public class BackupMetricsRegistrar {
         private final long restoreTotal;
         private final long restoreSuccess;
         private final long restoreFailure;
+        private final long postgresPhysicalBaselineFailure;
+        private final long postgresPhysicalBaselineCleanupSuccess;
+        private final long postgresPhysicalBaselineCleanupFailure;
         private final int activeBackupTasks;
         private final int activeRestoreTasks;
         private final long totalRetries;
@@ -306,6 +352,9 @@ public class BackupMetricsRegistrar {
             this.restoreTotal = builder.restoreTotal;
             this.restoreSuccess = builder.restoreSuccess;
             this.restoreFailure = builder.restoreFailure;
+            this.postgresPhysicalBaselineFailure = builder.postgresPhysicalBaselineFailure;
+            this.postgresPhysicalBaselineCleanupSuccess = builder.postgresPhysicalBaselineCleanupSuccess;
+            this.postgresPhysicalBaselineCleanupFailure = builder.postgresPhysicalBaselineCleanupFailure;
             this.activeBackupTasks = builder.activeBackupTasks;
             this.activeRestoreTasks = builder.activeRestoreTasks;
             this.totalRetries = builder.totalRetries;
@@ -321,6 +370,9 @@ public class BackupMetricsRegistrar {
         public long getRestoreTotal() { return restoreTotal; }
         public long getRestoreSuccess() { return restoreSuccess; }
         public long getRestoreFailure() { return restoreFailure; }
+        public long getPostgresPhysicalBaselineFailure() { return postgresPhysicalBaselineFailure; }
+        public long getPostgresPhysicalBaselineCleanupSuccess() { return postgresPhysicalBaselineCleanupSuccess; }
+        public long getPostgresPhysicalBaselineCleanupFailure() { return postgresPhysicalBaselineCleanupFailure; }
         public int getActiveBackupTasks() { return activeBackupTasks; }
         public int getActiveRestoreTasks() { return activeRestoreTasks; }
         public long getTotalRetries() { return totalRetries; }
@@ -339,6 +391,9 @@ public class BackupMetricsRegistrar {
             private long restoreTotal;
             private long restoreSuccess;
             private long restoreFailure;
+            private long postgresPhysicalBaselineFailure;
+            private long postgresPhysicalBaselineCleanupSuccess;
+            private long postgresPhysicalBaselineCleanupFailure;
             private int activeBackupTasks;
             private int activeRestoreTasks;
             private long totalRetries;
@@ -373,6 +428,21 @@ public class BackupMetricsRegistrar {
 
             public Builder restoreFailure(long restoreFailure) {
                 this.restoreFailure = restoreFailure;
+                return this;
+            }
+
+            public Builder postgresPhysicalBaselineFailure(long postgresPhysicalBaselineFailure) {
+                this.postgresPhysicalBaselineFailure = postgresPhysicalBaselineFailure;
+                return this;
+            }
+
+            public Builder postgresPhysicalBaselineCleanupSuccess(long postgresPhysicalBaselineCleanupSuccess) {
+                this.postgresPhysicalBaselineCleanupSuccess = postgresPhysicalBaselineCleanupSuccess;
+                return this;
+            }
+
+            public Builder postgresPhysicalBaselineCleanupFailure(long postgresPhysicalBaselineCleanupFailure) {
+                this.postgresPhysicalBaselineCleanupFailure = postgresPhysicalBaselineCleanupFailure;
                 return this;
             }
 

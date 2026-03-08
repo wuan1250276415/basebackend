@@ -76,6 +76,51 @@ backup:
       wal-dir: ${PG_WAL_DIR:/var/lib/postgresql/data/pg_wal}
       max-retention: 7d
 
+  postgres:
+    # 回放链路未完成前默认关闭，避免产出不可恢复增量
+    incremental-replay-enabled: ${POSTGRES_INCREMENTAL_REPLAY_ENABLED:false}
+    # 回放模式：logical_snapshot / wal_external / wal_physical_builtin
+    incremental-replay-mode: ${POSTGRES_INCREMENTAL_REPLAY_MODE:logical_snapshot}
+    # wal_external 模式下执行的外部回放命令模板
+    wal-replay-command: ${POSTGRES_WAL_REPLAY_COMMAND:}
+    # 内建物理回放：pg_ctl 路径
+    pg-ctl-path: ${POSTGRES_PG_CTL_PATH:pg_ctl}
+    # 内建物理回放：pg_basebackup 路径
+    pg-basebackup-path: ${POSTGRES_PG_BASEBACKUP_PATH:pg_basebackup}
+    # 内建物理回放：PostgreSQL 数据目录（-D）
+    physical-replay-data-dir: ${POSTGRES_PHYSICAL_REPLAY_DATA_DIR:/var/lib/postgresql/data}
+    # 内建物理回放：WAL 归档目录
+    physical-replay-archive-dir: ${POSTGRES_PHYSICAL_REPLAY_ARCHIVE_DIR:/var/lib/postgresql/wal_archive}
+    # 内建物理回放：pg_basebackup 物理基线目录
+    physical-replay-baseline-dir: ${POSTGRES_PHYSICAL_REPLAY_BASELINE_DIR:/var/lib/postgresql/physical_baselines}
+    # 内建物理回放：restore_command 模板（必须包含 %f/%p）
+    physical-replay-restore-command-template: ${POSTGRES_PHYSICAL_REPLAY_RESTORE_COMMAND_TEMPLATE:cp $${archiveDir}/%f "%p"}
+    # 内建物理回放：pg_basebackup 超时（秒）与 checkpoint 模式
+    physical-replay-basebackup-timeout-seconds: ${POSTGRES_PHYSICAL_REPLAY_BASEBACKUP_TIMEOUT_SECONDS:300}
+    physical-replay-basebackup-fast-checkpoint: ${POSTGRES_PHYSICAL_REPLAY_BASEBACKUP_FAST_CHECKPOINT:true}
+    # 内建物理回放：pg_basebackup 失败后是否自动清理残留基线目录
+    physical-replay-baseline-cleanup-on-basebackup-failure: ${POSTGRES_PHYSICAL_REPLAY_BASELINE_CLEANUP_ON_BASEBACKUP_FAILURE:true}
+    # 内建物理回放：stop/start 超时（秒）
+    physical-replay-stop-timeout-seconds: ${POSTGRES_PHYSICAL_REPLAY_STOP_TIMEOUT_SECONDS:60}
+    physical-replay-start-timeout-seconds: ${POSTGRES_PHYSICAL_REPLAY_START_TIMEOUT_SECONDS:120}
+    # 内建物理回放：保留基线数量与失败回滚开关
+    physical-replay-keep-latest-baselines: ${POSTGRES_PHYSICAL_REPLAY_KEEP_LATEST_BASELINES:3}
+    physical-replay-rollback-on-failure: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_ON_FAILURE:true}
+    physical-replay-rollback-start-timeout-seconds: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_START_TIMEOUT_SECONDS:120}
+    # 内建物理回放：失败回滚后的健康探针（进程+SQL）
+    physical-replay-rollback-health-probe-enabled: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_HEALTH_PROBE_ENABLED:true}
+    physical-replay-rollback-health-probe-max-attempts: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_HEALTH_PROBE_MAX_ATTEMPTS:1}
+    physical-replay-rollback-health-probe-interval-seconds: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_HEALTH_PROBE_INTERVAL_SECONDS:1}
+    physical-replay-rollback-health-probe-timeout-seconds: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_HEALTH_PROBE_TIMEOUT_SECONDS:1}
+    # 内建物理回放：失败回滚后的业务一致性探针（可选）
+    physical-replay-rollback-business-probe-enabled: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_BUSINESS_PROBE_ENABLED:false}
+    physical-replay-rollback-business-probe-sql: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_BUSINESS_PROBE_SQL:}
+    physical-replay-rollback-business-probe-expected-value: ${POSTGRES_PHYSICAL_REPLAY_ROLLBACK_BUSINESS_PROBE_EXPECTED_VALUE:}
+    # 内建物理回放：recovery_target_action（pause/promote/shutdown）
+    physical-replay-recovery-target-action: ${POSTGRES_PHYSICAL_REPLAY_RECOVERY_TARGET_ACTION:promote}
+    # 内建物理回放：端口覆盖，<=0 表示不覆盖
+    physical-replay-port: ${POSTGRES_PHYSICAL_REPLAY_PORT:-1}
+
   # 监控配置
   metrics:
     enabled: ${BACKUP_METRICS_ENABLED:true}
@@ -183,7 +228,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,prometheus,metrics,backup-metrics
   endpoint:
     health:
       show-details: always

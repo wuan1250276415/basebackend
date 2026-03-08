@@ -39,7 +39,7 @@ public class RedissonLockManager implements LockManager {
     @Override
     public void withLock(String lockKey, Runnable action) throws Exception {
         withLock(lockKey, backupProperties.getDistributedLock().getWaitTime().toMillis(),
-                backupProperties.getDistributedLock().getTtl().toMillis(), action);
+                -1L, action);
     }
 
     @Override
@@ -50,7 +50,7 @@ public class RedissonLockManager implements LockManager {
             log.debug("尝试获取分布式锁: {}, 等待时间: {}ms, 租约时间: {}ms",
                     lockKey, waitTimeMs, leaseTimeMs);
 
-            if (lock.tryLock(waitTimeMs, leaseTimeMs, TimeUnit.MILLISECONDS)) {
+            if (acquireLock(lock, waitTimeMs, leaseTimeMs)) {
                 log.debug("成功获取分布式锁: {}", lockKey);
                 try {
                     action.run();
@@ -73,7 +73,7 @@ public class RedissonLockManager implements LockManager {
     @Override
     public <T> T withLock(String lockKey, Callable<T> action) throws Exception {
         return withLock(lockKey, backupProperties.getDistributedLock().getWaitTime().toMillis(),
-                backupProperties.getDistributedLock().getTtl().toMillis(), action);
+                -1L, action);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class RedissonLockManager implements LockManager {
             log.debug("尝试获取分布式锁: {}, 等待时间: {}ms, 租约时间: {}ms",
                     lockKey, waitTimeMs, leaseTimeMs);
 
-            if (lock.tryLock(waitTimeMs, leaseTimeMs, TimeUnit.MILLISECONDS)) {
+            if (acquireLock(lock, waitTimeMs, leaseTimeMs)) {
                 log.debug("成功获取分布式锁: {}", lockKey);
                 try {
                     return action.call();
@@ -113,8 +113,7 @@ public class RedissonLockManager implements LockManager {
     public boolean tryLock(String lockKey, long waitTime) {
         RLock lock = redissonClient.getLock(lockKey);
         try {
-            return lock.tryLock(waitTime, backupProperties.getDistributedLock().getTtl().toMillis(),
-                    TimeUnit.MILLISECONDS);
+            return lock.tryLock(waitTime, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("尝试获取分布式锁被中断: {}", lockKey, e);
@@ -147,5 +146,13 @@ public class RedissonLockManager implements LockManager {
     public boolean isLocked(String lockKey) {
         RLock lock = redissonClient.getLock(lockKey);
         return lock.isLocked();
+    }
+
+    private boolean acquireLock(RLock lock, long waitTimeMs, long leaseTimeMs) throws InterruptedException {
+        if (leaseTimeMs <= 0) {
+            // 使用watchdog自动续租，避免长任务锁过期
+            return lock.tryLock(waitTimeMs, TimeUnit.MILLISECONDS);
+        }
+        return lock.tryLock(waitTimeMs, leaseTimeMs, TimeUnit.MILLISECONDS);
     }
 }
