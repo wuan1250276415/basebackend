@@ -14,7 +14,13 @@
       "Bash(cd /Users/wuan/Downloads/basebackend/basebackend-chat-ui && npx tsc -b 2>&1)",
       "Bash(npm run:*)",
       "Bash(git status:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__ace-tool__enhance_prompt",
+      "mcp__ace-tool__search_context",
+      "Bash(echo OpenSpec not initialized or no changes:*)",
+      "Bash(/Users/wuan/.claude/bin/codeagent-wrapper:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

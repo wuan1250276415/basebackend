@@ -542,6 +542,26 @@ public class CacheProperties {
          * 当前服务名称（用于区分事件来源）
          */
         private String serviceName = "default";
+
+        /**
+         * 是否启用消息签名与验签（默认开启，安全优先）
+         */
+        private boolean signatureEnabled = true;
+
+        /**
+         * 消息签名密钥（建议通过配置中心按环境下发）
+         */
+        private String signatureSecret = "";
+
+        /**
+         * 消息时间窗（超过该窗口视为过期或时间漂移过大）
+         */
+        private Duration signatureTimeWindow = Duration.ofMinutes(5);
+
+        /**
+         * 是否允许接收无签名旧消息（用于灰度迁移，默认关闭）
+         */
+        private boolean allowUnsignedLegacy = false;
     }
 
     /**

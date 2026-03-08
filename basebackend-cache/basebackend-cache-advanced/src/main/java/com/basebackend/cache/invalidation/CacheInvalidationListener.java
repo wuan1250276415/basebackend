@@ -11,6 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.Base64;
+
 /**
  * 跨服务缓存失效监听器
  * 订阅 Redis Pub/Sub 通道，接收其他服务发布的失效事件并应用到本地
@@ -23,6 +30,9 @@ import org.springframework.data.redis.connection.MessageListener;
  */
 @Slf4j
 public class CacheInvalidationListener implements MessageListener {
+
+    private static final String SIGNATURE_ALGORITHM = "HmacSHA256";
+    private static final long DEFAULT_TIME_WINDOW_MILLIS = Duration.ofMinutes(5).toMillis();
 
     private final CacheService cacheService;
     private final CacheProperties cacheProperties;
@@ -44,7 +54,7 @@ public class CacheInvalidationListener implements MessageListener {
     public void onMessage(Message message, byte[] pattern) {
         String body;
         try {
-            body = new String(message.getBody());
+            body = new String(message.getBody(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.warn("Failed to read invalidation message body", e);
             return;
@@ -63,6 +73,11 @@ public class CacheInvalidationListener implements MessageListener {
             return;
         }
 
+        // 安全校验：先做时间窗与签名校验，再执行业务失效
+        if (!authenticate(event)) {
+            return;
+        }
+
         // 跳过自身发布的事件
         String selfName = cacheProperties.getInvalidation().getServiceName();
         if (selfName.equals(event.getSource())) {
@@ -78,6 +93,93 @@ public class CacheInvalidationListener implements MessageListener {
         recordReceived(event);
     }
 
+    private boolean authenticate(CacheInvalidationEvent event) {
+        CacheProperties.Invalidation config = cacheProperties.getInvalidation();
+        if (!isTimestampWithinWindow(event, config)) {
+            log.warn("Rejected invalidation event due to timestamp window validation failure: source={}, correlationId={}, timestamp={}",
+                    event.getSource(), event.getCorrelationId(), event.getTimestamp());
+            return false;
+        }
+
+        if (!config.isSignatureEnabled()) {
+            return true;
+        }
+
+        String secret = config.getSignatureSecret();
+        if (secret == null || secret.isBlank()) {
+            log.error("Rejected invalidation event because signature is enabled but secret is empty: source={}, correlationId={}",
+                    event.getSource(), event.getCorrelationId());
+            return false;
+        }
+
+        String incomingSignature = event.getSignature();
+        if (incomingSignature == null || incomingSignature.isBlank()) {
+            if (config.isAllowUnsignedLegacy()) {
+                log.warn("Accepting unsigned legacy invalidation event because allowUnsignedLegacy=true: source={}, correlationId={}",
+                        event.getSource(), event.getCorrelationId());
+                return true;
+            }
+            log.warn("Rejected invalidation event because signature is missing: source={}, correlationId={}",
+                    event.getSource(), event.getCorrelationId());
+            return false;
+        }
+
+        String expectedSignature = signEvent(event, secret);
+        if (expectedSignature == null) {
+            log.error("Rejected invalidation event because signature verification failed internally: source={}, correlationId={}",
+                    event.getSource(), event.getCorrelationId());
+            return false;
+        }
+
+        boolean verified = MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                incomingSignature.getBytes(StandardCharsets.UTF_8));
+        if (!verified) {
+            log.warn("Rejected invalidation event due to signature mismatch: source={}, correlationId={}, cacheName={}, key={}",
+                    event.getSource(), event.getCorrelationId(), event.getCacheName(), event.getKeyPattern());
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isTimestampWithinWindow(CacheInvalidationEvent event, CacheProperties.Invalidation config) {
+        long timestamp = event.getTimestamp();
+        if (timestamp <= 0) {
+            return false;
+        }
+
+        Duration timeWindow = config.getSignatureTimeWindow();
+        long windowMillis = timeWindow == null ? DEFAULT_TIME_WINDOW_MILLIS : timeWindow.toMillis();
+        if (windowMillis <= 0) {
+            log.warn("Configured signatureTimeWindow is invalid (<=0), fallback to {} ms", DEFAULT_TIME_WINDOW_MILLIS);
+            windowMillis = DEFAULT_TIME_WINDOW_MILLIS;
+        }
+
+        long drift = Math.abs(System.currentTimeMillis() - timestamp);
+        if (drift > windowMillis) {
+            log.warn("Invalidation event timestamp drift exceeded window: drift={}ms, window={}ms, source={}, correlationId={}",
+                    drift, windowMillis, event.getSource(), event.getCorrelationId());
+            return false;
+        }
+
+        return true;
+    }
+
+    private String signEvent(CacheInvalidationEvent event, String secret) {
+        try {
+            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SIGNATURE_ALGORITHM);
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(event.buildSignaturePayload().getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            log.error("Failed to build expected invalidation signature: source={}, correlationId={}",
+                    event.getSource(), event.getCorrelationId(), e);
+            return null;
+        }
+    }
+
     private void applyInvalidation(CacheInvalidationEvent event) {
         try {
             switch (event.getType()) {
@@ -90,7 +192,8 @@ public class CacheInvalidationListener implements MessageListener {
                     evictAllFromLocal();
                 }
                 case CLEAR_ALL -> {
-                    cacheService.clearAllCaches();
+                    // 该路径是受控的跨服务失效事件，已通过签名与时间窗校验
+                    cacheService.clearAllCaches(true);
                     evictAllFromLocal();
                 }
             }

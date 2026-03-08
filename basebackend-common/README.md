@@ -4,15 +4,23 @@
 
 ## 📦 模块架构
 
-```
-basebackend-common/
-├── basebackend-common-core       # 核心模块：常量、枚举、异常、响应模型
-├── basebackend-common-dto        # DTO 模块：分页查询、通用请求响应
-├── basebackend-common-util       # 工具模块：JSON、Bean、日期、ID 生成
-├── basebackend-common-context    # 上下文模块：用户/租户/请求上下文
-├── basebackend-common-security   # 安全模块：脱敏、验证、密钥管理
-└── basebackend-common-starter    # Starter：自动配置，一站式集成 ⭐
-```
+`basebackend-common` 当前包含 15 个子模块：
+
+- `basebackend-common-core`：核心模型与基础能力（统一响应、异常、枚举、常量）
+- `basebackend-common-util`：通用工具（JSON、Bean、日期、ID、IP 解析等）
+- `basebackend-common-context`：线程与请求上下文（用户/租户）
+- `basebackend-common-security`：安全能力（输入校验、密钥管理等）
+- `basebackend-common-audit`：审计切面与审计模型
+- `basebackend-common-masking`：数据脱敏与敏感字段处理
+- `basebackend-common-tree`：树结构构建与遍历
+- `basebackend-common-starter`：Spring Boot 自动配置聚合入口 ⭐
+- `basebackend-common-storage`：统一存储抽象（本地/MinIO/阿里云 OSS）
+- `basebackend-common-lock`：分布式锁抽象（内存/Redis）
+- `basebackend-common-idempotent`：幂等控制（注解、切面、存储实现）
+- `basebackend-common-datascope`：数据权限范围控制
+- `basebackend-common-ratelimit`：限流能力（固定窗口/滑动窗口/令牌桶）
+- `basebackend-common-export`：导入导出与异步任务
+- `basebackend-common-event`：事件发布、存储与重试机制
 
 ## 🚀 快速开始
 

@@ -4,6 +4,7 @@ import com.basebackend.cache.annotation.CacheEvict;
 import com.basebackend.cache.annotation.CachePut;
 import com.basebackend.cache.annotation.Cacheable;
 import com.basebackend.cache.config.CacheProperties;
+import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.service.RedisService;
 import com.basebackend.cache.util.CacheKeyGenerator;
@@ -43,6 +44,7 @@ public class CacheAspect {
     private final CacheKeyGenerator keyGenerator;
     private final CacheProperties cacheProperties;
     private final MultiLevelCacheManager multiLevelCacheManager;
+    private final CacheOperationHook cacheOperationHook;
 
     /**
      * 本地缓存实例（用于多级缓存失效）
@@ -70,12 +72,14 @@ public class CacheAspect {
             CacheKeyGenerator keyGenerator,
             CacheProperties cacheProperties,
             @Autowired(required = false) MultiLevelCacheManager multiLevelCacheManager,
-            @Autowired(required = false) RedisTemplate<String, Object> redisTemplate) {
+            @Autowired(required = false) RedisTemplate<String, Object> redisTemplate,
+            @Autowired(required = false) CacheOperationHook cacheOperationHook) {
         this.redisService = redisService;
         this.keyGenerator = keyGenerator;
         this.cacheProperties = cacheProperties;
         this.multiLevelCacheManager = multiLevelCacheManager;
         this.redisTemplate = redisTemplate;
+        this.cacheOperationHook = cacheOperationHook != null ? cacheOperationHook : CacheOperationHook.NO_OP;
         // localCache 将从 multiLevelCacheManager 按需获取，不再单独注入
         this.localCache = null;
     }
@@ -103,6 +107,13 @@ public class CacheAspect {
         // 解析缓存键
         String key = parseKey(cacheable.key(), cacheable.keyPrefix(), cacheable.cacheName(),
                 target, method, args, context);
+        long ttlSeconds = cacheable.timeUnit().toSeconds(cacheable.ttl());
+
+        Object preloadedValue = safeBeforeCacheLookup(cacheable.cacheName(), key, ttlSeconds, joinPoint);
+        if (preloadedValue != null) {
+            log.debug("Cache pre-hit from hook for key: {}", key);
+            return preloadedValue;
+        }
 
         // 判断是否使用多级缓存
         boolean useMultiLevel = cacheable.useMultiLevel() &&
@@ -122,6 +133,7 @@ public class CacheAspect {
         // 如果缓存命中，直接返回
         if (cachedValue != null) {
             log.debug("Cache hit for key: {}", key);
+            safeAfterCacheHit(cacheable.cacheName(), key, cachedValue, ttlSeconds, joinPoint);
             return cachedValue;
         }
 
@@ -149,6 +161,8 @@ public class CacheAspect {
                 redisService.set(key, result, cacheable.ttl(), cacheable.timeUnit());
                 log.debug("Cached result in Redis with key: {}, TTL: {}", key, ttl);
             }
+
+            safeAfterCachePut(cacheable.cacheName(), key, result);
         }
 
         return result;
@@ -203,6 +217,8 @@ public class CacheAspect {
                 redisService.set(key, result, cachePut.ttl(), cachePut.timeUnit());
                 log.debug("Updated Redis cache with key: {}, TTL: {}", key, ttl);
             }
+
+            safeAfterCachePut(cachePut.cacheName(), key, result);
         }
 
         return result;
@@ -285,6 +301,7 @@ public class CacheAspect {
                 long deletedCount = redisService.deleteByPattern(pattern);
                 log.info("Evicted all entries from Redis matching pattern: {}, count: {}", pattern, deletedCount);
             }
+            safeAfterCacheClear(cacheEvict.cacheName());
         } else {
             // 清除单个缓存条目
             String key = parseKey(cacheEvict.key(), cacheEvict.keyPrefix(), cacheEvict.cacheName(),
@@ -297,6 +314,8 @@ public class CacheAspect {
                 redisService.delete(key);
                 log.debug("Evicted Redis cache for key: {}", key);
             }
+
+            safeAfterCacheEvict(cacheEvict.cacheName(), key);
         }
     }
 
@@ -369,5 +388,46 @@ public class CacheAspect {
         }
 
         return context;
+    }
+
+    private Object safeBeforeCacheLookup(String cacheName, String key, long ttlSeconds, ProceedingJoinPoint joinPoint) {
+        try {
+            return cacheOperationHook.beforeCacheLookup(cacheName, key, ttlSeconds, joinPoint);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook beforeCacheLookup failed for key={}", key, e);
+            return null;
+        }
+    }
+
+    private void safeAfterCacheHit(String cacheName, String key, Object value, long ttlSeconds, ProceedingJoinPoint joinPoint) {
+        try {
+            cacheOperationHook.afterCacheHit(cacheName, key, value, ttlSeconds, joinPoint);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheHit failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCachePut(String cacheName, String key, Object value) {
+        try {
+            cacheOperationHook.afterCachePut(cacheName, key, value);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheEvict(String cacheName, String key) {
+        try {
+            cacheOperationHook.afterCacheEvict(cacheName, key);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheClear(String cacheName) {
+        try {
+            cacheOperationHook.afterCacheClear(cacheName);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheClear failed for cacheName={}", cacheName, e);
+        }
     }
 }

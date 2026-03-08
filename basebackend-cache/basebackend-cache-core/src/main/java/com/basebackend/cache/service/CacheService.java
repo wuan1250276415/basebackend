@@ -166,6 +166,14 @@ public interface CacheService {
      */
     long clearAllCaches();
 
+    /**
+     * 清空所有缓存（需要显式确认）
+     *
+     * @param confirmed 是否确认执行危险操作
+     * @return 删除的键数量
+     */
+    long clearAllCaches(boolean confirmed);
+
     // ========== 缓存统计和监控 ==========
 
     /**

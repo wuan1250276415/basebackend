@@ -56,6 +56,7 @@ public class RateLimitAspect {
         }
 
         String key = resolveKey(rateLimit, joinPoint);
+        String keyScope = resolveKeyScope(key);
         long rate = rateLimit.rate();
         long interval = rateLimit.interval();
         TimeUnit timeUnit = rateLimit.timeUnit();
@@ -64,7 +65,7 @@ public class RateLimitAspect {
         try {
             boolean acquired = rateLimitService.tryAcquire(key, rate, interval, timeUnit, mode);
 
-            recordMetric(key, acquired);
+            recordMetric(keyScope, acquired);
 
             if (!acquired) {
                 log.warn("Rate limit exceeded: key={}, rate={}/{} {}", key, rate, interval, timeUnit);
@@ -78,7 +79,7 @@ public class RateLimitAspect {
             // Fail-open: Redis 不可用时放行
             if (config.isFailOpen()) {
                 log.warn("Rate limiter fail-open: key={}, error={}", key, e.getMessage());
-                recordFailOpen(key);
+                recordFailOpen(keyScope);
                 return joinPoint.proceed();
             }
             throw e;
@@ -109,25 +110,38 @@ public class RateLimitAspect {
         return keyExpression;
     }
 
-    private void recordMetric(String key, boolean acquired) {
+    private void recordMetric(String keyScope, boolean acquired) {
         if (meterRegistry == null) {
             return;
         }
         String result = acquired ? "allowed" : "rejected";
         Counter.builder("cache.ratelimit.acquired")
-                .tag("key", key)
+                .tag("key_scope", keyScope)
                 .tag("result", result)
                 .register(meterRegistry)
                 .increment();
     }
 
-    private void recordFailOpen(String key) {
+    private void recordFailOpen(String keyScope) {
         if (meterRegistry == null) {
             return;
         }
         Counter.builder("cache.ratelimit.failopen")
-                .tag("key", key)
+                .tag("key_scope", keyScope)
                 .register(meterRegistry)
                 .increment();
+    }
+
+    private String resolveKeyScope(String key) {
+        if (!StringUtils.hasText(key)) {
+            return "unknown";
+        }
+        String normalizedKey = key.trim();
+        int separatorIndex = normalizedKey.indexOf(':');
+        if (separatorIndex < 0) {
+            separatorIndex = normalizedKey.indexOf('|');
+        }
+        String scope = separatorIndex > 0 ? normalizedKey.substring(0, separatorIndex) : normalizedKey;
+        return scope.length() > 64 ? scope.substring(0, 64) : scope;
     }
 }

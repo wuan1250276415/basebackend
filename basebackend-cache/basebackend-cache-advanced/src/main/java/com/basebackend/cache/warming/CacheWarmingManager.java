@@ -12,6 +12,7 @@ import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -272,9 +273,9 @@ public class CacheWarmingManager {
         progress.setLoadedItems(progress.getLoadedItems() + task.getLoadedCount());
         progress.setFailedItems(progress.getFailedItems() + task.getFailedCount());
 
-        log.debug("Warming progress: {}/{} tasks completed ({:.1f}%)",
+        log.debug("Warming progress: {}/{} tasks completed ({}%)",
                 progress.getCompletedTasks(), progress.getTotalTasks(), 
-                progress.getCompletionPercentage());
+                String.format(Locale.ROOT, "%.1f", progress.getCompletionPercentage()));
     }
 
     /**

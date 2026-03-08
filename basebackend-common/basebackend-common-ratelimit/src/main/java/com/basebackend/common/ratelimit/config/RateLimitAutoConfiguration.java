@@ -60,8 +60,10 @@ public class RateLimitAutoConfiguration {
         public RateLimiterRegistry rateLimiterRegistry(RateLimitProperties properties,
                                                        StringRedisTemplate redisTemplate) {
             Map<RateLimitAlgorithm, RateLimiter> limiters = new EnumMap<>(RateLimitAlgorithm.class);
-            limiters.put(RateLimitAlgorithm.SLIDING_WINDOW, new RedisSlidingWindowRateLimiter(redisTemplate));
-            limiters.put(RateLimitAlgorithm.TOKEN_BUCKET, new RedisTokenBucketRateLimiter(redisTemplate));
+            limiters.put(RateLimitAlgorithm.SLIDING_WINDOW,
+                    new RedisSlidingWindowRateLimiter(redisTemplate, properties.isAllowOnRedisFailure()));
+            limiters.put(RateLimitAlgorithm.TOKEN_BUCKET,
+                    new RedisTokenBucketRateLimiter(redisTemplate, properties.isAllowOnRedisFailure()));
             // Redis 没有固定窗口实现，回退到内存版
             limiters.put(RateLimitAlgorithm.FIXED_WINDOW, new FixedWindowRateLimiter());
             return new RateLimiterRegistry(properties.getAlgorithm(), limiters);

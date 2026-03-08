@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +24,9 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/cache/admin")
 @ConditionalOnProperty(prefix = "basebackend.cache.admin", name = "rest-enabled")
 public class CacheAdminController {
+
+    private static final int KEY_RETURN_LIMIT = 100;
+    private static final Pattern PATTERN_SAFE_REGEX = Pattern.compile("^[a-zA-Z0-9:_*?\\-]{1,200}$");
 
     private final CacheService cacheService;
     private final RedisService redisService;
@@ -59,13 +63,17 @@ public class CacheAdminController {
      */
     @GetMapping("/caches/{name}")
     public CacheDetailDTO getCacheDetail(@PathVariable String name) {
+        if (!isSafeCacheName(name)) {
+            log.warn("Rejecting cache detail query for invalid cache name: {}", name);
+            return CacheDetailDTO.from(name, 0, null, Set.of());
+        }
+
         CacheStatistics stats = cacheService.getStatistics(name);
         long size = cacheService.getCacheSize(name);
         Set<String> sampleKeys = cacheService.keys(name + ":*");
 
-        int limit = 100;
-        Set<String> limitedKeys = sampleKeys.size() > limit
-                ? sampleKeys.stream().limit(limit).collect(Collectors.toSet())
+        Set<String> limitedKeys = sampleKeys.size() > KEY_RETURN_LIMIT
+                ? sampleKeys.stream().limit(KEY_RETURN_LIMIT).collect(Collectors.toSet())
                 : sampleKeys;
 
         return CacheDetailDTO.from(name, size, stats, limitedKeys);
@@ -78,12 +86,16 @@ public class CacheAdminController {
     public Set<String> getCacheKeys(
             @PathVariable String name,
             @RequestParam(defaultValue = "*") String pattern) {
+        if (!isSafeCacheName(name) || !isSafePattern(pattern)) {
+            log.warn("Rejecting key scan request for unsafe input: cacheName={}, pattern={}", name, pattern);
+            return Set.of();
+        }
+
         String fullPattern = name + ":" + pattern;
         Set<String> keys = cacheService.keys(fullPattern);
 
-        int limit = 100;
-        if (keys.size() > limit) {
-            return keys.stream().limit(limit).collect(Collectors.toSet());
+        if (keys.size() > KEY_RETURN_LIMIT) {
+            return keys.stream().limit(KEY_RETURN_LIMIT).collect(Collectors.toSet());
         }
         return keys;
     }
@@ -93,6 +105,10 @@ public class CacheAdminController {
      */
     @DeleteMapping("/caches/{name}")
     public Map<String, Object> clearCache(@PathVariable String name) {
+        if (!isSafeCacheName(name)) {
+            return Map.of("error", "Invalid cache name");
+        }
+
         log.info("REST: clearing cache '{}'", name);
         long evicted = cacheService.clearCache(name);
         return Map.of("cacheName", name, "evicted", evicted);
@@ -107,7 +123,7 @@ public class CacheAdminController {
             return Map.of("error", "Must set confirmed=true to clear all caches");
         }
         log.warn("REST: clearing ALL caches");
-        long evicted = cacheService.clearAllCaches();
+        long evicted = cacheService.clearAllCaches(true);
         return Map.of("evicted", evicted);
     }
 
@@ -129,5 +145,16 @@ public class CacheAdminController {
         result.put("redisAvailable", redisService.isRedisAvailable());
         result.put("circuitBreakerState", redisService.getCircuitBreakerState());
         return result;
+    }
+
+    private boolean isSafeCacheName(String name) {
+        return cacheService.validateCacheName(name);
+    }
+
+    /**
+     * 校验模式参数，避免异常字符触发危险扫描。
+     */
+    private boolean isSafePattern(String pattern) {
+        return pattern != null && PATTERN_SAFE_REGEX.matcher(pattern).matches();
     }
 }

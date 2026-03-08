@@ -60,9 +60,15 @@ public class RedisTokenBucketRateLimiter implements RateLimiter {
     }
 
     private final StringRedisTemplate redisTemplate;
+    private final boolean allowOnRedisFailure;
 
     public RedisTokenBucketRateLimiter(StringRedisTemplate redisTemplate) {
+        this(redisTemplate, false);
+    }
+
+    public RedisTokenBucketRateLimiter(StringRedisTemplate redisTemplate, boolean allowOnRedisFailure) {
         this.redisTemplate = redisTemplate;
+        this.allowOnRedisFailure = allowOnRedisFailure;
     }
 
     @Override
@@ -83,8 +89,11 @@ public class RedisTokenBucketRateLimiter implements RateLimiter {
             );
             return result != null && result == 1L;
         } catch (Exception e) {
-            log.warn("Redis token bucket rate limiter failed for key={}, allowing request as fallback", key, e);
-            return true;
+            log.warn("Redis token bucket rate limiter failed for key={}, fallbackDecision={}",
+                    key,
+                    allowOnRedisFailure ? "allow" : "deny",
+                    e);
+            return allowOnRedisFailure;
         }
     }
 }

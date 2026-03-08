@@ -30,6 +30,12 @@ public class JsonCacheSerializer implements CacheSerializer {
         }
 
         try {
+            // 兼容独立模块构建：即使上游 JsonUtils 未升级，也保证字符串按 JSON 字符串编码
+            if (obj instanceof String stringValue) {
+                String encodedString = JsonUtils.getObjectMapper().writeValueAsString(stringValue);
+                return encodedString.getBytes(StandardCharsets.UTF_8);
+            }
+
             // 安全修复：禁用 WriteClassName，不在 JSON 中写入类型信息
             // 这样可以防止反序列化时被恶意类型利用
             String jsonString = JsonUtils.toJsonString(obj);
@@ -58,11 +64,8 @@ public class JsonCacheSerializer implements CacheSerializer {
 
             // 简单类型的早期检查
             if (isSimpleType(type)) {
-                Class<?> parsedClass = parsedCheck.getClass();
-                if (Number.class.isAssignableFrom(type) && !Number.class.isAssignableFrom(parsedClass)) {
-                    throw new CacheSerializationException("Failed to deserialize: type mismatch");
-                }
-                if (type == String.class && parsedCheck instanceof Number) {
+                // 对基础类型做严格匹配，避免 "123" -> Integer / 123 -> String 这类隐式转换
+                if (hasSimpleTypeMismatch(type, parsedCheck)) {
                     throw new CacheSerializationException("Failed to deserialize: type mismatch");
                 }
             }
@@ -121,5 +124,65 @@ public class JsonCacheSerializer implements CacheSerializer {
                type == Short.class ||
                type == Character.class ||
                type.isPrimitive();
+    }
+
+    /**
+     * 检查简单类型是否发生不匹配
+     */
+    private boolean hasSimpleTypeMismatch(Class<?> expectedType, Object parsedValue) {
+        if (parsedValue == null) {
+            return false;
+        }
+
+        Class<?> normalizedType = normalizePrimitiveType(expectedType);
+
+        if (Number.class.isAssignableFrom(normalizedType)) {
+            return !(parsedValue instanceof Number);
+        }
+        if (normalizedType == String.class) {
+            return !(parsedValue instanceof String);
+        }
+        if (normalizedType == Boolean.class) {
+            return !(parsedValue instanceof Boolean);
+        }
+        if (normalizedType == Character.class) {
+            return !(parsedValue instanceof String str && str.length() == 1);
+        }
+
+        return !normalizedType.isInstance(parsedValue);
+    }
+
+    /**
+     * 将基本类型归一化为包装类型，便于统一判定
+     */
+    private Class<?> normalizePrimitiveType(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
     }
 }

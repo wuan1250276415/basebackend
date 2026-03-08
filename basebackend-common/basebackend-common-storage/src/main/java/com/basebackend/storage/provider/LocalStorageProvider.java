@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
@@ -35,10 +36,12 @@ public class LocalStorageProvider implements StorageProvider {
     
     private final StorageProperties.Local localConfig;
     private final String defaultBucket;
+    private final Path basePath;
     
     public LocalStorageProvider(StorageProperties properties) {
         this.localConfig = properties.getLocal();
         this.defaultBucket = properties.getDefaultBucket();
+        this.basePath = Paths.get(localConfig.getBasePath()).toAbsolutePath().normalize();
         
         // 初始化时确保基础目录存在
         initBaseDirectory();
@@ -46,7 +49,6 @@ public class LocalStorageProvider implements StorageProvider {
     
     private void initBaseDirectory() {
         try {
-            Path basePath = Paths.get(localConfig.getBasePath());
             if (!Files.exists(basePath)) {
                 Files.createDirectories(basePath);
                 log.info("创建本地存储目录: {}", basePath.toAbsolutePath());
@@ -249,6 +251,61 @@ public class LocalStorageProvider implements StorageProvider {
      * 解析完整路径
      */
     private Path resolvePath(String bucket, String key) {
-        return Paths.get(localConfig.getBasePath(), bucket, key);
+        String safeBucket = normalizeBucket(bucket);
+        String safeKey = normalizeKey(key);
+
+        Path bucketPath = basePath.resolve(safeBucket).normalize();
+        if (!bucketPath.startsWith(basePath)) {
+            throw StorageException.accessDenied("非法存储路径: " + bucket);
+        }
+
+        Path fullPath = safeKey.isEmpty()
+                ? bucketPath
+                : bucketPath.resolve(safeKey).normalize();
+
+        if (!fullPath.startsWith(bucketPath)) {
+            throw StorageException.accessDenied("非法存储路径: " + safeBucket + "/" + safeKey);
+        }
+
+        return fullPath;
+    }
+
+    /**
+     * 标准化并校验桶名，禁止目录穿越和路径分隔符。
+     */
+    private String normalizeBucket(String bucket) {
+        String actualBucket = (bucket == null || bucket.isBlank()) ? defaultBucket : bucket.trim();
+        if (actualBucket == null || actualBucket.isBlank()) {
+            throw StorageException.configurationError("存储桶不能为空");
+        }
+        if (actualBucket.contains("..") || actualBucket.contains("/") || actualBucket.contains("\\")) {
+            throw StorageException.accessDenied("非法存储桶: " + actualBucket);
+        }
+        return actualBucket;
+    }
+
+    /**
+     * 标准化并校验对象键，允许子目录但禁止越界路径。
+     */
+    private String normalizeKey(String key) {
+        if (key == null || key.isBlank()) {
+            return "";
+        }
+
+        String normalizedInput = key.trim().replace('\\', '/');
+        if (normalizedInput.indexOf('\0') >= 0) {
+            throw StorageException.accessDenied("非法对象键: 包含空字符");
+        }
+
+        try {
+            Path keyPath = Paths.get(normalizedInput).normalize();
+            if (keyPath.isAbsolute() || keyPath.startsWith("..")) {
+                throw StorageException.accessDenied("非法对象键: " + normalizedInput);
+            }
+            String normalized = keyPath.toString().replace('\\', '/');
+            return ".".equals(normalized) ? "" : normalized;
+        } catch (InvalidPathException e) {
+            throw StorageException.accessDenied("非法对象键: " + normalizedInput);
+        }
     }
 }

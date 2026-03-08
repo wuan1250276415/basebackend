@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Locale;
+
 /**
  * IP地址工具类
  * <p>
@@ -23,6 +25,19 @@ public final class IpUtil {
     private static final String UNKNOWN = "unknown";
     private static final String LOCALHOST_IP = "127.0.0.1";
     private static final String LOCALHOST_IPV6 = "0:0:0:0:0:0:0:1";
+    private static final String LOCALHOST_IPV6_SHORT = "::1";
+    private static final String[] FORWARDED_IP_HEADERS = {
+            "X-Forwarded-For",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA"
+    };
 
     /**
      * 获取客户端IP地址
@@ -38,52 +53,19 @@ public final class IpUtil {
             return LOCALHOST_IP;
         }
 
-        String ip = request.getHeader("X-Forwarded-For");
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_X_CLUSTER_CLIENT_IP");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_CLIENT_IP");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_FORWARDED_FOR");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_FORWARDED");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("HTTP_VIA");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getHeader("REMOTE_ADDR");
-        }
-        if (isInvalidIp(ip)) {
-            ip = request.getRemoteAddr();
+        String remoteIp = normalizeIp(request.getRemoteAddr());
+        if (isInvalidIp(remoteIp)) {
+            remoteIp = normalizeIp(request.getHeader("REMOTE_ADDR"));
         }
 
-        // 对于通过多个代理的情况，第一个IP为客户端真实IP，多个IP按照','分割
-        if (StrUtil.isNotBlank(ip) && ip.indexOf(",") > 0) {
-            ip = ip.substring(0, ip.indexOf(","));
+        if (isTrustedProxy(remoteIp)) {
+            String forwardedIp = extractForwardedClientIp(request);
+            if (!isInvalidIp(forwardedIp)) {
+                return forwardedIp;
+            }
         }
 
-        // IPv6本地地址转换为IPv4
-        if (LOCALHOST_IPV6.equals(ip)) {
-            ip = LOCALHOST_IP;
-        }
-
-        return StrUtil.isBlank(ip) ? LOCALHOST_IP : ip;
+        return StrUtil.isBlank(remoteIp) ? LOCALHOST_IP : remoteIp;
     }
 
     /**
@@ -93,7 +75,79 @@ public final class IpUtil {
      * @return true表示无效
      */
     private static boolean isInvalidIp(String ip) {
-        return StrUtil.isBlank(ip) || UNKNOWN.equalsIgnoreCase(ip);
+        return StrUtil.isBlank(ip) || UNKNOWN.equalsIgnoreCase(ip.trim());
+    }
+
+    /**
+     * 提取转发链中的客户端IP
+     *
+     * @param request HTTP请求
+     * @return 客户端IP（无可用值返回 null）
+     */
+    private static String extractForwardedClientIp(HttpServletRequest request) {
+        for (String header : FORWARDED_IP_HEADERS) {
+            String ip = extractFirstValidIp(request.getHeader(header));
+            if (!isInvalidIp(ip)) {
+                return ip;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从可能包含多个 IP 的字符串中提取第一个可用 IP
+     *
+     * @param ipChain IP链（逗号分隔）
+     * @return 第一个可用IP
+     */
+    private static String extractFirstValidIp(String ipChain) {
+        if (isInvalidIp(ipChain)) {
+            return null;
+        }
+
+        String[] parts = ipChain.split(",");
+        for (String part : parts) {
+            String normalized = normalizeIp(part);
+            if (!isInvalidIp(normalized)) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 判断远端地址是否为可信代理
+     *
+     * @param remoteIp 远端地址
+     * @return true 表示可信代理
+     */
+    private static boolean isTrustedProxy(String remoteIp) {
+        if (isInvalidIp(remoteIp)) {
+            return false;
+        }
+        String normalized = normalizeIp(remoteIp);
+        if (LOCALHOST_IP.equals(normalized) || isInternalIp(normalized)) {
+            return true;
+        }
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        return lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd");
+    }
+
+    /**
+     * 规范化 IP 值
+     *
+     * @param ip 原始IP
+     * @return 规范化后的IP
+     */
+    private static String normalizeIp(String ip) {
+        if (StrUtil.isBlank(ip)) {
+            return ip;
+        }
+        String normalized = ip.trim();
+        if (LOCALHOST_IPV6.equals(normalized) || LOCALHOST_IPV6_SHORT.equals(normalized)) {
+            return LOCALHOST_IP;
+        }
+        return normalized;
     }
 
     /**

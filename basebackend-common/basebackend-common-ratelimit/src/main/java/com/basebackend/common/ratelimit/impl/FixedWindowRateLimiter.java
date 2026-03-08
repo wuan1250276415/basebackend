@@ -25,8 +25,23 @@ public class FixedWindowRateLimiter implements RateLimiter {
 
     @Override
     public boolean tryAcquire(String key, int limit, int windowSeconds) {
+        if (!isValidParams(key, limit, windowSeconds)) {
+            return false;
+        }
         WindowCounter counter = counters.computeIfAbsent(key, k -> new WindowCounter(windowSeconds));
         return counter.tryIncrement(limit, windowSeconds);
+    }
+
+    private boolean isValidParams(String key, int limit, int windowSeconds) {
+        if (key == null) {
+            log.warn("FixedWindowRateLimiter key 不能为空");
+            return false;
+        }
+        if (limit <= 0 || windowSeconds <= 0) {
+            log.warn("FixedWindowRateLimiter 参数非法: key={}, limit={}, windowSeconds={}", key, limit, windowSeconds);
+            return false;
+        }
+        return true;
     }
 
     private static class WindowCounter {

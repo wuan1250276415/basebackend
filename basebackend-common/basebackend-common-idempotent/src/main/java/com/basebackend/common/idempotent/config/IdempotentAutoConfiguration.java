@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -81,7 +82,7 @@ public class IdempotentAutoConfiguration {
     @ConditionalOnMissingBean
     public IdempotentAspect idempotentAspect(IdempotentStore idempotentStore,
                                               IdempotentProperties properties,
-                                              IdempotentTokenService idempotentTokenService) {
-        return new IdempotentAspect(idempotentStore, properties, idempotentTokenService);
+                                              ObjectProvider<IdempotentTokenService> tokenServiceProvider) {
+        return new IdempotentAspect(idempotentStore, properties, tokenServiceProvider.getIfAvailable());
     }
 }

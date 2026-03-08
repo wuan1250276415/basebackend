@@ -122,6 +122,23 @@ basebackend:
       # 是否启用红锁
       red-lock-enabled: false
 
+    # 跨服务缓存失效配置
+    invalidation:
+      # 是否启用跨服务缓存失效事件
+      enabled: false
+      # Redis Pub/Sub 通道
+      channel: "cache:invalidation"
+      # 当前服务名（用于识别自发事件）
+      service-name: "default"
+      # 是否启用消息签名（建议开启）
+      signature-enabled: true
+      # 签名密钥（务必通过配置中心或环境变量注入）
+      signature-secret: "${CACHE_INVALIDATION_SIGNATURE_SECRET:}"
+      # 允许的消息时间漂移窗口
+      signature-time-window: 5m
+      # 是否兼容接收历史无签名消息（灰度迁移时可临时开启）
+      allow-unsigned-legacy: false
+
 # Redis 配置（继承自 Spring Boot）
 spring:
   data:

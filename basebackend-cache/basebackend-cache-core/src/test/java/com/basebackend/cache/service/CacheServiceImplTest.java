@@ -1,6 +1,7 @@
 package com.basebackend.cache.service;
 
 import com.basebackend.cache.config.CacheProperties;
+import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.manager.CacheEvictionManager;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheMetricsService;
@@ -44,6 +45,9 @@ class CacheServiceImplTest {
     @Mock
     private MultiLevelCacheManager multiLevelCacheManager;
 
+    @Mock
+    private CacheOperationHook cacheOperationHook;
+
     private CacheServiceImpl cacheService;
 
     @BeforeEach
@@ -57,6 +61,10 @@ class CacheServiceImplTest {
             var field = CacheServiceImpl.class.getDeclaredField("multiLevelCacheManager");
             field.setAccessible(true);
             field.set(cacheService, null);
+
+            var hookField = CacheServiceImpl.class.getDeclaredField("cacheOperationHook");
+            hookField.setAccessible(true);
+            hookField.set(cacheService, cacheOperationHook);
         } catch (Exception e) {
             // Ignore if field doesn't exist or can't be set
         }
@@ -148,6 +156,7 @@ class CacheServiceImplTest {
         // Then
         verify(redisService).set(key, value, ttl.getSeconds(), TimeUnit.SECONDS);
         verify(metricsService).recordSet(anyString(), anyLong(), eq(true));
+        verify(cacheOperationHook).afterCachePut("user", key, value);
     }
 
     @Test
@@ -179,6 +188,18 @@ class CacheServiceImplTest {
         assertTrue(result);
         verify(redisService).delete(key);
         verify(metricsService).recordEviction(anyString(), anyLong(), eq(true));
+        verify(cacheOperationHook).afterCacheEvict("user", key);
+    }
+
+    @Test
+    void testClearCache_ShouldInvokeHookAfterClear() {
+        setupCacheProperties();
+        when(evictionManager.evictByPattern(anyString())).thenReturn(5L);
+
+        long result = cacheService.clearCache("users");
+
+        assertEquals(5L, result);
+        verify(cacheOperationHook).afterCacheClear("users");
     }
 
     @Test
@@ -484,14 +505,14 @@ class CacheServiceImplTest {
         // Given
         String key = "user:123";
         when(evictionManager.validateKey(key)).thenReturn(true);
-        when(redisService.expire(key, -1, TimeUnit.SECONDS)).thenReturn(true);
+        when(redisService.persist(key)).thenReturn(true);
 
         // When
         boolean result = cacheService.removeExpiration(key);
 
         // Then
         assertTrue(result);
-        verify(redisService).expire(key, -1, TimeUnit.SECONDS);
+        verify(redisService).persist(key);
     }
 
     @Test

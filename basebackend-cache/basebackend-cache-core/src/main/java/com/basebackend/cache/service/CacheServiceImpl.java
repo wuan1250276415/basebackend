@@ -1,6 +1,7 @@
 package com.basebackend.cache.service;
 
 import com.basebackend.cache.config.CacheProperties;
+import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.manager.CacheEvictionManager;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheMetricsService;
@@ -32,6 +33,9 @@ public class CacheServiceImpl implements CacheService {
     
     @Autowired(required = false)
     private MultiLevelCacheManager multiLevelCacheManager;
+
+    @Autowired(required = false)
+    private CacheOperationHook cacheOperationHook = CacheOperationHook.NO_OP;
     
     /**
      * 缓存名称验证正则表达式
@@ -124,6 +128,7 @@ public class CacheServiceImpl implements CacheService {
             // 记录指标
             long latency = System.currentTimeMillis() - startTime;
             metricsService.recordSet(getCacheName(key), latency, true);
+            safeAfterCachePut(getCacheName(key), key, value);
             
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - startTime;
@@ -154,6 +159,7 @@ public class CacheServiceImpl implements CacheService {
             // 记录指标
             long latency = System.currentTimeMillis() - startTime;
             metricsService.recordEviction(getCacheName(key), latency, true);
+            safeAfterCacheEvict(getCacheName(key), key);
             
             return true;
             
@@ -353,7 +359,9 @@ public class CacheServiceImpl implements CacheService {
         log.info("Clearing cache: {}", cacheName);
         
         String pattern = buildCachePattern(cacheName);
-        return evictionManager.evictByPattern(pattern);
+        long evictedCount = evictionManager.evictByPattern(pattern);
+        safeAfterCacheClear(cacheName);
+        return evictedCount;
     }
 
     @Override
@@ -368,6 +376,7 @@ public class CacheServiceImpl implements CacheService {
      * @param confirmed 是否确认执行此操作（true表示确认，false表示取消）
      * @return 删除的键数量
      */
+    @Override
     public long clearAllCaches(boolean confirmed) {
         if (!confirmed) {
             log.warn("clearAllCaches() called without confirmation - operation cancelled");
@@ -375,7 +384,9 @@ public class CacheServiceImpl implements CacheService {
         }
 
         log.warn("Clearing all caches - this is a destructive operation!");
-        return evictionManager.clearAll(confirmed);
+        long evictedCount = evictionManager.clearAll(confirmed);
+        safeAfterCacheClear("*");
+        return evictedCount;
     }
 
     // ========== 缓存统计和监控 ==========
@@ -436,8 +447,8 @@ public class CacheServiceImpl implements CacheService {
         }
         
         try {
-            // 设置为永不过期（-1）
-            Boolean result = redisService.expire(key, -1, TimeUnit.SECONDS);
+            // 使用 Redis PERSIST 语义移除过期时间，避免 expire(-1) 误删 key
+            Boolean result = redisService.persist(key);
             return Boolean.TRUE.equals(result);
             
         } catch (Exception e) {
@@ -504,5 +515,29 @@ public class CacheServiceImpl implements CacheService {
      */
     private boolean isMultiLevelEnabled() {
         return cacheProperties.getMultiLevel().isEnabled() && multiLevelCacheManager != null;
+    }
+
+    private void safeAfterCachePut(String cacheName, String key, Object value) {
+        try {
+            cacheOperationHook.afterCachePut(cacheName, key, value);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheEvict(String cacheName, String key) {
+        try {
+            cacheOperationHook.afterCacheEvict(cacheName, key);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheClear(String cacheName) {
+        try {
+            cacheOperationHook.afterCacheClear(cacheName);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheClear failed for cache={}", cacheName, e);
+        }
     }
 }

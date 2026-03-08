@@ -111,14 +111,35 @@ public class UserContext implements Serializable {
      * @return true-有权限，false-无权限
      */
     public boolean hasPermission(String permission) {
-        if (permissions == null || permissions.isEmpty()) {
+        if (permission == null || permission.isBlank() || permissions == null || permissions.isEmpty()) {
             return false;
         }
         // 支持通配符 * (如：system:user:*)
         if (permissions.contains("*:*:*") || permissions.contains("*")) {
             return true;
         }
-        return permissions.contains(permission);
+        if (permissions.contains(permission)) {
+            return true;
+        }
+        // 支持分段通配符（如：system:user:*、system:*:list）
+        return permissions.stream().anyMatch(granted -> matchesWildcardPermission(granted, permission));
+    }
+
+    private boolean matchesWildcardPermission(String granted, String required) {
+        if (granted == null || !granted.contains("*")) {
+            return false;
+        }
+        String[] grantedSegments = granted.split(":");
+        String[] requiredSegments = required.split(":");
+        if (grantedSegments.length != requiredSegments.length) {
+            return false;
+        }
+        for (int i = 0; i < grantedSegments.length; i++) {
+            if (!"*".equals(grantedSegments[i]) && !grantedSegments[i].equals(requiredSegments[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

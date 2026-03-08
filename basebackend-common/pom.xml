@@ -14,7 +14,7 @@
     <packaging>pom</packaging>
 
     <name>Base Backend Common</name>
-    <description>公共模块聚合父项目，拆分为 core/util/context/security/starter 五个子模块，提供企业级通用能力</description>
+    <description>公共模块聚合父项目，统一管理 core/util/context/security/starter 及 audit/masking/tree/storage/lock/idempotent/datascope/ratelimit/export/event 等 15 个子模块</description>
 
     <!-- 子模块声明 -->
     <modules>
@@ -22,6 +22,9 @@
         <module>basebackend-common-util</module>
         <module>basebackend-common-context</module>
         <module>basebackend-common-security</module>
+        <module>basebackend-common-audit</module>
+        <module>basebackend-common-masking</module>
+        <module>basebackend-common-tree</module>
         <module>basebackend-common-starter</module>
         <module>basebackend-common-storage</module>
         <module>basebackend-common-lock</module>
@@ -57,6 +60,24 @@
             <dependency>
                 <groupId>com.basebackend</groupId>
                 <artifactId>basebackend-common-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-audit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-masking</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.basebackend</groupId>
+                <artifactId>basebackend-common-tree</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

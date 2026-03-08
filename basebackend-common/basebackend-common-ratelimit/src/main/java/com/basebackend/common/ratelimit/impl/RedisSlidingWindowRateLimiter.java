@@ -53,9 +53,15 @@ public class RedisSlidingWindowRateLimiter implements RateLimiter {
     }
 
     private final StringRedisTemplate redisTemplate;
+    private final boolean allowOnRedisFailure;
 
     public RedisSlidingWindowRateLimiter(StringRedisTemplate redisTemplate) {
+        this(redisTemplate, false);
+    }
+
+    public RedisSlidingWindowRateLimiter(StringRedisTemplate redisTemplate, boolean allowOnRedisFailure) {
         this.redisTemplate = redisTemplate;
+        this.allowOnRedisFailure = allowOnRedisFailure;
     }
 
     @Override
@@ -78,8 +84,11 @@ public class RedisSlidingWindowRateLimiter implements RateLimiter {
             );
             return result != null && result == 1L;
         } catch (Exception e) {
-            log.warn("Redis sliding window rate limiter failed for key={}, allowing request as fallback", key, e);
-            return true;
+            log.warn("Redis sliding window rate limiter failed for key={}, fallbackDecision={}",
+                    key,
+                    allowOnRedisFailure ? "allow" : "deny",
+                    e);
+            return allowOnRedisFailure;
         }
     }
 }
