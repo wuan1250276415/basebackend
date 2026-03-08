@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,20 +56,32 @@ public class AuditLogArchiveServiceImpl implements AuditLogArchiveService {
         
         // 批量插入归档表
         int archivedCount = 0;
+        List<Long> archivedLogIds = new ArrayList<>();
         for (AuditLogArchive archive : archives) {
             try {
                 auditLogArchiveMapper.insert(archive);
                 archivedCount++;
+                if (archive.getOriginalLogId() != null) {
+                    archivedLogIds.add(archive.getOriginalLogId());
+                }
             } catch (Exception e) {
                 log.error("Failed to archive audit log with ID: {}", archive.getOriginalLogId(), e);
             }
         }
         
-        // 删除已归档的日志
-        if (archivedCount > 0) {
-            int deletedCount = auditLogMapper.delete(wrapper);
+        // 仅删除已成功归档的日志，避免归档失败时误删主表数据
+        if (!archivedLogIds.isEmpty()) {
+            LambdaQueryWrapper<AuditLog> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.in(AuditLog::getId, archivedLogIds);
+            int deletedCount = auditLogMapper.delete(deleteWrapper);
             log.info("Successfully archived {} audit logs and deleted {} from main table", 
                     archivedCount, deletedCount);
+            if (deletedCount != archivedLogIds.size()) {
+                log.warn("Archived logs count and deleted logs count mismatch, archivedIds={}, deletedCount={}",
+                        archivedLogIds.size(), deletedCount);
+            }
+        } else if (archivedCount > 0) {
+            log.warn("Archived count is positive but no original log IDs were collected. Skipping delete step.");
         }
         
         return archivedCount;

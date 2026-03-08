@@ -47,6 +47,7 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
         // Initialize with empty target data sources to satisfy AbstractRoutingDataSource requirement
         Map<Object, Object> targetDataSources = new HashMap<>();
         setTargetDataSources(targetDataSources);
+        setLenientFallback(false);
         afterPropertiesSet();
         log.info("TenantDataSourceRouter initialized");
     }
@@ -56,6 +57,12 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      * Key: tenantId, Value: DataSource
      */
     private final Map<String, DataSource> tenantDataSources = new ConcurrentHashMap<>();
+
+    /**
+     * 租户到数据源路由键映射
+     * Key: tenantId, Value: dataSourceLookupKey
+     */
+    private final Map<String, String> tenantLookupKeys = new ConcurrentHashMap<>();
     
     /**
      * Schema 缓存
@@ -173,20 +180,32 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      * @param tenantId 租户 ID
      * @param dataSource 数据源
      */
-    public void addTenantDataSource(String tenantId, DataSource dataSource) {
-        if (tenantId == null || dataSource == null) {
-            throw new IllegalArgumentException("Tenant ID and data source cannot be null");
+    public void addTenantDataSource(String tenantId, String dataSourceLookupKey, DataSource dataSource) {
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tenant ID cannot be null or empty");
         }
-        
-        tenantDataSources.put(tenantId, dataSource);
-        
-        // 更新 AbstractRoutingDataSource 的目标数据源
-        Map<Object, Object> targetDataSources = new ConcurrentHashMap<>();
-        targetDataSources.putAll(tenantDataSources);
-        setTargetDataSources(targetDataSources);
-        afterPropertiesSet();
-        
-        log.info("Added data source for tenant: {}", tenantId);
+        if (dataSourceLookupKey == null || dataSourceLookupKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("Data source lookup key cannot be null or empty");
+        }
+        if (dataSource == null) {
+            throw new IllegalArgumentException("Data source cannot be null");
+        }
+
+        String normalizedTenantId = tenantId.trim();
+        String normalizedLookupKey = dataSourceLookupKey.trim();
+
+        tenantDataSources.put(normalizedLookupKey, dataSource);
+        tenantLookupKeys.put(normalizedTenantId, normalizedLookupKey);
+
+        refreshTargetDataSources();
+        log.info("Added data source for tenant: {}, lookupKey: {}", normalizedTenantId, normalizedLookupKey);
+    }
+
+    /**
+     * 添加租户数据源（兼容旧接口，默认使用 tenantId 作为路由键）
+     */
+    public void addTenantDataSource(String tenantId, DataSource dataSource) {
+        addTenantDataSource(tenantId, tenantId, dataSource);
     }
     
     /**
@@ -195,23 +214,24 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      * @param tenantId 租户 ID
      */
     public void removeTenantDataSource(String tenantId) {
-        if (tenantId == null) {
-            throw new IllegalArgumentException("Tenant ID cannot be null");
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tenant ID cannot be null or empty");
         }
-        
-        DataSource removed = tenantDataSources.remove(tenantId);
-        tenantSchemas.remove(tenantId);
-        
+
+        String normalizedTenantId = tenantId.trim();
+        String lookupKey = tenantLookupKeys.remove(normalizedTenantId);
+        if (lookupKey == null || lookupKey.isEmpty()) {
+            lookupKey = normalizedTenantId;
+        }
+
+        DataSource removed = tenantDataSources.remove(lookupKey);
+        tenantSchemas.remove(normalizedTenantId);
+
         if (removed != null) {
-            // 更新 AbstractRoutingDataSource 的目标数据源
-            Map<Object, Object> targetDataSources = new ConcurrentHashMap<>();
-            targetDataSources.putAll(tenantDataSources);
-            setTargetDataSources(targetDataSources);
-            afterPropertiesSet();
-            
-            log.info("Removed data source for tenant: {}", tenantId);
+            refreshTargetDataSources();
+            log.info("Removed data source for tenant: {}, lookupKey: {}", normalizedTenantId, lookupKey);
         } else {
-            log.warn("No data source found for tenant: {}", tenantId);
+            log.warn("No data source found for tenant: {}, lookupKey: {}", normalizedTenantId, lookupKey);
         }
     }
     
@@ -222,7 +242,13 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      * @return 数据源，如果不存在则返回 null
      */
     public DataSource getTenantDataSource(String tenantId) {
-        return tenantDataSources.get(tenantId);
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalizedTenantId = tenantId.trim();
+        String lookupKey = tenantLookupKeys.getOrDefault(normalizedTenantId, normalizedTenantId);
+        return tenantDataSources.get(lookupKey);
     }
     
     /**
@@ -232,7 +258,13 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      * @return true 如果存在，否则返回 false
      */
     public boolean hasTenantDataSource(String tenantId) {
-        return tenantDataSources.containsKey(tenantId);
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            return false;
+        }
+
+        String normalizedTenantId = tenantId.trim();
+        String lookupKey = tenantLookupKeys.getOrDefault(normalizedTenantId, normalizedTenantId);
+        return tenantDataSources.containsKey(lookupKey);
     }
     
     /**
@@ -240,7 +272,19 @@ public class TenantDataSourceRouter extends AbstractRoutingDataSource {
      */
     public void clearTenantDataSources() {
         tenantDataSources.clear();
+        tenantLookupKeys.clear();
         tenantSchemas.clear();
+        refreshTargetDataSources();
         log.info("Cleared all tenant data sources");
+    }
+
+    /**
+     * 刷新 AbstractRoutingDataSource 的目标数据源
+     */
+    private void refreshTargetDataSources() {
+        Map<Object, Object> targetDataSources = new ConcurrentHashMap<>();
+        targetDataSources.putAll(tenantDataSources);
+        setTargetDataSources(targetDataSources);
+        afterPropertiesSet();
     }
 }

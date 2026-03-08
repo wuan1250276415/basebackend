@@ -53,7 +53,8 @@ public class DecryptionInterceptor implements Interceptor {
             decryptResult(result);
         } catch (Exception e) {
             log.error("Failed to decrypt sensitive fields", e);
-            // 不抛出异常，返回原始结果
+            // fail-close：解密失败时阻断返回，避免泄露未按预期处理的数据
+            throw new IllegalStateException("敏感字段解密失败，已阻断返回结果", e);
         }
         
         return result;

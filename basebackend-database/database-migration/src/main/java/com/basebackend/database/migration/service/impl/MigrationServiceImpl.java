@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -53,10 +54,15 @@ public class MigrationServiceImpl implements MigrationService {
     private final Map<String, LocalDateTime> confirmationTokens = new ConcurrentHashMap<>();
     
     // 令牌有效期（分钟）
-    private static final int TOKEN_VALIDITY_MINUTES = 30;
+    private static final int DEFAULT_TOKEN_VALIDITY_MINUTES = 30;
 
     @Override
     public String migrate() {
+        guardDirectMigrationEntry("migrate");
+        return doMigrate();
+    }
+
+    private String doMigrate() {
         try {
             log.info("开始执行数据库迁移...");
             MigrateResult result = flyway.migrate();
@@ -84,6 +90,11 @@ public class MigrationServiceImpl implements MigrationService {
 
     @Override
     public String migrateWithBackup(boolean createBackup) {
+        guardDirectMigrationEntry("migrateWithBackup");
+        return doMigrateWithBackup(createBackup);
+    }
+
+    private String doMigrateWithBackup(boolean createBackup) {
         MigrationBackup backup = null;
         
         try {
@@ -96,7 +107,7 @@ public class MigrationServiceImpl implements MigrationService {
             }
 
             // 执行迁移
-            String result = migrate();
+            String result = doMigrate();
             
             if (createBackup) {
                 return result + " (备份ID: " + backup.getBackupId() + ")";
@@ -122,28 +133,31 @@ public class MigrationServiceImpl implements MigrationService {
 
     @Override
     public String migrateWithConfirmation(MigrationConfirmation confirmation) {
+        if (confirmation == null) {
+            throw new MigrationException("确认信息不能为空");
+        }
+
+        if (shouldRequireConfirmation()) {
+            validateConfirmationRequest(confirmation);
+
+            if (!consumeConfirmationToken(confirmation.getConfirmationToken())) {
+                throw new MigrationException("无效的确认令牌或令牌已过期");
+            }
+        }
+
         // 检查是否为生产环境
         if (!isProductionEnvironment()) {
             log.warn("非生产环境，跳过确认步骤");
-            return migrateWithBackup(confirmation.getCreateBackup() != null && confirmation.getCreateBackup());
+        } else if (shouldRequireConfirmation()) {
+            log.info("生产环境迁移确认通过，确认人: {}, 原因: {}",
+                    confirmation.getConfirmedBy(),
+                    confirmation.getReason());
+        } else {
+            log.info("生产环境迁移确认门禁已关闭，按普通迁移流程执行");
         }
 
-        // 验证确认令牌
-        if (confirmation.getConfirmationToken() == null || 
-            !validateConfirmationToken(confirmation.getConfirmationToken())) {
-            throw new MigrationException("无效的确认令牌或令牌已过期");
-        }
-
-        log.info("生产环境迁移确认通过，确认人: {}, 原因: {}", 
-            confirmation.getConfirmedBy(), 
-            confirmation.getReason());
-
-        // 移除已使用的令牌
-        confirmationTokens.remove(confirmation.getConfirmationToken());
-
-        // 生产环境默认创建备份
-        boolean createBackup = confirmation.getCreateBackup() == null || confirmation.getCreateBackup();
-        return migrateWithBackup(createBackup);
+        boolean createBackup = resolveCreateBackupFlag(confirmation);
+        return doMigrateWithBackup(createBackup);
     }
 
     @Override
@@ -185,26 +199,34 @@ public class MigrationServiceImpl implements MigrationService {
     @Override
     public String generateConfirmationToken() {
         String token = UUID.randomUUID().toString();
+        cleanupExpiredTokens();
         confirmationTokens.put(token, LocalDateTime.now());
         
-        // 清理过期令牌
-        cleanupExpiredTokens();
-        
-        log.info("生成确认令牌: {}, 有效期: {} 分钟", token, TOKEN_VALIDITY_MINUTES);
+        log.info("生成确认令牌成功，有效期: {} 分钟", resolveTokenValidityMinutes());
+        log.debug("确认令牌详情: {}", maskToken(token));
         return token;
     }
 
     @Override
     public boolean validateConfirmationToken(String token) {
-        LocalDateTime createdTime = confirmationTokens.get(token);
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+
+        String normalizedToken = token.trim();
+        LocalDateTime createdTime = confirmationTokens.get(normalizedToken);
         
         if (createdTime == null) {
             return false;
         }
 
         // 检查令牌是否过期
-        LocalDateTime expiryTime = createdTime.plusMinutes(TOKEN_VALIDITY_MINUTES);
-        return LocalDateTime.now().isBefore(expiryTime);
+        LocalDateTime expiryTime = createdTime.plusMinutes(resolveTokenValidityMinutes());
+        boolean valid = LocalDateTime.now().isBefore(expiryTime);
+        if (!valid) {
+            confirmationTokens.remove(normalizedToken, createdTime);
+        }
+        return valid;
     }
 
     @Override
@@ -362,8 +384,76 @@ public class MigrationServiceImpl implements MigrationService {
     private void cleanupExpiredTokens() {
         LocalDateTime now = LocalDateTime.now();
         confirmationTokens.entrySet().removeIf(entry -> {
-            LocalDateTime expiryTime = entry.getValue().plusMinutes(TOKEN_VALIDITY_MINUTES);
+            LocalDateTime expiryTime = entry.getValue().plusMinutes(resolveTokenValidityMinutes());
             return now.isAfter(expiryTime);
         });
+    }
+
+    private void guardDirectMigrationEntry(String operation) {
+        if (!shouldRequireConfirmation()) {
+            return;
+        }
+
+        throw new MigrationException(
+            "生产环境已开启迁移确认门禁，禁止直接执行 " + operation +
+                "。请调用 /api/database/migration/migrate-with-confirmation 并提供一次性确认令牌。");
+    }
+
+    private boolean shouldRequireConfirmation() {
+        return isProductionEnvironment() && properties.getMigration().isRequireConfirmation();
+    }
+
+    private void validateConfirmationRequest(MigrationConfirmation confirmation) {
+        if (confirmation.getConfirmationToken() == null || confirmation.getConfirmationToken().trim().isEmpty()) {
+            throw new MigrationException("确认令牌不能为空");
+        }
+        if (confirmation.getConfirmedBy() == null || confirmation.getConfirmedBy().trim().isEmpty()) {
+            throw new MigrationException("确认人不能为空");
+        }
+        if (confirmation.getReason() == null || confirmation.getReason().trim().isEmpty()) {
+            throw new MigrationException("迁移原因不能为空");
+        }
+    }
+
+    private boolean consumeConfirmationToken(String token) {
+        String normalizedToken = token.trim();
+        AtomicBoolean consumed = new AtomicBoolean(false);
+
+        confirmationTokens.computeIfPresent(normalizedToken, (key, createdTime) -> {
+            LocalDateTime expiryTime = createdTime.plusMinutes(resolveTokenValidityMinutes());
+            if (LocalDateTime.now().isBefore(expiryTime)) {
+                consumed.set(true);
+            }
+            return null;
+        });
+
+        return consumed.get();
+    }
+
+    private boolean resolveCreateBackupFlag(MigrationConfirmation confirmation) {
+        if (shouldRequireConfirmation()) {
+            // 生产环境强制确认时，默认开启备份
+            return confirmation.getCreateBackup() == null || confirmation.getCreateBackup();
+        }
+        // 其他场景沿用显式参数，默认不自动备份
+        return Boolean.TRUE.equals(confirmation.getCreateBackup());
+    }
+
+    private int resolveTokenValidityMinutes() {
+        int tokenValidityMinutes = properties.getMigration().getTokenValidityMinutes();
+        if (tokenValidityMinutes <= 0) {
+            return DEFAULT_TOKEN_VALIDITY_MINUTES;
+        }
+        return tokenValidityMinutes;
+    }
+
+    private String maskToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return "****";
+        }
+        if (token.length() <= 8) {
+            return "****";
+        }
+        return token.substring(0, 8) + "****";
     }
 }

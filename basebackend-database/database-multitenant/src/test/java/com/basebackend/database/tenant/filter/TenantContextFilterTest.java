@@ -112,6 +112,21 @@ class TenantContextFilterTest {
         assertThat(response.getStatus()).isEqualTo(200);
     }
 
+    @Test
+    @DisplayName("/login2 不应命中 /login 忽略规则")
+    void login2ShouldNotBeIgnored() throws Exception {
+        TenantContextFilter filter = createFilter(true);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/login2");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("租户标识缺失");
+    }
+
     private TenantContextFilter createFilter(boolean required) {
         List<TenantResolver> resolvers = List.of(new HeaderTenantResolver());
         List<String> ignorePaths = List.of("/actuator", "/health", "/login", "/auth", "/public");

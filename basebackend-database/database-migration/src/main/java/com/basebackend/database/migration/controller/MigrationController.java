@@ -1,5 +1,6 @@
 package com.basebackend.database.migration.controller;
 
+import com.basebackend.database.config.DatabaseEnhancedProperties;
 import com.basebackend.database.migration.model.MigrationConfirmation;
 import com.basebackend.database.migration.model.MigrationInfo;
 import com.basebackend.database.migration.service.MigrationService;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class MigrationController {
 
     private final MigrationService migrationService;
+    private final DatabaseEnhancedProperties properties;
 
     /**
      * 获取迁移信息摘要
@@ -163,7 +165,7 @@ public class MigrationController {
         String token = migrationService.generateConfirmationToken();
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
-        response.put("validityMinutes", "30");
+        response.put("validityMinutes", String.valueOf(properties.getMigration().getTokenValidityMinutes()));
         return ResponseEntity.ok(response);
     }
 

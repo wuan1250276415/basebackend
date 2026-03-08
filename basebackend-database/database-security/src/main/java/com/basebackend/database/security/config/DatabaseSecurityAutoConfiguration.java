@@ -2,10 +2,8 @@ package com.basebackend.database.security.config;
 
 import com.basebackend.database.config.DatabaseEnhancedProperties;
 import com.basebackend.database.security.interceptor.DataScopeInterceptor;
-import com.basebackend.database.security.interceptor.DecryptionInterceptor;
 import com.basebackend.database.security.interceptor.PermissionMaskingInterceptor;
 import com.basebackend.database.security.service.DataMaskingService;
-import com.basebackend.database.security.service.EncryptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,16 +24,6 @@ public class DatabaseSecurityAutoConfiguration {
 
     public DatabaseSecurityAutoConfiguration() {
         log.info("Database Security module initialized");
-    }
-
-    /**
-     * Register decryption interceptor if encryption is enabled
-     */
-    @Bean(name = "mybatisPlusDecryptionInterceptor")
-    @ConditionalOnProperty(prefix = "database.enhanced.security.encryption", name = "enabled", havingValue = "true")
-    public DecryptionInterceptor decryptionInterceptor(EncryptionService encryptionService,
-            DatabaseEnhancedProperties properties) {
-        return new DecryptionInterceptor(encryptionService, properties);
     }
 
     /**

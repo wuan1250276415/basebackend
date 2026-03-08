@@ -20,7 +20,7 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(DatabaseEnhancedProperties.class)
 @EnableAsync
 @org.springframework.scheduling.annotation.EnableScheduling
-@ConditionalOnProperty(prefix = "basebackend.database.enhanced", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "database.enhanced", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = "com.baomidou.mybatisplus.core.MybatisConfiguration")
 public class DatabaseEnhancedAutoConfiguration {
 

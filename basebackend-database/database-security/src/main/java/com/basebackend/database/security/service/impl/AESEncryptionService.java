@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 /**
@@ -25,11 +28,17 @@ import java.util.Base64;
 public class AESEncryptionService implements EncryptionService {
     
     private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/ECB/PKCS5Padding";
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final String LEGACY_TRANSFORMATION = "AES/ECB/PKCS5Padding";
     private static final String ENCRYPTED_PREFIX = "ENC:";
+    private static final String V2_PREFIX = "v2:";
+    private static final int GCM_TAG_LENGTH_BITS = 128;
+    private static final int GCM_IV_LENGTH_BYTES = 12;
     
     private final SecretKey secretKey;
+    private final SecretKey legacySecretKey;
     private final boolean enabled;
+    private final SecureRandom secureRandom = new SecureRandom();
     
     public AESEncryptionService(DatabaseEnhancedProperties properties) {
         this.enabled = properties.getSecurity().getEncryption().isEnabled();
@@ -37,12 +46,13 @@ public class AESEncryptionService implements EncryptionService {
         if (enabled) {
             String secretKeyStr = properties.getSecurity().getEncryption().getSecretKey();
             if (!StringUtils.hasText(secretKeyStr)) {
-                log.warn("Encryption is enabled but no secret key is configured. Using default key (NOT SECURE FOR PRODUCTION)");
-                secretKeyStr = "default-secret-key-change-me";
+                throw new EncryptionException("Encryption is enabled but no secret key is configured");
             }
             this.secretKey = generateSecretKey(secretKeyStr);
+            this.legacySecretKey = generateLegacySecretKey(secretKeyStr);
         } else {
             this.secretKey = null;
+            this.legacySecretKey = null;
         }
     }
     
@@ -51,7 +61,20 @@ public class AESEncryptionService implements EncryptionService {
      */
     private SecretKey generateSecretKey(String keyStr) {
         try {
-            // 使用SHA1PRNG算法生成固定的密钥
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(keyStr.getBytes(StandardCharsets.UTF_8));
+            byte[] keyBytes = Arrays.copyOf(digest, 32);
+            return new SecretKeySpec(keyBytes, ALGORITHM);
+        } catch (NoSuchAlgorithmException e) {
+            throw new EncryptionException("Failed to generate secret key", e);
+        }
+    }
+
+    /**
+     * 兼容历史密钥派生方式（用于解密历史数据）
+     */
+    private SecretKey generateLegacySecretKey(String keyStr) {
+        try {
             KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
             SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
             secureRandom.setSeed(keyStr.getBytes(StandardCharsets.UTF_8));
@@ -82,11 +105,19 @@ public class AESEncryptionService implements EncryptionService {
         }
         
         try {
+            byte[] iv = new byte[GCM_IV_LENGTH_BYTES];
+            secureRandom.nextBytes(iv);
+
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             byte[] encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-            String encrypted = Base64.getEncoder().encodeToString(encryptedBytes);
-            return ENCRYPTED_PREFIX + encrypted;
+
+            byte[] payload = new byte[iv.length + encryptedBytes.length];
+            System.arraycopy(iv, 0, payload, 0, iv.length);
+            System.arraycopy(encryptedBytes, 0, payload, iv.length, encryptedBytes.length);
+
+            String encrypted = Base64.getEncoder().encodeToString(payload);
+            return ENCRYPTED_PREFIX + V2_PREFIX + encrypted;
         } catch (Exception e) {
             log.error("Failed to encrypt data", e);
             throw new EncryptionException("Failed to encrypt data", e);
@@ -103,20 +134,18 @@ public class AESEncryptionService implements EncryptionService {
             return cipherText;
         }
         
-        // 如果没有加密前缀，说明未加密，直接返回
-        if (!isEncrypted(cipherText)) {
+        if (!cipherText.startsWith(ENCRYPTED_PREFIX)) {
             return cipherText;
         }
         
         try {
-            // 移除加密前缀
             String encryptedData = cipherText.substring(ENCRYPTED_PREFIX.length());
-            byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
-            
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
-            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
-            return new String(decryptedBytes, StandardCharsets.UTF_8);
+
+            if (encryptedData.startsWith(V2_PREFIX)) {
+                return decryptV2(encryptedData.substring(V2_PREFIX.length()));
+            }
+
+            return decryptLegacy(encryptedData);
         } catch (Exception e) {
             log.error("Failed to decrypt data", e);
             throw new EncryptionException("Failed to decrypt data", e);
@@ -125,6 +154,70 @@ public class AESEncryptionService implements EncryptionService {
     
     @Override
     public boolean isEncrypted(String text) {
-        return StringUtils.hasText(text) && text.startsWith(ENCRYPTED_PREFIX);
+        if (!StringUtils.hasText(text) || !text.startsWith(ENCRYPTED_PREFIX)) {
+            return false;
+        }
+
+        String encryptedData = text.substring(ENCRYPTED_PREFIX.length());
+        if (!StringUtils.hasText(encryptedData)) {
+            return false;
+        }
+
+        if (encryptedData.startsWith(V2_PREFIX)) {
+            String payload = encryptedData.substring(V2_PREFIX.length());
+            return isValidV2Payload(payload);
+        }
+
+        return isValidBase64(encryptedData);
+    }
+
+    private String decryptV2(String encodedPayload) throws Exception {
+        byte[] payload = Base64.getDecoder().decode(encodedPayload);
+        if (payload.length <= GCM_IV_LENGTH_BYTES) {
+            throw new EncryptionException("Invalid encrypted payload format");
+        }
+
+        byte[] iv = Arrays.copyOfRange(payload, 0, GCM_IV_LENGTH_BYTES);
+        byte[] encryptedBytes = Arrays.copyOfRange(payload, GCM_IV_LENGTH_BYTES, payload.length);
+
+        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+
+    private String decryptLegacy(String encodedPayload) throws Exception {
+        byte[] encryptedBytes = Base64.getDecoder().decode(encodedPayload);
+
+        Cipher cipher = Cipher.getInstance(LEGACY_TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, legacySecretKey);
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+
+    private boolean isValidV2Payload(String encodedPayload) {
+        if (!StringUtils.hasText(encodedPayload)) {
+            return false;
+        }
+
+        try {
+            byte[] payload = Base64.getDecoder().decode(encodedPayload);
+            return payload.length > GCM_IV_LENGTH_BYTES;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private boolean isValidBase64(String encodedPayload) {
+        if (!StringUtils.hasText(encodedPayload)) {
+            return false;
+        }
+
+        try {
+            byte[] payload = Base64.getDecoder().decode(encodedPayload);
+            return payload.length > 0;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

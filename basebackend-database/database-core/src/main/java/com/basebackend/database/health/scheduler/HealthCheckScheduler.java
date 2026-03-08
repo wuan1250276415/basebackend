@@ -85,11 +85,12 @@ public class HealthCheckScheduler {
             log.debug("Starting scheduled health check");
 
             // 检查主数据源
+            DataSourceHealth previousHealth = latestHealthStatus.get("primary");
             DataSourceHealth health = healthIndicator.checkDataSource(dataSource, "primary");
             latestHealthStatus.put("primary", health);
 
             // 记录健康状态变化
-            logHealthStatusChange(health);
+            logHealthStatusChange(previousHealth, health);
 
             // 如果数据源不健康，触发告警和故障转移
             if (health.getStatus() != DataSourceHealth.HealthStatus.UP) {
@@ -186,7 +187,10 @@ public class HealthCheckScheduler {
      */
     private void logHealthStatusChange(DataSourceHealth health) {
         DataSourceHealth previousHealth = latestHealthStatus.get(health.getName());
+        logHealthStatusChange(previousHealth, health);
+    }
 
+    private void logHealthStatusChange(DataSourceHealth previousHealth, DataSourceHealth health) {
         if (previousHealth != null && previousHealth.getStatus() != health.getStatus()) {
             log.warn("Data source {} health status changed: {} -> {}",
                     health.getName(),
@@ -224,8 +228,10 @@ public class HealthCheckScheduler {
      */
     public DataSourceHealth triggerManualHealthCheck(String dataSourceName) {
         if ("primary".equals(dataSourceName)) {
+            DataSourceHealth previousHealth = latestHealthStatus.get("primary");
             DataSourceHealth health = healthIndicator.checkDataSource(dataSource, "primary");
             latestHealthStatus.put("primary", health);
+            logHealthStatusChange(previousHealth, health);
             return health;
         }
         return null;

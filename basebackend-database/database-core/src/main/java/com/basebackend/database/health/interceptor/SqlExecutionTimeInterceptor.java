@@ -12,8 +12,10 @@ import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * SQL执行时间拦截器
@@ -104,20 +106,27 @@ public class SqlExecutionTimeInterceptor implements Interceptor {
         try {
             Object parameterObject = boundSql.getParameterObject();
             List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
-            
-            if (parameterMappings == null || parameterMappings.isEmpty()) {
-                return parameterObject;
+
+            int parameterCount = parameterMappings == null ? 0 : parameterMappings.size();
+            Set<String> parameterTypes = new LinkedHashSet<>();
+            if (parameterMappings != null) {
+                for (ParameterMapping mapping : parameterMappings) {
+                    if (mapping != null && mapping.getJavaType() != null) {
+                        parameterTypes.add(mapping.getJavaType().getSimpleName());
+                    } else {
+                        parameterTypes.add("Unknown");
+                    }
+                }
             }
 
-            // 简化参数显示
-            if (parameterObject != null) {
-                return parameterObject.toString();
+            String parameterObjectType = parameterObject == null ? "null" : parameterObject.getClass().getSimpleName();
+            if (parameterTypes.isEmpty()) {
+                return "count=%d,parameterObjectType=%s".formatted(parameterCount, parameterObjectType);
             }
-            
-            return null;
+            return "count=%d,types=%s,parameterObjectType=%s".formatted(parameterCount, parameterTypes, parameterObjectType);
         } catch (Exception e) {
             log.debug("Failed to format SQL parameters", e);
-            return null;
+            return "count=unknown,parameterObjectType=unknown";
         }
     }
 
