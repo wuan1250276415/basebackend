@@ -42,7 +42,7 @@ public class MySqlBinlogParser {
 
     private final BackupProperties backupProperties;
     private BinaryLogClient client;
-    private boolean isConnected = false;
+    private volatile boolean isConnected = false;
     private ScheduledExecutorService timeoutScheduler = Executors.newScheduledThreadPool(1);
     private volatile String currentBinlogFilename;
 
@@ -62,8 +62,9 @@ public class MySqlBinlogParser {
     public BinlogPosition getCurrentPosition(String host, int port, String username, String password) throws Exception {
         log.info("获取MySQL当前binlog位置: {}:{}", host, port);
 
-        String jdbcUrl = String.format("jdbc:mysql://%s:%d/?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
-                host, port);
+        boolean sslEnabled = backupProperties.getDatabase().isSslEnabled();
+        String jdbcUrl = String.format("jdbc:mysql://%s:%d/?useSSL=%s&allowPublicKeyRetrieval=%s&serverTimezone=UTC",
+                host, port, sslEnabled, !sslEnabled);
 
         try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
              Statement statement = connection.createStatement();
@@ -106,6 +107,11 @@ public class MySqlBinlogParser {
     public void subscribe(String host, int port, String username, String password,
             BinlogPosition startPosition, BinlogEventListener listener) throws Exception {
         log.info("开始订阅MySQL binlog变更事件，起始位置: {}", startPosition);
+
+        // 若上次 disconnect() 已关闭调度器，则重建，以支持重复订阅
+        if (timeoutScheduler.isShutdown()) {
+            timeoutScheduler = Executors.newScheduledThreadPool(1);
+        }
 
         // 创建BinaryLogClient实例，用于连接MySQL服务器
         client = new BinaryLogClient(host, port, username, password);

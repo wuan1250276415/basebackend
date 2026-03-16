@@ -13,17 +13,21 @@ import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 /**
  * 审计拦截器
@@ -36,33 +40,43 @@ import java.util.concurrent.atomic.AtomicLong;
 })
 public class AuditInterceptor implements Interceptor {
 
-    private AuditLogService auditLogService;
-    private DatabaseEnhancedProperties properties;
-    private ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
+    private final DatabaseEnhancedProperties properties;
+    private final ObjectMapper objectMapper;
 
     // Thread local to store before data for UPDATE operations
     private static final ThreadLocal<Map<String, Object>> BEFORE_DATA = new ThreadLocal<>();
 
-    // Performance monitoring
-    private static final AtomicLong TOTAL_AUDIT_OPERATIONS = new AtomicLong(0);
-    private static final AtomicLong FAILED_AUDIT_OPERATIONS = new AtomicLong(0);
-    private static final ConcurrentHashMap<String, AtomicLong> OPERATION_COUNTS = new ConcurrentHashMap<>();
-
-    // Operation ID generator for tracking
-    private static final AtomicLong OPERATION_ID_GENERATOR = new AtomicLong(0);
+    // Performance monitoring — instance fields (H1: no static state shared across bean instances)
+    private final AtomicLong totalAuditOperations = new AtomicLong(0);
+    private final AtomicLong failedAuditOperations = new AtomicLong(0);
+    private final ConcurrentHashMap<String, AtomicLong> operationCounts = new ConcurrentHashMap<>();
+    private final AtomicLong operationIdGenerator = new AtomicLong(0);
 
     // Field cache for reflection (enhanced from P1)
     private static final ConcurrentHashMap<Class<?>, Field[]> FIELD_CACHE = new ConcurrentHashMap<>();
 
-    public AuditInterceptor(AuditLogService auditLogService, 
+    // H2: extract real table name from bound SQL instead of guessing from mapper class name
+    private static final Pattern TABLE_NAME_FROM_SQL = Pattern.compile(
+            "(?i)(?:UPDATE|INSERT\\s+INTO|DELETE\\s+FROM)\\s+(\\w+)");
+
+    /** H5: optional tenant ID supplier — set by database-multitenant at runtime */
+    private volatile java.util.function.Supplier<String> tenantIdSupplier;
+
+    public AuditInterceptor(AuditLogService auditLogService,
                            DatabaseEnhancedProperties properties,
                            ObjectMapper objectMapper) {
         this.auditLogService = auditLogService;
         this.properties = properties;
-        this.objectMapper = objectMapper;
-        // Ensure Java 8 time types (e.g., LocalDateTime) are always supported in audit serialization
+        // H6: copy the shared bean before registering modules to avoid mutating it
+        this.objectMapper = objectMapper.copy();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    /** Called by database-multitenant AutoConfiguration to wire in TenantContext.getTenantId(). */
+    public void setTenantIdSupplier(java.util.function.Supplier<String> tenantIdSupplier) {
+        this.tenantIdSupplier = tenantIdSupplier;
     }
 
     @Override
@@ -78,14 +92,19 @@ public class AuditInterceptor implements Interceptor {
         String mapperId = ms.getId();
 
         // Generate unique operation ID for tracking
-        long operationId = OPERATION_ID_GENERATOR.incrementAndGet();
+        long operationId = operationIdGenerator.incrementAndGet();
 
         // Skip audit log mapper operations to prevent infinite recursion
         if (mapperId != null && mapperId.contains("AuditLogMapper")) {
             return invocation.proceed();
         }
 
-        String tableName = extractTableName(mapperId);
+        // H2: prefer table name from SQL; fall back to mapper class name
+        String sqlText = ms.getBoundSql(parameter).getSql();
+        String tableName = extractTableNameFromSql(sqlText);
+        if ("unknown".equals(tableName)) {
+            tableName = extractTableNameFromMapperId(mapperId);
+        }
 
         // Skip excluded tables
         if (isExcludedTable(tableName)) {
@@ -93,10 +112,10 @@ public class AuditInterceptor implements Interceptor {
         }
 
         long startTime = System.currentTimeMillis();
-        TOTAL_AUDIT_OPERATIONS.incrementAndGet();
+        totalAuditOperations.incrementAndGet();
 
         // Track operation count
-        OPERATION_COUNTS.computeIfAbsent(sqlCommandType.name(), k -> new AtomicLong(0)).incrementAndGet();
+        operationCounts.computeIfAbsent(sqlCommandType.name(), k -> new AtomicLong(0)).incrementAndGet();
 
         log.debug("Audit operation started: operationId={}, table={}, operation={}, mapperId={}",
             operationId, tableName, sqlCommandType.name(), mapperId);
@@ -104,7 +123,8 @@ public class AuditInterceptor implements Interceptor {
         try {
             // Capture before data for UPDATE operations
             if (sqlCommandType == SqlCommandType.UPDATE) {
-                captureBeforeData(parameter, operationId);
+                // B1: pass invocation and resolved tableName so we can query the DB before update
+                captureBeforeData(invocation, parameter, tableName, operationId);
             }
 
             // Execute the actual update
@@ -120,7 +140,7 @@ public class AuditInterceptor implements Interceptor {
 
             return result;
         } catch (Exception e) {
-            FAILED_AUDIT_OPERATIONS.incrementAndGet();
+            failedAuditOperations.incrementAndGet();
             long duration = System.currentTimeMillis() - startTime;
 
             // Enhanced error logging with operation context
@@ -170,43 +190,76 @@ public class AuditInterceptor implements Interceptor {
     }
 
     /**
-     * Capture before data for UPDATE operations
+     * B1: Query the actual DB row BEFORE the UPDATE executes.
+     * Uses the Executor's transaction connection to stay within the same transaction.
+     * Falls back to an empty map on failure to avoid recording bogus "new values as before" data.
      */
-    private void captureBeforeData(Object parameter, long operationId) {
-        if (parameter == null) {
+    private void captureBeforeData(Invocation invocation, Object parameter, String tableName, long operationId) {
+        if (parameter == null || "unknown".equals(tableName)) {
+            return;
+        }
+
+        String primaryKey = extractPrimaryKey(parameter, operationId);
+        if (primaryKey == null) {
+            log.debug("Cannot capture before data: no primary key found, operationId={}", operationId);
             return;
         }
 
         try {
-            Map<String, Object> beforeData = new HashMap<>();
+            Executor executor = (Executor) invocation.getTarget();
+            Connection conn = executor.getTransaction().getConnection();
 
-            if (parameter instanceof Map<?, ?> paramMap) {
-                // Try to get entity from 'et' parameter
-                Object entity = null;
+            // Do NOT close conn — it is managed by the transaction
+            String selectSql = "SELECT * FROM " + tableName + " WHERE id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 try {
-                    entity = paramMap.get("et");
-                } catch (Exception e) {
-                    log.trace("No 'et' parameter when capturing before data: operationId={}", operationId);
+                    ps.setLong(1, Long.parseLong(primaryKey));
+                } catch (NumberFormatException e) {
+                    ps.setString(1, primaryKey);
                 }
-                
-                if (entity != null) {
-                    beforeData = extractEntityData(entity, operationId);
-                } else {
-                    // Try 'param1' as fallback
-                    Object param1 = paramMap.get("param1");
-                    if (param1 != null && !isPrimitiveOrWrapper(param1.getClass())) {
-                        beforeData = extractEntityData(param1, operationId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        ResultSetMetaData meta = rs.getMetaData();
+                        Map<String, Object> beforeData = new HashMap<>();
+                        for (int i = 1; i <= meta.getColumnCount(); i++) {
+                            String colName = toCamelCase(meta.getColumnLabel(i));
+                            Object value = rs.getObject(i);
+                            if (value != null) {
+                                beforeData.put(colName, value);
+                            }
+                        }
+                        BEFORE_DATA.set(beforeData);
+                        log.debug("Before data captured from DB: operationId={}, table={}, fieldCount={}",
+                            operationId, tableName, beforeData.size());
                     }
                 }
-            } else {
-                beforeData = extractEntityData(parameter, operationId);
             }
-
-            BEFORE_DATA.set(beforeData);
-            log.trace("Before data captured: operationId={}, fieldCount={}", operationId, beforeData.size());
         } catch (Exception e) {
-            log.error("Failed to capture before data: operationId={}, error={}", operationId, e.getMessage(), e);
+            log.warn("Failed to capture before data from DB: operationId={}, table={}, error={}",
+                operationId, tableName, e.getMessage());
+            // Degrade gracefully: empty before-data is better than recording new values as "before"
+            BEFORE_DATA.set(Collections.emptyMap());
         }
+    }
+
+    /** Convert snake_case column labels (e.g. create_time) to camelCase field names (createTime). */
+    private String toCamelCase(String columnName) {
+        if (columnName == null || !columnName.contains("_")) {
+            return columnName == null ? null : columnName.toLowerCase();
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean nextUpper = false;
+        for (char c : columnName.toCharArray()) {
+            if (c == '_') {
+                nextUpper = true;
+            } else if (nextUpper) {
+                sb.append(Character.toUpperCase(c));
+                nextUpper = false;
+            } else {
+                sb.append(Character.toLowerCase(c));
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -282,7 +335,7 @@ public class AuditInterceptor implements Interceptor {
             } catch (Exception e) {
                 log.trace("No 'et' parameter found in map: operationId={}", operationId);
             }
-            
+
             if (et != null) {
                 entity = et;
             } else {
@@ -292,7 +345,7 @@ public class AuditInterceptor implements Interceptor {
                     entity = param1;
                 } else {
                     // If no entity object found, return the map as-is (for primitive parameters)
-                    log.debug("No entity object found in parameters, using map: operationId={}, params={}", 
+                    log.debug("No entity object found in parameters, using map: operationId={}, params={}",
                         operationId, paramMap.keySet());
                     return new HashMap<>((Map<String, Object>) paramMap);
                 }
@@ -367,7 +420,7 @@ public class AuditInterceptor implements Interceptor {
             } catch (Exception e) {
                 log.trace("No 'et' parameter found when extracting primary key: operationId={}", operationId);
             }
-            
+
             if (et != null) {
                 entity = et;
             } else {
@@ -400,11 +453,11 @@ public class AuditInterceptor implements Interceptor {
             return null;
         }
     }
-    
+
     /**
      * Find field in class hierarchy (including parent classes)
-     * 
-     * @param clazz the class to search
+     *
+     * @param clazz     the class to search
      * @param fieldName the field name
      * @return the field, or null if not found
      */
@@ -466,15 +519,25 @@ public class AuditInterceptor implements Interceptor {
     }
 
     /**
-     * Extract table name from mapper method ID
+     * H2: Extract real table name from the bound SQL.
+     * Supports UPDATE, INSERT INTO, DELETE FROM patterns.
      */
-    private String extractTableName(String mapperId) {
-        // Example: com.basebackend.user.mapper.UserMapper.insert
-        // Extract "User" from the mapper name
+    private String extractTableNameFromSql(String sql) {
+        if (sql == null) {
+            return "unknown";
+        }
+        java.util.regex.Matcher m = TABLE_NAME_FROM_SQL.matcher(sql.replaceAll("\\s+", " ").trim());
+        return m.find() ? m.group(1) : "unknown";
+    }
+
+    /**
+     * Fallback: derive approximate table name from mapper class name.
+     * Used when SQL-based extraction fails (e.g. custom SQL without standard clauses).
+     */
+    private String extractTableNameFromMapperId(String mapperId) {
         if (mapperId == null) {
             return "unknown";
         }
-        
         String[] parts = mapperId.split("\\.");
         if (parts.length >= 2) {
             String mapperName = parts[parts.length - 2];
@@ -482,7 +545,6 @@ public class AuditInterceptor implements Interceptor {
                 return mapperName.substring(0, mapperName.length() - 6);
             }
         }
-        
         return "unknown";
     }
 
@@ -491,17 +553,17 @@ public class AuditInterceptor implements Interceptor {
      */
     private boolean isExcludedTable(String tableName) {
         // Always exclude audit log tables to prevent infinite recursion
-        if ("AuditLog".equalsIgnoreCase(tableName) || 
+        if ("AuditLog".equalsIgnoreCase(tableName) ||
             "AuditLogArchive".equalsIgnoreCase(tableName) ||
             "sys_audit_log".equalsIgnoreCase(tableName) ||
             "sys_audit_log_archive".equalsIgnoreCase(tableName)) {
             return true;
         }
-        
+
+        // H3: exact case-insensitive match only — substring match caused false positives
         List<String> excludedTables = properties.getAudit().getExcludedTables();
         return excludedTables != null && excludedTables.stream()
-                .anyMatch(excluded -> tableName.equalsIgnoreCase(excluded) || 
-                                     tableName.toLowerCase().contains(excluded.toLowerCase()));
+                .anyMatch(excluded -> tableName.equalsIgnoreCase(excluded));
     }
 
     /**
@@ -583,44 +645,53 @@ public class AuditInterceptor implements Interceptor {
     }
 
     /**
-     * Get current tenant ID from tenant context
-     * Note: This is a placeholder - implement based on your multi-tenancy strategy
+     * Get current tenant ID from tenant context.
      */
     private String getCurrentTenantId() {
-        // TODO: Implement based on your multi-tenancy approach
-        // Examples:
-        // - ThreadLocal storage
-        // - Security context
-        // - Database lookup
+        // H5: use injected supplier if available (set by database-multitenant module)
+        if (tenantIdSupplier != null) {
+            return tenantIdSupplier.get();
+        }
+        // Reflective fallback: picks up TenantContext when database-multitenant is on the classpath
+        // without introducing a compile-time dependency on that module.
+        try {
+            Class<?> tenantContextClass = Class.forName("com.basebackend.database.tenant.context.TenantContext");
+            java.lang.reflect.Method method = tenantContextClass.getMethod("getTenantId");
+            return (String) method.invoke(null);
+        } catch (ClassNotFoundException ignored) {
+            // database-multitenant not on classpath — multi-tenancy not in use
+        } catch (Exception e) {
+            log.debug("Failed to get tenant ID via reflection", e);
+        }
         return null;
     }
 
     /**
-     * Get audit performance statistics
-     * Useful for monitoring and debugging
+     * Get audit performance statistics.
+     * Useful for monitoring and debugging.
      */
     public Map<String, Object> getPerformanceStats() {
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalAuditOperations", TOTAL_AUDIT_OPERATIONS.get());
-        stats.put("failedAuditOperations", FAILED_AUDIT_OPERATIONS.get());
-        stats.put("successRate", TOTAL_AUDIT_OPERATIONS.get() > 0 ?
-            ((double) (TOTAL_AUDIT_OPERATIONS.get() - FAILED_AUDIT_OPERATIONS.get()) / TOTAL_AUDIT_OPERATIONS.get()) * 100 : 0);
+        stats.put("totalAuditOperations", totalAuditOperations.get());
+        stats.put("failedAuditOperations", failedAuditOperations.get());
+        stats.put("successRate", totalAuditOperations.get() > 0 ?
+            ((double) (totalAuditOperations.get() - failedAuditOperations.get()) / totalAuditOperations.get()) * 100 : 0);
 
-        Map<String, Long> operationStats = new HashMap<>();
-        OPERATION_COUNTS.forEach((op, count) -> operationStats.put(op, count.get()));
-        stats.put("operationCounts", operationStats);
+        Map<String, Long> opStats = new HashMap<>();
+        operationCounts.forEach((op, count) -> opStats.put(op, count.get()));
+        stats.put("operationCounts", opStats);
         stats.put("cachedFieldTypes", FIELD_CACHE.size());
 
         return stats;
     }
 
     /**
-     * Reset performance counters (useful for testing)
+     * Reset performance counters (useful for testing).
      */
     public void resetPerformanceCounters() {
-        TOTAL_AUDIT_OPERATIONS.set(0);
-        FAILED_AUDIT_OPERATIONS.set(0);
-        OPERATION_COUNTS.clear();
+        totalAuditOperations.set(0);
+        failedAuditOperations.set(0);
+        operationCounts.clear();
         log.info("Audit interceptor performance counters reset");
     }
 

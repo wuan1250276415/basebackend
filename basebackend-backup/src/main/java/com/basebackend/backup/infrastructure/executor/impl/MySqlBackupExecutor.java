@@ -104,18 +104,19 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
             // 构建mysqldump命令参数（分离式，避免shell注入）
             List<String> command = buildMysqldumpCommandArgs(request);
 
-            // 使用ProcessBuilder执行命令，输出重定向到文件
+            // 使用ProcessBuilder执行命令，stdout重定向到备份文件，stderr单独捕获
+            // 注意：不能同时使用 redirectOutput(file) 和 redirectErrorStream(true)，
+            // 否则 stderr 也会写入备份文件，且 getErrorStream() 返回空流，导致错误无法感知。
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             applyMysqlPassword(processBuilder, request.getDatabaseConfig().getPassword());
             processBuilder.redirectOutput(backupFile);
-            processBuilder.redirectErrorStream(true);
+            // redirectErrorStream 保持 false（默认），以便单独读取 stderr
 
             log.info("执行mysqldump命令: {}", String.join(" ", command));
 
             Process process = processBuilder.start();
 
-            // 消费输出流（避免进程阻塞）
-            consumeProcessOutput(process.getInputStream(), "INFO");
+            // 异步消费 stderr，防止进程因管道满而阻塞
             consumeProcessOutput(process.getErrorStream(), "ERROR");
 
             // 等待进程完成（设置超时）
@@ -535,9 +536,10 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
     }
 
     private Connection openMysqlConnection(BackupRequest.DatabaseConfig dbConfig) throws Exception {
+        boolean sslEnabled = backupProperties.getDatabase().isSslEnabled();
         String jdbcUrl = String.format(
-                "jdbc:mysql://%s:%d/?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
-                dbConfig.getHost(), dbConfig.getPort());
+                "jdbc:mysql://%s:%d/?useSSL=%s&allowPublicKeyRetrieval=%s&serverTimezone=UTC",
+                dbConfig.getHost(), dbConfig.getPort(), sslEnabled, !sslEnabled);
         return DriverManager.getConnection(jdbcUrl, dbConfig.getUsername(), dbConfig.getPassword());
     }
 

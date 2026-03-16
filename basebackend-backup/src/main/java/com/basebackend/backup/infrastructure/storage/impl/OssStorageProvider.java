@@ -9,6 +9,7 @@ import com.basebackend.backup.infrastructure.storage.StorageProvider;
 import com.basebackend.backup.infrastructure.storage.StorageResult;
 import com.basebackend.backup.infrastructure.storage.StorageUsage;
 import com.basebackend.backup.infrastructure.storage.UploadRequest;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
@@ -291,6 +292,7 @@ public class OssStorageProvider implements StorageProvider {
         return String.format("%.2f %s", bytes / Math.pow(1024, exp), pre);
     }
 
+    @PreDestroy
     public void destroy() {
         if (ossClient != null) {
             ossClient.shutdown();

@@ -231,8 +231,8 @@ public class IncrementalChainManager {
 
         for (BackupHistory backup : expiredBackups) {
             // 这里可以添加删除物理文件的逻辑
-            log.debug("标记过期备份为删除: {}", backup.getId());
-            // backupHistoryMapper.deleteById(backup.getId());
+            log.debug("删除过期备份记录: {}", backup.getId());
+            backupHistoryMapper.deleteById(backup.getId());
         }
 
         log.info("过期增量链清理完成, 清理数量: {}", expiredBackups.size());

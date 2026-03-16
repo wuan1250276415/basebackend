@@ -198,7 +198,7 @@ public class BackupProperties {
 
         @Data
         public static class S3 {
-            private boolean enabled = true;
+            private boolean enabled = false;
             private String endpoint;
             private String bucket = "basebackend-backup";
             private String accessKey;
@@ -358,6 +358,11 @@ public class BackupProperties {
          * 数据库密码
          */
         private String password = "";
+
+        /**
+         * 是否启用SSL连接（生产环境建议设为true）
+         */
+        private boolean sslEnabled = true;
     }
 
     /**

@@ -55,9 +55,9 @@ public class S3StorageProvider implements StorageProvider {
     private static final String STORAGE_TYPE = "s3";
 
     /**
-     * 初始化S3客户端
+     * 初始化S3客户端（线程安全的懒加载）
      */
-    private void initS3Client() {
+    private synchronized void initS3Client() {
         if (s3Client != null) {
             return;
         }

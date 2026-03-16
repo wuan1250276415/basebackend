@@ -58,6 +58,10 @@ public class RetryTemplate {
                 log.debug("执行重试操作, 尝试次数: {}/{}", attempt, maxAttempts);
                 return callback.doWithRetry();
             } catch (Exception e) {
+                // 非瞬态异常（如编程错误）不进行重试，立即抛出
+                if (!isTransient(e)) {
+                    throw e;
+                }
                 lastException = e;
                 log.warn("重试操作失败, 尝试次数: {}, 错误: {}", attempt, e.getMessage());
 
@@ -95,5 +99,19 @@ public class RetryTemplate {
 
         // 没有恢复策略，抛出最后一次异常
         throw lastException;
+    }
+
+    /**
+     * 判断异常是否为瞬态（可重试）异常。
+     * 编程错误（如 IllegalArgumentException、NullPointerException 等）不可重试。
+     */
+    private boolean isTransient(Exception e) {
+        return e instanceof java.io.IOException
+                || e instanceof java.util.concurrent.TimeoutException
+                || (e instanceof RuntimeException
+                    && !(e instanceof IllegalArgumentException)
+                    && !(e instanceof IllegalStateException)
+                    && !(e instanceof NullPointerException)
+                    && !(e instanceof UnsupportedOperationException));
     }
 }

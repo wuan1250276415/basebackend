@@ -39,12 +39,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.basebackend</groupId>
-            <artifactId>basebackend-backup</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        
         <!-- Base Backend Database -->
         <dependency>
             <groupId>com.basebackend</groupId>
@@ -94,6 +88,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
         
+        <!-- HTML sanitization (XSS protection for email content) -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
         <!-- Spring Boot Mail -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1141,8 +1141,9 @@ public class PostgresBackupExecutor extends AbstractBackupExecutor
         command = command.replace("${host}", shellEscape(backupProperties.getPostgres().getHost()));
         command = command.replace("${port}", shellEscape(String.valueOf(backupProperties.getPostgres().getPort())));
         command = command.replace("${username}", shellEscape(backupProperties.getPostgres().getUsername()));
-        command = command.replace("${password}", shellEscape(backupProperties.getPostgres().getPassword() == null
-                ? "" : backupProperties.getPostgres().getPassword()));
+        // ${password} is intentionally NOT substituted here; the password is injected via
+        // the PGPASSWORD environment variable in applyPostgresPassword() to avoid leaking
+        // credentials into the command line or process arguments.
         return command;
     }
 

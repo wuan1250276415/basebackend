@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import com.basebackend.backup.enums.BackupStatus;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -155,21 +157,21 @@ public class BackupHistory implements Serializable {
      * 判断备份是否成功
      */
     public boolean isSuccess() {
-        return "SUCCESS".equals(status);
+        return BackupStatus.SUCCESS.name().equals(status);
     }
 
     /**
      * 判断备份是否失败
      */
     public boolean isFailed() {
-        return "FAILED".equals(status);
+        return BackupStatus.FAILED.name().equals(status);
     }
 
     /**
      * 判断备份是否正在运行
      */
     public boolean isRunning() {
-        return "RUNNING".equals(status);
+        return BackupStatus.RUNNING.name().equals(status);
     }
 
     /**

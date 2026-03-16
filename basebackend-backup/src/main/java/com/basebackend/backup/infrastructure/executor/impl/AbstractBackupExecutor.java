@@ -2,6 +2,7 @@ package com.basebackend.backup.infrastructure.executor.impl;
 
 import com.basebackend.common.util.JsonUtils;
 import com.basebackend.backup.domain.entity.BackupHistory;
+import com.basebackend.backup.enums.BackupStatus;
 import com.basebackend.backup.domain.mapper.BackupHistoryMapper;
 import com.basebackend.backup.infrastructure.executor.BackupArtifact;
 import com.basebackend.backup.infrastructure.executor.BackupRequest;
@@ -161,7 +162,7 @@ public abstract class AbstractBackupExecutor {
         BackupHistory history = new BackupHistory();
         history.setTaskId(request.getTaskId());
         history.setTaskName("备份任务_" + request.getTaskId());
-        history.setStatus("RUNNING");
+        history.setStatus(BackupStatus.RUNNING.name());
         history.setBackupType(request.getBackupType());
         if (request instanceof IncrementalBackupRequest incrementalRequest) {
             history.setBaseFullId(incrementalRequest.getBaseFullBackupId());
@@ -258,7 +259,8 @@ public abstract class AbstractBackupExecutor {
      * 生成存储键
      */
     private String generateStorageKey(BackupArtifact artifact) {
-        String timestamp = LocalDateTime.now().toString().replace(":", "-").replace(".", "-");
+        // 包含毫秒以防同秒内多次备份产生键名冲突
+        String timestamp = String.valueOf(System.currentTimeMillis());
         String type = artifact.getBackupType();
         return String.format("%s/%s_%s.sql", type, type, timestamp);
     }
@@ -268,7 +270,7 @@ public abstract class AbstractBackupExecutor {
      */
     private void updateHistoryRecord(BackupHistory history, BackupArtifact artifact,
                                    Checksum checksum, StorageResult storageResult) {
-        history.setStatus("SUCCESS");
+        history.setStatus(BackupStatus.SUCCESS.name());
         history.setFinishedAt(LocalDateTime.now());
         history.setFinishedAtMs(System.currentTimeMillis());
         history.setDurationSeconds((int) (history.getFinishedAtMs() - history.getStartedAtMs()) / 1000);
@@ -289,7 +291,7 @@ public abstract class AbstractBackupExecutor {
      * 更新失败记录
      */
     private void updateFailureRecord(BackupHistory history, Exception e) {
-        history.setStatus("FAILED");
+        history.setStatus(BackupStatus.FAILED.name());
         history.setFinishedAt(LocalDateTime.now());
         history.setFinishedAtMs(System.currentTimeMillis());
         history.setErrorMessage(e.getMessage());

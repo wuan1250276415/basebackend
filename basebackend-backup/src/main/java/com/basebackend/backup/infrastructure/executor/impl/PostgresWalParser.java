@@ -150,24 +150,11 @@ public class PostgresWalParser {
             throw new FileNotFoundException("WAL文件不存在: " + walFilePath);
         }
 
-        // 这里简化实现，实际应该解析WAL文件的二进制格式
-        try (InputStream is = Files.newInputStream(walPath)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            long offset = 0;
-
-            while ((bytesRead = is.read(buffer)) != -1) {
-                // 模拟解析WAL记录
-                WalEvent event = parseWalRecord(buffer, bytesRead, offset);
-                if (event != null) {
-                    eventList.addEvent(event);
-                }
-                offset += bytesRead;
-            }
-        }
-
-        log.info("WAL文件解析完成, 共 {} 个事件", eventList.getEventCount());
-        return eventList;
+        // WAL二进制格式解析尚未实现（PostgreSQL WAL格式需要专用解析库）。
+        // 调用方应改用 pg_waldump 命令行工具或 logical replication slot 方式读取变更。
+        throw new UnsupportedOperationException(
+                "parseWalFile() 尚未实现：PostgreSQL WAL二进制格式解析需要专用库支持，" +
+                "请改用 pg_waldump 或 logical replication slot。");
     }
 
     /**

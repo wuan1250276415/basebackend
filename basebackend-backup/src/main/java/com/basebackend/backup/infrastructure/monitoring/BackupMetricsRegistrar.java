@@ -312,9 +312,9 @@ public class BackupMetricsRegistrar {
     }
 
     /**
-     * 重置所有指标（仅用于测试）
+     * 重置所有指标（仅用于测试，包级可见）
      */
-    public void reset() {
+    void reset() {
         activeBackupTasks.set(0);
         activeRestoreTasks.set(0);
         totalRetries.set(0);

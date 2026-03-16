@@ -1,6 +1,7 @@
 package com.basebackend.database.handler;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.basebackend.common.context.UserContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
@@ -48,12 +49,10 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     }
 
     /**
-     * 获取当前用户ID
-     * TODO: 从安全上下文中获取当前用户ID
+     * 获取当前用户ID，从线程上下文中读取；未登录场景（定时任务/初始化）返回 0。
      */
     private Long getCurrentUserId() {
-        // 这里应该从 Spring Security 或其他安全框架的上下文中获取
-        // 暂时返回默认值
-        return 0L;
+        Long userId = UserContextHolder.getUserId();
+        return userId != null ? userId : 0L;
     }
 }

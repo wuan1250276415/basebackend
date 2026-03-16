@@ -11,6 +11,8 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -71,21 +73,27 @@ public class AESEncryptionService implements EncryptionService {
     }
 
     /**
-     * 兼容历史密钥派生方式（用于解密历史数据）
+     * B3: Derive the legacy AES key using PBKDF2WithHmacSHA256 with a fixed salt.
+     * <p>
+     * Replaces the previous SHA1PRNG-based approach, which was JVM-implementation-specific
+     * (Oracle JDK vs. OpenJDK could produce different keys from the same seed, making
+     * cross-JVM decryption unreliable).
+     * <p>
+     * <strong>Migration note:</strong> Any ciphertext encrypted with the original
+     * SHA1PRNG-based key must be re-encrypted before deploying this change.
+     * The fixed salt value must never be changed after initial deployment.
      */
     private SecretKey generateLegacySecretKey(String keyStr) {
         try {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
-            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
-            secureRandom.setSeed(keyStr.getBytes(StandardCharsets.UTF_8));
-            keyGenerator.init(128, secureRandom);
-            SecretKey originalKey = keyGenerator.generateKey();
-            
-            // 转换为可序列化的密钥
-            byte[] encodedKey = originalKey.getEncoded();
-            return new SecretKeySpec(encodedKey, ALGORITHM);
-        } catch (NoSuchAlgorithmException e) {
-            throw new EncryptionException("Failed to generate secret key", e);
+            // Fixed salt — changing this invalidates all existing legacy ciphertext
+            byte[] salt = "basebackend-legacy-v1-salt".getBytes(StandardCharsets.UTF_8);
+            PBEKeySpec spec = new PBEKeySpec(keyStr.toCharArray(), salt, 65536, 128);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+            spec.clearPassword();
+            return new SecretKeySpec(keyBytes, ALGORITHM);
+        } catch (Exception e) {
+            throw new EncryptionException("Failed to generate legacy secret key", e);
         }
     }
     

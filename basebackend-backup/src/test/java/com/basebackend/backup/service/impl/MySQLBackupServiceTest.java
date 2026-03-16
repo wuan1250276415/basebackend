@@ -87,11 +87,11 @@ class MySQLBackupServiceTest {
         when(backupProperties.getDatabase()).thenReturn(databaseConfig);
         when(backupProperties.getDistributedLock()).thenReturn(distributedLock);
         when(distributedLock.getKeyPrefix()).thenReturn("backup:lock:");
-        when(databaseConfig.getDatabase()).thenReturn("basebackend_admin");
-        when(databaseConfig.getHost()).thenReturn("192.168.66.126");
+        when(databaseConfig.getDatabase()).thenReturn("test_db");
+        when(databaseConfig.getHost()).thenReturn("test-db-host");
         when(databaseConfig.getPort()).thenReturn(3306);
-        when(databaseConfig.getUsername()).thenReturn("basebackend_admin");
-        when(databaseConfig.getPassword()).thenReturn("5iA7pGWQJnACwXw3");
+        when(databaseConfig.getUsername()).thenReturn("test-user");
+        when(databaseConfig.getPassword()).thenReturn("test-password");
         when(backupProperties.getMysqldumpPath()).thenReturn("/usr/bin/mysqldump");
         when(backupProperties.getMysqlPath()).thenReturn("/usr/bin/mysql");
         when(backupProperties.getBackupPath()).thenReturn(tempDir.toString());
@@ -161,7 +161,7 @@ class MySQLBackupServiceTest {
         assertThat(record.getBackupType()).isEqualTo(BackupType.INCREMENTAL);
         assertThat(record.getStatus()).isEqualTo(BackupStatus.FAILED);
         assertThat(record.getErrorMessage()).contains("未实现");
-        assertThat(record.getDatabaseName()).isEqualTo("basebackend_admin");
+        assertThat(record.getDatabaseName()).isEqualTo("test_db");
     }
 
     @Test
@@ -325,12 +325,12 @@ class MySQLBackupServiceTest {
         assertThat(command.size()).isGreaterThan(10);
         assertThat(command).contains(
                 "/usr/bin/mysqldump",
-                "-h", "192.168.66.126",
+                "-h", "test-db-host",
                 "-P", "3306",
-                "-u", "basebackend_admin",
+                "-u", "test-user",
                 "--single-transaction",
                 "--master-data=2",
-                "basebackend_admin"
+                "test_db"
         );
 
         // 密码通过环境变量 MYSQL_PWD 传递，不在命令行参数中
@@ -352,10 +352,10 @@ class MySQLBackupServiceTest {
         assertThat(command.size()).isGreaterThan(5);
         assertThat(command).contains(
                 "/usr/bin/mysql",
-                "-h", "192.168.66.126",
+                "-h", "test-db-host",
                 "-P", "3306",
-                "-u", "basebackend_admin",
-                "basebackend_admin"
+                "-u", "test-user",
+                "test_db"
         );
 
         // 验证source命令
@@ -372,10 +372,10 @@ class MySQLBackupServiceTest {
         // Given
         List<String> command = List.of(
                 "mysqldump",
-                "-h", "192.168.66.126",
-                "-u", "basebackend_admin",
-                "-ppassword", // 明文密码
-                "basebackend_admin"
+                "-h", "test-db-host",
+                "-u", "test-user",
+                "-ppassword", // 明文密码（仅用于测试日志脱敏功能）
+                "test_db"
         );
 
         // When & Then - 测试私有方法
@@ -424,7 +424,7 @@ class MySQLBackupServiceTest {
         // Then - 验证必要字段
         assertThat(record).isNotNull();
         assertThat(record.getBackupType()).isEqualTo(BackupType.FULL);
-        assertThat(record.getDatabaseName()).isEqualTo("basebackend_admin");
+        assertThat(record.getDatabaseName()).isEqualTo("test_db");
         assertThat(record.getStartTime()).isNotNull();
     }
 
