@@ -2,6 +2,7 @@ package com.basebackend.cache.template;
 
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheMetricsService;
+import com.basebackend.cache.hook.CacheHookInvoker;
 import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.service.RedisService;
 import com.basebackend.cache.util.BloomFilterUtil;
@@ -284,35 +285,18 @@ public class CacheAsideTemplate {
     }
 
     private Object safeBeforeCacheLookup(String cacheName, String key, long ttlSeconds) {
-        try {
-            return cacheOperationHook.beforeCacheLookup(cacheName, key, ttlSeconds, null);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook beforeCacheLookup failed for key={}", key, e);
-            return null;
-        }
+        return CacheHookInvoker.safeBeforeCacheLookup(cacheOperationHook, cacheName, key, ttlSeconds, null);
     }
 
     private void safeAfterCacheHit(String cacheName, String key, Object value, long ttlSeconds) {
-        try {
-            cacheOperationHook.afterCacheHit(cacheName, key, value, ttlSeconds, null);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheHit failed for key={}", key, e);
-        }
+        CacheHookInvoker.safeAfterCacheHit(cacheOperationHook, cacheName, key, value, ttlSeconds, null);
     }
 
     private void safeAfterCachePut(String cacheName, String key, Object value) {
-        try {
-            cacheOperationHook.afterCachePut(cacheName, key, value);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
-        }
+        CacheHookInvoker.safeAfterCachePut(cacheOperationHook, cacheName, key, value);
     }
 
     private void safeAfterCacheEvict(String cacheName, String key) {
-        try {
-            cacheOperationHook.afterCacheEvict(cacheName, key);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
-        }
+        CacheHookInvoker.safeAfterCacheEvict(cacheOperationHook, cacheName, key);
     }
 }
