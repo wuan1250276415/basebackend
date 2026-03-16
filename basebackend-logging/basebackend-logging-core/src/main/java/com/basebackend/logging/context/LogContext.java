@@ -42,9 +42,12 @@ public class LogContext {
 
     /**
      * 设置 TraceId
+     *
+     * <p>Logback 的 {@code MDC.put(key, null)} 会抛出 {@link IllegalArgumentException}，
+     * 所有 setter 均忽略 null 值，避免上层调用者需要自行判空。
      */
     public static void setTraceId(String traceId) {
-        MDC.put(TRACE_ID, traceId);
+        if (traceId != null) MDC.put(TRACE_ID, traceId);
     }
 
     /**
@@ -54,11 +57,9 @@ public class LogContext {
         return MDC.get(TRACE_ID);
     }
 
-    /**
-     * 设置 RequestId
-     */
+    /** 设置 RequestId（null 安全） */
     public static void setRequestId(String requestId) {
-        MDC.put(REQUEST_ID, requestId);
+        if (requestId != null) MDC.put(REQUEST_ID, requestId);
     }
 
     /**
@@ -68,11 +69,9 @@ public class LogContext {
         return MDC.get(REQUEST_ID);
     }
 
-    /**
-     * 设置 UserId
-     */
+    /** 设置 UserId（null 安全） */
     public static void setUserId(String userId) {
-        MDC.put(USER_ID, userId);
+        if (userId != null) MDC.put(USER_ID, userId);
     }
 
     /**
@@ -82,11 +81,9 @@ public class LogContext {
         return MDC.get(USER_ID);
     }
 
-    /**
-     * 设置 Username
-     */
+    /** 设置 Username（null 安全） */
     public static void setUsername(String username) {
-        MDC.put(USERNAME, username);
+        if (username != null) MDC.put(USERNAME, username);
     }
 
     /**
@@ -96,11 +93,9 @@ public class LogContext {
         return MDC.get(USERNAME);
     }
 
-    /**
-     * 设置 IP 地址
-     */
+    /** 设置 IP 地址（null 安全） */
     public static void setIpAddress(String ipAddress) {
-        MDC.put(IP_ADDRESS, ipAddress);
+        if (ipAddress != null) MDC.put(IP_ADDRESS, ipAddress);
     }
 
     /**
@@ -110,11 +105,9 @@ public class LogContext {
         return MDC.get(IP_ADDRESS);
     }
 
-    /**
-     * 设置 URI
-     */
+    /** 设置 URI（null 安全） */
     public static void setUri(String uri) {
-        MDC.put(URI, uri);
+        if (uri != null) MDC.put(URI, uri);
     }
 
     /**
@@ -124,11 +117,9 @@ public class LogContext {
         return MDC.get(URI);
     }
 
-    /**
-     * 设置 HTTP Method
-     */
+    /** 设置 HTTP Method（null 安全） */
     public static void setMethod(String method) {
-        MDC.put(METHOD, method);
+        if (method != null) MDC.put(METHOD, method);
     }
 
     /**

@@ -21,10 +21,13 @@ public class FastJson2RedisSerializer implements RedisSerializer<Object> {
     private final GenericJackson2JsonRedisSerializer delegate;
 
     public FastJson2RedisSerializer() {
+        // 限制反序列化到项目包前缀，防止反序列化 Gadget 攻击
         ObjectMapper mapper = new ObjectMapper();
         mapper.activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder()
-                        .allowIfBaseType(Object.class)
+                        .allowIfSubType("com.basebackend.")
+                        .allowIfSubType("java.util.")
+                        .allowIfSubType("java.lang.")
                         .build(),
                 DefaultTyping.NON_FINAL
         );

@@ -40,7 +40,12 @@ public class HashChainCalculator {
     /**
      * 计算审计日志条目的哈希值
      *
-     * @param entry   审计日志条目
+     * <p><b>并发安全说明</b>：序列化前先构造一个浅副本，在副本上将哈希链输出字段
+     * （{@code entryHash}、{@code signature}、{@code certificateId}）置为 {@code null}，
+     * 原始 {@code entry} 对象始终保持不变。这避免了原来"置 null→序列化→恢复"模式
+     * 在并发读取同一 entry 时产生的可见性竞争。
+     *
+     * @param entry    审计日志条目（不会被修改）
      * @param prevHash 前一个日志的哈希值（可选）
      * @return 当前日志的哈希值
      */
@@ -52,32 +57,40 @@ public class HashChainCalculator {
             if (prevHash != null && !prevHash.isEmpty()) {
                 digest.update(prevHash.getBytes(StandardCharsets.UTF_8));
             } else {
-                // 种子值：空字节
                 digest.update(new byte[0]);
             }
 
-            // 临时清除哈希链元数据字段，避免循环依赖：
-            // entryHash / signature / certificateId 是哈希计算的输出，不能参与输入。
-            // 这些字段在写入时为 null（被 @JsonInclude(NON_NULL) 排除），
-            // 但验证时已赋值，会导致 JSON 不一致从而哈希不匹配。
-            String savedEntryHash = entry.getEntryHash();
-            String savedSignature = entry.getSignature();
-            String savedCertificateId = entry.getCertificateId();
-            entry.setEntryHash(null);
-            entry.setSignature(null);
-            entry.setCertificateId(null);
+            // 构造浅副本，清除哈希链输出字段后序列化，原始 entry 保持不变
+            AuditLogEntry snapshot = AuditLogEntry.builder()
+                    .id(entry.getId())
+                    .timestamp(entry.getTimestamp())
+                    .userId(entry.getUserId())
+                    .sessionId(entry.getSessionId())
+                    .eventType(entry.getEventType())
+                    .resource(entry.getResource())
+                    .result(entry.getResult())
+                    .clientIp(entry.getClientIp())
+                    .userAgent(entry.getUserAgent())
+                    .deviceInfo(entry.getDeviceInfo())
+                    .location(entry.getLocation())
+                    .entityId(entry.getEntityId())
+                    .operation(entry.getOperation())
+                    .details(entry.getDetails())
+                    .durationMs(entry.getDurationMs())
+                    .errorCode(entry.getErrorCode())
+                    .errorMessage(entry.getErrorMessage())
+                    .traceId(entry.getTraceId())
+                    .spanId(entry.getSpanId())
+                    .prevHash(entry.getPrevHash())
+                    // 哈希链输出字段置 null，使其在 @JsonInclude(NON_NULL) 下被排除
+                    .entryHash(null)
+                    .signature(null)
+                    .certificateId(null)
+                    .build();
 
-            try {
-                byte[] jsonBytes = objectMapper.writeValueAsString(entry).getBytes(StandardCharsets.UTF_8);
-                digest.update(jsonBytes);
-            } finally {
-                // 恢复原始值
-                entry.setEntryHash(savedEntryHash);
-                entry.setSignature(savedSignature);
-                entry.setCertificateId(savedCertificateId);
-            }
+            byte[] jsonBytes = objectMapper.writeValueAsString(snapshot).getBytes(StandardCharsets.UTF_8);
+            digest.update(jsonBytes);
 
-            // 返回十六进制编码的哈希值
             return bytesToHex(digest.digest());
         } catch (Exception e) {
             log.error("哈希链计算失败", e);

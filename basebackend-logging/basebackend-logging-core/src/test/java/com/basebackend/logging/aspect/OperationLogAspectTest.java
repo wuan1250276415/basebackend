@@ -316,6 +316,9 @@ class OperationLogAspectTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("参数错误");
 
+        // saveLogAsync 现在通过 CompletableFuture 异步执行，需要稍作等待
+        Thread.sleep(200);
+
         verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getStatus()).isEqualTo(0); // 失败
             assertThat(logInfo.getErrorMsg()).contains("参数错误");

@@ -135,6 +135,13 @@ public class AuditSignatureService {
 
     /**
      * 验证审计日志条目的签名
+     *
+     * <p>验证策略（按优先级）：
+     * <ol>
+     *   <li>从 {@code certificateStore} 获取公钥（外部 PKI / keystore 场景）</li>
+     *   <li>若 certificateStore 中无对应证书，则从 {@code keyStore} 提取内存密钥对的公钥（开发/临时密钥场景）</li>
+     * </ol>
+     * 这样保证了即使未配置外部 keystore，使用内存生成的临时密钥对签名的条目也能被验证。
      */
     public boolean verify(AuditLogEntry entry) {
         if (entry == null || entry.getSignature() == null) {
@@ -142,14 +149,28 @@ public class AuditSignatureService {
         }
 
         try {
+            java.security.PublicKey publicKey = null;
+
+            // 优先从证书存储获取公钥（正式 PKI 场景）
             Certificate certificate = certificateStore.get(entry.getCertificateId());
-            if (certificate == null) {
-                log.warn("未找到证书: {}", entry.getCertificateId());
+            if (certificate != null) {
+                publicKey = certificate.getPublicKey();
+            } else {
+                // 降级：从 keyStore 取内存密钥对的公钥（临时密钥 / 开发环境场景）
+                KeyPair keyPair = keyStore.get(entry.getCertificateId());
+                if (keyPair != null) {
+                    publicKey = keyPair.getPublic();
+                    log.debug("使用内存密钥对公钥验签，密钥 ID: {}", entry.getCertificateId());
+                }
+            }
+
+            if (publicKey == null) {
+                log.warn("未找到签名密钥（certificateId={}），无法验证签名", entry.getCertificateId());
                 return false;
             }
 
             Signature signature = Signature.getInstance(algorithm);
-            signature.initVerify(certificate);
+            signature.initVerify(publicKey);
 
             byte[] data = CryptoObjectMapper.INSTANCE.writeValueAsString(entry)
                     .getBytes(StandardCharsets.UTF_8);

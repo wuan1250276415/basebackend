@@ -258,35 +258,75 @@ public class LogStatisticsEntry {
 
     /**
      * 合并两个统计条目
+     *
+     * <p>方差（Pooled Variance）使用统计学上正确的合并公式：
+     * <pre>
+     *   mergedVar = [(n1-1)v1 + (n2-1)v2 + n1*n2/(n1+n2) * (m1-m2)^2] / (n1+n2-1)
+     * </pre>
+     * 避免了原来 {@code sqrt((v1^2 + v2^2) / 2)} 的错误（忽略了均值差和样本量差异）。
      */
     public LogStatisticsEntry merge(LogStatisticsEntry other) {
         if (other == null) {
             return this;
         }
 
-        double totalCount = this.count + other.count;
+        double n1 = this.count;
+        double n2 = other.count;
+        double totalCount = n1 + n2;
         if (totalCount == 0) {
             return this;
         }
 
-        double mergedMean = (this.mean * this.count + other.mean * other.count) / totalCount;
+        double mergedMean = (this.mean * n1 + other.mean * n2) / totalCount;
+
+        // 合并方差（Pooled Variance 公式）
+        double meanDiffSq = (this.mean - other.mean) * (this.mean - other.mean);
+        double mergedVariance = totalCount > 1
+                ? ((n1 > 1 ? (n1 - 1) * this.variance : 0)
+                + (n2 > 1 ? (n2 - 1) * other.variance : 0)
+                + (n1 * n2 / totalCount) * meanDiffSq) / (totalCount - 1)
+                : 0.0;
+
+        // 合并 percentiles（各分位取加权平均；如无数据则取非空的一方）
+        final Map<String, Double> mergedPercentiles;
+        if (this.percentiles != null && !this.percentiles.isEmpty()
+                && other.percentiles != null && !other.percentiles.isEmpty()) {
+            final double fn1 = n1, fn2 = n2, ftotal = totalCount;
+            java.util.Map<String, Double> tmp = new java.util.HashMap<>(this.percentiles);
+            other.percentiles.forEach((k, v2) -> tmp.merge(k, v2,
+                    (v1, v2b) -> (v1 * fn1 + v2b * fn2) / ftotal));
+            mergedPercentiles = tmp;
+        } else if (this.percentiles != null && !this.percentiles.isEmpty()) {
+            mergedPercentiles = this.percentiles;
+        } else {
+            mergedPercentiles = other.percentiles;
+        }
+
+        // trendSeries 合并（以 this 优先；如有需要调用方可进一步处理）
+        Map<String, Double> mergedTrendSeries = this.trendSeries != null
+                ? this.trendSeries : other.trendSeries;
 
         return LogStatisticsEntry.builder()
-                .startTime(this.startTime.isBefore(other.startTime) ? this.startTime : other.startTime)
-                .endTime(this.endTime.isAfter(other.endTime) ? this.endTime : other.endTime)
+                .startTime(this.startTime != null && (other.startTime == null || this.startTime.isBefore(other.startTime))
+                        ? this.startTime : other.startTime)
+                .endTime(this.endTime != null && (other.endTime == null || this.endTime.isAfter(other.endTime))
+                        ? this.endTime : other.endTime)
                 .count(totalCount)
                 .mean(mergedMean)
-                .median((this.median + other.median) / 2)
-                .variance((this.variance + other.variance) / 2)
-                .stdDev(Math.sqrt((this.stdDev * this.stdDev + other.stdDev * other.stdDev) / 2))
+                .median((this.median * n1 + other.median * n2) / totalCount)
+                .variance(mergedVariance)
+                .stdDev(Math.sqrt(mergedVariance))
                 .min(Math.min(this.min, other.min))
                 .max(Math.max(this.max, other.max))
                 .growthRate((this.growthRate + other.growthRate) / 2)
                 .changeRate((this.changeRate + other.changeRate) / 2)
                 .seasonalityIndex((this.seasonalityIndex + other.seasonalityIndex) / 2)
                 .anomalyCount(this.anomalyCount + other.anomalyCount)
-                .anomalyRate((this.anomalyRate + other.anomalyRate) / 2)
+                .anomalyRate(totalCount > 0 ? (this.anomalyCount + other.anomalyCount) / totalCount : 0.0)
                 .anomalyType(this.anomalyType != null ? this.anomalyType : other.anomalyType)
+                .percentiles(mergedPercentiles)
+                .trendSeries(mergedTrendSeries)
+                .predictedNext(this.predictedNext != null ? this.predictedNext : other.predictedNext)
                 .build();
     }
 }

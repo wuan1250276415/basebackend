@@ -37,11 +37,10 @@ scrape_configs:
           env: 'prod'
           team: 'platform'
     metric_relabel_configs:
-      # 保留有用的指标
+      # 仅保留 logging_* 前缀的指标
       - source_labels: [__name__]
-        regex: 'logging_.*'
-        target_label: __name__
-        replacement: '${1}'
+        regex: 'logging_(.*)'
+        action: keep
       # 添加环境标签
       - target_label: env
         replacement: 'prod'

@@ -27,7 +27,17 @@ public class LogPipelineAutoConfiguration {
     public LogTransport logTransport(LogPipelineProperties properties) {
         String type = properties.getTransport();
         log.info("初始化日志传输后端: {}", type);
-        return new ConsoleLogTransport();
+        return switch (type == null ? "console" : type.toLowerCase(java.util.Locale.ROOT)) {
+            case "console", "" -> new ConsoleLogTransport();
+            // 其他传输类型（loki、kafka、file 等）依赖额外组件，
+            // 如需支持请在宿主服务中通过 @Bean 覆盖此 @ConditionalOnMissingBean，
+            // 或引入对应的扩展模块并注册相应的 LogTransport 实现。
+            default -> {
+                log.warn("不支持的日志传输类型 '{}'，回退到 ConsoleLogTransport。"
+                        + " 如需其他传输，请自定义 LogTransport Bean。", type);
+                yield new ConsoleLogTransport();
+            }
+        };
     }
 
     @Bean

@@ -19,6 +19,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 操作日志切面
@@ -185,12 +186,18 @@ public class OperationLogAspect {
 
     /**
      * 异步保存日志
+     *
+     * <p>使用 {@link CompletableFuture#runAsync} 在公共 ForkJoinPool 上异步执行，
+     * 不阻塞业务请求线程。若 {@code OperationLogService} 的实现需要特定线程池，
+     * 可将 {@code Executor} 注入后替换默认参数。
      */
     private void saveLogAsync(OperationLogInfo logInfo) {
-        try {
-            operationLogService.saveOperationLog(logInfo);
-        } catch (Exception e) {
-            log.error("保存操作日志失败: {}", e.getMessage(), e);
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                operationLogService.saveOperationLog(logInfo);
+            } catch (Exception e) {
+                log.error("保存操作日志失败: {}", e.getMessage(), e);
+            }
+        });
     }
 }

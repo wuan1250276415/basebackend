@@ -87,7 +87,7 @@ public class CompositeAuditStorage implements AuditStorage {
             return primary.findByUserId(userId, limit);
         } catch (StorageException e) {
             log.warn("主存储查询失败，尝试备用存储", e);
-            return findInSecondaries(userId, limit);
+            return findInSecondariesByUserId(userId, limit);
         }
     }
 
@@ -97,7 +97,7 @@ public class CompositeAuditStorage implements AuditStorage {
             return primary.findByEventType(eventType, limit);
         } catch (StorageException e) {
             log.warn("主存储查询失败，尝试备用存储", e);
-            return findInSecondaries(eventType, limit);
+            return findInSecondariesByEventType(eventType, limit);
         }
     }
 
@@ -232,7 +232,22 @@ public class CompositeAuditStorage implements AuditStorage {
         return new ArrayList<>();
     }
 
-    private List<AuditLogEntry> findInSecondaries(String eventType, int limit) {
+    private List<AuditLogEntry> findInSecondariesByUserId(String userId, int limit) {
+        for (AuditStorage storage : secondaries) {
+            try {
+                List<AuditLogEntry> entries = storage.findByUserId(userId, limit);
+                if (!entries.isEmpty()) {
+                    log.info("从备用存储找到审计日志: {}", storage.getClass().getSimpleName());
+                    return entries;
+                }
+            } catch (StorageException e) {
+                log.warn("备用存储查询失败: {}", storage.getClass().getSimpleName(), e);
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private List<AuditLogEntry> findInSecondariesByEventType(String eventType, int limit) {
         for (AuditStorage storage : secondaries) {
             try {
                 List<AuditLogEntry> entries = storage.findByEventType(eventType, limit);

@@ -319,9 +319,10 @@ public class AsyncBatchAppender extends UnsynchronizedAppenderBase<ILoggingEvent
 
             } catch (Exception ex) {
                 attempt++;
-                failed.add(size);
 
                 if (attempt > maxRetries) {
+                    // 所有重试耗尽后才计入失败，避免每次重试都重复累加 size
+                    failed.add(size);
                     addStatus(new ErrorStatus("Failed to flush batch after " + attempt
                             + " attempts, batch size=" + size, this, ex));
                     return;

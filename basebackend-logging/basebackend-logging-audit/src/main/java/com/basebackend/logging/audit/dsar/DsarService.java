@@ -81,26 +81,40 @@ public class DsarService {
      * 审计日志不可物理删除（合规要求保留操作记录），
      * 因此采用匿名化策略：将个人身份信息替换为 [ANONYMIZED]。
      *
+     * <p><b>注意</b>：单条 save 失败时记录错误日志并继续处理其余条目，
+     * 最终返回成功匿名化的条目数。调用方应根据返回值与预期总数对比判断是否全部成功。
+     * 如需事务性保证，宿主服务应在 @Transactional 方法中包装本调用。
+     *
      * @param userId 数据主体用户 ID
-     * @return 匿名化处理的记录数
+     * @return 匿名化成功处理的记录数（小于总记录数时表示有部分失败）
      */
     public int anonymizeUserData(String userId) {
         if (userId == null || userId.isBlank()) {
             return 0;
         }
+        int count = 0;
+        int failed = 0;
         try {
             List<AuditLogEntry> entries = storage.findByUserId(userId, DEFAULT_QUERY_LIMIT);
-            int count = 0;
             for (AuditLogEntry entry : entries) {
-                anonymizeEntry(entry);
-                storage.save(entry);
-                count++;
+                try {
+                    anonymizeEntry(entry);
+                    storage.save(entry);
+                    count++;
+                } catch (Exception e) {
+                    failed++;
+                    log.error("DSAR 匿名化单条记录失败: id={}, userId={}", entry.getId(), userId, e);
+                }
             }
-            log.info("DSAR 匿名化完成: userId={}, 处理 {} 条记录", userId, count);
+            if (failed > 0) {
+                log.warn("DSAR 匿名化部分失败: userId={}, 成功={}, 失败={}", userId, count, failed);
+            } else {
+                log.info("DSAR 匿名化完成: userId={}, 处理 {} 条记录", userId, count);
+            }
             return count;
         } catch (Exception e) {
             log.error("DSAR 匿名化失败: userId={}", userId, e);
-            return 0;
+            return count;
         }
     }
 

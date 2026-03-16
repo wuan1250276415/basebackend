@@ -51,7 +51,7 @@ public class AuditAspect {
             return pjp.proceed();
         }
 
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         Object result = null;
         Exception exception = null;
 
@@ -82,8 +82,8 @@ public class AuditAspect {
                             Exception exception,
                             long startTime,
                             Auditable auditable) {
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime) / 1_000_000L;
 
         // 获取当前用户信息
         String userId = getCurrentUserId();
@@ -165,25 +165,48 @@ public class AuditAspect {
 
     /**
      * 获取当前用户 ID
+     *
+     * <p>优先从 Spring Security {@code SecurityContextHolder} 读取已认证用户名；
+     * 若 Spring Security 未引入或上下文中无有效认证信息，则回退为 {@code "anonymous"}。
      */
     private String getCurrentUserId() {
         try {
-            // 这里可以从 Spring Security Context 中获取
-            // SecurityContextHolder.getContext().getAuthentication().getName()
-            return "system";
+            // 通过反射调用，避免对 spring-security-core 产生强编译依赖
+            Class<?> holderClass = Class.forName(
+                    "org.springframework.security.core.context.SecurityContextHolder");
+            Object context = holderClass.getMethod("getContext").invoke(null);
+            Object authentication = context.getClass().getMethod("getAuthentication").invoke(context);
+            if (authentication != null) {
+                Object principal = authentication.getClass().getMethod("getPrincipal").invoke(authentication);
+                // AnonymousAuthenticationToken 的 principal 是字符串 "anonymousUser"
+                if (principal instanceof String principalStr) {
+                    return principalStr;
+                }
+                Object name = authentication.getClass().getMethod("getName").invoke(authentication);
+                if (name instanceof String nameStr && !nameStr.isBlank()) {
+                    return nameStr;
+                }
+            }
+        } catch (ClassNotFoundException ignored) {
+            // spring-security-core 未引入，正常降级
         } catch (Exception e) {
-            return "unknown";
+            log.debug("从 SecurityContextHolder 获取用户 ID 失败", e);
         }
+        return "anonymous";
     }
 
     /**
      * 获取当前会话 ID
+     *
+     * <p>使用 {@code getSession(false)} 以避免为无会话的请求（如 REST API）
+     * 无意创建新的 HTTP Session，从而防止内存泄漏与 Session 固化攻击面扩大。
      */
     private String getCurrentSessionId() {
         try {
             HttpServletRequest request = getRequest();
             if (request != null) {
-                return request.getSession(true).getId();
+                jakarta.servlet.http.HttpSession session = request.getSession(false);
+                return session != null ? session.getId() : null;
             }
         } catch (Exception e) {
             log.debug("获取会话 ID 失败", e);

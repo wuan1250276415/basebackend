@@ -1,7 +1,10 @@
 package com.basebackend.logging.audit.config;
 
 import com.basebackend.logging.audit.crypto.*;
+import com.basebackend.logging.audit.dsar.DsarService;
+import com.basebackend.logging.audit.export.AuditExportService;
 import com.basebackend.logging.audit.metrics.AuditMetrics;
+import com.basebackend.logging.audit.scheduler.AuditRetentionScheduler;
 import com.basebackend.logging.audit.service.AuditService;
 import com.basebackend.logging.audit.service.AuditVerificationService;
 import com.basebackend.logging.audit.storage.AuditStorage;
@@ -231,6 +234,34 @@ public class AuditAutoConfiguration {
                                                              AuditSignatureService signatureService) {
         log.info("初始化审计验证服务");
         return new AuditVerificationService(hashChainCalculator, signatureService);
+    }
+
+    /**
+     * 配置审计日志保留期调度器
+     *
+     * <p>每天凌晨 2 点清理超过保留期的审计日志，防止存储无限增长。
+     * 清理时间可通过 {@code basebackend.logging.audit.retention.cron} 覆盖。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AuditRetentionScheduler auditRetentionScheduler(AuditStorage auditStorage,
+                                                           AuditProperties properties) {
+        log.info("初始化审计保留期调度器，保留天数: {}", properties.getRetentionDays());
+        return new AuditRetentionScheduler(auditStorage, properties.getRetentionDays());
+    }
+
+    /**
+     * 配置 GDPR DSAR 服务
+     *
+     * <p>支持 GDPR 第 15 条（数据主体访问权）和第 17 条（删除权/匿名化权）。
+     * 依赖 {@link AuditExportService}，仅在 {@code AuditExportAutoConfiguration} 已激活时可用。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DsarService dsarService(AuditStorage auditStorage,
+                                   AuditExportService auditExportService) {
+        log.info("初始化 DSAR 合规服务");
+        return new DsarService(auditStorage, auditExportService);
     }
 
     /**

@@ -76,11 +76,16 @@ public class LocalLruCache<K, V> {
     /**
      * 获取缓存值
      *
+     * <p><b>并发安全说明</b>：底层 {@link java.util.LinkedHashMap} 以
+     * {@code accessOrder=true} 构造，每次 {@code get()} 都会修改内部双向链表以维护 LRU 顺序。
+     * 此结构性变更是 <em>写操作</em>，因此必须持有 {@code writeLock} 而非 {@code readLock}，
+     * 以避免多线程并发 {@code get()} 时破坏内部结构导致数据损坏。
+     *
      * @param key 键
      * @return 值，如果不存在返回null
      */
     public V get(K key) {
-        lock.readLock().lock();
+        lock.writeLock().lock();
         try {
             V value = store.get(key);
             if (value != null) {
@@ -90,7 +95,7 @@ public class LocalLruCache<K, V> {
             }
             return value;
         } finally {
-            lock.readLock().unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -219,15 +224,19 @@ public class LocalLruCache<K, V> {
     /**
      * 检查是否包含指定键
      *
+     * <p><b>并发安全说明</b>：{@link java.util.LinkedHashMap} 在 {@code accessOrder=true}
+     * 模式下，{@code containsKey()} 本身不修改访问顺序，但为保持锁策略一致性并防止
+     * 与并发 {@code get()} / {@code put()} 产生结构竞争，此处统一使用 {@code writeLock}。
+     *
      * @param key 键
      * @return true=包含，false=不包含
      */
     public boolean containsKey(K key) {
-        lock.readLock().lock();
+        lock.writeLock().lock();
         try {
             return store.containsKey(key);
         } finally {
-            lock.readLock().unlock();
+            lock.writeLock().unlock();
         }
     }
 

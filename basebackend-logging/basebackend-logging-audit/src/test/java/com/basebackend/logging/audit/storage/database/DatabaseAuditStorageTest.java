@@ -72,11 +72,13 @@ class DatabaseAuditStorageTest {
                 buildEntry("id-3", AuditEventType.CREATE)
         );
 
-        when(mapper.insert(any(SysAuditLog.class))).thenReturn(1);
+        when(mapper.insertBatchSomeColumn(any())).thenReturn(3);
 
         storage.batchSave(entries);
 
-        verify(mapper, times(3)).insert(any(SysAuditLog.class));
+        // 验证调用的是批量插入而非逐条 insert（性能修复：H10）
+        verify(mapper, times(1)).insertBatchSomeColumn(argThat(col -> col.size() == 3));
+        verify(mapper, never()).insert(any(SysAuditLog.class));
     }
 
     @Test
@@ -112,18 +114,24 @@ class DatabaseAuditStorageTest {
     @Test
     void findByUserId_shouldQueryAndConvert() throws AuditStorage.StorageException {
         List<SysAuditLog> entities = Arrays.asList(buildTestEntity(), buildTestEntity());
-        when(mapper.selectList(any())).thenReturn(entities);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysAuditLog> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
+        page.setRecords(entities);
+        when(mapper.selectPage(any(), any())).thenReturn(page);
 
         List<AuditLogEntry> results = storage.findByUserId("user-1", 10);
 
         assertThat(results).hasSize(2);
-        verify(mapper).selectList(any());
+        verify(mapper).selectPage(any(), any());
     }
 
     @Test
     void findByEventType_shouldQueryAndConvert() throws AuditStorage.StorageException {
         List<SysAuditLog> entities = Collections.singletonList(buildTestEntity());
-        when(mapper.selectList(any())).thenReturn(entities);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysAuditLog> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
+        page.setRecords(entities);
+        when(mapper.selectPage(any(), any())).thenReturn(page);
 
         List<AuditLogEntry> results = storage.findByEventType("LOGIN", 5);
 

@@ -4,18 +4,19 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 /**
  * PII脱敏AOP切面
  *
  * 拦截标注了@DataMasking注解的方法，自动对返回值进行脱敏处理。
  *
+ * <p>注意：此类不使用 {@code @Component}，由 {@link MaskingAutoConfiguration} 统一注册为 Spring Bean，
+ * 避免与自动配置的 Bean 产生双重注册，导致每个 {@code @DataMasking} 方法被拦截两次。
+ *
  * @author basebackend team
  * @since 2025-11-22
  */
 @Aspect
-@Component
 @Order(5)
 public class PiiMaskingAspect {
 

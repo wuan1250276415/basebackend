@@ -110,7 +110,11 @@ public class LogVolumeTracker {
             return totalBytes.get();
         }
 
-        void rollIfExpired() {
+        /**
+         * 若当前时间窗口已过期则重置，使用 synchronized 保证 check-then-act 的原子性，
+         * 防止并发调用下同一窗口被多次重置导致计数丢失。
+         */
+        synchronized void rollIfExpired() {
             long now = Instant.now().getEpochSecond();
             if (now - windowStart >= windowSeconds) {
                 windowEvents.set(0);

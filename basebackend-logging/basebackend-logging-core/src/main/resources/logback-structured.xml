@@ -120,8 +120,11 @@
     <logger name="org.mybatis" level="INFO"/>
     <logger name="com.alibaba" level="INFO"/>
 
-    <!-- SQL 日志（可选开启） -->
-    <logger name="com.basebackend.admin.mapper" level="DEBUG"/>
+    <!-- SQL 日志（默认关闭）
+         各服务按需在自己的 logback 配置中启用对应 mapper 包的 DEBUG 日志，
+         不在共享库配置中硬编码具体模块包名。
+    -->
+    <!-- <logger name="com.basebackend.${module}.mapper" level="DEBUG"/> -->
 
     <!-- Root Logger -->
     <root level="INFO">

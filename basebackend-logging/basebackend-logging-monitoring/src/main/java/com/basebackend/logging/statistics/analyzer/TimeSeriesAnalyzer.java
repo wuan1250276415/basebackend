@@ -180,8 +180,10 @@ public class TimeSeriesAnalyzer {
             return 0.0;
         }
 
-        List<Double> values = timeSeries.values().stream()
-                .sorted()
+        // 按时间升序排列后取值，保证时序性
+        List<Double> values = timeSeries.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
 
         double prediction = switch (method) {

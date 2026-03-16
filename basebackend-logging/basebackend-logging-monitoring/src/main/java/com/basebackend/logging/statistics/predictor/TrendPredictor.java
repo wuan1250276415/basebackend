@@ -175,8 +175,10 @@ public class TrendPredictor {
                     .build();
         }
 
-        List<Double> values = historicalData.values().stream()
-                .sorted()
+        // 按时间键升序排列，保证时序性
+        List<Double> values = historicalData.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
 
         // 使用多种算法预测

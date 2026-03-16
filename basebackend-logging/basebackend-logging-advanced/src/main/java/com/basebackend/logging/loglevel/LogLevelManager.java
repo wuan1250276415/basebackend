@@ -124,8 +124,9 @@ public class LogLevelManager {
     }
 
     /**
-     * 关闭调度器
+     * 关闭调度器（@PreDestroy 确保 Spring 容器销毁时自动调用）
      */
+    @jakarta.annotation.PreDestroy
     public void shutdown() {
         scheduler.shutdownNow();
     }

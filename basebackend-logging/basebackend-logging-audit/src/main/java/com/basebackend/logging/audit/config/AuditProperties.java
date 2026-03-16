@@ -78,11 +78,16 @@ public class AuditProperties {
     private Duration rollInterval = Duration.ofHours(1);
 
     /**
-     * AES-256 加密密钥（Base64 编码）
+     * AES-256 加密密钥（Base64 编码，必须配置）
+     *
+     * <p>此字段无默认值，运维人员必须在部署时显式配置一个强随机密钥：
+     * {@code basebackend.logging.audit.encryption-key-base64=<32字节随机数据的Base64编码>}
+     *
+     * <p>生成示例（Linux/macOS）：
+     * {@code openssl rand -base64 32}
      */
-    @NotBlank
-    // 默认演示密钥（32 字节的 Base64 编码），生产环境务必覆盖
-    private String encryptionKeyBase64 = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+    @NotBlank(message = "审计加密密钥不能为空，请配置 basebackend.logging.audit.encryption-key-base64（32字节随机数据的Base64编码）")
+    private String encryptionKeyBase64;
 
     /**
      * 数字签名算法
@@ -172,23 +177,32 @@ public class AuditProperties {
 
     /**
      * 验证配置的有效性
+     *
+     * <p>在启用审计功能时，会对加密密钥进行严格校验：
+     * <ul>
+     *   <li>密钥不得为空</li>
+     *   <li>必须是合法的 Base64 编码</li>
+     *   <li>解码后必须恰好为 32 字节（AES-256 要求）</li>
+     * </ul>
      */
     public void validate() {
         if (enabled) {
-            if (encryptionKeyBase64 == null || encryptionKeyBase64.isEmpty()) {
-                throw new IllegalArgumentException("加密密钥不能为空");
+            if (encryptionKeyBase64 == null || encryptionKeyBase64.isBlank()) {
+                throw new IllegalArgumentException(
+                        "审计加密密钥不能为空，请配置 basebackend.logging.audit.encryption-key-base64");
             }
 
-            // 验证密钥长度（Base64 解码后应该是 32 字节）
+            // 验证密钥格式（Base64 解码后应该是 32 字节）
             byte[] keyBytes;
             try {
                 keyBytes = java.util.Base64.getDecoder().decode(encryptionKeyBase64);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("加密密钥必须是有效的 Base64 编码", e);
+                throw new IllegalArgumentException("审计加密密钥必须是有效的 Base64 编码", e);
             }
 
             if (keyBytes.length != 32) {
-                throw new IllegalArgumentException("AES-256 加密密钥必须是 32 字节长度");
+                throw new IllegalArgumentException(
+                        "AES-256 审计加密密钥解码后必须为 32 字节，当前为 " + keyBytes.length + " 字节");
             }
 
             if (batchSize < 1) {

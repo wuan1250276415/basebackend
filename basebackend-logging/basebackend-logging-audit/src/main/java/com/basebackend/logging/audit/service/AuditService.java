@@ -141,6 +141,11 @@ public class AuditService implements DisposableBean {
                 flush();
             }
 
+        } catch (InterruptedException e) {
+            // 恢复中断状态，避免吞掉线程中断信号
+            Thread.currentThread().interrupt();
+            log.warn("审计事件入队被中断", e);
+            metrics.recordFailure("interrupted");
         } catch (Exception e) {
             log.error("记录审计事件失败", e);
             metrics.recordFailure("record-error");
@@ -166,6 +171,9 @@ public class AuditService implements DisposableBean {
 
     /**
      * 手动刷盘
+     *
+     * <p>使用 {@code ioExecutor}（虚拟线程池）异步执行实际 I/O，
+     * 调用方（业务线程）立即返回，不阻塞请求处理。
      */
     public void flush() {
         List<AuditLogEntry> batch = drainQueue();
@@ -174,23 +182,26 @@ public class AuditService implements DisposableBean {
             return;
         }
 
-        try {
-            long startTime = System.currentTimeMillis();
-            storage.batchSave(batch);
-            long elapsedMs = System.currentTimeMillis() - startTime;
+        // 异步执行 I/O，防止阻塞调用业务线程（M-10 修复）
+        ioExecutor.execute(() -> {
+            try {
+                long startTime = System.currentTimeMillis();
+                storage.batchSave(batch);
+                long elapsedMs = System.currentTimeMillis() - startTime;
 
-            metrics.recordBatch(batch.size(), elapsedMs);
+                metrics.recordBatch(batch.size(), elapsedMs);
 
-            log.info("审计批量刷盘完成，数量: {}, 耗时: {}ms", batch.size(), elapsedMs);
-        } catch (Exception e) {
-            log.error("审计批量刷盘失败", e);
-            metrics.recordStorageError();
+                log.info("审计批量刷盘完成，数量: {}, 耗时: {}ms", batch.size(), elapsedMs);
+            } catch (Exception e) {
+                log.error("审计批量刷盘失败", e);
+                metrics.recordStorageError();
 
-            // 重新入队（如果有空间）
-            for (AuditLogEntry entry : batch) {
-                queue.offer(entry);
+                // 重新入队（如果有空间）
+                for (AuditLogEntry entry : batch) {
+                    queue.offer(entry);
+                }
             }
-        }
+        });
     }
 
     /**
