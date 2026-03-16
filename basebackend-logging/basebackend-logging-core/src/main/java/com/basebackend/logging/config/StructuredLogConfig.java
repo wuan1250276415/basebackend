@@ -2,14 +2,19 @@ package com.basebackend.logging.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * 结构化日志配置
+ *
+ * <p>绑定配置前缀 {@code basebackend.logging.structured}，
+ * 由 {@link LoggingAutoConfiguration} 通过 {@code @EnableConfigurationProperties} 激活。
+ *
+ * <p>注意：此类不使用 {@code @Configuration}，防止被组件扫描双重注册。
+ * 同时将前缀从 {@code logging.structured} 改为 {@code basebackend.logging.structured}，
+ * 避免与 Spring Boot 保留的 {@code logging.*} 命名空间冲突。
  */
 @Data
-@Configuration
-@ConfigurationProperties(prefix = "logging.structured")
+@ConfigurationProperties(prefix = "basebackend.logging.structured")
 public class StructuredLogConfig {
 
     /**
@@ -23,9 +28,9 @@ public class StructuredLogConfig {
     private boolean lokiEnabled = false;
 
     /**
-     * Loki 服务地址
+     * Loki 服务地址（无默认值，需在部署时明确配置）
      */
-    private String lokiUrl = "http://192.168.66.126:3400/loki/api/v1/push";
+    private String lokiUrl = "http://localhost:3100/loki/api/v1/push";
 
     /**
      * 日志批量发送大小

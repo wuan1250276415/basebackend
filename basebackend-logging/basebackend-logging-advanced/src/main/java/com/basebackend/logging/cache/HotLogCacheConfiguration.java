@@ -46,14 +46,17 @@ public class HotLogCacheConfiguration {
 
     /**
      * 配置专门的RedisTemplate用于热点日志缓存
-     * 使用独立的RedisTemplate避免与其他缓存冲突
+     *
+     * <p>使用独立命名的 Bean 避免与应用中其他 RedisTemplate 冲突。
+     * 移除了 {@code @Primary}（防止意外劫持全局 RedisTemplate 注入点）
+     * 和 {@code setEnableTransactionSupport(true)}（日志缓存不需要 Spring 事务支持，
+     * 且在非事务上下文中启用此选项会导致连接不归还连接池）。
      *
      * @param connectionFactory        Redis连接工厂
      * @param fastJson2RedisSerializer 序列化器
      * @return RedisTemplate实例
      */
     @Bean(name = "hotLogRedisTemplate")
-    @Primary
     public RedisTemplate<String, Object> hotLogRedisTemplate(
             RedisConnectionFactory connectionFactory,
             RedisSerializer<Object> fastJson2RedisSerializer) {
@@ -71,9 +74,6 @@ public class HotLogCacheConfiguration {
         // 设置值的序列化器（JSON）
         template.setValueSerializer(fastJson2RedisSerializer);
         template.setHashValueSerializer(fastJson2RedisSerializer);
-
-        // 启用事务支持
-        template.setEnableTransactionSupport(true);
 
         // 初始化
         template.afterPropertiesSet();

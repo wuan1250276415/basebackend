@@ -390,13 +390,26 @@ public class ReportGenerator {
         return trends;
     }
 
+    /**
+     * HTML 特殊字符转义，防止 XSS 注入
+     */
+    private static String escapeHtml(Object value) {
+        if (value == null) return "";
+        return String.valueOf(value)
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
     private String buildHtmlContent(Map<String, Object> reportData, ReportConfig config) {
         StringBuilder html = new StringBuilder();
 
         html.append("<!DOCTYPE html>\n");
         html.append("<html>\n<head>\n");
         html.append("<meta charset=\"UTF-8\">\n");
-        html.append("<title>").append(config.getTitle()).append("</title>\n");
+        html.append("<title>").append(escapeHtml(config.getTitle())).append("</title>\n");
         html.append("<style>\n");
         html.append("body { font-family: Arial, sans-serif; margin: 20px; }\n");
         html.append("table { border-collapse: collapse; width: 100%; margin: 20px 0; }\n");
@@ -409,14 +422,14 @@ public class ReportGenerator {
 
         // 报告标题
         html.append("<div class=\"header\">\n");
-        html.append("<h1>").append(config.getTitle()).append("</h1>\n");
-        html.append("<p>生成时间: ").append(reportData.get("generatedAt")).append("</p>\n");
+        html.append("<h1>").append(escapeHtml(config.getTitle())).append("</h1>\n");
+        html.append("<p>生成时间: ").append(escapeHtml(reportData.get("generatedAt"))).append("</p>\n");
         html.append("</div>\n");
 
         // 数据范围
         html.append("<div class=\"summary\">\n");
         html.append("<h3>数据范围</h3>\n");
-        html.append("<p>").append(reportData.get("dataRange")).append("</p>\n");
+        html.append("<p>").append(escapeHtml(reportData.get("dataRange"))).append("</p>\n");
         html.append("</div>\n");
 
         // 摘要信息
@@ -431,7 +444,7 @@ public class ReportGenerator {
                     .append("</td></tr>\n");
             html.append("<tr><td>平均数量</td><td>").append(String.format("%.2f", summary.getAverageCount()))
                     .append("</td></tr>\n");
-            html.append("<tr><td>主要趋势</td><td>").append(summary.getMainTrend()).append("</td></tr>\n");
+            html.append("<tr><td>主要趋势</td><td>").append(escapeHtml(summary.getMainTrend())).append("</td></tr>\n");
             html.append("</table>\n");
             html.append("</div>\n");
         }
@@ -446,11 +459,11 @@ public class ReportGenerator {
 
             data.stream().limit(100).forEach(entry -> {
                 html.append("<tr>\n");
-                html.append("<td>").append(entry.getStartTime()).append("</td>\n");
-                html.append("<td>").append(entry.getEndTime()).append("</td>\n");
+                html.append("<td>").append(escapeHtml(entry.getStartTime())).append("</td>\n");
+                html.append("<td>").append(escapeHtml(entry.getEndTime())).append("</td>\n");
                 html.append("<td>").append(String.format("%.2f", entry.getCount())).append("</td>\n");
                 html.append("<td>").append(String.format("%.2f", entry.getMean())).append("</td>\n");
-                html.append("<td>").append(entry.getTrendType()).append("</td>\n");
+                html.append("<td>").append(escapeHtml(entry.getTrendType())).append("</td>\n");
                 html.append("<td>").append(String.format("%.2f%%", entry.getAnomalyRate() * 100)).append("</td>\n");
                 html.append("</tr>\n");
             });

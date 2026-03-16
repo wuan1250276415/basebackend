@@ -80,4 +80,12 @@ public class SysAuditLog {
     private String signature;
 
     private String certificateId;
+
+    /**
+     * 租户 ID（多租户场景必填）
+     *
+     * <p>对应 {@code AuditLogEntry#tenantId}，用于在单库多租户场景下隔离审计数据。
+     * 数据库表须添加 {@code tenant_id VARCHAR(64)} 列并建立索引。
+     */
+    private String tenantId;
 }

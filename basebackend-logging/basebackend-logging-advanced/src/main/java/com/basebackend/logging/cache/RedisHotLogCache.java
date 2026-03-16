@@ -54,7 +54,11 @@ public class RedisHotLogCache {
 
     /**
      * 访问频次统计（用于热点识别）
+     *
+     * <p>容量上限为 {@value #MAX_FREQUENCY_ENTRIES}，超限时丢弃访问次数最少的条目，
+     * 防止因 key 种类无限增长导致的内存泄漏。
      */
+    private static final int MAX_FREQUENCY_ENTRIES = 10_000;
     private final Map<String, LongAdder> frequency = new ConcurrentHashMap<>();
 
     /**
@@ -165,10 +169,21 @@ public class RedisHotLogCache {
 
     /**
      * 清空所有缓存
+     *
+     * <p>使用 {@code SCAN} 迭代而非 {@code KEYS}，避免在键数量大时阻塞 Redis 服务器。
      */
     public void clearAll() {
-        // 清空Redis
-        redisTemplate.delete(redisTemplate.keys(properties.getCachePrefix() + "*"));
+        // 使用 SCAN 迭代删除，避免 KEYS * 阻塞 Redis
+        String pattern = properties.getCachePrefix() + "*";
+        redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Void>) connection -> {
+            org.springframework.data.redis.core.Cursor<byte[]> cursor = connection.scan(
+                    org.springframework.data.redis.core.ScanOptions.scanOptions().match(pattern).count(200).build()
+            );
+            while (cursor.hasNext()) {
+                connection.del(cursor.next());
+            }
+            return null;
+        });
 
         // 清空本地缓存
         if (properties.isUseLocalCache()) {
@@ -217,6 +232,15 @@ public class RedisHotLogCache {
         }
 
         String key = buildKey(rawKey);
+
+        // 频次 Map 超出上限时，移除访问次数最低的条目，防止无界增长
+        if (frequency.size() >= MAX_FREQUENCY_ENTRIES) {
+            frequency.entrySet().stream()
+                    .min(java.util.Comparator.comparingLong(e -> e.getValue().sum()))
+                    .map(Map.Entry::getKey)
+                    .ifPresent(frequency::remove);
+        }
+
         LongAdder adder = frequency.computeIfAbsent(key, k -> new LongAdder());
         adder.increment();
 
@@ -313,11 +337,26 @@ public class RedisHotLogCache {
     /**
      * 获取Redis缓存大小
      *
+     * <p>使用 {@code SCAN} 迭代计数，避免 {@code KEYS *} 阻塞 Redis 服务器。
+     *
      * @return Redis缓存条目数（近似）
      */
     public long getRedisSize() {
         try {
-            return redisTemplate.keys(properties.getCachePrefix() + "*").size();
+            String pattern = properties.getCachePrefix() + "*";
+            long count = 0;
+            org.springframework.data.redis.core.Cursor<byte[]> cursor = redisTemplate.execute(
+                    (org.springframework.data.redis.core.RedisCallback<org.springframework.data.redis.core.Cursor<byte[]>>) connection ->
+                            connection.scan(org.springframework.data.redis.core.ScanOptions.scanOptions()
+                                    .match(pattern).count(200).build())
+            );
+            if (cursor != null) {
+                while (cursor.hasNext()) {
+                    cursor.next();
+                    count++;
+                }
+            }
+            return count;
         } catch (Exception e) {
             return -1;  // 获取失败
         }
@@ -340,13 +379,17 @@ public class RedisHotLogCache {
     /**
      * 检查Redis连接
      *
+     * <p>使用 {@code execute()} 回调方式获取连接，确保连接在操作完成后由连接工厂正确归还，
+     * 避免 {@code getConnection()} 直接获取连接时的连接泄漏。
+     *
      * @return true=连接正常，false=连接异常
      */
     public boolean ping() {
         try {
-            String result = redisTemplate.getConnectionFactory()
-                    .getConnection()
-                    .ping();
+            String result = redisTemplate.execute(
+                    (org.springframework.data.redis.core.RedisCallback<String>) connection ->
+                            connection.ping()
+            );
             return "PONG".equals(result);
         } catch (Exception e) {
             return false;

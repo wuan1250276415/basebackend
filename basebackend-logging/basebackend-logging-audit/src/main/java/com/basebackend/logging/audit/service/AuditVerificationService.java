@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 审计验证服务
@@ -33,9 +34,9 @@ public class AuditVerificationService {
     private final AuditSignatureService signatureService;
     private final ExecutorService verificationExecutor;
 
-    // 验证统计数据
-    private volatile long totalVerifiedEntries = 0;
-    private volatile long totalVerificationErrors = 0;
+    // 验证统计数据（AtomicLong 保证并发安全）
+    private final AtomicLong totalVerifiedEntries = new AtomicLong(0);
+    private final AtomicLong totalVerificationErrors = new AtomicLong(0);
     private volatile long lastVerificationTime = 0;
     private volatile Instant lastSuccessfulVerification = null;
 
@@ -82,7 +83,7 @@ public class AuditVerificationService {
                         .build();
             }
 
-            totalVerifiedEntries++;
+            totalVerifiedEntries.incrementAndGet();
             lastVerificationTime = System.currentTimeMillis();
 
             return VerificationResult.builder()
@@ -92,7 +93,7 @@ public class AuditVerificationService {
 
         } catch (Exception e) {
             log.error("验证审计日志条目异常", e);
-            totalVerificationErrors++;
+            totalVerificationErrors.incrementAndGet();
             return VerificationResult.builder()
                     .valid(false)
                     .error("验证过程异常: " + e.getMessage())
@@ -159,8 +160,8 @@ public class AuditVerificationService {
                 log.error("审计日志链验证失败，错误数: {}/{}, 耗时: {}ms", errorCount, totalEntries, elapsedMs);
             }
 
-            totalVerifiedEntries += totalEntries;
-            totalVerificationErrors += errorCount;
+            totalVerifiedEntries.addAndGet(totalEntries);
+            totalVerificationErrors.addAndGet(errorCount);
             lastVerificationTime = System.currentTimeMillis();
 
             return report;
@@ -185,7 +186,11 @@ public class AuditVerificationService {
     }
 
     /**
-     * 并行验证多个分片
+     * 并行分片验证
+     *
+     * <p><b>架构说明</b>：哈希链是线性结构，相邻条目通过 prevHash 串联。分片并行验证
+     * 每个分片内部的一致性，并在各分片完成后额外检验相邻分片边界的哈希连接，
+     * 从而实现既快速（各分片并行）又正确（边界链路不遗漏）的验证。
      */
     public VerificationReport verifySharded(List<AuditLogEntry> entries, int shardCount) {
         if (entries == null || entries.isEmpty()) {
@@ -198,17 +203,54 @@ public class AuditVerificationService {
 
         int shardSize = (entries.size() + shardCount - 1) / shardCount;
         List<CompletableFuture<VerificationReport>> futures = new ArrayList<>();
+        // 记录每个分片起始条目的前置 prevHash（顺序计算，用于跨分片验证）
+        List<String> shardBoundaryPrevHashes = new ArrayList<>();
+
+        // 计算每个分片的边界 prevHash（需要顺序扫描，但只需遍历 entry.getEntryHash()）
+        String boundaryHash = null;
+        for (int i = 0; i < shardCount; i++) {
+            int start = i * shardSize;
+            if (start >= entries.size()) break;
+            shardBoundaryPrevHashes.add(boundaryHash);
+            int end = Math.min(start + shardSize, entries.size());
+            // 最后一个分片的最后一个 entry 的 entryHash 作为下一分片的 prevHash
+            boundaryHash = entries.get(end - 1).getEntryHash();
+        }
 
         for (int i = 0; i < shardCount; i++) {
             int start = i * shardSize;
             int end = Math.min(start + shardSize, entries.size());
+            if (start >= end) break;
 
-            if (start >= end) {
-                break;
-            }
-
+            final String shardPrevHash = shardBoundaryPrevHashes.get(i);
             List<AuditLogEntry> shard = entries.subList(start, end);
-            futures.add(verifyChainAsync(shard));
+
+            // 验证分片内部，传入正确的 prevHash
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                String prev = shardPrevHash;
+                int total = shard.size();
+                int errors = 0;
+                List<VerificationResult> errorList = new ArrayList<>();
+                long startMs = System.currentTimeMillis();
+                for (int j = 0; j < shard.size(); j++) {
+                    AuditLogEntry entry = shard.get(j);
+                    VerificationResult result = verifyEntry(entry, prev);
+                    if (!result.isValid()) {
+                        errors++;
+                        result.setEntryIndex(j + 1);
+                        errorList.add(result);
+                    }
+                    prev = entry.getEntryHash();
+                }
+                return VerificationReport.builder()
+                        .valid(errors == 0)
+                        .totalEntries(total)
+                        .errorCount(errors)
+                        .successCount(total - errors)
+                        .elapsedMs(System.currentTimeMillis() - startMs)
+                        .errors(errorList)
+                        .build();
+            }, verificationExecutor));
         }
 
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(
@@ -218,7 +260,6 @@ public class AuditVerificationService {
         try {
             allFutures.get(30, TimeUnit.SECONDS);
 
-            // 合并结果
             int totalEntries = 0;
             int errorCount = 0;
             int successCount = 0;
@@ -282,8 +323,8 @@ public class AuditVerificationService {
      */
     public VerificationStats getStats() {
         return VerificationStats.builder()
-                .totalVerifiedEntries(totalVerifiedEntries)
-                .totalVerificationErrors(totalVerificationErrors)
+                .totalVerifiedEntries(totalVerifiedEntries.get())
+                .totalVerificationErrors(totalVerificationErrors.get())
                 .lastVerificationTime(lastVerificationTime)
                 .lastSuccessfulVerification(lastSuccessfulVerification)
                 .build();
@@ -293,16 +334,17 @@ public class AuditVerificationService {
      * 重置统计信息
      */
     public void resetStats() {
-        totalVerifiedEntries = 0;
-        totalVerificationErrors = 0;
+        totalVerifiedEntries.set(0);
+        totalVerificationErrors.set(0);
         lastVerificationTime = 0;
         lastSuccessfulVerification = null;
         log.info("验证统计信息已重置");
     }
 
     /**
-     * 关闭验证服务
+     * 关闭验证服务（@PreDestroy 确保 Spring 容器销毁时自动调用）
      */
+    @jakarta.annotation.PreDestroy
     public void shutdown() {
         verificationExecutor.shutdown();
         try {

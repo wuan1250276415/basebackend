@@ -19,11 +19,15 @@ import java.util.stream.Stream;
  *
  * 文件格式：每行一条 JSON 序列化的 LogEvent，以换行符分隔。
  *
+ * <p><b>I/O 优化</b>：使用持久的 {@link BufferedOutputStream} 替代每次写入调用
+ * {@code Files.write()}（后者每次打开-写入-关闭文件，高吞吐时开销极大）。
+ * 滚动时先 flush+close 旧的 writer，再打开新的 writer。
+ *
  * @author basebackend team
  * @since 2025-12-10
  */
 @Slf4j
-public class LocalWalBuffer {
+public class LocalWalBuffer implements Closeable {
 
     private final Path walDirectory;
     private final long maxFileSizeBytes;
@@ -31,6 +35,9 @@ public class LocalWalBuffer {
     private final AtomicLong currentFileSize = new AtomicLong(0);
     private volatile Path currentFile;
     private final Object writeLock = new Object();
+
+    /** 持久打开的带缓冲写入器，避免每次写入都触发 open/close syscall */
+    private BufferedOutputStream currentWriter;
 
     public LocalWalBuffer(String directory, long maxFileSizeBytes, int maxFiles) {
         this.walDirectory = Paths.get(directory);
@@ -60,8 +67,11 @@ public class LocalWalBuffer {
                 if (currentFileSize.get() >= maxFileSizeBytes) {
                     rollFile();
                 }
+                if (currentWriter == null) {
+                    return;
+                }
                 byte[] data = (serializedEvent + "\n").getBytes(StandardCharsets.UTF_8);
-                Files.write(currentFile, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                currentWriter.write(data);
                 currentFileSize.addAndGet(data.length);
             } catch (IOException e) {
                 log.error("WAL 写入失败", e);
@@ -77,6 +87,12 @@ public class LocalWalBuffer {
     public List<String> drainOldest() {
         List<String> events = new ArrayList<>();
         try {
+            // flush 当前 writer 保证数据落盘后再读取其他文件
+            synchronized (writeLock) {
+                if (currentWriter != null) {
+                    currentWriter.flush();
+                }
+            }
             Path oldest = findOldestNonCurrentFile();
             if (oldest == null) {
                 return events;
@@ -102,28 +118,62 @@ public class LocalWalBuffer {
     }
 
     /**
-     * 获取 WAL 目录总大小（字节）
+     * 获取 WAL 目录总大小（字节），包含缓冲区中尚未刷盘的字节
      */
     public long getTotalSizeBytes() {
-        try (Stream<Path> files = Files.list(walDirectory)) {
-            return files.filter(p -> p.toString().endsWith(".wal"))
+        long diskSize = 0;
+        try (java.util.stream.Stream<Path> files = java.nio.file.Files.list(walDirectory)) {
+            diskSize = files.filter(p -> p.toString().endsWith(".wal"))
+                    .filter(p -> !p.equals(currentFile))  // 已完成的文件读磁盘大小
                     .mapToLong(p -> {
                         try {
-                            return Files.size(p);
+                            return java.nio.file.Files.size(p);
                         } catch (IOException e) {
                             return 0;
                         }
                     })
                     .sum();
         } catch (IOException e) {
-            return 0;
+            // ignore
+        }
+        // 当前文件用 AtomicLong 跟踪（包含缓冲区中未刷盘的字节）
+        return diskSize + currentFileSize.get();
+    }
+
+    /** 关闭当前 writer（实现 Closeable 以支持 try-with-resources） */
+    @Override
+    public void close() {
+        synchronized (writeLock) {
+            closeCurrentWriter();
         }
     }
 
     private void rollFile() throws IOException {
+        // 关闭旧 writer
+        closeCurrentWriter();
+
         currentFile = walDirectory.resolve("wal-" + System.currentTimeMillis() + ".wal");
         currentFileSize.set(0);
+
+        // 打开新的带缓冲 writer（8KB buffer，大幅减少系统调用）
+        currentWriter = new BufferedOutputStream(
+                Files.newOutputStream(currentFile, StandardOpenOption.CREATE, StandardOpenOption.APPEND),
+                8192);
+
         cleanupOldFiles();
+    }
+
+    private void closeCurrentWriter() {
+        if (currentWriter != null) {
+            try {
+                currentWriter.flush();
+                currentWriter.close();
+            } catch (IOException e) {
+                log.warn("关闭 WAL writer 失败", e);
+            } finally {
+                currentWriter = null;
+            }
+        }
     }
 
     private void cleanupOldFiles() {

@@ -16,7 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  */
 @Slf4j
 @AutoConfiguration
-@EnableConfigurationProperties(LoggingUnifiedProperties.class)
+@EnableConfigurationProperties({LoggingUnifiedProperties.class, StructuredLogConfig.class})
 @ConditionalOnProperty(value = "basebackend.logging.enabled", matchIfMissing = true)
 public class LoggingAutoConfiguration {
 

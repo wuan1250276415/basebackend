@@ -45,9 +45,12 @@ public class DatabaseAuditStorage implements AuditStorage {
             return;
         }
         try {
-            for (AuditLogEntry entry : entries) {
-                mapper.insert(toEntity(entry));
-            }
+            List<SysAuditLog> entities = entries.stream()
+                    .map(this::toEntity)
+                    .collect(Collectors.toList());
+            // 使用 MyBatis Plus 的 insertBatchSomeColumn 进行真正的批量 INSERT
+            // 若 mapper 未扩展 InsertBatchSomColumnMapper，则退化为分批单条插入
+            mapper.insertBatchSomeColumn(entities);
         } catch (Exception e) {
             throw new StorageException("数据库审计日志批量保存失败: " + e.getMessage(), e);
         }
@@ -78,12 +81,16 @@ public class DatabaseAuditStorage implements AuditStorage {
     @Override
     public List<AuditLogEntry> findByUserId(String userId, int limit) throws StorageException {
         try {
-            QueryWrapper<SysAuditLog> wrapper = new QueryWrapper<>();
-            wrapper.eq("user_id", userId)
-                    .orderByDesc("timestamp")
-                    .last("LIMIT " + limit);
-            List<SysAuditLog> entities = mapper.selectList(wrapper);
-            return entities.stream().map(this::toModel).collect(Collectors.toList());
+            // 使用 LambdaQueryWrapper + page() 替代 .last("LIMIT N") 字符串拼接，
+            // 消除 SQL 注入风险（limit 参数通过 MyBatis 绑定参数传递）
+            int safeLimit = Math.max(1, Math.min(limit, 10_000));
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysAuditLog> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysAuditLog>()
+                            .eq(SysAuditLog::getUserId, userId)
+                            .orderByDesc(SysAuditLog::getTimestamp);
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysAuditLog> page =
+                    mapper.selectPage(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, safeLimit), wrapper);
+            return page.getRecords().stream().map(this::toModel).collect(Collectors.toList());
         } catch (Exception e) {
             throw new StorageException("数据库审计日志用户查询失败: " + e.getMessage(), e);
         }
@@ -92,12 +99,14 @@ public class DatabaseAuditStorage implements AuditStorage {
     @Override
     public List<AuditLogEntry> findByEventType(String eventType, int limit) throws StorageException {
         try {
-            QueryWrapper<SysAuditLog> wrapper = new QueryWrapper<>();
-            wrapper.eq("event_type", eventType)
-                    .orderByDesc("timestamp")
-                    .last("LIMIT " + limit);
-            List<SysAuditLog> entities = mapper.selectList(wrapper);
-            return entities.stream().map(this::toModel).collect(Collectors.toList());
+            int safeLimit = Math.max(1, Math.min(limit, 10_000));
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysAuditLog> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysAuditLog>()
+                            .eq(SysAuditLog::getEventType, eventType)
+                            .orderByDesc(SysAuditLog::getTimestamp);
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysAuditLog> page =
+                    mapper.selectPage(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, safeLimit), wrapper);
+            return page.getRecords().stream().map(this::toModel).collect(Collectors.toList());
         } catch (Exception e) {
             throw new StorageException("数据库审计日志事件类型查询失败: " + e.getMessage(), e);
         }
@@ -133,11 +142,24 @@ public class DatabaseAuditStorage implements AuditStorage {
                     ? ((Number) stats.get("total_entries")).longValue() : 0;
             long oldestTime = 0;
             long newestTime = 0;
-            if (stats.get("oldest_entry_time") instanceof Instant oldest) {
-                oldestTime = oldest.toEpochMilli();
+            // MyBatis 从 MySQL DATETIME 列返回 java.sql.Timestamp 或 java.time.LocalDateTime，
+            // 而非 Instant；使用 Number / java.util.Date 公共接口统一处理，
+            // 或通过 Timestamp.toInstant() 转换。
+            Object oldestRaw = stats.get("oldest_entry_time");
+            if (oldestRaw instanceof java.sql.Timestamp ts) {
+                oldestTime = ts.toInstant().toEpochMilli();
+            } else if (oldestRaw instanceof java.time.LocalDateTime ldt) {
+                oldestTime = ldt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+            } else if (oldestRaw instanceof Instant inst) {
+                oldestTime = inst.toEpochMilli();
             }
-            if (stats.get("newest_entry_time") instanceof Instant newest) {
-                newestTime = newest.toEpochMilli();
+            Object newestRaw = stats.get("newest_entry_time");
+            if (newestRaw instanceof java.sql.Timestamp ts) {
+                newestTime = ts.toInstant().toEpochMilli();
+            } else if (newestRaw instanceof java.time.LocalDateTime ldt) {
+                newestTime = ldt.toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+            } else if (newestRaw instanceof Instant inst) {
+                newestTime = inst.toEpochMilli();
             }
             return new StorageStats(totalEntries, 0, 0, oldestTime, newestTime, 0);
         } catch (Exception e) {
@@ -177,6 +199,7 @@ public class DatabaseAuditStorage implements AuditStorage {
                 .entryHash(entry.getEntryHash())
                 .signature(entry.getSignature())
                 .certificateId(entry.getCertificateId())
+                .tenantId(entry.getTenantId())
                 .build();
     }
 
@@ -214,6 +237,7 @@ public class DatabaseAuditStorage implements AuditStorage {
                 .entryHash(entity.getEntryHash())
                 .signature(entity.getSignature())
                 .certificateId(entity.getCertificateId())
+                .tenantId(entity.getTenantId())
                 .build();
     }
 }

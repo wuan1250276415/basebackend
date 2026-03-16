@@ -4,6 +4,9 @@ import com.basebackend.logging.statistics.model.LogStatisticsEntry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -295,18 +298,24 @@ public class StatisticsAggregator {
                 .build();
     }
 
+    private static final DateTimeFormatter HOUR_FMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00");
+    private static final DateTimeFormatter DAY_FMT   = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter WEEK_FMT  = DateTimeFormatter.ofPattern("yyyy-'W'ww");
+    private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
+
+    /**
+     * 生成时间分组键
+     *
+     * <p>使用 {@link ZonedDateTime}（UTC）将 {@link Instant} 转换为日历日期，
+     * 避免原先使用 epochSeconds 算术计算导致的错误分组键（如 "19000-04-22"）。
+     */
     private String getTimeKey(Instant time, TimeDimension dimension) {
-        // 简化的时间键生成
-        // 在实际应用中应使用更精确的时间格式化
+        ZonedDateTime zdt = time.atZone(ZoneOffset.UTC);
         return switch (dimension) {
-            case HOUR -> String.format("%d-%02d-%02d %02d:00",
-                    time.getEpochSecond() / 86400, time.getEpochSecond() % 24, 0, 0);
-            case DAY -> String.format("%d-%02d-%02d",
-                    time.getEpochSecond() / 86400, time.getEpochSecond() % 24, 0);
-            case WEEK -> String.format("%d-W%02d",
-                    time.getEpochSecond() / (86400 * 7), (time.getEpochSecond() % (86400 * 7)) / 7);
-            case MONTH -> String.format("%d-%02d",
-                    time.getEpochSecond() / (86400 * 30), (time.getEpochSecond() % (86400 * 30)) / 30);
+            case HOUR  -> zdt.format(HOUR_FMT);
+            case DAY   -> zdt.format(DAY_FMT);
+            case WEEK  -> zdt.format(WEEK_FMT);
+            case MONTH -> zdt.format(MONTH_FMT);
         };
     }
 

@@ -71,8 +71,9 @@ public class MonitoringHealthIndicator implements HealthIndicator {
                 log.warn("监控系统健康检查异常: 错误率={}, 延迟={}ms, 队列深度={}",
                         errorRate, avgLatencyMs, queueDepth);
             } else if (errorRate > 0.05 || avgLatencyMs > 500 || queueDepth > 5000) {
-                builder = Health.up();
-                builder.withDetail("reason", "指标警告");
+                // 警告状态：使用 UNKNOWN 而非 UP，避免 Spring Actuator 聚合器将其误报为正常
+                builder = Health.unknown();
+                builder.withDetail("reason", "指标警告（超过软阈值）");
                 log.warn("监控系统健康检查警告: 错误率={}, 延迟={}ms, 队列深度={}",
                         errorRate, avgLatencyMs, queueDepth);
             } else {

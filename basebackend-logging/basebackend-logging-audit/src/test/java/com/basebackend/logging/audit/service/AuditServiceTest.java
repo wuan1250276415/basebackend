@@ -283,6 +283,9 @@ class AuditServiceTest {
         // When - 手动触发刷盘（模拟定时任务）
         auditService.flush();
 
+        // flush() 现在是异步执行，等待虚拟线程完成 I/O
+        Thread.sleep(200);
+
         // Then - 验证刷盘操作
         verify(hashChainCalculator, times(1)).computeHash(any(AuditLogEntry.class), any());
         verify(signatureService, times(1)).sign(any(AuditLogEntry.class));
@@ -345,6 +348,9 @@ class AuditServiceTest {
             "127.0.0.1", "Mozilla/5.0", "创建", null, "session-1", null
         );
         auditService.flush();
+
+        // flush() 现在是异步执行，等待虚拟线程完成 I/O
+        Thread.sleep(200);
 
         // Then - 验证失败被记录，但不会重试（重新入队）
         verify(storage, times(1)).batchSave(anyList());

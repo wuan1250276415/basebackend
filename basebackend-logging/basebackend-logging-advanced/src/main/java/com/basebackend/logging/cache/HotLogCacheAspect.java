@@ -5,7 +5,6 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
@@ -18,11 +17,13 @@ import java.util.Optional;
  * 拦截标注了@HotLoggable注解的方法，实现自动缓存管理。
  * 支持读透、写透、写回、失效等多种缓存策略。
  *
+ * <p>注意：此类不使用 {@code @Component}，由 {@link HotLogCacheConfiguration} 统一注册为 Spring Bean，
+ * 避免与自动配置的 Bean 产生双重注册，导致每个 {@code @HotLoggable} 方法被拦截两次。
+ *
  * @author basebackend team
  * @since 2025-11-22
  */
 @Aspect
-@Component
 @Order(10)  // 设置优先级，确保在其他切面之前执行
 public class HotLogCacheAspect {
 

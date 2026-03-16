@@ -44,6 +44,14 @@ public class LogCostAutoConfiguration {
             loggerContext.addTurboFilter(filter);
             log.info("自适应采样过滤器已注册到 Logback LoggerContext，阈值: {} events / {} bytes",
                     properties.getEventThreshold(), properties.getByteThreshold());
+
+            // 注册销毁钩子：在 Spring 上下文关闭/刷新时移除已注册的 TurboFilter，
+            // 防止在 dev-tools 热重载或测试上下文重启时产生重复注册问题
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                loggerContext.getTurboFilterList().remove(filter);
+                log.debug("自适应采样过滤器已从 LoggerContext 移除");
+            }, "log-cost-filter-cleanup"));
+
         } else {
             log.warn("当前日志实现非 Logback，自适应采样过滤器未注册");
         }

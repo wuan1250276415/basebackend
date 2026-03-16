@@ -143,6 +143,11 @@ public class AsyncGzipSizeAndTimeRollingPolicy extends TimeBasedRollingPolicy<IL
     private volatile boolean started;
 
     /**
+     * 索引文件写入锁，防止多个并发压缩任务同时追加/裁剪索引导致数据损坏
+     */
+    private final Object indexLock = new Object();
+
+    /**
      * 时间格式化器
      */
     private final DateTimeFormatter tsFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -535,17 +540,18 @@ public class AsyncGzipSizeAndTimeRollingPolicy extends TimeBasedRollingPolicy<IL
         String line = tsFormatter.format(Instant.now()) + "|" + compressed.getName()
                 + "|" + rawSize + "|" + gzSize + "\n";
 
-        try {
-            // 追加写入索引
-            Files.write(idx.toPath(), line.getBytes(StandardCharsets.UTF_8),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
+        // 对同一目录的 index 文件加锁，防止多个并发压缩任务同时 append+prune 导致文件损坏
+        synchronized (indexLock) {
+            try {
+                Files.write(idx.toPath(), line.getBytes(StandardCharsets.UTF_8),
+                        java.nio.file.StandardOpenOption.CREATE,
+                        java.nio.file.StandardOpenOption.APPEND);
 
-            // 裁剪索引文件
-            pruneIndex(idx);
+                pruneIndex(idx);
 
-        } catch (IOException e) {
-            addStatus(new WarnStatus("Failed to update index: " + idx, this, e));
+            } catch (IOException e) {
+                addStatus(new WarnStatus("Failed to update index: " + idx, this, e));
+            }
         }
     }
 

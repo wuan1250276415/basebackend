@@ -246,10 +246,13 @@ public class PiiMaskingService {
             return null;
         }
         return switch (rule.getStrategy()) {
-            case REMOVE -> "";
-            case HASH -> sha256(value);
-            case CUSTOM -> rule.getReplacement();
-            default -> partialMask(value, rule.getPrefixKeep(), rule.getSuffixKeep(), rule.getReplacement());
+            case REMOVE  -> "";
+            case HASH    -> sha256(value);
+            case CUSTOM  -> rule.getReplacement();
+            // MASK：全字符替换（不保留前缀/后缀），与 PARTIAL 区分
+            case MASK    -> rule.getReplacement().repeat(Math.max(1, value.length()));
+            // PARTIAL：保留前缀和后缀，中间用替换字符填充
+            default      -> partialMask(value, rule.getPrefixKeep(), rule.getSuffixKeep(), rule.getReplacement());
         };
     }
 

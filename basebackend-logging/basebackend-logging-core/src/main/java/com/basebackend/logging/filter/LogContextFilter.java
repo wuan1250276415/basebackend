@@ -23,6 +23,12 @@ public class LogContextFilter extends OncePerRequestFilter {
     private static final String TRACE_ID_HEADER = "X-Trace-Id";
     private static final String REQUEST_ID_HEADER = "X-Request-Id";
 
+    /** Trace/Request ID 最大允许长度，防止超长字符串注入 MDC */
+    private static final int MAX_ID_LENGTH = 64;
+    /** 合法 ID 格式：仅允许十六进制字符和连字符（UUID 格式或 32 位 hex） */
+    private static final java.util.regex.Pattern SAFE_ID_PATTERN =
+            java.util.regex.Pattern.compile("[0-9a-fA-F\\-]{1,64}");
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     jakarta.servlet.http.HttpServletResponse response,
@@ -31,15 +37,19 @@ public class LogContextFilter extends OncePerRequestFilter {
             // 初始化日志上下文
             LogContext.init();
 
-            // 尝试从请求头获取 TraceId（用于分布式追踪）
+            // 尝试从请求头获取 TraceId（用于分布式追踪），校验长度和格式防止注入
             String traceId = request.getHeader(TRACE_ID_HEADER);
-            if (traceId != null && !traceId.isEmpty()) {
+            if (traceId != null && !traceId.isEmpty()
+                    && traceId.length() <= MAX_ID_LENGTH
+                    && SAFE_ID_PATTERN.matcher(traceId).matches()) {
                 LogContext.setTraceId(traceId);
             }
 
-            // 尝试从请求头获取 RequestId
+            // 尝试从请求头获取 RequestId，同样进行格式校验
             String requestId = request.getHeader(REQUEST_ID_HEADER);
-            if (requestId != null && !requestId.isEmpty()) {
+            if (requestId != null && !requestId.isEmpty()
+                    && requestId.length() <= MAX_ID_LENGTH
+                    && SAFE_ID_PATTERN.matcher(requestId).matches()) {
                 LogContext.setRequestId(requestId);
             }
 
