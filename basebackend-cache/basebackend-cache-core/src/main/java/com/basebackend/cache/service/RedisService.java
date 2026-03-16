@@ -15,6 +15,8 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -113,9 +115,16 @@ public class RedisService {
         executeWithFallback(() -> {
             if (ttl != null && !ttl.isZero() && !ttl.isNegative()) {
                 // 使用 pipeline 批量设置带过期时间的缓存
+                byte[] rawTtlSeconds = String.valueOf(ttl.getSeconds()).getBytes(StandardCharsets.UTF_8);
                 redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
                     entries.forEach((key, value) -> {
-                        redisTemplate.opsForValue().set(key, value, ttl.getSeconds(), TimeUnit.SECONDS);
+                        byte[] rawKey = redisTemplate.getStringSerializer().serialize(key);
+                        @SuppressWarnings("unchecked")
+                        byte[] rawValue = ((org.springframework.data.redis.serializer.RedisSerializer<Object>)
+                                redisTemplate.getValueSerializer()).serialize(value);
+                        if (rawKey != null && rawValue != null) {
+                            connection.stringCommands().setEx(rawKey, ttl.getSeconds(), rawValue);
+                        }
                     });
                     return null;
                 });
@@ -174,9 +183,8 @@ public class RedisService {
         try {
             log.info("Starting pattern-based deletion for pattern: {}, batch size: {}", finalPattern, finalBatchSize);
 
-            // 使用 AtomicLong 和 AtomicInteger 来跟踪状态
-            final long[] totalDeleted = {0};
-            final int[] batchCount = {0};
+            final AtomicLong totalDeleted = new AtomicLong(0);
+            final AtomicInteger batchCount = new AtomicInteger(0);
 
             // 使用 SCAN 游标分页遍历所有匹配的键
             ScanOptions scanOptions = ScanOptions.scanOptions()
@@ -193,20 +201,20 @@ public class RedisService {
 
                         // 当批次达到指定大小时执行删除
                         if (currentBatch.size() >= finalBatchSize) {
-                            batchCount[0]++;
-                            totalDeleted[0] += deleteBatch(currentBatch);
+                            batchCount.incrementAndGet();
+                            totalDeleted.addAndGet(deleteBatch(currentBatch));
                             log.debug("Processed batch #{}: {} keys, total deleted: {}",
-                                batchCount[0], currentBatch.size(), totalDeleted[0]);
+                                batchCount.get(), currentBatch.size(), totalDeleted.get());
                             currentBatch.clear();
                         }
                     }
 
                     // 删除剩余的键
                     if (!currentBatch.isEmpty()) {
-                        batchCount[0]++;
-                        totalDeleted[0] += deleteBatch(currentBatch);
+                        batchCount.incrementAndGet();
+                        totalDeleted.addAndGet(deleteBatch(currentBatch));
                         log.debug("Processed final batch #{}: {} keys, total deleted: {}",
-                            batchCount[0], currentBatch.size(), totalDeleted[0]);
+                            batchCount.get(), currentBatch.size(), totalDeleted.get());
                     }
                 }
 
@@ -215,9 +223,9 @@ public class RedisService {
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("Pattern-based deletion completed: {} keys deleted in {} ms ({} batches), pattern: {}",
-                totalDeleted[0], duration, batchCount[0], finalPattern);
+                totalDeleted.get(), duration, batchCount.get(), finalPattern);
 
-            return totalDeleted[0];
+            return totalDeleted.get();
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
@@ -258,7 +266,7 @@ public class RedisService {
             // 如果 UNLINK 失败，尝试使用 DEL
             try {
                 List<String> stringKeys = keys.stream()
-                    .map(String::new)
+                    .map(k -> new String(k, StandardCharsets.UTF_8))
                     .collect(Collectors.toList());
                 Long deleted = redisTemplate.delete(stringKeys);
                 return deleted != null ? deleted : 0;
@@ -610,6 +618,7 @@ public class RedisService {
     /**
      * 关闭资源
      */
+    @PreDestroy
     public void shutdown() {
         if (timeoutExecutor != null && !timeoutExecutor.isShutdown()) {
             log.info("Shutting down timeout executor");
@@ -681,7 +690,7 @@ public class RedisService {
         final int finalCount = count;
 
         // 使用数组来存储可变状态
-        final Set<String>[] keys = new HashSet[]{new HashSet<>()};
+        final Set<String> collectedKeys = ConcurrentHashMap.newKeySet();
         final long[] totalScanned = {0};
 
         return executeWithFallback(() -> {
@@ -696,7 +705,7 @@ public class RedisService {
                     try (Cursor<byte[]> cursor = connection.scan(scanOptions)) {
                         while (cursor.hasNext()) {
                             byte[] keyBytes = cursor.next();
-                            keys[0].add(new String(keyBytes));
+                            collectedKeys.add(new String(keyBytes, StandardCharsets.UTF_8));
                             totalScanned[0]++;
 
                             // 每扫描1000个键输出一次日志，避免日志过多
@@ -710,9 +719,9 @@ public class RedisService {
 
                 long duration = System.currentTimeMillis() - startTime;
                 log.info("SCAN completed successfully: {} keys found in {} ms, pattern: {}",
-                    keys[0].size(), duration, finalPattern);
+                    collectedKeys.size(), duration, finalPattern);
 
-                return keys[0];
+                return collectedKeys;
 
             } catch (Exception e) {
                 long duration = System.currentTimeMillis() - startTime;
@@ -744,7 +753,7 @@ public class RedisService {
      */
     @Deprecated
     public Set<String> keys(String pattern) {
-        log.warn("⚠️ 使用已废弃的keys()方法，建议使用scan()替代。pattern: {}", pattern);
+        log.warn("使用已废弃的keys()方法，建议使用scan()替代。pattern: {}", pattern);
         return executeWithFallback(() -> redisTemplate.keys(pattern), Collections.emptySet(), "keys");
     }
 

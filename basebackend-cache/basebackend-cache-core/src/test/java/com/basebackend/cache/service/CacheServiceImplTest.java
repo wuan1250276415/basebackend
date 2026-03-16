@@ -52,22 +52,10 @@ class CacheServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Create cache service instance
-        cacheService = new CacheServiceImpl(redisService, cacheProperties, metricsService, evictionManager);
-
-        // Set multiLevelCacheManager to null via reflection to ensure Redis path is
-        // used
-        try {
-            var field = CacheServiceImpl.class.getDeclaredField("multiLevelCacheManager");
-            field.setAccessible(true);
-            field.set(cacheService, null);
-
-            var hookField = CacheServiceImpl.class.getDeclaredField("cacheOperationHook");
-            hookField.setAccessible(true);
-            hookField.set(cacheService, cacheOperationHook);
-        } catch (Exception e) {
-            // Ignore if field doesn't exist or can't be set
-        }
+        // Create cache service with all dependencies via constructor injection
+        // Pass null for multiLevelCacheManager to ensure Redis path is used
+        cacheService = new CacheServiceImpl(redisService, cacheProperties, metricsService, evictionManager,
+                null, cacheOperationHook);
     }
 
     /**

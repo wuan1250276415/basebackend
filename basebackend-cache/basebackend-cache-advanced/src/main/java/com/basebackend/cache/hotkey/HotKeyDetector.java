@@ -109,6 +109,11 @@ public class HotKeyDetector {
 
     /**
      * 窗口轮转
+     *
+     * <p>注意：{@code currentWindow} 和 {@code previousWindow} 的赋值是两个独立的 volatile 写，
+     * 中间存在极短暂的不一致窗口。在轮转瞬间，{@code recordAccess()} 可能写入新的 currentWindow
+     * 而 {@code getAccessCount()} 读取旧的 previousWindow，导致极少量访问计数丢失。
+     * 对于近似统计场景，该误差可忽略。</p>
      */
     private void rotateWindow() {
         ConcurrentHashMap<String, LongAdder> oldCurrent = currentWindow;

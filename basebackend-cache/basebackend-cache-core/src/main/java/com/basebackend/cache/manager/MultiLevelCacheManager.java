@@ -18,6 +18,7 @@ import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * 多级缓存管理器
@@ -49,12 +50,12 @@ public class MultiLevelCacheManager {
     private static final String CACHE_EVICTION_CHANNEL = "cache:eviction";
     
     /**
-     * 统计信息
+     * 统计信息（使用 LongAdder 保证高并发下的线程安全）
      */
-    private long localHitCount = 0;
-    private long localMissCount = 0;
-    private long redisHitCount = 0;
-    private long redisMissCount = 0;
+    private final LongAdder localHitCount = new LongAdder();
+    private final LongAdder localMissCount = new LongAdder();
+    private final LongAdder redisHitCount = new LongAdder();
+    private final LongAdder redisMissCount = new LongAdder();
 
     public MultiLevelCacheManager(
             CacheProperties cacheProperties,
@@ -163,18 +164,18 @@ public class MultiLevelCacheManager {
         // 1. 先查询本地缓存
         Object localValue = localCache.getIfPresent(key);
         if (localValue != null) {
-            localHitCount++;
+            localHitCount.increment();
             log.debug("Local cache hit for key: {}", key);
             return type.cast(localValue);
         }
-        
-        localMissCount++;
+
+        localMissCount.increment();
         log.debug("Local cache miss for key: {}", key);
-        
+
         // 2. 本地缓存未命中，查询 Redis
         Object redisValue = redisService.get(key);
         if (redisValue != null) {
-            redisHitCount++;
+            redisHitCount.increment();
             log.debug("Redis cache hit for key: {}", key);
             
             // 3. 将 Redis 中的数据同步到本地缓存
@@ -184,7 +185,7 @@ public class MultiLevelCacheManager {
             return type.cast(redisValue);
         }
         
-        redisMissCount++;
+        redisMissCount.increment();
         log.debug("Redis cache miss for key: {}", key);
         
         return null;
@@ -288,22 +289,27 @@ public class MultiLevelCacheManager {
      */
     public CacheStatistics getStatistics() {
         CacheStats caffeineStats = localCache.stats();
-        
+
+        long localHits = localHitCount.sum();
+        long localMisses = localMissCount.sum();
+        long redisHits = redisHitCount.sum();
+        long redisMisses = redisMissCount.sum();
+
         CacheStatistics statistics = CacheStatistics.builder()
                 .cacheName("multi-level")
-                .hitCount(localHitCount + redisHitCount)
-                .missCount(localMissCount + redisMissCount)
+                .hitCount(localHits + redisHits)
+                .missCount(localMisses + redisMisses)
                 .evictionCount(caffeineStats.evictionCount())
                 .size(localCache.estimatedSize())
                 .averageLoadTime((long) caffeineStats.averageLoadPenalty() / 1_000_000) // 转换为毫秒
                 .lastAccessTime(Instant.now())
                 .build();
-        
+
         statistics.calculateHitRate();
-        
+
         log.debug("Cache statistics - Local hits: {}, Local misses: {}, Redis hits: {}, Redis misses: {}, Hit rate: {}",
-                localHitCount, localMissCount, redisHitCount, redisMissCount, statistics.getHitRate());
-        
+                localHits, localMisses, redisHits, redisMisses, statistics.getHitRate());
+
         return statistics;
     }
 
@@ -322,8 +328,10 @@ public class MultiLevelCacheManager {
      * @return 本地缓存命中率
      */
     public double getLocalHitRate() {
-        long total = localHitCount + localMissCount;
-        return total > 0 ? (double) localHitCount / total : 0.0;
+        long hits = localHitCount.sum();
+        long misses = localMissCount.sum();
+        long total = hits + misses;
+        return total > 0 ? (double) hits / total : 0.0;
     }
 
     /**
@@ -332,8 +340,10 @@ public class MultiLevelCacheManager {
      * @return Redis 缓存命中率
      */
     public double getRedisHitRate() {
-        long total = redisHitCount + redisMissCount;
-        return total > 0 ? (double) redisHitCount / total : 0.0;
+        long hits = redisHitCount.sum();
+        long misses = redisMissCount.sum();
+        long total = hits + misses;
+        return total > 0 ? (double) hits / total : 0.0;
     }
 
     /**
@@ -342,8 +352,8 @@ public class MultiLevelCacheManager {
      * @return 整体命中率
      */
     public double getOverallHitRate() {
-        long totalHits = localHitCount + redisHitCount;
-        long totalMisses = localMissCount + redisMissCount;
+        long totalHits = localHitCount.sum() + redisHitCount.sum();
+        long totalMisses = localMissCount.sum() + redisMissCount.sum();
         long total = totalHits + totalMisses;
         return total > 0 ? (double) totalHits / total : 0.0;
     }
@@ -352,10 +362,10 @@ public class MultiLevelCacheManager {
      * 重置统计信息
      */
     public void resetStatistics() {
-        localHitCount = 0;
-        localMissCount = 0;
-        redisHitCount = 0;
-        redisMissCount = 0;
+        localHitCount.reset();
+        localMissCount.reset();
+        redisHitCount.reset();
+        redisMissCount.reset();
         log.info("Cache statistics reset");
     }
 

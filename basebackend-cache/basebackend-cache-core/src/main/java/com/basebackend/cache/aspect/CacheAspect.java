@@ -4,11 +4,11 @@ import com.basebackend.cache.annotation.CacheEvict;
 import com.basebackend.cache.annotation.CachePut;
 import com.basebackend.cache.annotation.Cacheable;
 import com.basebackend.cache.config.CacheProperties;
+import com.basebackend.cache.hook.CacheHookInvoker;
 import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.service.RedisService;
 import com.basebackend.cache.util.CacheKeyGenerator;
-import com.github.benmanes.caffeine.cache.Cache;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -47,12 +47,6 @@ public class CacheAspect {
     private final CacheOperationHook cacheOperationHook;
 
     /**
-     * 本地缓存实例（用于多级缓存失效）
-     * 注意：此字段由 MultiLevelCacheManager 内部管理，不再通过构造函数注入
-     */
-    private Cache<String, Object> localCache;
-
-    /**
      * Redis模板（用于发送失效通知）
      */
     private RedisTemplate<String, Object> redisTemplate;
@@ -80,8 +74,6 @@ public class CacheAspect {
         this.multiLevelCacheManager = multiLevelCacheManager;
         this.redisTemplate = redisTemplate;
         this.cacheOperationHook = cacheOperationHook != null ? cacheOperationHook : CacheOperationHook.NO_OP;
-        // localCache 将从 multiLevelCacheManager 按需获取，不再单独注入
-        this.localCache = null;
     }
 
     /**
@@ -109,7 +101,7 @@ public class CacheAspect {
                 target, method, args, context);
         long ttlSeconds = cacheable.timeUnit().toSeconds(cacheable.ttl());
 
-        Object preloadedValue = safeBeforeCacheLookup(cacheable.cacheName(), key, ttlSeconds, joinPoint);
+        Object preloadedValue = CacheHookInvoker.safeBeforeCacheLookup(cacheOperationHook, cacheable.cacheName(), key, ttlSeconds, joinPoint);
         if (preloadedValue != null) {
             log.debug("Cache pre-hit from hook for key: {}", key);
             return preloadedValue;
@@ -133,7 +125,7 @@ public class CacheAspect {
         // 如果缓存命中，直接返回
         if (cachedValue != null) {
             log.debug("Cache hit for key: {}", key);
-            safeAfterCacheHit(cacheable.cacheName(), key, cachedValue, ttlSeconds, joinPoint);
+            CacheHookInvoker.safeAfterCacheHit(cacheOperationHook, cacheable.cacheName(), key, cachedValue, ttlSeconds, joinPoint);
             return cachedValue;
         }
 
@@ -145,7 +137,7 @@ public class CacheAspect {
         context = createEvaluationContext(method, args, target, result);
 
         // 检查 unless 条件
-        if (evaluateCondition(cacheable.unless(), context)) {
+        if (evaluateUnless(cacheable.unless(), context)) {
             log.debug("Unless condition met for @Cacheable, not caching result");
             return result;
         }
@@ -162,7 +154,7 @@ public class CacheAspect {
                 log.debug("Cached result in Redis with key: {}, TTL: {}", key, ttl);
             }
 
-            safeAfterCachePut(cacheable.cacheName(), key, result);
+            CacheHookInvoker.safeAfterCachePut(cacheOperationHook, cacheable.cacheName(), key, result);
         }
 
         return result;
@@ -192,7 +184,7 @@ public class CacheAspect {
         }
 
         // 检查 unless 条件
-        if (evaluateCondition(cachePut.unless(), context)) {
+        if (evaluateUnless(cachePut.unless(), context)) {
             log.debug("Unless condition met for @CachePut, not caching result");
             return result;
         }
@@ -218,7 +210,7 @@ public class CacheAspect {
                 log.debug("Updated Redis cache with key: {}, TTL: {}", key, ttl);
             }
 
-            safeAfterCachePut(cachePut.cacheName(), key, result);
+            CacheHookInvoker.safeAfterCachePut(cacheOperationHook, cachePut.cacheName(), key, result);
         }
 
         return result;
@@ -278,20 +270,17 @@ public class CacheAspect {
             String pattern = keyGenerator.generatePatternKey(cacheEvict.keyPrefix(), cacheEvict.cacheName());
 
             if (useMultiLevel) {
-                // 多级缓存：清除本地缓存并发送失效通知
+                // 多级缓存：通过 manager 清空本地缓存并发送失效通知
                 log.info("Evicting all entries from multi-level cache matching pattern: {}", pattern);
 
-                // 1. 清除本地缓存中的所有匹配项
-                if (localCache != null) {
-                    localCache.invalidateAll();
-                    log.debug("Cleared all local cache entries matching pattern: {}", pattern);
-                }
+                // 1. 通过 MultiLevelCacheManager 清空（含本地缓存）
+                multiLevelCacheManager.clear();
 
                 // 2. 清除 Redis 中的匹配项
                 long deletedCount = redisService.deleteByPattern(pattern);
                 log.info("Evicted {} entries from Redis matching pattern: {}", deletedCount, pattern);
 
-                // 3. 发送失效通知（使用特殊标记表示批量清除）
+                // 3. 发送失效通知
                 if (redisTemplate != null) {
                     String batchNotificationKey = pattern + ":BATCH_EVICT";
                     redisTemplate.convertAndSend("cache:eviction", batchNotificationKey);
@@ -301,7 +290,7 @@ public class CacheAspect {
                 long deletedCount = redisService.deleteByPattern(pattern);
                 log.info("Evicted all entries from Redis matching pattern: {}, count: {}", pattern, deletedCount);
             }
-            safeAfterCacheClear(cacheEvict.cacheName());
+            CacheHookInvoker.safeAfterCacheClear(cacheOperationHook, cacheEvict.cacheName());
         } else {
             // 清除单个缓存条目
             String key = parseKey(cacheEvict.key(), cacheEvict.keyPrefix(), cacheEvict.cacheName(),
@@ -315,7 +304,7 @@ public class CacheAspect {
                 log.debug("Evicted Redis cache for key: {}", key);
             }
 
-            safeAfterCacheEvict(cacheEvict.cacheName(), key);
+            CacheHookInvoker.safeAfterCacheEvict(cacheOperationHook, cacheEvict.cacheName(), key);
         }
     }
 
@@ -345,11 +334,12 @@ public class CacheAspect {
     }
 
     /**
-     * 评估条件表达式
-     * 
+     * 评估条件表达式（用于 condition 属性）
+     * 解析失败时返回 false，表示"跳过缓存，直接执行方法"，这是安全的默认行为。
+     *
      * @param conditionExpression 条件表达式
      * @param context             SpEL 上下文
-     * @return 如果条件为空或评估为 true，返回 true；否则返回 false
+     * @return 如果条件为空返回 true；解析失败返回 false
      */
     private boolean evaluateCondition(String conditionExpression, EvaluationContext context) {
         if (!StringUtils.hasText(conditionExpression)) {
@@ -364,6 +354,32 @@ public class CacheAspect {
         } catch (Exception e) {
             log.error("Failed to evaluate condition expression: {}", conditionExpression, e);
             return false;
+        }
+    }
+
+    /**
+     * 评估 unless 表达式
+     * 解析失败时返回 true，表示"不缓存结果"，这是安全的默认行为。
+     * 与 condition 属性不同，unless 返回 true 表示"跳过缓存"，
+     * 因此解析失败时应返回 true（不缓存）以避免缓存不应缓存的数据。
+     *
+     * @param unlessExpression unless 表达式
+     * @param context          SpEL 上下文
+     * @return 如果 unless 为空返回 false（不跳过缓存）；解析失败返回 true（跳过缓存）
+     */
+    private boolean evaluateUnless(String unlessExpression, EvaluationContext context) {
+        if (!StringUtils.hasText(unlessExpression)) {
+            return false;
+        }
+
+        try {
+            Expression expression = parser.parseExpression(unlessExpression);
+            Boolean result = expression.getValue(context, Boolean.class);
+            log.debug("Evaluated unless '{}' to {}", unlessExpression, result);
+            return result != null && result;
+        } catch (Exception e) {
+            log.error("Failed to evaluate unless expression '{}', defaulting to skip caching for safety", unlessExpression, e);
+            return true;
         }
     }
 
@@ -390,44 +406,4 @@ public class CacheAspect {
         return context;
     }
 
-    private Object safeBeforeCacheLookup(String cacheName, String key, long ttlSeconds, ProceedingJoinPoint joinPoint) {
-        try {
-            return cacheOperationHook.beforeCacheLookup(cacheName, key, ttlSeconds, joinPoint);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook beforeCacheLookup failed for key={}", key, e);
-            return null;
-        }
-    }
-
-    private void safeAfterCacheHit(String cacheName, String key, Object value, long ttlSeconds, ProceedingJoinPoint joinPoint) {
-        try {
-            cacheOperationHook.afterCacheHit(cacheName, key, value, ttlSeconds, joinPoint);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheHit failed for key={}", key, e);
-        }
-    }
-
-    private void safeAfterCachePut(String cacheName, String key, Object value) {
-        try {
-            cacheOperationHook.afterCachePut(cacheName, key, value);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
-        }
-    }
-
-    private void safeAfterCacheEvict(String cacheName, String key) {
-        try {
-            cacheOperationHook.afterCacheEvict(cacheName, key);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
-        }
-    }
-
-    private void safeAfterCacheClear(String cacheName) {
-        try {
-            cacheOperationHook.afterCacheClear(cacheName);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheClear failed for cacheName={}", cacheName, e);
-        }
-    }
 }

@@ -1,6 +1,7 @@
 package com.basebackend.cache.service;
 
 import com.basebackend.cache.config.CacheProperties;
+import com.basebackend.cache.hook.CacheHookInvoker;
 import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.manager.CacheEvictionManager;
 import com.basebackend.cache.manager.MultiLevelCacheManager;
@@ -30,12 +31,8 @@ public class CacheServiceImpl implements CacheService {
     private final CacheProperties cacheProperties;
     private final CacheMetricsService metricsService;
     private final CacheEvictionManager evictionManager;
-    
-    @Autowired(required = false)
-    private MultiLevelCacheManager multiLevelCacheManager;
-
-    @Autowired(required = false)
-    private CacheOperationHook cacheOperationHook = CacheOperationHook.NO_OP;
+    private final MultiLevelCacheManager multiLevelCacheManager;
+    private final CacheOperationHook cacheOperationHook;
     
     /**
      * 缓存名称验证正则表达式
@@ -52,11 +49,15 @@ public class CacheServiceImpl implements CacheService {
             RedisService redisService,
             CacheProperties cacheProperties,
             CacheMetricsService metricsService,
-            CacheEvictionManager evictionManager) {
+            CacheEvictionManager evictionManager,
+            @Autowired(required = false) MultiLevelCacheManager multiLevelCacheManager,
+            @Autowired(required = false) CacheOperationHook cacheOperationHook) {
         this.redisService = redisService;
         this.cacheProperties = cacheProperties;
         this.metricsService = metricsService;
         this.evictionManager = evictionManager;
+        this.multiLevelCacheManager = multiLevelCacheManager;
+        this.cacheOperationHook = cacheOperationHook != null ? cacheOperationHook : CacheOperationHook.NO_OP;
     }
 
     // ========== 基本缓存操作 ==========
@@ -189,6 +190,18 @@ public class CacheServiceImpl implements CacheService {
 
     // ========== Cache-Aside 模式 ==========
 
+    /**
+     * 从缓存获取数据，未命中时通过 loader 加载并缓存。
+     *
+     * <p><strong>注意：此方法不提供缓存击穿防护。</strong>
+     * 高并发下多个线程可能同时穿透到数据源。如果需要分布式锁 + 双重检查 + 布隆过滤器等
+     * 缓存击穿防护能力，请使用 {@link com.basebackend.cache.template.CacheAsideTemplate#get} 替代。</p>
+     *
+     * @param key    缓存键
+     * @param loader 数据加载函数
+     * @param ttl    缓存过期时间
+     * @return 缓存值或从数据源加载的值
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getOrLoad(String key, Supplier<T> loader, Duration ttl) {
@@ -518,26 +531,14 @@ public class CacheServiceImpl implements CacheService {
     }
 
     private void safeAfterCachePut(String cacheName, String key, Object value) {
-        try {
-            cacheOperationHook.afterCachePut(cacheName, key, value);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
-        }
+        CacheHookInvoker.safeAfterCachePut(cacheOperationHook, cacheName, key, value);
     }
 
     private void safeAfterCacheEvict(String cacheName, String key) {
-        try {
-            cacheOperationHook.afterCacheEvict(cacheName, key);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
-        }
+        CacheHookInvoker.safeAfterCacheEvict(cacheOperationHook, cacheName, key);
     }
 
     private void safeAfterCacheClear(String cacheName) {
-        try {
-            cacheOperationHook.afterCacheClear(cacheName);
-        } catch (Exception e) {
-            log.warn("CacheOperationHook afterCacheClear failed for cache={}", cacheName, e);
-        }
+        CacheHookInvoker.safeAfterCacheClear(cacheOperationHook, cacheName);
     }
 }

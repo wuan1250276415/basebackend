@@ -76,7 +76,10 @@ public interface DistributedLockService {
      *
      * @param lockKey 锁键
      * @return 红锁实例
+     * @deprecated RedLock 需要多 Redis 实例部署，当前实现回退为单实例锁，不具备 RedLock 安全保证。
+     *             请使用 {@link #tryLock} 或 {@link #getMultiLock} 替代。
      */
+    @Deprecated(since = "1.0", forRemoval = true)
     RLock getRedLock(String lockKey);
 
     /**
