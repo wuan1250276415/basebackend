@@ -1,4 +1,4 @@
-package com.basebackend.storage.spi;
+package com.basebackend.common.storage.spi;
 
 /**
  * 存储类型枚举

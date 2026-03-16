@@ -1,1 +1,1 @@
-com.basebackend.storage.config.StorageAutoConfiguration
+com.basebackend.common.storage.config.StorageAutoConfiguration

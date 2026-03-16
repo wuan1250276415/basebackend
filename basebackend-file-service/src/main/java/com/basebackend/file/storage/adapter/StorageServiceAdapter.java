@@ -1,11 +1,11 @@
 package com.basebackend.file.storage.adapter;
 
 import com.basebackend.file.storage.StorageService;
-import com.basebackend.storage.model.StorageResult;
-import com.basebackend.storage.model.StorageUsage;
-import com.basebackend.storage.model.UploadRequest;
-import com.basebackend.storage.spi.StorageProvider;
-import com.basebackend.storage.spi.StorageType;
+import com.basebackend.common.storage.model.StorageResult;
+import com.basebackend.common.storage.model.StorageUsage;
+import com.basebackend.common.storage.model.UploadRequest;
+import com.basebackend.common.storage.spi.StorageProvider;
+import com.basebackend.common.storage.spi.StorageType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -82,7 +82,7 @@ public class StorageServiceAdapter implements StorageService {
     @Override
     public StorageType getStorageType() {
         // 转换为公共模块的 StorageType
-        com.basebackend.storage.spi.StorageType commonType = storageProvider.getStorageType();
+        com.basebackend.common.storage.spi.StorageType commonType = storageProvider.getStorageType();
 
         // 映射到 file-service 的枚举（如果类型相同可直接返回）
         return switch (commonType) {

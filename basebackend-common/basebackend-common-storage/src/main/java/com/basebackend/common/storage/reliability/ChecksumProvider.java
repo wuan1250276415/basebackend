@@ -1,6 +1,6 @@
-package com.basebackend.storage.reliability;
+package com.basebackend.common.storage.reliability;
 
-import com.basebackend.storage.model.Checksum;
+import com.basebackend.common.storage.model.Checksum;
 
 import java.io.InputStream;
 import java.nio.file.Path;

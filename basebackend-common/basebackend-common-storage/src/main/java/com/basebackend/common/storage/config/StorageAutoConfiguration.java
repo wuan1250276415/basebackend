@@ -1,10 +1,10 @@
-package com.basebackend.storage.config;
+package com.basebackend.common.storage.config;
 
-import com.basebackend.storage.provider.LocalStorageProvider;
-import com.basebackend.storage.provider.MinioStorageProvider;
-import com.basebackend.storage.provider.OssStorageProvider;
-import com.basebackend.storage.provider.S3StorageProvider;
-import com.basebackend.storage.spi.StorageProvider;
+import com.basebackend.common.storage.provider.LocalStorageProvider;
+import com.basebackend.common.storage.provider.MinioStorageProvider;
+import com.basebackend.common.storage.provider.OssStorageProvider;
+import com.basebackend.common.storage.provider.S3StorageProvider;
+import com.basebackend.common.storage.spi.StorageProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

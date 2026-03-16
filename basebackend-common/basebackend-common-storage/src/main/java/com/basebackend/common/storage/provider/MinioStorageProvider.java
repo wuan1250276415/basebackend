@@ -1,12 +1,12 @@
-package com.basebackend.storage.provider;
+package com.basebackend.common.storage.provider;
 
-import com.basebackend.storage.config.StorageProperties;
-import com.basebackend.storage.exception.StorageException;
-import com.basebackend.storage.model.StorageResult;
-import com.basebackend.storage.model.StorageUsage;
-import com.basebackend.storage.model.UploadRequest;
-import com.basebackend.storage.spi.StorageProvider;
-import com.basebackend.storage.spi.StorageType;
+import com.basebackend.common.storage.config.StorageProperties;
+import com.basebackend.common.storage.exception.StorageException;
+import com.basebackend.common.storage.model.StorageResult;
+import com.basebackend.common.storage.model.StorageUsage;
+import com.basebackend.common.storage.model.UploadRequest;
+import com.basebackend.common.storage.spi.StorageProvider;
+import com.basebackend.common.storage.spi.StorageType;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;

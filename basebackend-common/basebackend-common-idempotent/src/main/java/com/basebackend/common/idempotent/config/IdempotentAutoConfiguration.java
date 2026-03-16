@@ -7,6 +7,7 @@ import com.basebackend.common.idempotent.store.impl.RedisIdempotentStore;
 import com.basebackend.common.idempotent.token.IdempotentTokenController;
 import com.basebackend.common.idempotent.token.IdempotentTokenService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -81,7 +82,11 @@ public class IdempotentAutoConfiguration {
     @ConditionalOnMissingBean
     public IdempotentAspect idempotentAspect(IdempotentStore idempotentStore,
                                               IdempotentProperties properties,
-                                              IdempotentTokenService idempotentTokenService) {
-        return new IdempotentAspect(idempotentStore, properties, idempotentTokenService);
+                                              ObjectProvider<IdempotentTokenService> tokenServiceProvider) {
+        IdempotentTokenService tokenService = tokenServiceProvider.getIfAvailable();
+        if (tokenService == null) {
+            log.warn("IdempotentTokenService 不可用（Redis 未配置），TOKEN 模式的幂等校验将不可用");
+        }
+        return new IdempotentAspect(idempotentStore, properties, tokenService);
     }
 }

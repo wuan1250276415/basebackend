@@ -6,6 +6,7 @@ import com.basebackend.common.datascope.config.DataScopeProperties;
 import com.basebackend.common.datascope.enums.DataScopeType;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -19,8 +20,26 @@ import java.util.stream.Collectors;
  */
 public final class DataScopeSqlBuilder {
 
+    /**
+     * SQL 标识符白名单正则：只允许字母、数字、下划线，且必须以字母或下划线开头。
+     * 用于防御将别名/字段名/表名直接插入 SQL 时的注入攻击。
+     */
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
+
     private DataScopeSqlBuilder() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+
+    /**
+     * 校验 SQL 标识符合法性，不合法时抛出 IllegalArgumentException。
+     *
+     * @param name  标识符（表别名、字段名、表名）
+     * @param label 描述，用于错误信息
+     */
+    private static void validateIdentifier(String name, String label) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException("非法 SQL 标识符 [" + label + "]: " + name);
+        }
     }
 
     /**
@@ -50,7 +69,9 @@ public final class DataScopeSqlBuilder {
             case DEPT_AND_BELOW -> buildDeptAndBelowCondition(deptAlias, deptField, user.getDeptId(), deptTableName);
             case SELF -> buildSelfCondition(userAlias, userField, user.getUserId());
             case CUSTOM -> buildCustomCondition(deptAlias, deptField);
-            case AUTO -> "";
+            case AUTO -> throw new UnsupportedOperationException(
+                    "DataScopeType.AUTO 需要业务层根据用户角色解析具体的数据范围类型后再调用 buildCondition，" +
+                    "请在调用前通过 UserContext 获取用户数据范围并转换为具体的 DataScopeType（如 DEPT、SELF 等）");
         };
     }
 
@@ -61,6 +82,8 @@ public final class DataScopeSqlBuilder {
         if (deptId == null) {
             return "";
         }
+        validateIdentifier(deptAlias, "deptAlias");
+        validateIdentifier(deptField, "deptField");
         return String.format("%s.%s = %d", deptAlias, deptField, deptId);
     }
 
@@ -72,6 +95,9 @@ public final class DataScopeSqlBuilder {
         if (deptId == null) {
             return "";
         }
+        validateIdentifier(deptAlias, "deptAlias");
+        validateIdentifier(deptField, "deptField");
+        validateIdentifier(deptTableName, "deptTableName");
         return String.format(
                 "%s.%s IN (SELECT dept_id FROM %s WHERE dept_id = %d OR FIND_IN_SET(%d, ancestors))",
                 deptAlias, deptField, deptTableName, deptId, deptId
@@ -85,6 +111,8 @@ public final class DataScopeSqlBuilder {
         if (userId == null) {
             return "";
         }
+        validateIdentifier(userAlias, "userAlias");
+        validateIdentifier(userField, "userField");
         return String.format("%s.%s = %d", userAlias, userField, userId);
     }
 

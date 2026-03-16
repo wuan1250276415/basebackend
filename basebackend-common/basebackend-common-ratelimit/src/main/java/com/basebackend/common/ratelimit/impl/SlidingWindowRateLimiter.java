@@ -4,6 +4,7 @@ import com.basebackend.common.ratelimit.RateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.annotation.PreDestroy;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -137,10 +138,12 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     }
 
     /**
-     * 关闭清理线程
+     * 关闭清理线程。由 Spring 容器在 Bean 销毁时自动调用，防止线程泄漏。
      */
+    @PreDestroy
     public void shutdown() {
         cleanupExecutor.shutdown();
+        log.debug("SlidingWindowRateLimiter cleanup executor shutdown");
     }
 
     /**

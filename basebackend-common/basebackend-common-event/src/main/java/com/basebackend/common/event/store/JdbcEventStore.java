@@ -61,23 +61,17 @@ public class JdbcEventStore implements EventStore {
 
     @Override
     public List<DomainEvent> findPendingEvents(int limit) {
-        // JDBC 实现返回空列表作为简化实现
-        // 因为反序列化 DomainEvent 需要知道具体子类，完整实现需要类型注册机制
-        log.debug("findPendingEvents called, limit={}", limit);
-        try {
-            jdbcTemplate.update(
-                    "UPDATE domain_event SET status = ? WHERE status = ? AND (next_retry_time IS NULL OR next_retry_time <= ?) LIMIT ?",
-                    EventStatus.PENDING.name(), EventStatus.PENDING.name(), LocalDateTime.now(), limit
-            );
-        } catch (Exception e) {
-            log.warn("Failed to query pending events", e);
-        }
+        // JDBC 模式下需要具体子类类型注册才能完成反序列化，当前版本暂不支持。
+        // 自动事件重试在 JDBC 存储模式下不可用，请改用 RedisEventStore 或实现自定义 EventStore。
+        // 若确实需要 JDBC 重试支持，请子类化本类并重写此方法以提供类型注册逻辑。
+        log.warn("JdbcEventStore 不支持自动事件重试（findPendingEvents），如需此功能请配置 Redis 事件存储");
         return Collections.emptyList();
     }
 
     @Override
     public List<DomainEvent> findFailedEvents(int limit) {
-        log.debug("findFailedEvents called, limit={}", limit);
+        // 同 findPendingEvents，JDBC 模式下不支持失败事件自动恢复。
+        log.warn("JdbcEventStore 不支持失败事件自动恢复（findFailedEvents），如需此功能请配置 Redis 事件存储");
         return Collections.emptyList();
     }
 
