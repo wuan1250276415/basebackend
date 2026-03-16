@@ -1,3 +1,4 @@
+import { RefreshCw, Search as SearchIcon, CheckCircle2, XCircle, Server } from 'lucide-react';
 import React, { useState } from 'react';
 import {
   Card,
@@ -13,13 +14,7 @@ import {
   Row,
   Col,
 } from 'antd';
-import {
-  ReloadOutlined,
-  SearchOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  CloudServerOutlined,
-} from '@ant-design/icons';
+;
 import { useAllFeatures, useFeatureToggleStatus } from '@/hooks/useFeatureToggle';
 import { featureToggleApi } from '@/api/featureToggleApi';
 import type { ColumnsType } from 'antd/es/table';
@@ -87,11 +82,11 @@ const FeatureTogglePage: React.FC = () => {
       width: '20%',
       render: (enabled: boolean) =>
         enabled ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
+          <Tag icon={<CheckCircle2 />} color="success">
             启用
           </Tag>
         ) : (
-          <Tag icon={<CloseCircleOutlined />} color="default">
+          <Tag icon={<XCircle />} color="default">
             禁用
           </Tag>
         ),
@@ -130,9 +125,9 @@ const FeatureTogglePage: React.FC = () => {
                 valueStyle={{ color: status.available ? '#3f8600' : '#cf1322' }}
                 prefix={
                   status.available ? (
-                    <CheckCircleOutlined />
+                    <CheckCircle2 />
                   ) : (
-                    <CloseCircleOutlined />
+                    <XCircle />
                   )
                 }
               />
@@ -141,7 +136,7 @@ const FeatureTogglePage: React.FC = () => {
               <Statistic
                 title="提供商"
                 value={status.provider}
-                prefix={<CloudServerOutlined />}
+                prefix={<Server />}
               />
             </Col>
             <Col span={8}>
@@ -159,7 +154,7 @@ const FeatureTogglePage: React.FC = () => {
               title="启用的特性"
               value={enabledFeatures}
               valueStyle={{ color: '#3f8600' }}
-              prefix={<CheckCircleOutlined />}
+              prefix={<CheckCircle2 />}
             />
           </Card>
         </Col>
@@ -169,7 +164,7 @@ const FeatureTogglePage: React.FC = () => {
               title="禁用的特性"
               value={disabledFeatures}
               valueStyle={{ color: '#666' }}
-              prefix={<CloseCircleOutlined />}
+              prefix={<XCircle />}
             />
           </Card>
         </Col>
@@ -201,16 +196,16 @@ const FeatureTogglePage: React.FC = () => {
           <Search
             placeholder="搜索特性名称"
             allowClear
-            enterButton={<SearchOutlined />}
+            enterButton={<SearchIcon />}
             style={{ width: 400 }}
             onChange={(e) => setSearchText(e.target.value)}
             onSearch={setSearchText}
           />
           <Space>
-            <Button icon={<ReloadOutlined />} onClick={refreshFeatures}>
+            <Button icon={<RefreshCw />} onClick={refreshFeatures}>
               刷新列表
             </Button>
-            <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh}>
+            <Button type="primary" icon={<RefreshCw />} onClick={handleRefresh}>
               刷新配置
             </Button>
           </Space>

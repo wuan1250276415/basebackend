@@ -111,7 +111,7 @@ class DataScopeTest {
         UserContextHolder.clear();
         String condition = DataScopeSqlBuilder.buildCondition(
                 DataScopeType.DEPT, "d", "dept_id", "u", "create_by", properties);
-        assertEquals("", condition);
+        assertEquals("1 = 0", condition);
     }
 
     @Test

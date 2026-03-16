@@ -24,8 +24,23 @@ public class TokenBucketRateLimiter implements RateLimiter {
 
     @Override
     public boolean tryAcquire(String key, int limit, int windowSeconds) {
+        if (!isValidParams(key, limit, windowSeconds)) {
+            return false;
+        }
         Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(limit, windowSeconds));
         return bucket.tryConsume(limit, windowSeconds);
+    }
+
+    private boolean isValidParams(String key, int limit, int windowSeconds) {
+        if (key == null) {
+            log.warn("TokenBucketRateLimiter key 不能为空");
+            return false;
+        }
+        if (limit <= 0 || windowSeconds <= 0) {
+            log.warn("TokenBucketRateLimiter 参数非法: key={}, limit={}, windowSeconds={}", key, limit, windowSeconds);
+            return false;
+        }
+        return true;
     }
 
     private static class Bucket {

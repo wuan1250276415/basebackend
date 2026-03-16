@@ -52,6 +52,9 @@ public class AiProperties {
     /** 默认 Provider */
     private String defaultProvider = "openai";
 
+    /** Provider 解析严格模式（true=找不到即失败，false=允许回退） */
+    private boolean strictProviderResolution = false;
+
     /** Provider 配置 */
     private Map<String, ProviderConfig> providers = new HashMap<>();
 

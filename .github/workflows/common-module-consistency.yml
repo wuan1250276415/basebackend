@@ -1,0 +1,40 @@
+name: Guard - Common Module Consistency
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'basebackend-common/pom.xml'
+      - 'basebackend-common/README.md'
+      - 'basebackend-common/CLAUDE.md'
+      - 'basebackend-common/basebackend-common-*/pom.xml'
+      - '.github/scripts/check-basebackend-common-consistency.sh'
+      - '.github/workflows/common-module-consistency.yml'
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'feature/**'
+      - 'refactor/**'
+    paths:
+      - 'basebackend-common/pom.xml'
+      - 'basebackend-common/README.md'
+      - 'basebackend-common/CLAUDE.md'
+      - 'basebackend-common/basebackend-common-*/pom.xml'
+      - '.github/scripts/check-basebackend-common-consistency.sh'
+      - '.github/workflows/common-module-consistency.yml'
+  workflow_dispatch:
+
+jobs:
+  module-consistency-check:
+    name: Check Common Module Consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify basebackend-common consistency
+        run: bash .github/scripts/check-basebackend-common-consistency.sh

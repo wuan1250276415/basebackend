@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat WebSocket 测试页面</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 20px; color: #1a1a1a; }
+
+        /* 连接面板 */
+        .panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .panel h3 { margin-bottom: 12px; font-size: 15px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .form-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+        .form-row label { min-width: 80px; font-size: 13px; color: #666; }
+        .form-row input, .form-row select { flex: 1; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; min-width: 120px; }
+        .form-row input:focus, .form-row select:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        button { padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; transition: opacity 0.2s; }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-danger { background: #ff4d4f; color: #fff; }
+        .btn-success { background: #52c41a; color: #fff; }
+        .btn-warning { background: #faad14; color: #fff; }
+        .btn-default { background: #f5f5f5; color: #333; border: 1px solid #d9d9d9; }
+
+        /* 状态指示 */
+        .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-dot.connected { background: #52c41a; }
+        .status-dot.disconnected { background: #ff4d4f; }
+        .status-dot.connecting { background: #faad14; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        .status-text { font-size: 13px; color: #666; }
+
+        /* 布局 */
+        .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .columns { grid-template-columns: 1fr; } }
+
+        /* 日志区域 */
+        .log-area { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: 12px; font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace; font-size: 12px; height: 360px; overflow-y: auto; line-height: 1.6; }
+        .log-area .log-time { color: #6a9955; }
+        .log-area .log-send { color: #569cd6; }
+        .log-area .log-recv { color: #dcdcaa; }
+        .log-area .log-info { color: #9cdcfe; }
+        .log-area .log-error { color: #f44747; }
+        .log-area .log-warn { color: #ce9178; }
+
+        /* 在线用户 */
+        .online-list { max-height: 120px; overflow-y: auto; }
+        .online-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 13px; }
+        .online-item .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .online-item .dot.online { background: #52c41a; }
+        .online-item .dot.busy { background: #ff4d4f; }
+        .online-item .dot.away { background: #faad14; }
+        .online-item .dot.offline { background: #bfbfbf; }
+
+        /* 快捷操作按钮组 */
+        .btn-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Chat WebSocket 测试</h1>
+
+    <!-- 连接配置 -->
+    <div class="panel">
+        <h3>连接配置</h3>
+        <div class="status-bar">
+            <span id="statusDot" class="status-dot disconnected"></span>
+            <span id="statusText" class="status-text">未连接</span>
+        </div>
+        <div class="form-row">
+            <label>服务地址</label>
+            <input id="wsUrl" type="text" value="ws://localhost:8086/ws/chat" placeholder="ws://host:port/ws/chat">
+        </div>
+        <div class="form-row">
+            <label>JWT Token</label>
+            <input id="token" type="text" placeholder="粘贴 JWT Token（必填）">
+        </div>
+        <div class="form-row">
+            <label>设备ID</label>
+            <input id="deviceId" type="text" value="web-test" placeholder="可选">
+        </div>
+        <div class="form-row" style="justify-content: flex-end;">
+            <button id="btnConnect" class="btn-primary" onclick="doConnect()">连接</button>
+            <button id="btnDisconnect" class="btn-danger" onclick="doDisconnect()" disabled>断开</button>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- 左列：发送消息 -->
+        <div>
+            <!-- 发送聊天消息 -->
+            <div class="panel">
+                <h3>发送聊天消息</h3>
+                <div class="form-row">
+                    <label>会话ID</label>
+                    <input id="msgConvId" type="text" placeholder="conversationId">
+                </div>
+                <div class="form-row">
+                    <label>消息内容</label>
+                    <input id="msgContent" type="text" placeholder="输入消息文本">
+                </div>
+                <div class="form-row">
+                    <label>消息类型</label>
+                    <select id="msgType">
+                        <option value="TEXT">TEXT（文本）</option>
+                        <option value="IMAGE">IMAGE（图片）</option>
+                        <option value="FILE">FILE（文件）</option>
+                        <option value="AUDIO">AUDIO（语音）</option>
+                        <option value="VIDEO">VIDEO（视频）</option>
+                    </select>
+                </div>
+                <div class="form-row" style="justify-content: flex-end;">
+                    <button class="btn-primary" onclick="sendChat()" id="btnSendChat" disabled>发送</button>
+                </div>
+            </div>
+
+            <!-- 快捷操作 -->
+            <div class="panel">
+                <h3>快捷操作</h3>
+                <div class="form-row">
+                    <label>会话ID</label>
+                    <input id="quickConvId" type="text" placeholder="用于已读/撤回/正在输入">
+                </div>
+                <div class="form-row">
+                    <label>消息ID</label>
+                    <input id="quickMsgId" type="text" placeholder="用于已读/撤回">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-success" onclick="sendRead()" id="btnRead" disabled>标记已读</button>
+                    <button class="btn-warning" onclick="sendTyping()" id="btnTyping" disabled>正在输入</button>
+                    <button class="btn-danger" onclick="sendRevoke()" id="btnRevoke" disabled>撤回消息</button>
+                    <button class="btn-default" onclick="sendPing()" id="btnPing" disabled>发送心跳</button>
+                    <button class="btn-default" onclick="sendSync()" id="btnSync" disabled>同步消息</button>
+                </div>
+            </div>
+
+            <!-- 在线状态查询 -->
+            <div class="panel">
+                <h3>在线状态查询 (REST API)</h3>
+                <div class="form-row">
+                    <label>用户ID列表</label>
+                    <input id="presenceUserIds" type="text" placeholder="逗号分隔，如: 1,2,3">
+                </div>
+                <div class="form-row" style="justify-content: flex-end;">
+                    <button class="btn-default" onclick="queryPresence()">查询在线状态</button>
+                </div>
+                <div id="onlineList" class="online-list" style="margin-top: 8px;"></div>
+            </div>
+        </div>
+
+        <!-- 右列：日志 -->
+        <div>
+            <div class="panel" style="padding-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="border: none; padding: 0; margin: 0;">通信日志</h3>
+                    <button class="btn-default" onclick="clearLog()" style="font-size: 12px; padding: 2px 10px;">清空</button>
+                </div>
+                <div id="logArea" class="log-area"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ws = null;
+    let heartbeatTimer = null;
+
+    const $ = id => document.getElementById(id);
+
+    // ========== 日志 ==========
+    function log(type, msg) {
+        const area = $('logArea');
+        const now = new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const cls = { send: 'log-send', recv: 'log-recv', info: 'log-info', error: 'log-error', warn: 'log-warn' }[type] || 'log-info';
+        const prefix = { send: 'SEND', recv: 'RECV', info: 'INFO', error: 'ERR ', warn: 'WARN' }[type] || 'INFO';
+        area.innerHTML += `<div><span class="log-time">[${now}]</span> <span class="${cls}">[${prefix}]</span> ${escapeHtml(msg)}</div>`;
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function clearLog() { $('logArea').innerHTML = ''; }
+
+    // ========== 连接状态 ==========
+    function setStatus(state) {
+        const dot = $('statusDot');
+        const text = $('statusText');
+        dot.className = 'status-dot ' + state;
+        const labels = { connected: '已连接', disconnected: '未连接', connecting: '连接中...' };
+        text.textContent = labels[state] || state;
+
+        const connected = state === 'connected';
+        $('btnConnect').disabled = connected;
+        $('btnDisconnect').disabled = !connected;
+        $('btnSendChat').disabled = !connected;
+        $('btnRead').disabled = !connected;
+        $('btnTyping').disabled = !connected;
+        $('btnRevoke').disabled = !connected;
+        $('btnPing').disabled = !connected;
+        $('btnSync').disabled = !connected;
+    }
+
+    // ========== WebSocket 连接 ==========
+    function doConnect() {
+        const baseUrl = $('wsUrl').value.trim();
+        const token = $('token').value.trim();
+        const deviceId = $('deviceId').value.trim();
+
+        if (!token) {
+            log('error', '请输入 JWT Token');
+            return;
+        }
+
+        let url = baseUrl + '?token=' + encodeURIComponent(token);
+        if (deviceId) url += '&deviceId=' + encodeURIComponent(deviceId);
+
+        setStatus('connecting');
+        log('info', '正在连接: ' + baseUrl);
+
+        try {
+            ws = new WebSocket(url);
+        } catch (e) {
+            log('error', '创建 WebSocket 失败: ' + e.message);
+            setStatus('disconnected');
+            return;
+        }
+
+        ws.onopen = function () {
+            setStatus('connected');
+            log('info', 'WebSocket 连接已建立');
+            startHeartbeat();
+        };
+
+        ws.onmessage = function (event) {
+            let data = event.data;
+            log('recv', data);
+
+            try {
+                const msg = JSON.parse(data);
+                handleServerMessage(msg);
+            } catch (_) {
+                // 非 JSON，忽略
+            }
+        };
+
+        ws.onclose = function (event) {
+            setStatus('disconnected');
+            stopHeartbeat();
+            log('warn', '连接已关闭 (code=' + event.code + ', reason=' + (event.reason || '无') + ')');
+            ws = null;
+        };
+
+        ws.onerror = function () {
+            log('error', 'WebSocket 错误');
+        };
+    }
+
+    function doDisconnect() {
+        if (ws) {
+            ws.close(1000, '用户主动断开');
+            log('info', '正在断开连接...');
+        }
+    }
+
+    // ========== 心跳 ==========
+    function startHeartbeat() {
+        stopHeartbeat();
+        heartbeatTimer = setInterval(function () {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                sendFrame({ type: 'ping', timestamp: Date.now() });
+            }
+        }, 30000);
+        log('info', '心跳定时器已启动 (30s)');
+    }
+
+    function stopHeartbeat() {
+        if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        }
+    }
+
+    // ========== 发送帧 ==========
+    function sendFrame(obj) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            log('error', '未连接，无法发送');
+            return;
+        }
+        const json = JSON.stringify(obj);
+        ws.send(json);
+        log('send', json);
+    }
+
+    // ========== 发送操作 ==========
+    function sendChat() {
+        const conversationId = $('msgConvId').value.trim();
+        const content = $('msgContent').value.trim();
+        const messageType = $('msgType').value;
+
+        if (!conversationId || !content) {
+            log('error', '请填写会话ID和消息内容');
+            return;
+        }
+
+        sendFrame({
+            type: 'chat',
+            conversationId: conversationId,
+            content: content,
+            messageType: messageType
+        });
+        $('msgContent').value = '';
+    }
+
+    function sendRead() {
+        const conversationId = $('quickConvId').value.trim();
+        const messageId = $('quickMsgId').value.trim();
+        if (!conversationId || !messageId) {
+            log('error', '请填写会话ID和消息ID');
+            return;
+        }
+        sendFrame({ type: 'read', conversationId: conversationId, messageId: messageId });
+    }
+
+    function sendTyping() {
+        const conversationId = $('quickConvId').value.trim();
+        if (!conversationId) {
+            log('error', '请填写会话ID');
+            return;
+        }
+        sendFrame({ type: 'typing', conversationId: conversationId });
+    }
+
+    function sendRevoke() {
+        const conversationId = $('quickConvId').value.trim();
+        const messageId = $('quickMsgId').value.trim();
+        if (!conversationId || !messageId) {
+            log('error', '请填写会话ID和消息ID');
+            return;
+        }
+        sendFrame({ type: 'revoke', conversationId: conversationId, messageId: messageId });
+    }
+
+    function sendPing() {
+        sendFrame({ type: 'ping', timestamp: Date.now() });
+    }
+
+    function sendSync() {
+        const conversationId = $('quickConvId').value.trim();
+        const messageId = $('quickMsgId').value.trim();
+        const syncData = {};
+        if (conversationId) {
+            syncData[conversationId] = messageId || '0';
+        }
+        sendFrame({ type: 'sync', conversations: syncData });
+    }
+
+    // ========== 服务端消息处理 ==========
+    function handleServerMessage(msg) {
+        switch (msg.type) {
+            case 'connected':
+                log('info', '服务端确认连接, userId=' + (msg.userId || ''));
+                break;
+            case 'pong':
+                log('info', '收到心跳回复 pong');
+                break;
+            case 'chat':
+                log('info', '收到新消息: [' + (msg.messageType || 'TEXT') + '] ' +
+                    (msg.content || '') + ' (from=' + (msg.senderId || '') +
+                    ', conv=' + (msg.conversationId || '') + ')');
+                break;
+            case 'chat_ack':
+                log('info', '消息发送确认: messageId=' + (msg.messageId || ''));
+                break;
+            case 'read':
+                log('info', '已读通知: conv=' + (msg.conversationId || '') +
+                    ', userId=' + (msg.userId || ''));
+                break;
+            case 'typing':
+                log('info', '对方正在输入: conv=' + (msg.conversationId || '') +
+                    ', userId=' + (msg.userId || ''));
+                break;
+            case 'revoke':
+                log('info', '消息被撤回: messageId=' + (msg.messageId || ''));
+                break;
+            case 'presence':
+                log('info', '在线状态变更: userId=' + (msg.userId || '') +
+                    ', status=' + (msg.status || ''));
+                break;
+            case 'sync_resp':
+                log('info', '同步响应: ' + JSON.stringify(msg));
+                break;
+            case 'error':
+                log('error', '服务端错误: ' + (msg.message || msg.error || JSON.stringify(msg)));
+                break;
+            default:
+                log('info', '未知消息类型: ' + msg.type);
+        }
+    }
+
+    // ========== 在线状态 REST 查询 ==========
+    function queryPresence() {
+        const userIds = $('presenceUserIds').value.trim();
+        if (!userIds) {
+            log('error', '请输入用户ID列表');
+            return;
+        }
+        const baseUrl = $('wsUrl').value.trim().replace(/^ws/, 'http').replace(/\/ws\/chat.*$/, '');
+        const url = baseUrl + '/api/chat/presence/batch?userIds=' + encodeURIComponent(userIds);
+
+        log('info', 'REST 查询在线状态: ' + url);
+
+        fetch(url, { headers: { 'X-Tenant-Id': '0' } })
+            .then(function (resp) { return resp.json(); })
+            .then(function (result) {
+                log('recv', 'REST 响应: ' + JSON.stringify(result));
+                renderOnlineList(result.data || {});
+            })
+            .catch(function (err) {
+                log('error', 'REST 请求失败: ' + err.message);
+            });
+    }
+
+    function renderOnlineList(data) {
+        const container = $('onlineList');
+        if (!data || Object.keys(data).length === 0) {
+            container.innerHTML = '<div style="font-size:12px;color:#999;padding:4px 0;">无数据</div>';
+            return;
+        }
+        let html = '';
+        for (const uid in data) {
+            const info = data[uid] || {};
+            const status = info.status || 'offline';
+            html += '<div class="online-item">' +
+                '<span class="dot ' + status + '"></span>' +
+                '<span>用户 ' + escapeHtml(uid) + ': ' + status + '</span>' +
+                '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    // ========== 键盘快捷键 ==========
+    $('msgContent').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChat();
+        }
+    });
+
+    log('info', '测试页面已加载，请配置连接参数后点击"连接"');
+</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
+import { RefreshCw, Database, Clock, Webhook, Monitor } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Row, Col, Descriptions, Progress, Statistic, Button, message, Spin } from 'antd'
-import { ReloadOutlined, DatabaseOutlined, ClockCircleOutlined, ApiOutlined, DesktopOutlined } from '@ant-design/icons'
+
 import { ServerInfo } from '@/types'
-import { getServerInfo } from '@/api/monitor'
+import { getServerInfo } from '@/api/monitorApi'
 
 const ServerMonitorPage = () => {
   const [loading, setLoading] = useState(false)
@@ -51,7 +52,7 @@ const ServerMonitorPage = () => {
             <Statistic
               title="CPU核心数"
               value={serverInfo.processorCount}
-              prefix={<DesktopOutlined />}
+              prefix={<Monitor />}
               suffix="核"
             />
           </Card>
@@ -63,7 +64,7 @@ const ServerMonitorPage = () => {
               value={memoryPercent}
               precision={2}
               suffix="%"
-              prefix={<DatabaseOutlined />}
+              prefix={<Database />}
               valueStyle={{ color: memoryPercent > 80 ? '#cf1322' : '#3f8600' }}
             />
           </Card>
@@ -73,7 +74,7 @@ const ServerMonitorPage = () => {
             <Statistic
               title="系统负载"
               value={serverInfo.systemLoad}
-              prefix={<ApiOutlined />}
+              prefix={<Webhook />}
             />
           </Card>
         </Col>
@@ -82,7 +83,7 @@ const ServerMonitorPage = () => {
             <Statistic
               title="运行时间"
               value={serverInfo.uptime}
-              prefix={<ClockCircleOutlined />}
+              prefix={<Clock />}
               valueStyle={{ fontSize: 16 }}
             />
           </Card>
@@ -95,7 +96,7 @@ const ServerMonitorPage = () => {
         extra={
           <Button
             type="primary"
-            icon={<ReloadOutlined />}
+            icon={<RefreshCw />}
             onClick={loadData}
             loading={loading}
           >

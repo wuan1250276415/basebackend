@@ -1,0 +1,18 @@
+# Spring Boot 2.7+ 自动配置支持
+# Nacos 自动配置
+
+# 自动配置类列表
+# 每行一个类名，不需要逗号分隔
+com.basebackend.nacos.config.NacosAutoConfiguration
+com.basebackend.nacos.config.NacosConfigConfiguration
+com.basebackend.nacos.config.NacosDiscoveryConfiguration
+
+# 说明：
+# - NacosAutoConfiguration: 聚合配置入口，负责聚合子配置类
+# - NacosConfigConfiguration: 配置中心子配置，负责ConfigService创建
+# - NacosDiscoveryConfiguration: 服务发现子配置，负责NamingService创建
+#
+# 注意：
+# 1. 这些配置类会根据@ConditionalOnProperty等条件注解进行条件化加载
+# 2. 实际是否启用取决于nacos配置是否正确
+# 3. 保持向后兼容，同时支持Spring Boot 2.x和2.7+

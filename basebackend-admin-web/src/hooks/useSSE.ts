@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notification';
 import {
   showNotificationToast,

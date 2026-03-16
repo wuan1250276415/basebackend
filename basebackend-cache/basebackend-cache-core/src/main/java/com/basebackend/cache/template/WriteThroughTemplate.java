@@ -2,6 +2,7 @@ package com.basebackend.cache.template;
 
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheMetricsService;
+import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,14 +32,17 @@ public class WriteThroughTemplate {
     private final RedisService redisService;
     private final MultiLevelCacheManager multiLevelCacheManager; // Can be null if multi-level cache is disabled
     private final CacheMetricsService metricsService;
+    private final CacheOperationHook cacheOperationHook;
 
     public WriteThroughTemplate(
             RedisService redisService,
             @Autowired(required = false) MultiLevelCacheManager multiLevelCacheManager,
-            CacheMetricsService metricsService) {
+            CacheMetricsService metricsService,
+            @Autowired(required = false) CacheOperationHook cacheOperationHook) {
         this.redisService = redisService;
         this.multiLevelCacheManager = multiLevelCacheManager;
         this.metricsService = metricsService;
+        this.cacheOperationHook = cacheOperationHook != null ? cacheOperationHook : CacheOperationHook.NO_OP;
     }
 
     /**
@@ -60,6 +64,7 @@ public class WriteThroughTemplate {
             // 2. 数据源更新成功后，更新缓存
             log.debug("Updating cache for key: {}", key);
             setCachedValue(key, value, ttl);
+            safeAfterCachePut("write-through", key, value);
             
             log.debug("Write-through completed for key: {}", key);
             metricsService.recordLatency("write-through-set", System.currentTimeMillis() - startTime);
@@ -101,6 +106,7 @@ public class WriteThroughTemplate {
             // 2. 数据源删除成功后，删除缓存
             log.debug("Deleting cache for key: {}", key);
             evictCache(key);
+            safeAfterCacheEvict("write-through", key);
             
             log.debug("Write-through delete completed for key: {}", key);
             metricsService.recordLatency("write-through-delete", System.currentTimeMillis() - startTime);
@@ -178,6 +184,22 @@ public class WriteThroughTemplate {
             multiLevelCacheManager.evict(key);
         } else {
             redisService.delete(key);
+        }
+    }
+
+    private void safeAfterCachePut(String cacheName, String key, Object value) {
+        try {
+            cacheOperationHook.afterCachePut(cacheName, key, value);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheEvict(String cacheName, String key) {
+        try {
+            cacheOperationHook.afterCacheEvict(cacheName, key);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
         }
     }
 }

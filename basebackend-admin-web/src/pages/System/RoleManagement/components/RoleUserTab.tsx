@@ -1,9 +1,10 @@
+import { Plus, Search, Trash2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { Table, Button, Input, Space, Popconfirm, message } from 'antd'
-import { PlusOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table/interface'
 import { User } from '@/types'
-import { getRoleUsers, assignUsersToRole, removeUserFromRole } from '@/api/role'
+import { getRoleUsers, assignUsersToRole, removeUserFromRole } from '@/api/roleApi'
 import UserSelectModal from './UserSelectModal'
 
 interface RoleUserTabProps {
@@ -128,7 +129,7 @@ const RoleUserTab: React.FC<RoleUserTabProps> = ({ roleId }) => {
           okText="确定"
           cancelText="取消"
         >
-          <Button type="link" danger size="small" icon={<DeleteOutlined />}>
+          <Button type="link" danger size="small" icon={<Trash2 />}>
             取消关联
           </Button>
         </Popconfirm>
@@ -141,14 +142,14 @@ const RoleUserTab: React.FC<RoleUserTabProps> = ({ roleId }) => {
       <Space style={{ marginBottom: 16 }}>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<Plus />}
           onClick={() => setSelectModalVisible(true)}
         >
           关联用户
         </Button>
         <Input
           placeholder="搜索用户名"
-          prefix={<SearchOutlined />}
+          prefix={<Search />}
           allowClear
           style={{ width: 250 }}
           value={searchValue}

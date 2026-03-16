@@ -29,12 +29,19 @@ public class AIGenerateAspect {
     private final Map<String, AiClient> clientMap;
     private final AiClient defaultClient;
     private final PromptTemplateRegistry templateRegistry;
+    private final boolean strictProviderResolution;
 
     public AIGenerateAspect(Map<String, AiClient> clientMap, AiClient defaultClient,
                             PromptTemplateRegistry templateRegistry) {
+        this(clientMap, defaultClient, templateRegistry, false);
+    }
+
+    public AIGenerateAspect(Map<String, AiClient> clientMap, AiClient defaultClient,
+                            PromptTemplateRegistry templateRegistry, boolean strictProviderResolution) {
         this.clientMap = clientMap;
         this.defaultClient = defaultClient;
         this.templateRegistry = templateRegistry;
+        this.strictProviderResolution = strictProviderResolution;
     }
 
     @Around("@annotation(aiGenerate)")
@@ -50,7 +57,10 @@ public class AIGenerateAspect {
         // 3. 选择客户端
         AiClient client = resolveClient(aiGenerate.provider());
 
-        // 4. 构建请求
+        // 4. 校验返回类型
+        validateReturnType(method);
+
+        // 5. 构建请求
         AiRequest.Builder requestBuilder = AiRequest.builder()
                 .addMessage(com.basebackend.ai.client.AiMessage.user(promptText))
                 .temperature(aiGenerate.temperature());
@@ -62,13 +72,13 @@ public class AIGenerateAspect {
             requestBuilder.maxTokens(aiGenerate.maxTokens());
         }
 
-        // 5. 调用 AI
+        // 6. 调用 AI
         AiResponse response = client.chat(requestBuilder.build());
 
         log.debug("@AIGenerate 调用完成: method={}, provider={}, tokens={}, latency={}ms",
                 method.getName(), client.getProvider(), response.usage().totalTokens(), response.latencyMs());
 
-        // 6. 返回结果（根据方法返回类型适配）
+        // 7. 返回结果（根据方法返回类型适配）
         return adaptReturnType(response, method.getReturnType());
     }
 
@@ -96,17 +106,31 @@ public class AIGenerateAspect {
         }
         AiClient client = clientMap.get(provider);
         if (client == null) {
+            if (strictProviderResolution) {
+                throw new IllegalStateException("严格模式下指定的 AI Provider '%s' 不存在".formatted(provider));
+            }
             log.warn("指定的 AI Provider '{}' 不存在，使用默认 Provider", provider);
             return defaultClient;
         }
         return client;
     }
 
+    private void validateReturnType(Method method) {
+        Class<?> returnType = method.getReturnType();
+        if (returnType == String.class || returnType == AiResponse.class) {
+            return;
+        }
+        throw new IllegalStateException(
+                "@AIGenerate 标注方法仅支持返回 String 或 AiResponse，当前方法 %s#%s 返回 %s"
+                        .formatted(method.getDeclaringClass().getSimpleName(), method.getName(), returnType.getName())
+        );
+    }
+
     private Object adaptReturnType(AiResponse response, Class<?> returnType) {
         if (returnType == AiResponse.class) {
             return response;
         }
-        // 默认返回生成的文本内容
+        // 已在 validateReturnType 中校验，仅剩 String 类型
         return response.content();
     }
 }

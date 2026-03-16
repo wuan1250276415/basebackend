@@ -4,8 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Callable;
 
 /**
@@ -148,18 +146,14 @@ public class DataSourceContextHolder {
      * @return 包装后的任务，会在执行后自动清理ThreadLocal
      */
     public static Runnable wrapForExecutor(Runnable runnable) {
-        Deque<String> contextStack = CONTEXT_HOLDER.get();
-        boolean hasContext = !contextStack.isEmpty();
-
-        if (!hasContext) {
-            return runnable; // 无上下文，直接返回
-        }
+        Deque<String> contextSnapshot = new ArrayDeque<>(CONTEXT_HOLDER.get());
 
         return () -> {
             try {
+                restoreContextSnapshot(contextSnapshot);
                 runnable.run();
             } finally {
-                // 确保在线程执行完毕后清理ThreadLocal
+                // 确保在线程执行完毕后清理ThreadLocal（无上下文也需要清理线程池线程）
                 clear();
             }
         };
@@ -174,21 +168,28 @@ public class DataSourceContextHolder {
      * @return 包装后的任务，会在执行后自动清理ThreadLocal
      */
     public static <T> Callable<T> wrapForExecutor(Callable<T> callable) {
-        Deque<String> contextStack = CONTEXT_HOLDER.get();
-        boolean hasContext = !contextStack.isEmpty();
-
-        if (!hasContext) {
-            return callable; // 无上下文，直接返回
-        }
+        Deque<String> contextSnapshot = new ArrayDeque<>(CONTEXT_HOLDER.get());
 
         return () -> {
             try {
+                restoreContextSnapshot(contextSnapshot);
                 return callable.call();
             } finally {
-                // 确保在线程执行完毕后清理ThreadLocal
+                // 确保在线程执行完毕后清理ThreadLocal（无上下文也需要清理线程池线程）
                 clear();
             }
         };
+    }
+
+    /**
+     * 恢复提交线程的数据源上下文快照到当前线程
+     */
+    private static void restoreContextSnapshot(Deque<String> contextSnapshot) {
+        Deque<String> currentStack = CONTEXT_HOLDER.get();
+        currentStack.clear();
+        if (!contextSnapshot.isEmpty()) {
+            currentStack.addAll(contextSnapshot);
+        }
     }
 
     /**

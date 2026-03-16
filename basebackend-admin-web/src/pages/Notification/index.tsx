@@ -1,3 +1,4 @@
+import { RefreshCw, Trash2, Check, Search as SearchIcon, Bell, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   Card,
@@ -19,14 +20,7 @@ import {
   Empty,
 } from 'antd';
 import type { TableProps, MenuProps } from 'antd';
-import {
-  ReloadOutlined,
-  DeleteOutlined,
-  CheckOutlined,
-  SearchOutlined,
-  BellOutlined,
-  DownOutlined,
-} from '@ant-design/icons';
+;
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -166,7 +160,7 @@ const NotificationCenter = () => {
   const batchActionMenuItems: MenuProps['items'] = [
     {
       key: 'mark-read',
-      icon: <CheckOutlined />,
+      icon: <Check />,
       label: '标记已读',
       disabled: selectedIds.length === 0,
       onClick: () => {
@@ -175,7 +169,7 @@ const NotificationCenter = () => {
     },
     {
       key: 'delete',
-      icon: <DeleteOutlined />,
+      icon: <Trash2 />,
       label: '批量删除',
       danger: true,
       disabled: selectedIds.length === 0,
@@ -264,7 +258,7 @@ const NotificationCenter = () => {
             <Button
               type="link"
               size="small"
-              icon={<CheckOutlined />}
+              icon={<Check />}
               onClick={() => markAsReadMutation.mutate(record.id)}
               loading={markAsReadMutation.isLoading}
             >
@@ -279,7 +273,7 @@ const NotificationCenter = () => {
               type="link"
               size="small"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 />}
               loading={deleteNotificationMutation.isLoading}
             >
               删除
@@ -307,7 +301,7 @@ const NotificationCenter = () => {
             <Statistic
               title="总通知"
               value={stats.total}
-              prefix={<BellOutlined />}
+              prefix={<Bell />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
@@ -345,14 +339,14 @@ const NotificationCenter = () => {
       <Card
         title={
           <Space>
-            <BellOutlined />
+            <Bell />
             <span>通知中心</span>
           </Space>
         }
         extra={
           <Button
             type="text"
-            icon={<ReloadOutlined />}
+            icon={<RefreshCw />}
             onClick={() => refetch()}
             loading={isLoading}
           >
@@ -401,7 +395,7 @@ const NotificationCenter = () => {
               allowClear
               style={{ width: 250 }}
               onSearch={handleSearch}
-              enterButton={<SearchOutlined />}
+              enterButton={<SearchIcon />}
             />
           </Space>
 
@@ -412,7 +406,7 @@ const NotificationCenter = () => {
             )}
             <Dropdown menu={{ items: batchActionMenuItems }} disabled={selectedIds.length === 0}>
               <Button>
-                批量操作 <DownOutlined />
+                批量操作 <ChevronDown />
               </Button>
             </Dropdown>
           </Space>

@@ -1,11 +1,7 @@
+import { CheckCircle2, Clock, RefreshCw, XCircle } from 'lucide-react';
 import React from 'react'
 import { Timeline, Tag } from 'antd'
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  SyncOutlined,
-  CloseCircleOutlined,
-} from '@ant-design/icons'
+
 import dayjs from 'dayjs'
 
 /**
@@ -38,7 +34,7 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '40px 0', ...style }}>
-        <SyncOutlined spin style={{ fontSize: 24 }} />
+        <RefreshCw className="anticon-spin" style={{ fontSize: 24 }} />
         <div style={{ marginTop: 8 }}>加载中...</div>
       </div>
     )
@@ -60,17 +56,17 @@ export const TaskHistoryTimeline: React.FC<TaskHistoryTimelineProps> = ({
         const isTerminated = !!item.deleteReason
 
         let color = 'gray'
-        let icon = <ClockCircleOutlined style={{ fontSize: 16 }} />
+        let icon = <Clock style={{ fontSize: 16 }} />
 
         if (isTerminated) {
           color = 'red'
-          icon = <CloseCircleOutlined style={{ fontSize: 16 }} />
+          icon = <XCircle style={{ fontSize: 16 }} />
         } else if (isCompleted) {
           color = 'green'
-          icon = <CheckCircleOutlined style={{ fontSize: 16 }} />
+          icon = <CheckCircle2 style={{ fontSize: 16 }} />
         } else if (isCurrent) {
           color = 'blue'
-          icon = <SyncOutlined spin style={{ fontSize: 16 }} />
+          icon = <RefreshCw className="anticon-spin" style={{ fontSize: 16 }} />
         }
 
         return (
@@ -181,9 +177,9 @@ export const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ history, style }
           color={item.endTime ? 'green' : 'blue'}
           dot={
             item.endTime ? (
-              <CheckCircleOutlined style={{ fontSize: 14 }} />
+              <CheckCircle2 style={{ fontSize: 14 }} />
             ) : (
-              <ClockCircleOutlined style={{ fontSize: 14 }} />
+              <Clock style={{ fontSize: 14 }} />
             )
           }
         >

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `domain_event` (
     `event_type`      VARCHAR(255)  NOT NULL COMMENT '事件类型（类名）',
     `event_data`      TEXT          NOT NULL COMMENT '事件数据（JSON）',
     `status`          VARCHAR(32)   NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/PUBLISHED/CONSUMED/FAILED',
+    `fail_reason`     TEXT          DEFAULT NULL COMMENT '失败原因',
     `source`          VARCHAR(255)  DEFAULT NULL COMMENT '事件来源',
     `retry_count`     INT           NOT NULL DEFAULT 0 COMMENT '已重试次数',
     `max_retries`     INT           NOT NULL DEFAULT 3 COMMENT '最大重试次数',

@@ -1,7 +1,6 @@
 package com.basebackend.observability.slo;
 
 import com.basebackend.observability.slo.aspect.SloMonitoringAspect;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,8 +30,8 @@ class SloMonitoringAspectTest {
     @Test
     @DisplayName("应可创建切面实例")
     void shouldCreateAspectInstance() {
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        SloMonitoringAspect aspect = new SloMonitoringAspect((ObservationRegistry) registry, "test-app");
+        ObservationRegistry observationRegistry = ObservationRegistry.create();
+        SloMonitoringAspect aspect = new SloMonitoringAspect(observationRegistry, "test-app");
 
         assertThat(aspect).isNotNull();
     }

@@ -1,6 +1,7 @@
 package com.basebackend.database.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.basebackend.database.config.DatabaseEnhancedProperties;
 import io.seata.rm.datasource.DataSourceProxy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -90,11 +91,12 @@ public class SeataDataSourceConfig {
      */
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.druid")
-    public DruidDataSource druidDataSource() {
+    public DruidDataSource druidDataSource(DatabaseEnhancedProperties props) {
         log.info("Creating Druid DataSource for Seata proxy...");
         DruidDataSource dataSource = new DruidDataSource();
-        // 设置数据库类型，防止 WallFilter 初始化时 dbType 为 null
-        dataSource.setDbType("mysql");
+        // B4: derive dbType from configuration instead of hardcoding "mysql"
+        String vendor = props.getVendor();
+        dataSource.setDbType("auto".equalsIgnoreCase(vendor) ? "mysql" : vendor.toLowerCase());
         return dataSource;
     }
 

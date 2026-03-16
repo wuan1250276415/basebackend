@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -89,13 +90,8 @@ public class CacheMetricsService {
         if (!isMetricsEnabled()) {
             return;
         }
-        
-        CacheMetrics.OperationType operationType;
-        try {
-            operationType = CacheMetrics.OperationType.valueOf(operation.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            operationType = CacheMetrics.OperationType.GET;
-        }
+
+        CacheMetrics.OperationType operationType = resolveOperationType(operation);
         
         CacheMetrics metrics = CacheMetrics.builder()
                 .cacheName(cacheName)
@@ -154,13 +150,8 @@ public class CacheMetricsService {
         if (!isMetricsEnabled()) {
             return;
         }
-        
-        CacheMetrics.OperationType operationType;
-        try {
-            operationType = CacheMetrics.OperationType.valueOf(operation.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            operationType = CacheMetrics.OperationType.GET;
-        }
+
+        CacheMetrics.OperationType operationType = resolveOperationType(operation);
         
         CacheMetrics metrics = CacheMetrics.builder()
                 .cacheName(cacheName)
@@ -221,5 +212,40 @@ public class CacheMetricsService {
      */
     private boolean isMetricsEnabled() {
         return cacheProperties.getMetrics().isEnabled();
+    }
+
+    /**
+     * 解析操作类型
+     * 兼容标准枚举名与业务别名（如 write-through-set）
+     */
+    private CacheMetrics.OperationType resolveOperationType(String operation) {
+        if (operation == null || operation.trim().isEmpty()) {
+            return CacheMetrics.OperationType.GET;
+        }
+
+        String normalized = operation.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace('-', '_');
+
+        try {
+            return CacheMetrics.OperationType.valueOf(normalized);
+        } catch (IllegalArgumentException ignored) {
+            // 继续按关键字归类
+        }
+
+        if (normalized.contains("SET") || normalized.contains("PUT") || normalized.contains("WRITE")) {
+            return CacheMetrics.OperationType.SET;
+        }
+        if (normalized.contains("EVICT") || normalized.contains("DELETE")
+                || normalized.contains("REMOVE") || normalized.contains("CLEAR")) {
+            return CacheMetrics.OperationType.EVICT;
+        }
+        if (normalized.contains("MULTI") && normalized.contains("GET")) {
+            return CacheMetrics.OperationType.MULTI_GET;
+        }
+        if (normalized.contains("MULTI") && normalized.contains("SET")) {
+            return CacheMetrics.OperationType.MULTI_SET;
+        }
+        return CacheMetrics.OperationType.GET;
     }
 }

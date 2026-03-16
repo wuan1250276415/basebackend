@@ -1,1 +1,2 @@
 com.basebackend.security.config.SecurityBaselineConfiguration
+com.basebackend.security.config.PasswordEncoderConfig

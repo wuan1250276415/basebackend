@@ -127,6 +127,51 @@ spring:
                 name: observabilityServiceCircuitBreaker
                 fallbackUri: forward:/fallback/observability
 
+        # ==================== 工单服务路由 ====================
+        - id: ticket-api
+          uri: lb://basebackend-ticket-api
+          predicates:
+            - Path=/basebackend-ticket-api/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: ticketServiceCircuitBreaker
+                fallbackUri: forward:/fallback/ticket
+
+        # ==================== 商城商品服务路由 ====================
+        - id: mall-product-api
+          uri: lb://basebackend-mall-product-api
+          predicates:
+            - Path=/api/mall/products/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallProductServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-product
+
+        # ==================== 商城交易服务路由 ====================
+        - id: mall-trade-api
+          uri: lb://basebackend-mall-trade-api
+          predicates:
+            - Path=/api/mall/trades/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallTradeServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-trade
+
+        # ==================== 商城支付服务路由 ====================
+        - id: mall-pay-api
+          uri: lb://basebackend-mall-pay-api
+          predicates:
+            - Path=/api/mall/payments/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallPayServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-pay
+
         # ==================== 文件服务路由 ====================
         - id: file-service
           uri: lb://basebackend-file-service
@@ -179,6 +224,14 @@ resilience4j:
         baseConfig: default
       adminServiceCircuitBreaker:
         baseConfig: default
+      ticketServiceCircuitBreaker:
+        baseConfig: default
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
+        baseConfig: default
 
   timelimiter:
     configs:
@@ -198,4 +251,12 @@ resilience4j:
       fileServiceCircuitBreaker:
         baseConfig: default
       adminServiceCircuitBreaker:
+        baseConfig: default
+      ticketServiceCircuitBreaker:
+        baseConfig: default
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
         baseConfig: default

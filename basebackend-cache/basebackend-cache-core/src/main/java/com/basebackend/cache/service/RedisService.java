@@ -222,19 +222,9 @@ public class RedisService {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             log.error("Pattern-based deletion failed after {} ms, pattern: {}", duration, finalPattern, e);
-
-            // 失败时降级到原来的 keys() 方法
-            log.warn("Falling back to keys() + batch delete for pattern: {} (this may block Redis!)", finalPattern);
-            return executeWithFallback(() -> {
-                Set<String> keys = redisTemplate.keys(finalPattern);
-                if (keys != null && !keys.isEmpty()) {
-                    Long deleted = redisTemplate.delete(keys);
-                    long result = deleted != null ? deleted : 0L;
-                    log.warn("FALLBACK: Deleted {} keys using keys() method for pattern: {}", result, finalPattern);
-                    return result;
-                }
-                return 0L;
-            }, 0L, "deleteByPattern");
+            // 安全收敛：不再回退到 keys()，避免阻塞 Redis 主线程
+            log.warn("Skip unsafe keys() fallback for pattern: {}", finalPattern);
+            return 0L;
         }
     }
 
@@ -726,16 +716,9 @@ public class RedisService {
 
             } catch (Exception e) {
                 long duration = System.currentTimeMillis() - startTime;
-                log.error("SCAN failed after {} ms for pattern: {}, falling back to keys()", duration, finalPattern, e);
-
-                // SCAN 失败时降级到 keys()
-                Set<String> fallbackKeys = redisTemplate.keys(finalPattern);
-                if (fallbackKeys != null) {
-                    log.warn("FALLBACK: keys() returned {} keys for pattern: {} (this may block Redis!)",
-                        fallbackKeys.size(), finalPattern);
-                    return fallbackKeys;
-                }
-
+                log.error("SCAN failed after {} ms for pattern: {}", duration, finalPattern, e);
+                // 安全收敛：不再回退到 keys()，避免阻塞 Redis 主线程
+                log.warn("Skip unsafe keys() fallback for pattern: {}", finalPattern);
                 return Collections.emptySet();
             }
         }, Collections.emptySet(), "scan");
@@ -807,6 +790,13 @@ public class RedisService {
      */
     public Boolean expire(String key, long timeout, TimeUnit unit) {
         return executeWithFallback(() -> redisTemplate.expire(key, timeout, unit), false, "expire");
+    }
+
+    /**
+     * 移除键过期时间（PERSIST）
+     */
+    public Boolean persist(String key) {
+        return executeWithFallback(() -> redisTemplate.persist(key), false, "persist");
     }
 
     /**

@@ -11,6 +11,8 @@ import com.basebackend.database.audit.service.AuditLogService;
 import com.basebackend.database.health.interceptor.SqlExecutionTimeInterceptor;
 import com.basebackend.database.health.logger.SlowQueryLogger;
 import com.basebackend.database.interceptor.SqlInjectionPreventionInterceptor;
+import com.basebackend.database.config.DatabaseVendor;
+import com.basebackend.database.config.DatabaseVendorDetector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -53,6 +55,7 @@ public class MyBatisPlusConfig {
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor(
+            DatabaseVendorDetector vendorDetector,
             @Qualifier("tenantInterceptor") ObjectProvider<InnerInterceptor> tenantInterceptorProvider,
             @Qualifier("encryptionInterceptor") ObjectProvider<InnerInterceptor> encryptionInterceptorProvider,
             ObjectProvider<SqlInjectionPreventionInterceptor> sqlInjectionInterceptorProvider) {
@@ -65,8 +68,9 @@ public class MyBatisPlusConfig {
             interceptor.addInnerInterceptor(tenantInterceptor);
         }
 
-        // 分页插件
-        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+        // B4: derive DbType from auto-detected database vendor instead of hardcoding MYSQL
+        DbType dbType = toMybatisPlusDbType(vendorDetector.detect());
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(dbType);
         paginationInnerInterceptor.setMaxLimit(1000L);
         paginationInnerInterceptor.setOverflow(false);
         interceptor.addInnerInterceptor(paginationInnerInterceptor);
@@ -120,6 +124,13 @@ public class MyBatisPlusConfig {
     @ConditionalOnProperty(prefix = "database.enhanced.sql-injection", name = "enabled", havingValue = "true", matchIfMissing = true)
     public SqlInjectionPreventionInterceptor sqlInjectionPreventionInterceptor(DatabaseEnhancedProperties properties) {
         return new SqlInjectionPreventionInterceptor(properties);
+    }
+
+    private DbType toMybatisPlusDbType(DatabaseVendor vendor) {
+        return switch (vendor) {
+            case POSTGRESQL -> DbType.POSTGRE_SQL;
+            default -> DbType.MYSQL;
+        };
     }
 
 }

@@ -164,9 +164,19 @@ public class DataSourceManager {
             return false;
         }
 
-        // 这里可以实现实际的连接测试逻辑
-        // 暂时返回 true
-        log.debug("Testing connection for datasource: {}", key);
-        return true;
+        try {
+            Object healthDetailsObj = dynamicDataSource.checkAllDataSourcesHealth().get("healthDetails");
+            if (healthDetailsObj instanceof Map<?, ?> healthDetails) {
+                boolean healthy = Boolean.TRUE.equals(healthDetails.get(key));
+                log.debug("Connection test result for datasource [{}]: {}", key, healthy);
+                return healthy;
+            }
+
+            log.warn("Connection test result unavailable for datasource [{}], invalid healthDetails payload", key);
+            return false;
+        } catch (Exception e) {
+            log.error("Failed to test connection for datasource: {}", key, e);
+            return false;
+        }
     }
 }

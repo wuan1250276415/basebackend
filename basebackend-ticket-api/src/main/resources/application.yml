@@ -1,0 +1,187 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
+  # Redis 开发兜底配置（生产环境从 Nacos redis-config.yml 获取）
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.66.126}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_TChiFW}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:5000ms}
+      lettuce:
+        pool:
+          max-active: ${REDIS_MAX_ACTIVE:20}
+          max-wait: ${REDIS_MAX_WAIT:2000ms}
+          max-idle: ${REDIS_MAX_IDLE:10}
+          min-idle: ${REDIS_MIN_IDLE:5}
+        shutdown-timeout: 100ms
+  # Redisson 配置
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:192.168.66.126}:${REDIS_PORT:6379}"
+          password: "${REDIS_PASSWORD:redis_TChiFW}"
+          database: ${REDIS_DATABASE:0}
+          connectionMinimumIdleSize: 5
+          connectionPoolSize: 20
+          timeout: 5000
+  application:
+    name: basebackend-ticket-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ========== Spring Config Import (替代 bootstrap.yml) ==========
+  config:
+    import:
+      - optional:nacos:common-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:mysql-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:redis-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:rocketmq-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:seata-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:security-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+
+  # ========== Spring Cloud 集成配置 ==========
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        weight: ${NACOS_DISCOVERY_WEIGHT:1.0}
+        cluster: ${NACOS_DISCOVERY_CLUSTER:DEFAULT}
+        service-name: ${spring.application.name}
+        ip: ${NACOS_DISCOVERY_IP:192.168.66.118}
+        port: ${NACOS_DISCOVERY_PORT:${server.port:8085}}
+        metadata:
+          version: ${APP_VERSION:1.0.0}
+          region: ${APP_REGION:beijing}
+          zone: ${APP_ZONE:zone-a}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+
+server:
+  port: 8085
+
+# 多租户配置
+database:
+  enhanced:
+    multi-tenancy:
+      enabled: true
+      isolation-mode: SHARED_DB
+      tenant-column: tenant_id
+      excluded-tables:
+        - domain_event
+    sql-statistics:
+      enabled: false
+
+# 领域事件配置
+basebackend:
+  common:
+    event:
+      enabled: true
+      store:
+        type: memory
+      retry:
+        enabled: true
+        max-retries: 3
+    ratelimit:
+      enabled: true
+      type: redis
+      algorithm: SLIDING_WINDOW
+  idempotent:
+    enabled: true
+  lock:
+    type: redis
+  cache:
+    enabled: true
+    multi-level:
+      enabled: true
+  # Phase 2: 全文搜索配置
+  search:
+    enabled: true
+    type: elasticsearch
+    elasticsearch:
+      url: ${ES_URL:http://192.168.66.126:9200}
+      username: ${ES_USERNAME:elastic}
+      password: ${ES_PASSWORD:}
+      index-prefix: ${ES_INDEX_PREFIX:basebackend_}
+  # Phase 2: AI 智能配置
+  ai:
+    enabled: true
+    provider: ${AI_PROVIDER:deepseek}
+    deepseek:
+      api-key: ${AI_DEEPSEEK_API_KEY:}
+      base-url: ${AI_DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      model: ${AI_DEEPSEEK_MODEL:deepseek-chat}
+  # Phase 2: WebSocket 配置
+  websocket:
+    enabled: true
+    path: /ws
+    heartbeat-interval: 30000
+
+# Knife4j配置
+knife4j:
+  enable: true
+  openapi:
+    title: 工单管理系统API
+    description: 企业工单管理系统 - 工单CRUD、审批流、SLA监控
+    version: 1.0.0
+    concat: admin@basebackend.com
+  setting:
+    language: zh_cn
+    enable-version: true
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-model-name: 实体类列表
+
+# RocketMQ 配置
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:192.168.66.126:9876}
+  producer:
+    group: ticket-producer-group
+    send-message-timeout: 3000
+    compress-message-body-threshold: 4096
+    max-message-size: 4194304
+    retry-times-when-send-failed: 2
+    retry-times-when-send-async-failed: 2
+    retry-next-server: false
+  consumer:
+    group: ticket-consumer-group
+    consume-timeout: 15
+
+# 消息配置
+messaging:
+  rocketmq:
+    enabled: true
+    default-topic: ticket-topic
+    topic-prefix: ticket.
+  retry:
+    enabled: true
+    max-attempts: 16
+  dead-letter:
+    enabled: true
+    topic: ticket-dlq-topic
+    consumer-group: ticket-dlq-consumer-group
+  transaction:
+    enabled: true
+    table-name: sys_message_log
+    check-interval: 60
+    timeout: 30
+  idempotency:
+    enabled: true
+    expire-time: 3600
+    key-prefix: "ticket:msg:idempotent:"

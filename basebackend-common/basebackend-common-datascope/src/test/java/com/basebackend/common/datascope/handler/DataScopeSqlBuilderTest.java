@@ -84,7 +84,7 @@ class DataScopeSqlBuilderTest {
         void shouldReturnEmptyForCustomWithoutContext() {
             String sql = DataScopeSqlBuilder.buildCondition(
                     DataScopeType.CUSTOM, "d", "dept_id", "u", "create_by", properties);
-            assertThat(sql).isEmpty();
+            assertThat(sql).isEqualTo("1 = 0");
         }
 
         @Test
@@ -93,7 +93,50 @@ class DataScopeSqlBuilderTest {
             UserContextHolder.clear();
             String sql = DataScopeSqlBuilder.buildCondition(
                     DataScopeType.SELF, "d", "dept_id", "u", "create_by", properties);
-            assertThat(sql).isEmpty();
+            assertThat(sql).isEqualTo("1 = 0");
+        }
+
+        @Test
+        @DisplayName("AUTO 类型默认拒绝访问")
+        void shouldDenyForAutoByDefault() {
+            String sql = DataScopeSqlBuilder.buildCondition(
+                    DataScopeType.AUTO, "d", "dept_id", "u", "create_by", properties);
+            assertThat(sql).isEqualTo("1 = 0");
+        }
+
+        @Test
+        @DisplayName("非法 deptAlias 应 fail-close")
+        void shouldDenyWhenDeptAliasUnsafe() {
+            String sql = DataScopeSqlBuilder.buildCondition(
+                    DataScopeType.DEPT, "d; DROP TABLE x", "dept_id", "u", "create_by", properties);
+            assertThat(sql).isEqualTo("1 = 0");
+        }
+
+        @Test
+        @DisplayName("非法 deptTableName 应 fail-close")
+        void shouldDenyWhenDeptTableNameUnsafe() {
+            properties.setDeptTableName("sys_dept where 1=1");
+            String sql = DataScopeSqlBuilder.buildCondition(
+                    DataScopeType.DEPT_AND_BELOW, "d", "dept_id", "u", "create_by", properties);
+            assertThat(sql).isEqualTo("1 = 0");
+        }
+
+        @Test
+        @DisplayName("CUSTOM 检测到危险片段应 fail-close")
+        void shouldDenyWhenCustomConditionUnsafe() {
+            DataScopeContext.set("d.dept_id IN (1); DROP TABLE sys_user");
+            String sql = DataScopeSqlBuilder.buildCondition(
+                    DataScopeType.CUSTOM, "d", "dept_id", "u", "create_by", properties);
+            assertThat(sql).isEqualTo("1 = 0");
+        }
+
+        @Test
+        @DisplayName("CUSTOM 安全表达式允许透传")
+        void shouldAllowSafeCustomCondition() {
+            DataScopeContext.set("d.dept_id IN (1, 2, 3)");
+            String sql = DataScopeSqlBuilder.buildCondition(
+                    DataScopeType.CUSTOM, "d", "dept_id", "u", "create_by", properties);
+            assertThat(sql).isEqualTo("d.dept_id IN (1, 2, 3)");
         }
     }
 

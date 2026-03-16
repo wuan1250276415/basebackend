@@ -1,1 +1,2 @@
 com.basebackend.database.security.config.DatabaseSecurityAutoConfiguration
+com.basebackend.database.security.config.EncryptionConfig

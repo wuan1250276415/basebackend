@@ -30,4 +30,10 @@ public class RateLimitProperties {
      * 自动清理间隔（分钟）（仅内存模式生效）
      */
     private int cleanupIntervalMinutes = 5;
+
+    /**
+     * Redis 执行异常时是否放行（fail-open）
+     * <p>false：拒绝请求（默认，更安全）；true：放行请求（更高可用）</p>
+     */
+    private boolean allowOnRedisFailure = false;
 }

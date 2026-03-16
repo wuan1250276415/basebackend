@@ -1,3 +1,4 @@
+import { Download, Undo2, CheckCircle2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import {
   Modal,
@@ -9,11 +10,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd'
-import {
-  DownloadOutlined,
-  RollbackOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import type { FileMetadata, FileVersion } from '@/types/file'
 import { getFileVersions, revertToVersion, downloadVersion } from '@/api/file'
@@ -104,7 +101,7 @@ const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
           <Tag color="blue">v{version}</Tag>
           {record.isCurrent && (
             <Tooltip title="当前版本">
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
+              <CheckCircle2 style={{ color: '#52c41a' }} />
             </Tooltip>
           )}
         </Space>
@@ -160,7 +157,7 @@ const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             <Button
               type="text"
               size="small"
-              icon={<DownloadOutlined />}
+              icon={<Download />}
               onClick={() => handleDownload(record)}
             />
           </Tooltip>
@@ -169,7 +166,7 @@ const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
               <Button
                 type="text"
                 size="small"
-                icon={<RollbackOutlined />}
+                icon={<Undo2 />}
                 onClick={() => handleRevert(record)}
               />
             </Tooltip>

@@ -2,9 +2,9 @@ package com.basebackend.ai.conversation;
 
 import com.basebackend.ai.client.AiMessage;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 基于内存的对话管理器
@@ -13,17 +13,24 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InMemoryConversationManager implements ConversationManager {
 
+    private static final long MAX_AUTO_CLEANUP_INTERVAL_MILLIS = 60_000L;
+
     private final Map<String, ConversationEntry> conversations = new ConcurrentHashMap<>();
     private final int maxHistory;
     private final long ttlMillis;
+    private final long cleanupIntervalMillis;
+    private final AtomicLong lastCleanupAt;
 
     public InMemoryConversationManager(int maxHistory, long ttlMillis) {
         this.maxHistory = maxHistory;
         this.ttlMillis = ttlMillis;
+        this.cleanupIntervalMillis = resolveCleanupInterval(ttlMillis);
+        this.lastCleanupAt = new AtomicLong(System.currentTimeMillis());
     }
 
     @Override
     public void addMessage(String conversationId, AiMessage message) {
+        maybeCleanupExpired();
         conversations.compute(conversationId, (id, entry) -> {
             if (entry == null || entry.isExpired(ttlMillis)) {
                 entry = new ConversationEntry();
@@ -35,8 +42,13 @@ public class InMemoryConversationManager implements ConversationManager {
 
     @Override
     public List<AiMessage> getMessages(String conversationId) {
+        maybeCleanupExpired();
         ConversationEntry entry = conversations.get(conversationId);
-        if (entry == null || entry.isExpired(ttlMillis)) {
+        if (entry == null) {
+            return List.of();
+        }
+        if (entry.isExpired(ttlMillis)) {
+            conversations.remove(conversationId, entry);
             return List.of();
         }
         entry.touch();
@@ -59,20 +71,57 @@ public class InMemoryConversationManager implements ConversationManager {
 
     @Override
     public boolean exists(String conversationId) {
+        maybeCleanupExpired();
         ConversationEntry entry = conversations.get(conversationId);
-        return entry != null && !entry.isExpired(ttlMillis);
+        if (entry == null) {
+            return false;
+        }
+        if (entry.isExpired(ttlMillis)) {
+            conversations.remove(conversationId, entry);
+            return false;
+        }
+        return true;
     }
 
     /** 清理过期对话（可由调度器定期调用） */
     public void cleanup() {
-        conversations.entrySet().removeIf(e -> e.getValue().isExpired(ttlMillis));
+        cleanupExpiredEntries();
+        lastCleanupAt.set(System.currentTimeMillis());
     }
 
     /** 当前活跃对话数 */
     public int getActiveCount() {
+        maybeCleanupExpired();
         return (int) conversations.values().stream()
                 .filter(e -> !e.isExpired(ttlMillis))
                 .count();
+    }
+
+    private void maybeCleanupExpired() {
+        if (ttlMillis <= 0 || conversations.isEmpty()) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long last = lastCleanupAt.get();
+        if (now - last < cleanupIntervalMillis) {
+            return;
+        }
+        if (!lastCleanupAt.compareAndSet(last, now)) {
+            return;
+        }
+        cleanupExpiredEntries();
+    }
+
+    private void cleanupExpiredEntries() {
+        conversations.entrySet().removeIf(e -> e.getValue().isExpired(ttlMillis));
+    }
+
+    private long resolveCleanupInterval(long configuredTtlMillis) {
+        if (configuredTtlMillis <= 0) {
+            return 0;
+        }
+        return Math.min(configuredTtlMillis, MAX_AUTO_CLEANUP_INTERVAL_MILLIS);
     }
 
     // --- 内部数据结构 ---

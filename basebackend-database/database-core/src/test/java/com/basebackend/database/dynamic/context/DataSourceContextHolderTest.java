@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -202,6 +203,58 @@ class DataSourceContextHolderTest {
         // 验证最终状态
         assertThat(DataSourceContextHolder.getDataSourceKey()).isNull();
         assertThat(DataSourceContextHolder.getStackDepth()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("wrapForExecutor(Callable) 应传播提交线程上下文并清理线程池线程")
+    void shouldPropagateContextAndClearExecutorThreadForCallable() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // Given - 提交线程存在嵌套上下文
+            DataSourceContextHolder.setDataSourceKey("master");
+            DataSourceContextHolder.setDataSourceKey("slave");
+
+            // When - 在线程池执行包装后的 Callable
+            String workerDataSource = executor.submit(DataSourceContextHolder.wrapForExecutor(() -> {
+                assertThat(DataSourceContextHolder.getStackDepth()).isEqualTo(2);
+                return DataSourceContextHolder.getDataSourceKey();
+            })).get();
+
+            // Then - 子线程拿到提交线程上下文，且主线程上下文不受影响
+            assertThat(workerDataSource).isEqualTo("slave");
+            assertThat(DataSourceContextHolder.getDataSourceKey()).isEqualTo("slave");
+            assertThat(DataSourceContextHolder.getStackDepth()).isEqualTo(2);
+
+            // 线程池线程执行完后必须清理上下文
+            String residualContext = executor.submit(DataSourceContextHolder::getDataSourceKey).get();
+            assertThat(residualContext).isNull();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("wrapForExecutor(Runnable) 在无上下文时也应清理线程池线程")
+    void shouldClearExecutorThreadContextWhenNoSubmitterContextForRunnable() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // Given - 先在工作线程制造残留上下文
+            executor.submit(() -> DataSourceContextHolder.setDataSourceKey("stale-context")).get();
+            DataSourceContextHolder.clear();
+
+            // When - 提交线程无上下文，执行包装任务
+            AtomicReference<String> workerDataSource = new AtomicReference<>();
+            executor.submit(DataSourceContextHolder.wrapForExecutor(
+                () -> workerDataSource.set(DataSourceContextHolder.getDataSourceKey())
+            )).get();
+
+            // Then - 任务执行前先清掉残留，执行后也无残留
+            assertThat(workerDataSource.get()).isNull();
+            String residualContext = executor.submit(DataSourceContextHolder::getDataSourceKey).get();
+            assertThat(residualContext).isNull();
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test

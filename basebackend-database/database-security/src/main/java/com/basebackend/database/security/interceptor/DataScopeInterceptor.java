@@ -93,18 +93,23 @@ public class DataScopeInterceptor implements Interceptor {
             return invocation.proceed();
         }
 
+        DataScopeType dataScopeType = DataScopeContextHolder.getDataScopeType();
+        // 全量权限无需注入过滤条件
+        if (dataScopeType == DataScopeType.ALL) {
+            return invocation.proceed();
+        }
+
         BoundSql boundSql = statementHandler.getBoundSql();
         String originalSql = boundSql.getSql();
 
         // 从SQL中提取表名
         String tableName = extractTableName(originalSql);
         if (tableName == null) {
-            log.debug("无法从SQL中提取表名，跳过数据权限过滤");
-            return invocation.proceed();
+            log.error("无法从SQL中提取表名，拒绝执行。sql={}", originalSql);
+            throw new IllegalStateException("无法解析SQL主表，已阻断执行以防止数据权限绕过");
         }
 
         // 检查该表是否需要数据权限过滤
-        DataScopeType dataScopeType = DataScopeContextHolder.getDataScopeType();
         boolean needDeptFilter = needsDeptScopeFilter(tableName, dataScopeType);
         boolean needCreatorFilter = needsCreatorScopeFilter(tableName, dataScopeType);
 
@@ -129,7 +134,7 @@ public class DataScopeInterceptor implements Interceptor {
             }
         } catch (Exception e) {
             log.error("数据权限过滤失败", e);
-            // 失败时继续执行原SQL
+            throw new IllegalStateException("数据权限过滤失败，已阻断执行", e);
         }
 
         return invocation.proceed();

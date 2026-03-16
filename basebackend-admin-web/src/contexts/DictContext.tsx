@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { getDictDataByType, refreshDictCache } from '@/api/dict'
+import { getDictDataByType, refreshDictCache } from '@/api/dictApi'
 import { DictData } from '@/types'
 
 /**

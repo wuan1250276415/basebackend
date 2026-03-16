@@ -14,6 +14,10 @@ import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 /**
  * PostgreSQL WAL解析器
@@ -45,15 +49,23 @@ public class PostgresWalParser {
                                    String password, String database) throws Exception {
         log.info("获取PostgreSQL当前WAL位置: {}:{}", host, port);
 
-        // 通过查询pg_walfile_name函数获取当前WAL文件名
-        // 这里简化实现
-        String walDir = backupProperties.getIncremental().getPostgres().getWalDir();
+        String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", host, port, database);
+        String sql = "SELECT CASE WHEN pg_is_in_recovery() " +
+                "THEN pg_last_wal_replay_lsn()::text ELSE pg_current_wal_lsn()::text END AS lsn";
 
-        // 返回当前时间戳作为WAL位置标识
-        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
-        log.debug("生成WAL位置: {}", timestamp);
-
-        return timestamp;
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            if (!resultSet.next()) {
+                throw new IllegalStateException("查询WAL位点返回空结果");
+            }
+            String lsn = resultSet.getString("lsn");
+            if (lsn == null || lsn.isBlank()) {
+                throw new IllegalStateException("查询到空WAL位点");
+            }
+            log.debug("查询到WAL位点: {}", lsn);
+            return lsn;
+        }
     }
 
     /**
@@ -138,24 +150,11 @@ public class PostgresWalParser {
             throw new FileNotFoundException("WAL文件不存在: " + walFilePath);
         }
 
-        // 这里简化实现，实际应该解析WAL文件的二进制格式
-        try (InputStream is = Files.newInputStream(walPath)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            long offset = 0;
-
-            while ((bytesRead = is.read(buffer)) != -1) {
-                // 模拟解析WAL记录
-                WalEvent event = parseWalRecord(buffer, bytesRead, offset);
-                if (event != null) {
-                    eventList.addEvent(event);
-                }
-                offset += bytesRead;
-            }
-        }
-
-        log.info("WAL文件解析完成, 共 {} 个事件", eventList.getEventCount());
-        return eventList;
+        // WAL二进制格式解析尚未实现（PostgreSQL WAL格式需要专用解析库）。
+        // 调用方应改用 pg_waldump 命令行工具或 logical replication slot 方式读取变更。
+        throw new UnsupportedOperationException(
+                "parseWalFile() 尚未实现：PostgreSQL WAL二进制格式解析需要专用库支持，" +
+                "请改用 pg_waldump 或 logical replication slot。");
     }
 
     /**

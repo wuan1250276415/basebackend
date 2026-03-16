@@ -50,4 +50,27 @@ public class CacheInvalidationEvent {
      * 关联 ID（用于追踪）
      */
     private String correlationId;
+
+    /**
+     * 消息签名（HMAC-SHA256，Base64 编码）
+     */
+    private String signature;
+
+    /**
+     * 构建签名原文。
+     * 注意：签名字段本身不参与签名，避免循环依赖。
+     */
+    public String buildSignaturePayload() {
+        return String.join("|",
+                safe(source),
+                safe(cacheName),
+                safe(keyPattern),
+                type == null ? "" : type.name(),
+                String.valueOf(timestamp),
+                safe(correlationId));
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
+    }
 }

@@ -72,18 +72,23 @@ public class DataScopeInterceptor implements Interceptor {
 
         // 查找最后一个 WHERE 关键字的位置（处理子查询中的 WHERE）
         int whereIndex = findMainWhereIndex(upperSql);
+        int clauseIndex = findMainClauseIndex(upperSql, whereIndex >= 0 ? whereIndex + 5 : 0);
 
         if (whereIndex >= 0) {
-            // 已有 WHERE 子句，在末尾追加 AND 条件
+            // 已有 WHERE 子句，在主查询 ORDER BY/GROUP BY/LIMIT/HAVING 前追加 AND 条件
+            if (clauseIndex >= 0) {
+                String prefix = trimRight(originalSql.substring(0, clauseIndex));
+                String suffix = trimLeft(originalSql.substring(clauseIndex));
+                return prefix + " AND " + condition + " " + suffix;
+            }
             return originalSql + " AND " + condition;
         } else {
             // 没有 WHERE 子句
             // 查找 ORDER BY / GROUP BY / LIMIT 的位置，在其前面插入 WHERE
-            int insertIndex = findInsertIndex(upperSql);
-            if (insertIndex >= 0) {
-                return originalSql.substring(0, insertIndex)
-                        + " WHERE " + condition + " "
-                        + originalSql.substring(insertIndex);
+            if (clauseIndex >= 0) {
+                String prefix = trimRight(originalSql.substring(0, clauseIndex));
+                String suffix = trimLeft(originalSql.substring(clauseIndex));
+                return prefix + " WHERE " + condition + " " + suffix;
             } else {
                 return originalSql + " WHERE " + condition;
             }
@@ -115,20 +120,60 @@ public class DataScopeInterceptor implements Interceptor {
     }
 
     /**
-     * 查找 ORDER BY / GROUP BY / LIMIT 的位置
+     * 查找主查询中 ORDER BY / GROUP BY / LIMIT / HAVING 的起始位置
      */
-    private int findInsertIndex(String upperSql) {
-        String[] keywords = {"ORDER BY", "GROUP BY", "LIMIT", "HAVING"};
-        int minIndex = -1;
+    private int findMainClauseIndex(String upperSql, int startIndex) {
+        String[] clauses = {"ORDER BY", "GROUP BY", "LIMIT", "HAVING"};
+        int depth = 0;
 
-        for (String keyword : keywords) {
-            int index = upperSql.lastIndexOf(keyword);
-            if (index >= 0 && (minIndex < 0 || index < minIndex)) {
-                minIndex = index;
+        for (int i = Math.max(0, startIndex); i < upperSql.length(); i++) {
+            char c = upperSql.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')' && depth > 0) {
+                depth--;
+            }
+
+            if (depth == 0) {
+                for (String clause : clauses) {
+                    if (matchesKeyword(upperSql, i, clause)) {
+                        return i;
+                    }
+                }
             }
         }
 
-        return minIndex;
+        return -1;
+    }
+
+    private boolean matchesKeyword(String sql, int index, String keyword) {
+        int keywordLength = keyword.length();
+        if (index + keywordLength > sql.length()) {
+            return false;
+        }
+        if (!sql.regionMatches(index, keyword, 0, keywordLength)) {
+            return false;
+        }
+        boolean leftBoundary = index == 0 || !Character.isLetterOrDigit(sql.charAt(index - 1));
+        boolean rightBoundary = index + keywordLength >= sql.length()
+                || !Character.isLetterOrDigit(sql.charAt(index + keywordLength));
+        return leftBoundary && rightBoundary;
+    }
+
+    private String trimRight(String value) {
+        int end = value.length();
+        while (end > 0 && Character.isWhitespace(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(0, end);
+    }
+
+    private String trimLeft(String value) {
+        int start = 0;
+        while (start < value.length() && Character.isWhitespace(value.charAt(start))) {
+            start++;
+        }
+        return value.substring(start);
     }
 
     /**

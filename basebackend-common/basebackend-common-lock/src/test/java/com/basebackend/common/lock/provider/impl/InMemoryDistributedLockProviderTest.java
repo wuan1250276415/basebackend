@@ -157,5 +157,34 @@ class InMemoryDistributedLockProviderTest {
             provider.forceUnlock("non-existent");
             // no exception
         }
+
+        @Test
+        @DisplayName("非持有线程 forceUnlock 不应破坏互斥")
+        void shouldNotBreakMutualExclusionWhenCalledByNonOwner() throws Exception {
+            assertThat(provider.tryLock("non-owner-force", 0, 10, TimeUnit.SECONDS)).isTrue();
+
+            CountDownLatch forceDone = new CountDownLatch(1);
+            CountDownLatch acquireDone = new CountDownLatch(1);
+            AtomicBoolean acquiredByOther = new AtomicBoolean(true);
+
+            Thread.ofVirtual().start(() -> {
+                provider.forceUnlock("non-owner-force");
+                forceDone.countDown();
+            });
+
+            assertThat(forceDone.await(2, TimeUnit.SECONDS)).isTrue();
+            Thread.ofVirtual().start(() -> {
+                acquiredByOther.set(provider.tryLock("non-owner-force", 50, 10, TimeUnit.MILLISECONDS));
+                if (acquiredByOther.get()) {
+                    provider.unlock("non-owner-force");
+                }
+                acquireDone.countDown();
+            });
+
+            assertThat(acquireDone.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(acquiredByOther.get()).isFalse();
+
+            provider.unlock("non-owner-force");
+        }
     }
 }

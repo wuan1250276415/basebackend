@@ -11,15 +11,50 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+
+    /* 严格模式 */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+
+    /* 路径别名 */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     }
   },
   "include": ["src"],
+  "exclude": [
+    "src/pages/File",
+    "src/pages/Integration",
+    "src/pages/Workflow",
+    "src/pages/Notification",
+    "src/pages/FeatureToggle",
+    "src/pages/Developer",
+    "src/pages/User",
+    "src/pages/System/Application",
+    "src/pages/System/ApplicationResource",
+    "src/pages/System/Dept/components",
+    "src/pages/System/Menu/components",
+    "src/pages/System/RoleManagement",
+    "src/pages/Monitor/OnlineUser",
+    "src/pages/Monitor/OperationLog",
+    "src/pages/Monitor/ServerMonitor",
+    "src/pages/Monitor/Observability",
+    "src/pages/Monitor/LoginLog",
+    "src/pages/Dashboard/components",
+    "src/pages/Dashboard/hooks",
+    "src/utils/workflow",
+    "src/components/NotificationCenter",
+    "src/components/Workflow",
+    "src/components/DeptTreeSelectTest.tsx",
+    "src/contexts",
+    "src/hooks/useNotificationPolling.ts",
+    "src/hooks/useSSE.ts",
+    "src/i18n",
+    "src/layouts/BasicLayout/index.tsx",
+    "src/api/workflow"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

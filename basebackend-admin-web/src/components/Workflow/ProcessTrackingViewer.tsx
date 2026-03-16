@@ -1,3 +1,4 @@
+import { CheckCircle2, RefreshCw, XCircle, Maximize, Minimize } from 'lucide-react';
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
     Card,
@@ -14,14 +15,7 @@ import {
     Button,
     Space,
 } from 'antd'
-import {
-    CheckCircleOutlined,
-    SyncOutlined,
-    CloseCircleOutlined,
-    ReloadOutlined,
-    FullscreenOutlined,
-    FullscreenExitOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -199,12 +193,12 @@ const ProcessTrackingViewer: React.FC<ProcessTrackingViewerProps> = ({
     // 获取活动状态标签
     const getActivityStatusTag = (activity: ActivityHistory) => {
         if (activity.canceled) {
-            return <Tag icon={<CloseCircleOutlined />} color="warning">已取消</Tag>
+            return <Tag icon={<XCircle />} color="warning">已取消</Tag>
         }
         if (activity.ended) {
-            return <Tag icon={<CheckCircleOutlined />} color="success">已完成</Tag>
+            return <Tag icon={<CheckCircle2 />} color="success">已完成</Tag>
         }
-        return <Tag icon={<SyncOutlined spin />} color="processing">进行中</Tag>
+        return <Tag icon={<RefreshCw className="anticon-spin" />} color="processing">进行中</Tag>
     }
 
     // 活动历史表格列
@@ -359,7 +353,7 @@ const ProcessTrackingViewer: React.FC<ProcessTrackingViewerProps> = ({
                     </span>
                     <span style={{ marginLeft: 'auto' }}>
                         <Button
-                            icon={<ReloadOutlined />}
+                            icon={<RefreshCw />}
                             size="small"
                             onClick={loadTracking}
                             style={{ marginRight: 8 }}
@@ -367,7 +361,7 @@ const ProcessTrackingViewer: React.FC<ProcessTrackingViewerProps> = ({
                             刷新
                         </Button>
                         <Button
-                            icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                            icon={isFullscreen ? <Minimize /> : <FullscreenOutlined />}
                             size="small"
                             onClick={toggleFullscreen}
                         >
@@ -411,9 +405,9 @@ const ProcessTrackingViewer: React.FC<ProcessTrackingViewerProps> = ({
                                         ? 'green'
                                         : 'blue',
                                 dot: activity.ended ? (
-                                    <CheckCircleOutlined />
+                                    <CheckCircle2 />
                                 ) : (
-                                    <SyncOutlined spin />
+                                    <RefreshCw className="anticon-spin" />
                                 ),
                                 children: (
                                     <div>

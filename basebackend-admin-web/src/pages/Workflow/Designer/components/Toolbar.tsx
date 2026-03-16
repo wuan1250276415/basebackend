@@ -1,13 +1,7 @@
+import { Save, Undo, Redo, ZoomIn, ZoomOut, Expand } from 'lucide-react';
 import React from 'react'
 import { Button, Space, Tooltip, message } from 'antd'
-import {
-    SaveOutlined,
-    UndoOutlined,
-    RedoOutlined,
-    ZoomInOutlined,
-    ZoomOutOutlined,
-    ExpandOutlined,
-} from '@ant-design/icons'
+
 import { Graph } from '@antv/x6'
 
 interface ToolbarProps {
@@ -47,25 +41,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({ graph }) => {
         <div style={{ padding: '8px 16px', borderBottom: '1px solid #ddd', background: '#f5f5f5', display: 'flex', justifyContent: 'space-between' }}>
             <Space>
                 <Tooltip title="Save">
-                    <Button icon={<SaveOutlined />} onClick={handleSave}>Save</Button>
+                    <Button icon={<Save />} onClick={handleSave}>Save</Button>
                 </Tooltip>
             </Space>
 
             <Space>
                 <Tooltip title="Undo">
-                    <Button icon={<UndoOutlined />} onClick={handleUndo} />
+                    <Button icon={<Undo />} onClick={handleUndo} />
                 </Tooltip>
                 <Tooltip title="Redo">
-                    <Button icon={<RedoOutlined />} onClick={handleRedo} />
+                    <Button icon={<Redo />} onClick={handleRedo} />
                 </Tooltip>
                 <Tooltip title="Zoom In">
-                    <Button icon={<ZoomInOutlined />} onClick={handleZoomIn} />
+                    <Button icon={<ZoomIn />} onClick={handleZoomIn} />
                 </Tooltip>
                 <Tooltip title="Zoom Out">
-                    <Button icon={<ZoomOutOutlined />} onClick={handleZoomOut} />
+                    <Button icon={<ZoomOut />} onClick={handleZoomOut} />
                 </Tooltip>
                 <Tooltip title="Fit Content">
-                    <Button icon={<ExpandOutlined />} onClick={handleFit} />
+                    <Button icon={<Expand />} onClick={handleFit} />
                 </Tooltip>
             </Space>
         </div>

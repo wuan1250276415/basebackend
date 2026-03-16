@@ -2,6 +2,7 @@ package com.basebackend.cache.metrics;
 
 import com.basebackend.cache.config.CacheProperties;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,6 +81,24 @@ class CacheMetricsServiceTest {
         // Then
         CacheStatistics stats = metricsService.getStatistics("testCache");
         assertEquals(75, stats.getAverageLoadTime()); // (100 + 50) / 2
+    }
+
+    @Test
+    void testRecordLatencyWithBusinessAliasOperation() {
+        // When
+        metricsService.recordLatency("write-through", "write-through-set", 30);
+
+        // Then
+        Timer setTimer = meterRegistry.find("cache.operation.latency")
+                .tags("cache", "write-through", "operation", "set", "success", "true")
+                .timer();
+        assertNotNull(setTimer);
+        assertEquals(1, setTimer.count());
+
+        Timer getTimer = meterRegistry.find("cache.operation.latency")
+                .tags("cache", "write-through", "operation", "get", "success", "true")
+                .timer();
+        assertNull(getTimer);
     }
     
     @Test

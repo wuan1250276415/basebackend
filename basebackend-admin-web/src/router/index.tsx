@@ -1,129 +1,87 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import Login from '@/pages/Login'
-import Layout from '@/layouts/BasicLayout'
-import Dashboard from '@/pages/Dashboard'
-import UserList from '@/pages/System/User'
-import RoleList from '@/pages/System/RoleManagement'
-import MenuList from '@/pages/System/Menu'
-import DeptList from '@/pages/System/Dept'
-import DictList from '@/pages/System/Dict'
-import ApplicationManagement from '@/pages/System/Application'
-import ApplicationResourceManagement from '@/pages/System/ApplicationResource'
-import LoginLog from '@/pages/Monitor/LoginLog'
-import OperationLog from '@/pages/Monitor/OperationLog'
-import OnlineUser from '@/pages/Monitor/OnlineUser'
-import ServerMonitor from '@/pages/Monitor/ServerMonitor'
-import ObservabilityOverview from '@/pages/Monitor/Observability/Overview'
-import LogQuery from '@/pages/Monitor/Observability/LogQuery'
-import TraceQuery from '@/pages/Monitor/Observability/TraceQuery'
-import AlertManagement from '@/pages/Monitor/Observability/AlertManagement'
-import MessageMonitor from '@/pages/Integration/MessageMonitor'
-import WebhookConfig from '@/pages/Integration/WebhookConfig'
-import EventLog from '@/pages/Integration/EventLog'
-import DeadLetter from '@/pages/Integration/DeadLetter'
-import Profile from '@/pages/User/Profile'
-import NotificationCenter from '@/pages/Notification'
-import ApiDocs from '@/pages/Developer/ApiDocs'
-import TodoList from '@/pages/Workflow/TaskManagement/TodoList'
-import TaskDetail from '@/pages/Workflow/TaskManagement/TaskDetail'
-import MyInitiated from '@/pages/Workflow/TaskManagement/MyInitiated'
-import ProcessTemplateIndex from '@/pages/Workflow/ProcessTemplate'
-// import LeaveApproval from '@/pages/Workflow/ProcessTemplate/LeaveApproval'
-import ExpenseApproval from '@/pages/Workflow/ProcessTemplate/ExpenseApproval'
-import PurchaseApproval from '@/pages/Workflow/ProcessTemplate/PurchaseApproval'
-import ProcessInstanceList from '@/pages/Workflow/ProcessInstance'
-import ProcessInstanceDetail from '@/pages/Workflow/ProcessInstance/Detail'
-import ProcessDefinitionList from '@/pages/Workflow/ProcessDefinition'
-import ProcessHistory from '@/pages/Workflow/ProcessHistory'
-import BpmnDesigner from '@/pages/Workflow/BpmnDesigner'
-import FormTemplateList from '@/pages/Workflow/FormTemplate'
-import Statistics from '@/pages/Workflow/Statistics'
-import JobManagement from '@/pages/Workflow/JobManagement'
-import IncidentCenter from '@/pages/Workflow/IncidentCenter'
-import FileList from '@/pages/File/FileList'
-import RecycleBin from '@/pages/File/RecycleBin'
-import { useAuthStore } from '@/stores/auth'
+/**
+ * 路由配置
+ * 定义静态路由（登录、错误页）和受保护的动态路由
+ *
+ * 路由结构：
+ * - /login          → 登录页（公开）
+ * - /403            → 禁止访问页（公开）
+ * - /404            → 页面未找到（公开）
+ * - /500            → 服务器错误（公开）
+ * - /               → RouterGuard 包裹的受保护路由组
+ *   - /             → Dashboard 首页
+ *   - ...dynamicRoutes → 动态路由（来自 AuthStore）
+ * - *               → 重定向到 /404
+ */
+import React, { Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Spin } from 'antd';
+import RouterGuard from './guard';
+import { useAuthStore } from '@/stores/authStore';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { token } = useAuthStore()
-  return token ? <>{children}</> : <Navigate to="/login" replace />
-}
+/** 懒加载页面组件 */
+const Login = React.lazy(() => import('@/pages/Login'));
+const Forbidden = React.lazy(() => import('@/pages/error/403'));
+const NotFound = React.lazy(() => import('@/pages/error/404'));
+const ServerError = React.lazy(() => import('@/pages/error/500'));
+const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
 
-const AppRouter = () => {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+/** 全局加载状态组件 */
+const Loading: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <Spin size="large" tip="加载中..." />
+  </div>
+);
+
+/**
+ * 递归渲染动态路由
+ * 将 RouteObject[] 转换为 <Route> 元素树
+ */
+function renderDynamicRoutes(routes: ReturnType<typeof useAuthStore.getState>['dynamicRoutes']): React.ReactNode {
+  return routes.map((route, index) => {
+    if (route.children && route.children.length > 0) {
+      return (
+        <Route key={route.path || index} path={route.path}>
+          {renderDynamicRoutes(route.children)}
+        </Route>
+      );
+    }
+    return (
       <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-
-        {/* 系统管理 */}
-        <Route path="system/user" element={<UserList />} />
-        <Route path="system/role" element={<RoleList />} />
-        <Route path="system/menu" element={<MenuList />} />
-        <Route path="system/dept" element={<DeptList />} />
-        <Route path="system/dict" element={<DictList />} />
-        <Route path="system/application" element={<ApplicationManagement />} />
-        <Route path="system/application-resource" element={<ApplicationResourceManagement />} />
-
-        {/* 系统监控 */}
-        <Route path="monitor/online" element={<OnlineUser />} />
-        <Route path="monitor/server" element={<ServerMonitor />} />
-        <Route path="monitor/loginlog" element={<LoginLog />} />
-        <Route path="monitor/operlog" element={<OperationLog />} />
-
-        {/* 可观测性监控 */}
-        <Route path="monitor/observability/overview" element={<ObservabilityOverview />} />
-        <Route path="monitor/observability/logs" element={<LogQuery />} />
-        <Route path="monitor/observability/traces" element={<TraceQuery />} />
-        <Route path="monitor/observability/alerts" element={<AlertManagement />} />
-
-        {/* 消息与集成 */}
-        <Route path="integration/message-monitor" element={<MessageMonitor />} />
-        <Route path="integration/webhook-config" element={<WebhookConfig />} />
-        <Route path="integration/event-log" element={<EventLog />} />
-        <Route path="integration/dead-letter" element={<DeadLetter />} />
-
-        {/* 个人中心 */}
-        <Route path="user/profile" element={<Profile />} />
-
-        {/* 通知中心 */}
-        <Route path="notification/center" element={<NotificationCenter />} />
-
-        {/* 开发者工具 */}
-        <Route path="developer/api-docs" element={<ApiDocs />} />
-
-        {/* 工作流管理 */}
-        <Route path="workflow/todo" element={<TodoList />} />
-        <Route path="workflow/todo/:taskId" element={<TaskDetail />} />
-        <Route path="workflow/initiated" element={<MyInitiated />} />
-        <Route path="workflow/template" element={<ProcessTemplateIndex />} />
-        {/* <Route path="workflow/template/leave" element={<LeaveApproval />} /> */}
-        <Route path="workflow/template/expense" element={<ExpenseApproval />} />
-        <Route path="workflow/template/purchase" element={<PurchaseApproval />} />
-        <Route path="workflow/instance" element={<ProcessInstanceList />} />
-        <Route path="workflow/instance/:instanceId" element={<ProcessInstanceDetail />} />
-        <Route path="workflow/definition" element={<ProcessDefinitionList />} />
-        <Route path="workflow/history" element={<ProcessHistory />} />
-        <Route path="workflow/bpmn-designer" element={<BpmnDesigner />} />
-        <Route path="workflow/form-template" element={<FormTemplateList />} />
-        <Route path="workflow/statistics" element={<Statistics />} />
-        <Route path="workflow/job" element={<JobManagement />} />
-        <Route path="workflow/incident" element={<IncidentCenter />} />
-
-        {/* 文件管理 */}
-        <Route path="file/list" element={<FileList />} />
-        <Route path="file/recycle-bin" element={<RecycleBin />} />
-      </Route>
-    </Routes>
-  )
+        key={route.path || index}
+        path={route.path}
+        element={route.element ? <Suspense fallback={<Loading />}>{route.element}</Suspense> : null}
+      />
+    );
+  });
 }
 
-export default AppRouter
+/**
+ * 应用路由组件
+ * 组合静态路由和动态路由，使用 RouterGuard 保护需要认证的路由
+ */
+const AppRoutes: React.FC = () => {
+  const { dynamicRoutes } = useAuthStore();
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* 公开路由：无需认证 */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/403" element={<Forbidden />} />
+        <Route path="/404" element={<NotFound />} />
+        <Route path="/500" element={<ServerError />} />
+
+        {/* 受保护路由：RouterGuard 作为布局路由，子路由通过 Outlet 渲染 */}
+        <Route path="/" element={<RouterGuard />}>
+          <Route index element={<Suspense fallback={<Loading />}><Dashboard /></Suspense>} />
+          {renderDynamicRoutes(dynamicRoutes)}
+        </Route>
+
+        {/* 兜底路由：未匹配的路径重定向到 404 */}
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </Suspense>
+  );
+};
+
+export default AppRoutes;

@@ -1,0 +1,52 @@
+# 商城路由模板（导入到 Nacos 后可合并进 basebackend-gateway-dev.yml）
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: mall-product-api
+          uri: lb://basebackend-mall-product-api
+          predicates:
+            - Path=/api/mall/products/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallProductServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-product
+
+        - id: mall-trade-api
+          uri: lb://basebackend-mall-trade-api
+          predicates:
+            - Path=/api/mall/trades/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallTradeServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-trade
+
+        - id: mall-pay-api
+          uri: lb://basebackend-mall-pay-api
+          predicates:
+            - Path=/api/mall/payments/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mallPayServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mall-pay
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
+        baseConfig: default
+  timelimiter:
+    instances:
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
+        baseConfig: default

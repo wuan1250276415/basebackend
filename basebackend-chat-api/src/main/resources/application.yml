@@ -1,0 +1,74 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: basebackend-chat-api
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/basebackend_chat?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    encoding: UTF-8
+    validate-on-migrate: true
+    clean-disabled: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
+# MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 聊天模块配置
+basebackend:
+  chat:
+    enabled: true
+    ws-endpoint: /ws/chat
+    allowed-origins:
+      - "*"
+    revoke-timeout-seconds: 120
+    default-max-group-members: 500
+  websocket:
+    enabled: true
+    endpoint: /ws
+    allowed-origins:
+      - "*"
+
+# Knife4j 文档
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.basebackend.chat: DEBUG
+    com.baomidou.mybatisplus: DEBUG

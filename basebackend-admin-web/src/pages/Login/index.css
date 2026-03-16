@@ -1,9 +1,26 @@
+/* 登录页样式 - 动画渐变背景 + 居中卡片 */
+
+/* 渐变背景动画 */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(-45deg, #1677ff, #4096ff, #69b1ff, #1677ff);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
 }
 
 .login-box {
@@ -14,7 +31,7 @@
 
 .login-card {
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 .login-header {
@@ -25,7 +42,7 @@
 .login-header h1 {
   font-size: 28px;
   font-weight: 600;
-  color: #1890ff;
+  color: #1677ff;
   margin-bottom: 8px;
 }
 
@@ -33,11 +50,4 @@
   font-size: 14px;
   color: #8c8c8c;
   margin: 0;
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 16px;
-  color: #8c8c8c;
-  font-size: 12px;
 }

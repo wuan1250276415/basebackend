@@ -1,7 +1,8 @@
+import { User, Shield, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Tabs, message, Spin } from 'antd'
-import { UserOutlined, SafetyOutlined, SettingOutlined } from '@ant-design/icons'
-import { getProfile } from '@/api/profile'
+
+import { getProfile } from '@/api/profileApi'
 import { ProfileDetail } from '@/types'
 import BasicInfo from './components/BasicInfo'
 import SecuritySettings from './components/SecuritySettings'
@@ -34,7 +35,7 @@ const Profile = () => {
       key: 'basic',
       label: (
         <span>
-          <UserOutlined />
+          <User />
           基本信息
         </span>
       ),
@@ -44,7 +45,7 @@ const Profile = () => {
       key: 'security',
       label: (
         <span>
-          <SafetyOutlined />
+          <Shield />
           安全设置
         </span>
       ),
@@ -54,7 +55,7 @@ const Profile = () => {
       key: 'preferences',
       label: (
         <span>
-          <SettingOutlined />
+          <Settings />
           偏好设置
         </span>
       ),

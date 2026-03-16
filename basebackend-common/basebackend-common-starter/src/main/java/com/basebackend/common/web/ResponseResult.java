@@ -115,7 +115,8 @@ public class ResponseResult<T> extends Result<T> {
      * @return 失败结果
      */
     public static <T> ResponseResult<T> error() {
-        return new ResponseResult<>();
+        return new ResponseResult<>(CommonErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                CommonErrorCode.INTERNAL_SERVER_ERROR.getMessage());
     }
 
     /**
@@ -125,7 +126,7 @@ public class ResponseResult<T> extends Result<T> {
      * @return 失败结果
      */
     public static <T> ResponseResult<T> error(String message) {
-        return new ResponseResult<>(null, message);
+        return new ResponseResult<>(CommonErrorCode.INTERNAL_SERVER_ERROR.getCode(), message);
     }
 
     /**

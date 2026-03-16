@@ -21,6 +21,7 @@ import java.util.Set;
 @Endpoint(id = "cacheAdmin")
 public class CacheAdminEndpoint {
 
+    private static final int KEY_RETURN_LIMIT = 100;
     private final CacheService cacheService;
 
     public CacheAdminEndpoint(CacheService cacheService) {
@@ -56,14 +57,18 @@ public class CacheAdminEndpoint {
      */
     @ReadOperation
     public CacheDetailDTO getCacheDetail(@Selector String name) {
+        if (!cacheService.validateCacheName(name)) {
+            log.warn("Rejecting cache detail query for invalid cache name: {}", name);
+            return CacheDetailDTO.from(name, 0, null, Set.of());
+        }
+
         CacheStatistics stats = cacheService.getStatistics(name);
         long size = cacheService.getCacheSize(name);
         Set<String> sampleKeys = cacheService.keys(name + ":*");
 
         // 限制返回的 key 数量
-        int limit = 100;
-        Set<String> limitedKeys = sampleKeys.size() > limit
-                ? sampleKeys.stream().limit(limit).collect(java.util.stream.Collectors.toSet())
+        Set<String> limitedKeys = sampleKeys.size() > KEY_RETURN_LIMIT
+                ? sampleKeys.stream().limit(KEY_RETURN_LIMIT).collect(java.util.stream.Collectors.toSet())
                 : sampleKeys;
 
         return CacheDetailDTO.from(name, size, stats, limitedKeys);
@@ -75,6 +80,11 @@ public class CacheAdminEndpoint {
      */
     @DeleteOperation
     public long clearCache(@Selector String name) {
+        if (!cacheService.validateCacheName(name)) {
+            log.warn("Rejecting cache clear for invalid cache name: {}", name);
+            return 0;
+        }
+
         log.info("Actuator: clearing cache '{}'", name);
         return cacheService.clearCache(name);
     }

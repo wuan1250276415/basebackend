@@ -52,6 +52,15 @@ class RateLimiterImplTest {
             assertThat(limiter.tryAcquire("fw-one", 1, 60)).isTrue();
             assertThat(limiter.tryAcquire("fw-one", 1, 60)).isFalse();
         }
+
+        @Test
+        @DisplayName("非法参数安全拒绝")
+        void shouldSafelyRejectInvalidParams() {
+            assertThat(limiter.tryAcquire("fw-invalid-limit", 0, 60)).isFalse();
+            assertThat(limiter.tryAcquire("fw-invalid-window", 10, 0)).isFalse();
+            assertThat(limiter.tryAcquire("fw-invalid-negative", -1, -1)).isFalse();
+            assertThat(limiter.tryAcquire(null, 10, 60)).isFalse();
+        }
     }
 
     // ========== SlidingWindowRateLimiter ==========
@@ -163,6 +172,15 @@ class RateLimiterImplTest {
             }
             assertThat(limiter.tryAcquire("tb-a", 3, 60)).isFalse();
             assertThat(limiter.tryAcquire("tb-b", 3, 60)).isTrue();
+        }
+
+        @Test
+        @DisplayName("非法参数安全拒绝")
+        void shouldSafelyRejectInvalidParams() {
+            assertThat(limiter.tryAcquire("tb-invalid-limit", 0, 60)).isFalse();
+            assertThat(limiter.tryAcquire("tb-invalid-window", 10, 0)).isFalse();
+            assertThat(limiter.tryAcquire("tb-invalid-negative", -1, -1)).isFalse();
+            assertThat(limiter.tryAcquire(null, 10, 60)).isFalse();
         }
     }
 }

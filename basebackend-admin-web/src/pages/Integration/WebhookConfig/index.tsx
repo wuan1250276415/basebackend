@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2, Power } from 'lucide-react';
 import { useEffect, useState } from 'react'
 import {
   Card,
@@ -14,7 +15,7 @@ import {
   Tag,
   Popconfirm
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, PoweroffOutlined } from '@ant-design/icons'
+
 import {
   getWebhookConfigPage,
   createWebhookConfig,
@@ -180,7 +181,7 @@ const WebhookConfig = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenModal(record)}
           >
             编辑
@@ -188,7 +189,7 @@ const WebhookConfig = () => {
           <Button
             type="link"
             size="small"
-            icon={<PoweroffOutlined />}
+            icon={<Power />}
             onClick={() => handleToggle(record.id, record.enabled)}
           >
             {record.enabled ? '禁用' : '启用'}
@@ -197,7 +198,7 @@ const WebhookConfig = () => {
             title="确定删除吗？"
             onConfirm={() => handleDelete(record.id)}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -219,7 +220,7 @@ const WebhookConfig = () => {
             />
             <Button
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<Plus />}
               onClick={() => handleOpenModal()}
             >
               新增

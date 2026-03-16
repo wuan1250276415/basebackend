@@ -1,6 +1,7 @@
+import { Plus, Edit, Trash2, FlaskConical } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Button, Table, Modal, Form, Input, Select, InputNumber, Switch, Space, message, Tag, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, ExperimentOutlined } from '@ant-design/icons'
+
 import {
   getAllAlertRules,
   registerAlertRule,
@@ -176,7 +177,7 @@ const AlertManagement = () => {
           <Button
             type="link"
             size="small"
-            icon={<ExperimentOutlined />}
+            icon={<FlaskConical />}
             onClick={() => handleTestRule(record)}
           >
             测试
@@ -184,7 +185,7 @@ const AlertManagement = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenModal(record)}
           >
             编辑
@@ -193,7 +194,7 @@ const AlertManagement = () => {
             title="确定删除此规则？"
             onConfirm={() => handleDeleteRule(record.id!)}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
@@ -267,7 +268,7 @@ const AlertManagement = () => {
         extra={
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<Plus />}
             onClick={() => handleOpenModal()}
           >
             新增规则

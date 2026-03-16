@@ -1,6 +1,7 @@
+import { Inbox } from 'lucide-react';
 import React, { useState } from 'react'
 import { Modal, Upload, message, Progress, Form, InputNumber, Space, Alert } from 'antd'
-import { InboxOutlined } from '@ant-design/icons'
+
 import type { UploadProps } from 'antd'
 import { uploadFile } from '@/api/file'
 
@@ -114,7 +115,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
         <Dragger {...uploadProps}>
           <p className="ant-upload-drag-icon">
-            <InboxOutlined />
+            <Inbox />
           </p>
           <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
           <p className="ant-upload-hint">

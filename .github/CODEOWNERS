@@ -1,0 +1,6 @@
+# basebackend-common 模块清单一致性治理文件
+/basebackend-common/pom.xml @wuan1250276415
+/basebackend-common/README.md @wuan1250276415
+/basebackend-common/CLAUDE.md @wuan1250276415
+/.github/scripts/check-basebackend-common-consistency.sh @wuan1250276415
+/.github/workflows/common-module-consistency.yml @wuan1250276415

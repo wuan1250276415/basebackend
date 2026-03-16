@@ -85,6 +85,10 @@ public class LocalLockManager implements LockManager {
         ReentrantLock lock = locks.get(lockKey);
         if (lock != null && lock.isHeldByCurrentThread()) {
             lock.unlock();
+            // 无等待线程时原子移除，防止 Map 无限增长
+            if (!lock.hasQueuedThreads()) {
+                locks.remove(lockKey, lock);
+            }
         }
     }
 

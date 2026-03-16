@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,14 +39,12 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      */
     private boolean strict = true;
 
-    // Performance monitoring
-    private static final AtomicLong TOTAL_LOOKUPS = new AtomicLong(0);
-    private static final AtomicLong FAILED_LOOKUPS = new AtomicLong(0);
-    private static final AtomicLong TOTAL_DATA_SOURCE_SWITCHES = new AtomicLong(0);
-    private static final ConcurrentHashMap<String, AtomicLong> DATA_SOURCE_USAGE_COUNTER = new ConcurrentHashMap<>();
-
-    // Operation ID generator
-    private static final AtomicLong OPERATION_ID_GENERATOR = new AtomicLong(0);
+    // Performance monitoring — instance fields (H1: avoid static state shared across instances)
+    private final AtomicLong totalLookups = new AtomicLong(0);
+    private final AtomicLong failedLookups = new AtomicLong(0);
+    private final AtomicLong totalDataSourceSwitches = new AtomicLong(0);
+    private final ConcurrentHashMap<String, AtomicLong> dataSourceUsageCounter = new ConcurrentHashMap<>();
+    private final AtomicLong operationIdGenerator = new AtomicLong(0);
 
     // Flag to control datasource validation (disabled in test environment)
     private boolean skipValidation = isTestEnvironment();
@@ -54,11 +53,17 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      * Check if running in test environment
      */
     private static boolean isTestEnvironment() {
-        // Check for test-related system properties or environment variables
-        return System.getProperty("test.env") != null
-            || System.getenv("TEST_ENV") != null
-            || Thread.currentThread().getStackTrace().toString().contains("org.junit")
-            || Thread.currentThread().getStackTrace().toString().contains("org.springframework.test");
+        if (System.getProperty("test.env") != null || System.getenv("TEST_ENV") != null) {
+            return true;
+        }
+
+        if (System.getProperty("surefire.test.class.path") != null) {
+            return true;
+        }
+
+        String classPath = System.getProperty("java.class.path", "").toLowerCase();
+        return Arrays.stream(new String[]{"junit", "surefire", "testng"})
+            .anyMatch(classPath::contains);
     }
 
     /**
@@ -102,23 +107,23 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      */
     @Override
     protected Object determineCurrentLookupKey() {
-        long operationId = OPERATION_ID_GENERATOR.incrementAndGet();
+        long operationId = operationIdGenerator.incrementAndGet();
         long startTime = System.currentTimeMillis();
-        TOTAL_LOOKUPS.incrementAndGet();
+        totalLookups.incrementAndGet();
 
         try {
             String dataSourceKey = DataSourceContextHolder.getDataSourceKey();
 
             // 如果没有设置数据源，使用默认数据源
             if (dataSourceKey == null) {
-                DATA_SOURCE_USAGE_COUNTER.computeIfAbsent(primaryDataSourceKey, k -> new AtomicLong(0)).incrementAndGet();
+                dataSourceUsageCounter.computeIfAbsent(primaryDataSourceKey, k -> new AtomicLong(0)).incrementAndGet();
                 log.trace("No datasource key in context, using primary: {}, operationId={}", primaryDataSourceKey, operationId);
                 return primaryDataSourceKey;
             }
 
             // 严格模式下，检查数据源是否存在
             if (strict && !targetDataSourceMap.containsKey(dataSourceKey)) {
-                FAILED_LOOKUPS.incrementAndGet();
+                failedLookups.incrementAndGet();
                 log.error("DataSource not found: operationId={}, dataSourceKey={}, available={}",
                     operationId, dataSourceKey, targetDataSourceMap.keySet());
                 throw new DataSourceException(
@@ -127,8 +132,8 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
             }
 
             // Track data source usage
-            DATA_SOURCE_USAGE_COUNTER.computeIfAbsent(dataSourceKey, k -> new AtomicLong(0)).incrementAndGet();
-            TOTAL_DATA_SOURCE_SWITCHES.incrementAndGet();
+            dataSourceUsageCounter.computeIfAbsent(dataSourceKey, k -> new AtomicLong(0)).incrementAndGet();
+            totalDataSourceSwitches.incrementAndGet();
 
             log.trace("Using datasource: {}, operationId={}", dataSourceKey, operationId);
             return dataSourceKey;
@@ -148,7 +153,7 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      * @param dataSource 数据源
      */
     public void addDataSource(String key, DataSource dataSource) {
-        long operationId = OPERATION_ID_GENERATOR.incrementAndGet();
+        long operationId = operationIdGenerator.incrementAndGet();
         long startTime = System.currentTimeMillis();
 
         if (key == null || key.trim().isEmpty()) {
@@ -218,7 +223,7 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      * @return 是否移除成功
      */
     public boolean removeDataSource(String key) {
-        long operationId = OPERATION_ID_GENERATOR.incrementAndGet();
+        long operationId = operationIdGenerator.incrementAndGet();
         long startTime = System.currentTimeMillis();
 
         if (key == null || key.trim().isEmpty()) {
@@ -235,8 +240,23 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
 
         Object removed = targetDataSourceMap.remove(key);
         if (removed != null) {
-            super.setTargetDataSources(targetDataSourceMap);
-            super.afterPropertiesSet();
+            try {
+                super.setTargetDataSources(targetDataSourceMap);
+                super.afterPropertiesSet();
+            } catch (Exception e) {
+                targetDataSourceMap.put(key, removed);
+                try {
+                    super.setTargetDataSources(targetDataSourceMap);
+                    super.afterPropertiesSet();
+                } catch (Exception rollbackException) {
+                    e.addSuppressed(rollbackException);
+                }
+                log.error("Failed to refresh datasource map after removal: operationId={}, key={}", operationId, key, e);
+                throw new DataSourceException(
+                    String.format("Failed to remove datasource: %s, operationId=%d", key, operationId), e);
+            }
+
+            closeRemovedDataSource(removed, key, operationId);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("Removed datasource successfully: operationId={}, key={}, duration={}ms, remainingDataSources={}",
@@ -246,6 +266,23 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
 
         log.warn("DataSource not found for removal: operationId={}, key={}", operationId, key);
         return false;
+    }
+
+    /**
+     * 关闭被移除的数据源资源（若支持关闭）
+     */
+    private void closeRemovedDataSource(Object dataSource, String key, long operationId) {
+        if (!(dataSource instanceof AutoCloseable closeable)) {
+            return;
+        }
+
+        try {
+            closeable.close();
+            log.debug("Closed removed datasource successfully: operationId={}, key={}", operationId, key);
+        } catch (Exception e) {
+            log.warn("Failed to close removed datasource: operationId={}, key={}, error={}",
+                operationId, key, e.getMessage(), e);
+        }
     }
     
     /**
@@ -329,14 +366,14 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      */
     public Map<String, Object> getPerformanceStats() {
         Map<String, Object> stats = new ConcurrentHashMap<>();
-        stats.put("totalLookups", TOTAL_LOOKUPS.get());
-        stats.put("failedLookups", FAILED_LOOKUPS.get());
-        stats.put("totalDataSourceSwitches", TOTAL_DATA_SOURCE_SWITCHES.get());
-        stats.put("successRate", TOTAL_LOOKUPS.get() > 0 ?
-            ((double) (TOTAL_LOOKUPS.get() - FAILED_LOOKUPS.get()) / TOTAL_LOOKUPS.get()) * 100 : 0);
+        stats.put("totalLookups", totalLookups.get());
+        stats.put("failedLookups", failedLookups.get());
+        stats.put("totalDataSourceSwitches", totalDataSourceSwitches.get());
+        stats.put("successRate", totalLookups.get() > 0 ?
+            ((double) (totalLookups.get() - failedLookups.get()) / totalLookups.get()) * 100 : 0);
 
         Map<String, Long> usageStats = new ConcurrentHashMap<>();
-        DATA_SOURCE_USAGE_COUNTER.forEach((key, count) -> usageStats.put(key, count.get()));
+        dataSourceUsageCounter.forEach((key, count) -> usageStats.put(key, count.get()));
         stats.put("dataSourceUsage", usageStats);
         stats.put("dataSourceCount", targetDataSourceMap.size());
 
@@ -347,10 +384,10 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      * 重置性能计数器（用于测试）
      */
     public void resetPerformanceCounters() {
-        TOTAL_LOOKUPS.set(0);
-        FAILED_LOOKUPS.set(0);
-        TOTAL_DATA_SOURCE_SWITCHES.set(0);
-        DATA_SOURCE_USAGE_COUNTER.clear();
+        totalLookups.set(0);
+        failedLookups.set(0);
+        totalDataSourceSwitches.set(0);
+        dataSourceUsageCounter.clear();
         log.info("DynamicDataSource performance counters reset");
     }
 

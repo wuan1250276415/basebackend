@@ -1,0 +1,20 @@
+# 商城商品服务（dev）Nacos 模板
+server:
+  port: 8091
+
+basebackend:
+  idempotent:
+    enabled: true
+  search:
+    enabled: true
+    elasticsearch:
+      index-prefix: mall_product_
+
+messaging:
+  rocketmq:
+    default-topic: mall-product-topic
+    topic-prefix: mall.product.
+
+mall:
+  business-idempotent:
+    ttl-seconds: 86400

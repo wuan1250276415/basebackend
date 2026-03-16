@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 import { Application, ApplicationResource, Result,Menu } from '@/types'
 
 // ==================== 应用管理 ====================

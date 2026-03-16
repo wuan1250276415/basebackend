@@ -3,24 +3,27 @@ package com.basebackend.backup.infrastructure.executor.impl;
 import com.basebackend.backup.config.BackupProperties;
 import com.basebackend.backup.domain.entity.BackupHistory;
 import com.basebackend.backup.infrastructure.executor.*;
+import com.basebackend.backup.infrastructure.monitoring.BackupMetricsRegistrar;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.annotation.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,9 +73,10 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
             com.basebackend.backup.infrastructure.storage.StorageProvider storageProvider,
             com.basebackend.backup.infrastructure.reliability.impl.ChecksumService checksumService,
             com.basebackend.backup.domain.mapper.BackupHistoryMapper backupHistoryMapper,
+            @Nullable BackupMetricsRegistrar backupMetricsRegistrar,
             BackupProperties backupProperties,
             @Nullable MySqlBinlogParser binlogParser) {
-        super(lockManager, retryTemplate, storageProvider, checksumService, backupHistoryMapper);
+        super(lockManager, retryTemplate, storageProvider, checksumService, backupHistoryMapper, backupMetricsRegistrar);
         this.backupProperties = backupProperties;
         this.binlogParser = binlogParser;
     }
@@ -84,23 +88,35 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         // 获取输出文件路径
         String outputFile = getOutputFilePath(request, "full");
         File backupFile = new File(outputFile);
+        BinlogPosition startPosition = null;
+        BinlogPosition endPosition = null;
 
         try {
+            BackupRequest.DatabaseConfig dbConfig = request.getDatabaseConfig();
+            if (dbConfig != null) {
+                try {
+                    startPosition = queryCurrentBinlogPosition(dbConfig);
+                } catch (Exception e) {
+                    log.warn("获取全量备份起始binlog位点失败，将继续执行全量备份: taskId={}", request.getTaskId(), e);
+                }
+            }
+
             // 构建mysqldump命令参数（分离式，避免shell注入）
             List<String> command = buildMysqldumpCommandArgs(request);
 
-            // 使用ProcessBuilder执行命令，输出重定向到文件
+            // 使用ProcessBuilder执行命令，stdout重定向到备份文件，stderr单独捕获
+            // 注意：不能同时使用 redirectOutput(file) 和 redirectErrorStream(true)，
+            // 否则 stderr 也会写入备份文件，且 getErrorStream() 返回空流，导致错误无法感知。
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             applyMysqlPassword(processBuilder, request.getDatabaseConfig().getPassword());
             processBuilder.redirectOutput(backupFile);
-            processBuilder.redirectErrorStream(true);
+            // redirectErrorStream 保持 false（默认），以便单独读取 stderr
 
             log.info("执行mysqldump命令: {}", String.join(" ", command));
 
             Process process = processBuilder.start();
 
-            // 消费输出流（避免进程阻塞）
-            consumeProcessOutput(process.getInputStream(), "INFO");
+            // 异步消费 stderr，防止进程因管道满而阻塞
             consumeProcessOutput(process.getErrorStream(), "ERROR");
 
             // 等待进程完成（设置超时）
@@ -124,6 +140,14 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
                 throw new RuntimeException("备份文件未生成: " + outputFile);
             }
 
+            if (dbConfig != null) {
+                try {
+                    endPosition = queryCurrentBinlogPosition(dbConfig);
+                } catch (Exception e) {
+                    log.warn("获取全量备份结束binlog位点失败: taskId={}", request.getTaskId(), e);
+                }
+            }
+
             // 构建备份产物
             BackupArtifact artifact = BackupArtifact.builder()
                     .file(backupFile)
@@ -131,6 +155,8 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
                     .fileSize(backupFile.length())
                     .startTime(request.getStartTime())
                     .endTime(LocalDateTime.now())
+                    .binlogStartPosition(startPosition == null ? null : startPosition.toString())
+                    .binlogEndPosition(endPosition == null ? null : endPosition.toString())
                     .durationSeconds(
                             (System.currentTimeMillis() - request.getStartTime().toEpochSecond(ZoneOffset.UTC) * 1000)
                                     / 1000)
@@ -156,90 +182,45 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
     @Override
     public BackupArtifact executeIncremental(IncrementalBackupRequest request) throws Exception {
-        if (binlogParser == null) {
-            throw new UnsupportedOperationException(
-                    "增量备份需要 mysql-binlog-connector-java 库，请将其添加到 classpath");
-        }
-        log.info("执行MySQL增量备份: {}, 基线备份ID: {}",
-                request.getTaskId(), request.getBaseFullBackupId());
-
-        BinlogPosition startPosition = null;
-
-        // 如果指定了起始位置，使用它
-        if (request.getBinlogStartPosition() != null) {
-            startPosition = BinlogPosition.fromString(request.getBinlogStartPosition());
-        } else {
-            // 获取当前binlog位置
-            String host = request.getDatabaseConfig().getHost();
-            int port = request.getDatabaseConfig().getPort();
-            String username = request.getDatabaseConfig().getUsername();
-            String password = request.getDatabaseConfig().getPassword();
-
-            startPosition = binlogParser.getCurrentPosition(host, port, username, password);
+        BackupRequest.DatabaseConfig dbConfig = request.getDatabaseConfig();
+        if (dbConfig == null) {
+            throw new IllegalArgumentException("增量备份数据库配置不能为空");
         }
 
-        log.info("增量备份起始位置: {}", startPosition);
+        BinlogPosition startPosition = resolveStartPosition(request);
+        BinlogPosition endPosition = queryCurrentBinlogPosition(dbConfig);
 
-        // 解析binlog到当前时间
-        String database = request.getDatabaseConfig().getDatabase();
-        String host = request.getDatabaseConfig().getHost();
-        int port = request.getDatabaseConfig().getPort();
-        String username = request.getDatabaseConfig().getUsername();
-        String password = request.getDatabaseConfig().getPassword();
+        if (startPosition.compareTo(endPosition) > 0) {
+            throw new IllegalStateException("增量位点非法: start > end, start=" + startPosition + ", end=" + endPosition);
+        }
 
-        BinlogPosition endPosition = binlogParser.getCurrentPosition(host, port, username, password);
-
-        // 解析binlog事件
-        binlogParser.subscribe(host, port, username, password, startPosition,
-                new BinlogEventListener() {
-                    @Override
-                    public void onDataChange(BinlogEvent event) throws Exception {
-                        log.debug("收到数据变更事件: {}.{}", event.getDatabase(), event.getTable());
-                    }
-
-                    @Override
-                    public void onQuery(BinlogEvent event) throws Exception {
-                        log.debug("收到查询事件: {}", event.getDatabase());
-                    }
-
-                    @Override
-                    public void onDDL(BinlogEvent event) throws Exception {
-                        log.debug("收到DDL事件");
-                    }
-
-                    @Override
-                    public void onError(Throwable error) throws Exception {
-                        log.error("Binlog解析错误", error);
-                    }
-
-                    @Override
-                    public List<BinlogEvent> getEvents() {
-                        return new java.util.ArrayList<>();
-                    }
-                });
-
-        // 简化：创建增量SQL文件（实际实现中应该基于解析的事件生成SQL）
         String outputFile = getOutputFilePath(request, "incremental");
-        String incrementalSql = generateIncrementalSql(startPosition, endPosition, request);
-        Files.write(Paths.get(outputFile), incrementalSql.getBytes());
-
         File backupFile = new File(outputFile);
 
-        BackupArtifact artifact = BackupArtifact.builder()
-                .file(backupFile)
-                .backupType("incremental")
-                .fileSize(backupFile.length())
-                .startTime(request.getStartTime())
-                .endTime(LocalDateTime.now())
-                .binlogStartPosition(startPosition.toString())
-                .binlogEndPosition(endPosition.toString())
-                .durationSeconds((System.currentTimeMillis()
-                        - request.getStartTime().toEpochSecond(java.time.ZoneOffset.UTC) * 1000) / 1000)
-                .build();
+        try {
+            if (startPosition.compareTo(endPosition) == 0) {
+                Files.writeString(backupFile.toPath(),
+                        "-- MySQL incremental backup: no changes\n-- position: " + startPosition + "\n");
+                return buildIncrementalArtifact(request, backupFile, startPosition, endPosition);
+            }
 
-        log.info("MySQL增量备份完成: {}, 大小: {} bytes", outputFile, backupFile.length());
+            exportBinlogRange(dbConfig, startPosition, endPosition, backupFile);
 
-        return artifact;
+            if (!backupFile.exists()) {
+                throw new RuntimeException("增量备份文件未生成: " + outputFile);
+            }
+
+            return buildIncrementalArtifact(request, backupFile, startPosition, endPosition);
+        } catch (Exception e) {
+            if (backupFile.exists()) {
+                try {
+                    Files.delete(backupFile.toPath());
+                } catch (IOException cleanupEx) {
+                    log.warn("清理临时增量备份文件失败: {}", outputFile, cleanupEx);
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -251,6 +232,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
         // 使用ProcessBuilder执行命令，输入重定向到文件
         ProcessBuilder processBuilder = new ProcessBuilder(command);
+        applyMysqlPassword(processBuilder, backupProperties.getDatabase().getPassword());
         processBuilder.redirectInput(artifact.getFile());
         processBuilder.redirectErrorStream(true);
 
@@ -284,17 +266,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
 
     @Override
     public String getCurrentIncrementalPosition(BackupRequest request) throws Exception {
-        if (binlogParser == null) {
-            throw new UnsupportedOperationException(
-                    "增量备份需要 mysql-binlog-connector-java 库，请将其添加到 classpath");
-        }
-        String host = request.getDatabaseConfig().getHost();
-        int port = request.getDatabaseConfig().getPort();
-        String username = request.getDatabaseConfig().getUsername();
-        String password = request.getDatabaseConfig().getPassword();
-
-        BinlogPosition position = binlogParser.getCurrentPosition(host, port, username, password);
-        return position.toString();
+        return queryCurrentBinlogPosition(request.getDatabaseConfig()).toString();
     }
 
     @Override
@@ -324,7 +296,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         BackupRequest.DatabaseConfig dbConfig = request.getDatabaseConfig();
 
         List<String> command = new ArrayList<>();
-        command.add("mysqldump");
+        command.add(backupProperties.getMysqldumpPath());
         command.add("-h");
         command.add(dbConfig.getHost());
         command.add("-P");
@@ -369,7 +341,7 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         List<String> command = new ArrayList<>();
 
         // 基础配置
-        command.add("mysql");
+        command.add(backupProperties.getMysqlPath());
         command.add("-h");
         command.add(backupProperties.getDatabase().getHost());
         command.add("-P");
@@ -377,16 +349,198 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         command.add("-u");
         command.add(backupProperties.getDatabase().getUsername());
 
-        // 密码通过环境变量传递，避免出现在命令行
-        String password = backupProperties.getDatabase().getPassword();
-
         // 指定字符集
         command.add("--default-character-set=utf8mb4");
 
-        // 目标数据库
-        command.add(targetDatabase);
+        // 目标数据库（为空时回退到配置库名）
+        String database = (targetDatabase == null || targetDatabase.isBlank())
+                ? backupProperties.getDatabase().getDatabase()
+                : targetDatabase;
+        if (database == null || database.isBlank()) {
+            throw new IllegalArgumentException("目标数据库不能为空");
+        }
+        command.add(database);
 
         return command;
+    }
+
+    private List<String> buildMysqlBinlogCommandArgs(BackupRequest.DatabaseConfig dbConfig,
+                                                      String binlogFile,
+                                                      Long startPosition,
+                                                      Long stopPosition) {
+        List<String> command = new ArrayList<>();
+        command.add(backupProperties.getMysqlbinlogPath());
+        command.add("--read-from-remote-server");
+        command.add("--host=" + dbConfig.getHost());
+        command.add("--port=" + dbConfig.getPort());
+        command.add("--user=" + dbConfig.getUsername());
+        command.add("--database=" + dbConfig.getDatabase());
+        if (startPosition != null) {
+            command.add("--start-position=" + startPosition);
+        }
+        if (stopPosition != null) {
+            command.add("--stop-position=" + stopPosition);
+        }
+        command.add(binlogFile);
+        return command;
+    }
+
+    private BackupArtifact buildIncrementalArtifact(IncrementalBackupRequest request,
+                                                    File backupFile,
+                                                    BinlogPosition startPosition,
+                                                    BinlogPosition endPosition) {
+        LocalDateTime startTime = request.getStartTime() == null ? LocalDateTime.now() : request.getStartTime();
+        LocalDateTime endTime = LocalDateTime.now();
+        return BackupArtifact.builder()
+                .file(backupFile)
+                .backupType("incremental")
+                .fileSize(backupFile.length())
+                .startTime(startTime)
+                .endTime(endTime)
+                .binlogStartPosition(startPosition.toString())
+                .binlogEndPosition(endPosition.toString())
+                .durationSeconds(Math.max(
+                        (System.currentTimeMillis() - startTime.toEpochSecond(ZoneOffset.UTC) * 1000) / 1000,
+                        0))
+                .build();
+    }
+
+    private BinlogPosition resolveStartPosition(IncrementalBackupRequest request) {
+        String rawStart = request.getBinlogStartPosition();
+        if (rawStart == null || rawStart.isBlank()) {
+            rawStart = request.getStartPosition();
+        }
+        if (rawStart == null || rawStart.isBlank()) {
+            throw new IllegalArgumentException("增量备份起始位点不能为空");
+        }
+        BinlogPosition startPosition = BinlogPosition.fromString(rawStart);
+        if (!startPosition.isValid()) {
+            throw new IllegalArgumentException("增量备份起始位点格式非法: " + rawStart);
+        }
+        return startPosition;
+    }
+
+    private BinlogPosition queryCurrentBinlogPosition(BackupRequest.DatabaseConfig dbConfig) throws Exception {
+        if (dbConfig == null) {
+            throw new IllegalArgumentException("数据库配置不能为空");
+        }
+        try (Connection connection = openMysqlConnection(dbConfig);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SHOW MASTER STATUS")) {
+            if (!resultSet.next()) {
+                throw new IllegalStateException("SHOW MASTER STATUS 返回空结果，无法获取binlog位点");
+            }
+            String file = resultSet.getString("File");
+            long position = resultSet.getLong("Position");
+            if (file == null || file.isBlank() || position <= 0) {
+                throw new IllegalStateException("获取到非法binlog位点: file=" + file + ", position=" + position);
+            }
+            return BinlogPosition.of(file, position);
+        }
+    }
+
+    private List<String> queryAvailableBinlogFiles(BackupRequest.DatabaseConfig dbConfig) throws Exception {
+        if (dbConfig == null) {
+            throw new IllegalArgumentException("数据库配置不能为空");
+        }
+        try (Connection connection = openMysqlConnection(dbConfig);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SHOW BINARY LOGS")) {
+            List<String> files = new ArrayList<>();
+            while (resultSet.next()) {
+                String file = resultSet.getString("Log_name");
+                if (file != null && !file.isBlank()) {
+                    files.add(file);
+                }
+            }
+            if (files.isEmpty()) {
+                throw new IllegalStateException("SHOW BINARY LOGS 返回空结果，无法解析增量区间");
+            }
+            return files;
+        }
+    }
+
+    List<String> resolveBinlogFilesInRange(List<String> orderedFiles,
+                                           BinlogPosition startPosition,
+                                           BinlogPosition endPosition) {
+        if (orderedFiles == null || orderedFiles.isEmpty()) {
+            throw new IllegalArgumentException("binlog文件列表不能为空");
+        }
+        if (startPosition == null || endPosition == null) {
+            throw new IllegalArgumentException("增量位点不能为空");
+        }
+
+        int startIndex = orderedFiles.indexOf(startPosition.getFilename());
+        int endIndex = orderedFiles.indexOf(endPosition.getFilename());
+        if (startIndex < 0) {
+            throw new IllegalStateException("起始binlog文件不存在: " + startPosition.getFilename());
+        }
+        if (endIndex < 0) {
+            throw new IllegalStateException("结束binlog文件不存在: " + endPosition.getFilename());
+        }
+        if (startIndex > endIndex) {
+            throw new IllegalStateException("增量区间非法: startFile在endFile之后, start="
+                    + startPosition.getFilename() + ", end=" + endPosition.getFilename());
+        }
+        return new ArrayList<>(orderedFiles.subList(startIndex, endIndex + 1));
+    }
+
+    private void exportBinlogRange(BackupRequest.DatabaseConfig dbConfig,
+                                   BinlogPosition startPosition,
+                                   BinlogPosition endPosition,
+                                   File outputFile) throws Exception {
+        List<String> files = resolveBinlogFilesInRange(
+                queryAvailableBinlogFiles(dbConfig), startPosition, endPosition);
+
+        boolean append = false;
+        for (int i = 0; i < files.size(); i++) {
+            String file = files.get(i);
+            Long start = i == 0 ? startPosition.getPosition() : null;
+            Long stop = i == files.size() - 1 ? endPosition.getPosition() : null;
+            executeMysqlBinlogCommand(dbConfig, file, start, stop, outputFile, append);
+            append = true;
+        }
+    }
+
+    private void executeMysqlBinlogCommand(BackupRequest.DatabaseConfig dbConfig,
+                                           String binlogFile,
+                                           Long startPosition,
+                                           Long stopPosition,
+                                           File outputFile,
+                                           boolean append) throws Exception {
+        List<String> command = buildMysqlBinlogCommandArgs(dbConfig, binlogFile, startPosition, stopPosition);
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        applyMysqlPassword(processBuilder, dbConfig.getPassword());
+        processBuilder.redirectOutput(append
+                ? ProcessBuilder.Redirect.appendTo(outputFile)
+                : ProcessBuilder.Redirect.to(outputFile));
+        processBuilder.redirectErrorStream(true);
+
+        logCommand(command);
+
+        Process process = processBuilder.start();
+        consumeProcessOutput(process.getInputStream(), "INFO");
+        consumeProcessOutput(process.getErrorStream(), "ERROR");
+
+        boolean completed = process.waitFor(backupProperties.getRetry().getMaxAttempts() * 60L, TimeUnit.SECONDS);
+        if (!completed) {
+            process.destroyForcibly();
+            throw new RuntimeException("mysqlbinlog执行超时");
+        }
+
+        int exitCode = process.exitValue();
+        if (exitCode != 0) {
+            String errorMsg = outputFile.exists() ? Files.readString(outputFile.toPath()) : "unknown";
+            throw new RuntimeException("mysqlbinlog执行失败, 退出码: " + exitCode + ", 错误: " + errorMsg);
+        }
+    }
+
+    private Connection openMysqlConnection(BackupRequest.DatabaseConfig dbConfig) throws Exception {
+        boolean sslEnabled = backupProperties.getDatabase().isSslEnabled();
+        String jdbcUrl = String.format(
+                "jdbc:mysql://%s:%d/?useSSL=%s&allowPublicKeyRetrieval=%s&serverTimezone=UTC",
+                dbConfig.getHost(), dbConfig.getPort(), sslEnabled, !sslEnabled);
+        return DriverManager.getConnection(jdbcUrl, dbConfig.getUsername(), dbConfig.getPassword());
     }
 
     private void applyMysqlPassword(ProcessBuilder processBuilder, String password) {
@@ -413,23 +567,37 @@ public class MySqlBackupExecutor extends AbstractBackupExecutor
         return outputPath.toString();
     }
 
-    /**
-     * 生成增量SQL（简化实现）
-     */
-    private String generateIncrementalSql(BinlogPosition start, BinlogPosition end, IncrementalBackupRequest request) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("-- MySQL增量备份SQL\n");
-        sql.append("-- 起始位置: ").append(start).append("\n");
-        sql.append("-- 结束位置: ").append(end).append("\n");
-        sql.append("-- 生成时间: ").append(LocalDateTime.now()).append("\n\n");
-        sql.append("-- 注意: 这是一个简化的增量SQL生成器\n");
-        sql.append("-- 实际实现中应该基于binlog事件生成具体的INSERT/UPDATE/DELETE语句\n");
-
-        return sql.toString();
-    }
-
     @Override
     protected BackupArtifact doBackup(BackupRequest request, BackupHistory history) throws Exception {
-        return null;
+        String backupType = request.getBackupType();
+        if (backupType == null) {
+            throw new IllegalArgumentException("备份类型不能为空");
+        }
+
+        if ("full".equalsIgnoreCase(backupType)) {
+            return executeFull(request);
+        }
+
+        if ("incremental".equalsIgnoreCase(backupType)) {
+            IncrementalBackupRequest incrementalRequest;
+            if (request instanceof IncrementalBackupRequest existingRequest) {
+                incrementalRequest = existingRequest;
+            } else {
+                incrementalRequest = new IncrementalBackupRequest();
+                incrementalRequest.setTaskId(request.getTaskId());
+                incrementalRequest.setDatasourceType(request.getDatasourceType());
+                incrementalRequest.setBackupType(request.getBackupType());
+                incrementalRequest.setStrategyJson(request.getStrategyJson());
+                incrementalRequest.setStoragePolicyJson(request.getStoragePolicyJson());
+                incrementalRequest.setDatabaseConfig(request.getDatabaseConfig());
+                incrementalRequest.setStartTime(request.getStartTime());
+                incrementalRequest.setStartPosition(request.getStartPosition());
+                incrementalRequest.setParameters(request.getParameters());
+                incrementalRequest.setBinlogStartPosition(request.getStartPosition());
+            }
+            return executeIncremental(incrementalRequest);
+        }
+
+        throw new IllegalArgumentException("不支持的备份类型: " + backupType);
     }
 }

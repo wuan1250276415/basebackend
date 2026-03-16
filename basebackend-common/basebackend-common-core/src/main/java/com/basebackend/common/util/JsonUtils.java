@@ -46,10 +46,8 @@ public final class JsonUtils {
         if (obj == null) {
             return "null";
         }
-        if (obj instanceof String s) {
-            return s;
-        }
         try {
+            // String 也必须按 JSON 字符串编码（带引号），保证与 toJsonBytes 语义一致
             return OBJECT_MAPPER.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             log.warn("JSON序列化失败: {}", obj.getClass().getSimpleName(), e);
@@ -68,6 +66,43 @@ public final class JsonUtils {
             log.warn("JSON序列化为字节数组失败: {}", obj.getClass().getSimpleName(), e);
             return new byte[0];
         }
+    }
+
+    /**
+     * 严格模式：对象序列化为 JSON 字符串
+     * <p>
+     * 与 {@link #toJsonString(Object)} 不同，序列化失败时会直接抛出异常，
+     * 适用于必须保证序列化成功的场景。
+     * </p>
+     */
+    public static String toJsonStringStrict(Object obj) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw buildStrictSerializationException(obj, "String", e);
+        }
+    }
+
+    /**
+     * 严格模式：对象序列化为 JSON 字节数组
+     * <p>
+     * 与 {@link #toJsonBytes(Object)} 不同，序列化失败时会直接抛出异常，
+     * 适用于必须保证序列化成功的场景。
+     * </p>
+     */
+    public static byte[] toJsonBytesStrict(Object obj) {
+        try {
+            return OBJECT_MAPPER.writeValueAsBytes(obj);
+        } catch (JsonProcessingException e) {
+            throw buildStrictSerializationException(obj, "byte[]", e);
+        }
+    }
+
+    private static IllegalStateException buildStrictSerializationException(
+        Object obj, String targetType, JsonProcessingException cause) {
+        String sourceType = obj == null ? "null" : obj.getClass().getName();
+        return new IllegalStateException(
+            "JSON严格序列化失败: sourceType=" + sourceType + ", targetType=" + targetType, cause);
     }
 
     /**

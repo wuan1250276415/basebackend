@@ -154,6 +154,16 @@ public class ServiceClientAutoConfiguration {
                 "basebackend-scheduler", TaskServiceClient.class, Duration.ofSeconds(10));
     }
 
+    // ==================== Ticket Service Client ====================
+
+    @Bean
+    @ConditionalOnMissingBean
+    public TicketServiceClient ticketServiceClient(RestClient.Builder loadBalancedRestClientBuilder,
+                                                    ServiceClientRequestInterceptor interceptor) {
+        return createClient(loadBalancedRestClientBuilder, interceptor,
+                "basebackend-ticket-api", TicketServiceClient.class, Duration.ofSeconds(10));
+    }
+
     // ==================== Factory Method ====================
 
     private <T> T createClient(RestClient.Builder builder, ServiceClientRequestInterceptor interceptor,

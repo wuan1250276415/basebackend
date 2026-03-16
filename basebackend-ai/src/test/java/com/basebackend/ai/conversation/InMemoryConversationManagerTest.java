@@ -5,7 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -135,6 +137,34 @@ class InMemoryConversationManagerTest {
     }
 
     @Test
+    @DisplayName("访问已过期对话时会自动回收存储条目")
+    void expiredConversationShouldBeRemovedOnRead() throws Exception {
+        InMemoryConversationManager shortTtl = new InMemoryConversationManager(10, 1);
+        shortTtl.addMessage("conv1", AiMessage.user("hello"));
+
+        Thread.sleep(10);
+        assertThat(shortTtl.getMessages("conv1")).isEmpty();
+        assertThat(getStoredConversationCount(shortTtl)).isZero();
+    }
+
+    @Test
+    @DisplayName("后续写入会触发过期对话自动清理")
+    void addMessageShouldTriggerAutoCleanup() throws Exception {
+        InMemoryConversationManager shortTtl = new InMemoryConversationManager(10, 5);
+        shortTtl.addMessage("conv1", AiMessage.user("a"));
+        shortTtl.addMessage("conv2", AiMessage.user("b"));
+        assertThat(getStoredConversationCount(shortTtl)).isEqualTo(2);
+
+        Thread.sleep(20);
+        shortTtl.addMessage("conv3", AiMessage.user("c"));
+
+        assertThat(shortTtl.exists("conv1")).isFalse();
+        assertThat(shortTtl.exists("conv2")).isFalse();
+        assertThat(shortTtl.exists("conv3")).isTrue();
+        assertThat(getStoredConversationCount(shortTtl)).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("cleanup 清理过期对话")
     void cleanup() {
         InMemoryConversationManager shortTtl = new InMemoryConversationManager(10, 1);
@@ -188,5 +218,12 @@ class InMemoryConversationManagerTest {
         List<AiMessage> messages = manager.getMessages("conv1");
         // maxHistory=5，所以最终只有5条
         assertThat(messages).hasSizeLessThanOrEqualTo(5);
+    }
+
+    private int getStoredConversationCount(InMemoryConversationManager manager) throws Exception {
+        Field field = InMemoryConversationManager.class.getDeclaredField("conversations");
+        field.setAccessible(true);
+        Map<?, ?> conversations = (Map<?, ?>) field.get(manager);
+        return conversations.size();
     }
 }

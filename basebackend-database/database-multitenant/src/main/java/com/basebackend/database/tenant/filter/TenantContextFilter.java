@@ -85,6 +85,18 @@ public class TenantContextFilter implements Filter {
     }
 
     private boolean isIgnoredPath(String path) {
-        return ignorePaths.stream().anyMatch(path::startsWith);
+        return ignorePaths.stream().anyMatch(ignorePath -> matchesIgnorePath(path, ignorePath));
+    }
+
+    private boolean matchesIgnorePath(String path, String ignorePath) {
+        if (path == null || ignorePath == null || ignorePath.isEmpty()) {
+            return false;
+        }
+
+        String normalizedIgnorePath = ignorePath.endsWith("/") && ignorePath.length() > 1
+                ? ignorePath.substring(0, ignorePath.length() - 1)
+                : ignorePath;
+
+        return path.equals(normalizedIgnorePath) || path.startsWith(normalizedIgnorePath + "/");
     }
 }

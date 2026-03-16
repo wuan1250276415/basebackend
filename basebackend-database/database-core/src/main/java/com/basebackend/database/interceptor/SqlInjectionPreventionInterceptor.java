@@ -35,19 +35,21 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
 
+    // H4: removed bare "--" to reduce false positives (SQL-level comments in mapper XML are stripped;
+    //     "/*" injection pattern is retained as it indicates injection attempts in parameterized SQL)
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
-            "(?i)(--|/\\*|\\bor\\s+1\\s*=\\s*1\\b|\\bunion\\s+select\\b|(?<!\\w)(?:drop\\s+(?:table|database|schema|view|function|procedure|index)|alter\\s+table|truncate\\s+table)\\b)");
+            "(?i)(/\\*|\\bor\\s+1\\s*=\\s*1\\b|\\bunion\\s+select\\b|(?<!\\w)(?:drop\\s+(?:table|database|schema|view|function|procedure|index)|alter\\s+table|truncate\\s+table)\\b)");
 
     private final DatabaseEnhancedProperties properties;
 
     // 编译后的白名单模式缓存
     private final List<Pattern> compiledWhitelistPatterns = new ArrayList<>();
 
-    // 性能统计
-    private static final AtomicLong TOTAL_CHECKS = new AtomicLong(0);
-    private static final AtomicLong BLOCKED_COUNT = new AtomicLong(0);
-    private static final AtomicLong WHITELISTED_COUNT = new AtomicLong(0);
-    private static final ConcurrentHashMap<String, AtomicLong> BLOCKED_PATTERNS = new ConcurrentHashMap<>();
+    // 性能统计 — instance fields (H1: avoid static state shared across instances)
+    private final AtomicLong totalChecks = new AtomicLong(0);
+    private final AtomicLong blockedCount = new AtomicLong(0);
+    private final AtomicLong whitelistedCount = new AtomicLong(0);
+    private final ConcurrentHashMap<String, AtomicLong> blockedPatterns = new ConcurrentHashMap<>();
 
     /**
      * 默认构造函数（向后兼容）
@@ -102,7 +104,7 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
             return;
         }
 
-        TOTAL_CHECKS.incrementAndGet();
+        totalChecks.incrementAndGet();
 
         String normalized = sql.replaceAll("\\s+", " ").trim();
 
@@ -111,25 +113,25 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
 
         // 检查 Mapper 白名单
         if (isMapperWhitelisted(mapperId)) {
-            WHITELISTED_COUNT.incrementAndGet();
+            whitelistedCount.incrementAndGet();
             log.debug("SQL check skipped (mapper whitelisted): mapperId={}", mapperId);
             return;
         }
 
         // 检查 SQL 模式白名单
         if (isSqlWhitelisted(normalized)) {
-            WHITELISTED_COUNT.incrementAndGet();
+            whitelistedCount.incrementAndGet();
             log.debug("SQL check skipped (pattern whitelisted): sql={}", truncateSql(normalized));
             return;
         }
 
         // 执行危险模式检测
         if (DANGEROUS_PATTERN.matcher(normalized).find()) {
-            BLOCKED_COUNT.incrementAndGet();
+            blockedCount.incrementAndGet();
 
             // 记录被阻止的模式类型
             String patternType = detectPatternType(normalized);
-            BLOCKED_PATTERNS.computeIfAbsent(patternType, k -> new AtomicLong(0)).incrementAndGet();
+            blockedPatterns.computeIfAbsent(patternType, k -> new AtomicLong(0)).incrementAndGet();
 
             boolean strictMode = properties == null || properties.getSqlInjection().isStrictMode();
             boolean logBlocked = properties == null || properties.getSqlInjection().isLogBlockedSql();
@@ -220,7 +222,7 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
             return "ALTER_STATEMENT";
         } else if (lowerSql.contains("truncate")) {
             return "TRUNCATE_STATEMENT";
-        } else if (lowerSql.contains("--") || lowerSql.contains("/*")) {
+        } else if (lowerSql.contains("/*")) {
             return "COMMENT_INJECTION";
         }
         return "UNKNOWN";
@@ -239,15 +241,15 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
     /**
      * 获取性能统计信息
      */
-    public static java.util.Map<String, Object> getStatistics() {
+    public java.util.Map<String, Object> getStatistics() {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        stats.put("totalChecks", TOTAL_CHECKS.get());
-        stats.put("blockedCount", BLOCKED_COUNT.get());
-        stats.put("whitelistedCount", WHITELISTED_COUNT.get());
-        stats.put("blockRate", TOTAL_CHECKS.get() > 0 ? (double) BLOCKED_COUNT.get() / TOTAL_CHECKS.get() * 100 : 0);
+        stats.put("totalChecks", totalChecks.get());
+        stats.put("blockedCount", blockedCount.get());
+        stats.put("whitelistedCount", whitelistedCount.get());
+        stats.put("blockRate", totalChecks.get() > 0 ? (double) blockedCount.get() / totalChecks.get() * 100 : 0);
 
         java.util.Map<String, Long> patternStats = new java.util.HashMap<>();
-        BLOCKED_PATTERNS.forEach((k, v) -> patternStats.put(k, v.get()));
+        blockedPatterns.forEach((k, v) -> patternStats.put(k, v.get()));
         stats.put("blockedPatterns", patternStats);
 
         return stats;
@@ -256,11 +258,11 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
     /**
      * 重置统计计数器
      */
-    public static void resetStatistics() {
-        TOTAL_CHECKS.set(0);
-        BLOCKED_COUNT.set(0);
-        WHITELISTED_COUNT.set(0);
-        BLOCKED_PATTERNS.clear();
+    public void resetStatistics() {
+        totalChecks.set(0);
+        blockedCount.set(0);
+        whitelistedCount.set(0);
+        blockedPatterns.clear();
     }
 
     /**

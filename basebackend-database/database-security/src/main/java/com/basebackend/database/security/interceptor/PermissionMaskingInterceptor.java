@@ -59,7 +59,8 @@ public class PermissionMaskingInterceptor implements Interceptor {
             maskResultByPermission(result);
         } catch (Exception e) {
             log.error("Failed to mask sensitive fields by permission", e);
-            // 不抛出异常，返回原始结果
+            // fail-close：脱敏失败时阻断返回，避免敏感数据直接暴露
+            throw new IllegalStateException("敏感字段权限脱敏失败，已阻断返回结果", e);
         }
         
         return result;

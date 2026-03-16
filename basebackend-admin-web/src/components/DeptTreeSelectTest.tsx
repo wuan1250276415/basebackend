@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Form, Button, message } from 'antd'
-import { getDeptTree } from '@/api/dept'
+import { getDeptTree } from '@/api/deptApi'
 import { Dept } from '@/types'
 import DeptTreeSelect from './DeptTreeSelect'
 

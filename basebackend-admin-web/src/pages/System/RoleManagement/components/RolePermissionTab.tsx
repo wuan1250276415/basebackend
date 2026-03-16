@@ -1,3 +1,4 @@
+import { Save } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import {
   Collapse,
@@ -12,7 +13,7 @@ import {
   Form,
   Card,
 } from 'antd'
-import { SaveOutlined } from '@ant-design/icons'
+
 import type { DataNode } from 'antd/es/tree'
 import {
   getRoleResources,
@@ -22,8 +23,8 @@ import {
   getRoleListOperations,
   configureListOperations,
   configureDataPermissions,
-} from '@/api/role'
-import request from '@/utils/request'
+} from '@/api/roleApi'
+import request from '@/api/request'
 
 const { Panel } = Collapse
 const { TextArea } = Input
@@ -240,7 +241,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
               />
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
+                icon={<Save />}
                 onClick={handleSaveMenuPermissions}
               >
                 保存菜单权限
@@ -275,7 +276,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
               </Checkbox.Group>
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
+                icon={<Save />}
                 onClick={handleSaveButtonPermissions}
               >
                 保存按钮权限
@@ -328,7 +329,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
 
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
+                icon={<Save />}
                 onClick={handleSaveListOperations}
               >
                 保存列表权限
@@ -372,7 +373,7 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
               <Form.Item>
                 <Button
                   type="primary"
-                  icon={<SaveOutlined />}
+                  icon={<Save />}
                   onClick={handleSaveDataPermissions}
                 >
                   保存数据权限

@@ -1,5 +1,6 @@
 package com.basebackend.common.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * JsonUtils 单元测试
@@ -37,9 +39,9 @@ class JsonUtilsTest {
         }
 
         @Test
-        @DisplayName("String 直接返回")
+        @DisplayName("String 按 JSON 字符串返回")
         void shouldReturnStringDirectly() {
-            assertThat(JsonUtils.toJsonString("hello")).isEqualTo("hello");
+            assertThat(JsonUtils.toJsonString("hello")).isEqualTo("\"hello\"");
         }
 
         @Test
@@ -65,6 +67,14 @@ class JsonUtilsTest {
             String json = JsonUtils.toJsonString(obj);
             assertThat(json).contains("2026-02-26");
         }
+
+        @Test
+        @DisplayName("序列化失败时回退 toString（兼容）")
+        void shouldFallbackToToStringWhenSerializationFails() {
+            var target = new FailingBean();
+            String json = JsonUtils.toJsonString(target);
+            assertThat(json).isEqualTo(target.toString());
+        }
     }
 
     // ========== toJsonBytes ==========
@@ -88,6 +98,66 @@ class JsonUtilsTest {
             // toJsonBytes(null) 会写 "null" 字节
             byte[] bytes = JsonUtils.toJsonBytes(null);
             assertThat(bytes).isNotNull();
+        }
+
+        @Test
+        @DisplayName("序列化失败返回空数组（容错）")
+        void shouldReturnEmptyArrayWhenSerializationFails() {
+            byte[] bytes = JsonUtils.toJsonBytes(new FailingBean());
+            assertThat(bytes).isEmpty();
+        }
+    }
+
+    // ========== toJsonStringStrict ==========
+
+    @Nested
+    @DisplayName("toJsonStringStrict")
+    class ToJsonStringStrict {
+
+        @Test
+        @DisplayName("严格模式序列化成功")
+        void shouldSerializeStrictly() {
+            var user = new TestUser("严格模式", 18);
+            String json = JsonUtils.toJsonStringStrict(user);
+            assertThat(json).contains("\"name\":\"严格模式\"").contains("\"age\":18");
+        }
+
+        @Test
+        @DisplayName("严格模式序列化失败抛异常")
+        void shouldThrowWhenSerializationFails() {
+            assertThatThrownBy(() -> JsonUtils.toJsonStringStrict(new FailingBean()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JSON严格序列化失败")
+                .hasMessageContaining("targetType=String")
+                .hasMessageContaining(FailingBean.class.getName())
+                .hasCauseInstanceOf(JsonProcessingException.class);
+        }
+    }
+
+    // ========== toJsonBytesStrict ==========
+
+    @Nested
+    @DisplayName("toJsonBytesStrict")
+    class ToJsonBytesStrict {
+
+        @Test
+        @DisplayName("严格模式字节序列化成功")
+        void shouldSerializeBytesStrictly() {
+            var user = new TestUser("严格字节", 21);
+            byte[] bytes = JsonUtils.toJsonBytesStrict(user);
+            assertThat(bytes).isNotEmpty();
+            assertThat(new String(bytes)).contains("\"name\":\"严格字节\"");
+        }
+
+        @Test
+        @DisplayName("严格模式字节序列化失败抛异常")
+        void shouldThrowWhenSerializingBytesFails() {
+            assertThatThrownBy(() -> JsonUtils.toJsonBytesStrict(new FailingBean()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JSON严格序列化失败")
+                .hasMessageContaining("targetType=byte[]")
+                .hasMessageContaining(FailingBean.class.getName())
+                .hasCauseInstanceOf(JsonProcessingException.class);
         }
     }
 
@@ -248,5 +318,11 @@ class JsonUtilsTest {
         public void setName(String name) { this.name = name; }
         public int getAge() { return age; }
         public void setAge(int age) { this.age = age; }
+    }
+
+    static class FailingBean {
+        public String getValue() {
+            throw new IllegalStateException("intentional serialization failure");
+        }
     }
 }

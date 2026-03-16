@@ -1,3 +1,4 @@
+import { FolderOpen, Plus, ZoomIn, ZoomOut, Expand, CloudUpload } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react'
 import { Button, Space, message, Input, Modal, Upload } from 'antd'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
@@ -6,14 +7,7 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css'
 
-import {
-    FolderOpenOutlined,
-    PlusOutlined,
-    ZoomInOutlined,
-    ZoomOutOutlined,
-    ExpandOutlined,
-    CloudUploadOutlined,
-} from '@ant-design/icons'
+
 import { deployProcessDefinition } from '@/api/workflow/processDefinition'
 
 const BpmnDesigner: React.FC = () => {
@@ -150,16 +144,16 @@ const BpmnDesigner: React.FC = () => {
         <div style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '8px 16px', background: '#f5f5f5', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between' }}>
                 <Space>
-                    <Button icon={<PlusOutlined />} onClick={createDiagram}>New</Button>
+                    <Button icon={<Plus />} onClick={createDiagram}>New</Button>
                     <Upload beforeUpload={handleImport} showUploadList={false} accept=".bpmn,.xml">
-                        <Button icon={<FolderOpenOutlined />}>Open</Button>
+                        <Button icon={<FolderOpen />}>Open</Button>
                     </Upload>
-                    <Button type="primary" icon={<CloudUploadOutlined />} onClick={handleDeployClick}>Deploy</Button>
+                    <Button type="primary" icon={<CloudUpload />} onClick={handleDeployClick}>Deploy</Button>
                 </Space>
                 <Space>
-                    <Button icon={<ZoomInOutlined />} onClick={handleZoomIn} />
-                    <Button icon={<ZoomOutOutlined />} onClick={handleZoomOut} />
-                    <Button icon={<ExpandOutlined />} onClick={handleFit} />
+                    <Button icon={<ZoomIn />} onClick={handleZoomIn} />
+                    <Button icon={<ZoomOut />} onClick={handleZoomOut} />
+                    <Button icon={<Expand />} onClick={handleFit} />
                 </Space>
             </div>
 

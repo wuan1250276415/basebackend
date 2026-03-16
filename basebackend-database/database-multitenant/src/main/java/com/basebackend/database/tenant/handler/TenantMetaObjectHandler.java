@@ -27,9 +27,10 @@ public class TenantMetaObjectHandler implements MetaObjectHandler {
         
         // 获取租户字段名
         String tenantColumn = properties.getMultiTenancy().getTenantColumn();
+        String tenantField = resolveTenantField(metaObject, tenantColumn);
         
         // 检查对象是否有租户字段
-        if (!metaObject.hasSetter(tenantColumn)) {
+        if (tenantField == null) {
             log.debug("Entity does not have tenant field: {}", tenantColumn);
             return;
         }
@@ -42,7 +43,7 @@ public class TenantMetaObjectHandler implements MetaObjectHandler {
         }
         
         // 检查是否已经设置了租户 ID
-        Object existingValue = metaObject.getValue(tenantColumn);
+        Object existingValue = metaObject.getValue(tenantField);
         if (existingValue != null) {
             log.debug("Tenant ID already set in entity: {}", existingValue);
             // 验证设置的租户 ID 是否与当前上下文一致
@@ -56,7 +57,7 @@ public class TenantMetaObjectHandler implements MetaObjectHandler {
         }
         
         // 自动填充租户 ID
-        this.strictInsertFill(metaObject, tenantColumn, String.class, tenantId);
+        this.strictInsertFill(metaObject, tenantField, String.class, tenantId);
         log.debug("Auto-filled tenant ID: {} for entity", tenantId);
     }
     
@@ -64,5 +65,43 @@ public class TenantMetaObjectHandler implements MetaObjectHandler {
     public void updateFill(MetaObject metaObject) {
         // 更新操作不需要填充租户 ID
         // 租户 ID 应该是不可变的
+    }
+
+    private String resolveTenantField(MetaObject metaObject, String tenantColumn) {
+        if (tenantColumn == null || tenantColumn.isEmpty()) {
+            return null;
+        }
+
+        if (metaObject.hasSetter(tenantColumn)) {
+            return tenantColumn;
+        }
+
+        String camelCaseField = toCamelCase(tenantColumn);
+        if (!camelCaseField.equals(tenantColumn) && metaObject.hasSetter(camelCaseField)) {
+            return camelCaseField;
+        }
+        return null;
+    }
+
+    private String toCamelCase(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+
+        StringBuilder result = new StringBuilder(value.length());
+        boolean upperCaseNext = false;
+        for (char ch : value.toCharArray()) {
+            if (ch == '_') {
+                upperCaseNext = true;
+                continue;
+            }
+            if (upperCaseNext) {
+                result.append(Character.toUpperCase(ch));
+                upperCaseNext = false;
+            } else {
+                result.append(ch);
+            }
+        }
+        return result.toString();
     }
 }

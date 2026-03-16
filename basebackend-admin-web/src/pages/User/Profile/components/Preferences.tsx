@@ -1,6 +1,7 @@
+import { Settings, Lightbulb, Globe, Bell, PanelTop, Database, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Form, Select, Switch, Button, message, Space, Alert, Divider, ColorPicker, InputNumber, Radio } from 'antd'
-import { SettingOutlined, BulbOutlined, GlobalOutlined, BellOutlined, LayoutOutlined, DatabaseOutlined, DashboardOutlined } from '@ant-design/icons'
+
 import { useTranslation } from 'react-i18next'
 import { getPreference, updatePreference, UserPreference } from '@/api/preference'
 import { useThemeStore } from '@/stores/theme'
@@ -98,7 +99,7 @@ const Preferences = () => {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title={<><SettingOutlined /> {t('preferences.title')}</>}>
+      <Card title={<><Settings /> {t('preferences.title')}</>}>
         <Alert
           message={t('preferences.title')}
           description={t('common.tips')}
@@ -115,7 +116,7 @@ const Preferences = () => {
         >
           {/* 外观设置 */}
           <Divider orientation="left">
-            <BulbOutlined /> {t('preferences.appearance')}
+            <Lightbulb /> {t('preferences.appearance')}
           </Divider>
 
           <Form.Item
@@ -174,7 +175,7 @@ const Preferences = () => {
 
           {/* 语言与地区 */}
           <Divider orientation="left">
-            <GlobalOutlined /> {t('preferences.languageRegion')}
+            <Globe /> {t('preferences.languageRegion')}
           </Divider>
 
           <Form.Item
@@ -226,7 +227,7 @@ const Preferences = () => {
 
           {/* 通知设置 */}
           <Divider orientation="left">
-            <BellOutlined /> {t('preferences.notification')}
+            <Bell /> {t('preferences.notification')}
           </Divider>
 
           <Form.Item
@@ -264,7 +265,7 @@ const Preferences = () => {
 
           {/* 数据显示 */}
           <Divider orientation="left">
-            <DatabaseOutlined /> {t('preferences.dataDisplay')}
+            <Database /> {t('preferences.dataDisplay')}
           </Divider>
 
           <Form.Item
@@ -283,7 +284,7 @@ const Preferences = () => {
 
           {/* 其他设置 */}
           <Divider orientation="left">
-            <DashboardOutlined /> {t('preferences.other')}
+            <LayoutDashboard /> {t('preferences.other')}
           </Divider>
 
           <Form.Item

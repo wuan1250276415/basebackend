@@ -21,4 +21,19 @@ public class ExportTaskStatus {
     private Status status;
     private String message;
     private ExportResult result;
+
+    /**
+     * 任务创建时间戳（毫秒）
+     */
+    private Long createdAt;
+
+    /**
+     * 最近一次状态更新时间戳（毫秒）
+     */
+    private Long updatedAt;
+
+    /**
+     * 任务进入终态（COMPLETED/FAILED）时间戳（毫秒）
+     */
+    private Long completedAt;
 }

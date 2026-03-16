@@ -54,23 +54,26 @@ public class TenantDataSourceServiceImpl implements TenantDataSourceService {
         if (dataSource == null) {
             throw new IllegalArgumentException("Data source cannot be null");
         }
-        
-        log.info("Registering data source for tenant: {}", tenantId);
-        
+
+        String normalizedTenantId = tenantId.trim();
+        String dataSourceLookupKey = resolveDataSourceLookupKey(normalizedTenantId);
+
+        log.info("Registering data source for tenant: {}, lookupKey: {}", normalizedTenantId, dataSourceLookupKey);
+
         // 验证数据源连接
         try (Connection conn = dataSource.getConnection()) {
             if (!conn.isValid(5)) {
-                throw new TenantContextException("Data source connection is not valid for tenant: " + tenantId);
+                throw new TenantContextException("Data source connection is not valid for tenant: " + normalizedTenantId);
             }
         } catch (SQLException e) {
-            log.error("Failed to validate data source for tenant: {}", tenantId, e);
-            throw new TenantContextException("Failed to validate data source for tenant: " + tenantId, e);
+            log.error("Failed to validate data source for tenant: {}", normalizedTenantId, e);
+            throw new TenantContextException("Failed to validate data source for tenant: " + normalizedTenantId, e);
         }
-        
+
         // 注册到路由器
-        tenantDataSourceRouter.addTenantDataSource(tenantId, dataSource);
-        
-        log.info("Successfully registered data source for tenant: {}", tenantId);
+        tenantDataSourceRouter.addTenantDataSource(normalizedTenantId, dataSourceLookupKey, dataSource);
+
+        log.info("Successfully registered data source for tenant: {}, lookupKey: {}", normalizedTenantId, dataSourceLookupKey);
     }
     
     @Override
@@ -139,9 +142,9 @@ public class TenantDataSourceServiceImpl implements TenantDataSourceService {
                     
                     // 创建数据源
                     DataSource dataSource = createDataSource(tenantConfig);
-                    
-                    // 注册数据源
-                    registerTenantDataSource(tenantConfig.getTenantId(), dataSource);
+
+                    // 注册数据源（SEPARATE_DB 下使用 dataSourceKey 作为路由键）
+                    registerTenantDataSource(tenantConfig.getTenantId().trim(), dataSourceKey.trim(), dataSource);
                     
                     successCount++;
                 }
@@ -261,6 +264,34 @@ public class TenantDataSourceServiceImpl implements TenantDataSourceService {
         }
         
         return dataSource;
+    }
+
+    /**
+     * 注册租户数据源（指定路由键）
+     */
+    private void registerTenantDataSource(String tenantId, String dataSourceLookupKey, DataSource dataSource) {
+        tenantDataSourceRouter.addTenantDataSource(tenantId, dataSourceLookupKey, dataSource);
+        log.info("Registered tenant data source mapping: tenantId={}, lookupKey={}", tenantId, dataSourceLookupKey);
+    }
+
+    /**
+     * 解析租户路由键
+     */
+    private String resolveDataSourceLookupKey(String tenantId) {
+        TenantConfig tenantConfig = tenantConfigService.getByTenantId(tenantId);
+        if (tenantConfig == null) {
+            return tenantId;
+        }
+
+        if ("SEPARATE_DB".equals(tenantConfig.getIsolationMode())) {
+            String dataSourceKey = tenantConfig.getDataSourceKey();
+            if (dataSourceKey == null || dataSourceKey.trim().isEmpty()) {
+                throw new TenantContextException("Data source key not configured for tenant: " + tenantId);
+            }
+            return dataSourceKey.trim();
+        }
+
+        return tenantId;
     }
     
     /**

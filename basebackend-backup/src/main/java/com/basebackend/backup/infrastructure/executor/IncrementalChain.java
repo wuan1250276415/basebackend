@@ -107,8 +107,13 @@ public class IncrementalChain {
             return false;
         }
 
+        // 没有任何增量时，只允许恢复到全量快照时点本身
+        if (latestIncrementalTime == null) {
+            return !targetTime.isAfter(fullBackup.getStartedAt());
+        }
+
         // 最近的增量备份不能早于目标时间
-        if (latestIncrementalTime != null && latestIncrementalTime.isBefore(targetTime)) {
+        if (latestIncrementalTime.isBefore(targetTime)) {
             return false;
         }
 
@@ -126,11 +131,13 @@ public class IncrementalChain {
         List<BackupHistory> backups = new java.util.ArrayList<>();
         backups.add(fullBackup);
 
-        for (BackupHistory incremental : incrementalBackups) {
-            if (!incremental.getStartedAt().isAfter(targetTime)) {
-                backups.add(incremental);
-            } else {
-                break;
+        if (incrementalBackups != null) {
+            for (BackupHistory incremental : incrementalBackups) {
+                if (!incremental.getStartedAt().isAfter(targetTime)) {
+                    backups.add(incremental);
+                } else {
+                    break;
+                }
             }
         }
 

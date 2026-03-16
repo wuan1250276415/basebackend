@@ -13,7 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -39,8 +42,9 @@ public class MySqlBinlogParser {
 
     private final BackupProperties backupProperties;
     private BinaryLogClient client;
-    private boolean isConnected = false;
+    private volatile boolean isConnected = false;
     private ScheduledExecutorService timeoutScheduler = Executors.newScheduledThreadPool(1);
+    private volatile String currentBinlogFilename;
 
     /**
      * 获取当前binlog位置
@@ -56,13 +60,29 @@ public class MySqlBinlogParser {
      * @throws Exception 获取失败时抛出异常（如网络异常、权限不足等）
      */
     public BinlogPosition getCurrentPosition(String host, int port, String username, String password) throws Exception {
-        // TODO: 实现真正的SHOW MASTER STATUS查询
-        // 需要通过JDBC连接查询，避免依赖外部命令
         log.info("获取MySQL当前binlog位置: {}:{}", host, port);
 
-        // 当前返回空位置，表示从头开始解析
-        // 实际实现中应该查询SHOW MASTER STATUS并返回真实的binlog位置
-        return BinlogPosition.of("", 4);
+        boolean sslEnabled = backupProperties.getDatabase().isSslEnabled();
+        String jdbcUrl = String.format("jdbc:mysql://%s:%d/?useSSL=%s&allowPublicKeyRetrieval=%s&serverTimezone=UTC",
+                host, port, sslEnabled, !sslEnabled);
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SHOW MASTER STATUS")) {
+
+            if (!resultSet.next()) {
+                throw new IllegalStateException("SHOW MASTER STATUS 返回空结果，无法获取binlog位点");
+            }
+
+            String file = resultSet.getString("File");
+            long position = resultSet.getLong("Position");
+            if (file == null || file.isBlank() || position <= 0) {
+                throw new IllegalStateException("获取到非法binlog位点: file=" + file + ", position=" + position);
+            }
+
+            currentBinlogFilename = file;
+            return BinlogPosition.of(file, position);
+        }
     }
 
     /**
@@ -88,6 +108,11 @@ public class MySqlBinlogParser {
             BinlogPosition startPosition, BinlogEventListener listener) throws Exception {
         log.info("开始订阅MySQL binlog变更事件，起始位置: {}", startPosition);
 
+        // 若上次 disconnect() 已关闭调度器，则重建，以支持重复订阅
+        if (timeoutScheduler.isShutdown()) {
+            timeoutScheduler = Executors.newScheduledThreadPool(1);
+        }
+
         // 创建BinaryLogClient实例，用于连接MySQL服务器
         client = new BinaryLogClient(host, port, username, password);
 
@@ -95,6 +120,7 @@ public class MySqlBinlogParser {
         if (startPosition != null && startPosition.isValid()) {
             client.setBinlogFilename(startPosition.getFilename());
             client.setBinlogPosition(startPosition.getPosition());
+            currentBinlogFilename = startPosition.getFilename();
         }
 
         // 注册binlog事件监听器
@@ -109,6 +135,7 @@ public class MySqlBinlogParser {
 
                 // 根据事件类型分发处理逻辑
                 switch (eventType) {
+                    case ROTATE -> handleRotate(event);
                     case WRITE_ROWS, EXT_WRITE_ROWS -> handleWriteRows(event, listener);
                     case UPDATE_ROWS, EXT_UPDATE_ROWS -> handleUpdateRows(event, listener);
                     case DELETE_ROWS, EXT_DELETE_ROWS -> handleDeleteRows(event, listener);
@@ -364,7 +391,12 @@ public class MySqlBinlogParser {
      * 获取binlog文件名
      */
     private String getBinlogFilename(EventHeader header) {
-        // 需要从特定的事件类型中获取
+        if (currentBinlogFilename != null && !currentBinlogFilename.isBlank()) {
+            return currentBinlogFilename;
+        }
+        if (client != null && client.getBinlogFilename() != null) {
+            return client.getBinlogFilename();
+        }
         return "";
     }
 
@@ -376,5 +408,14 @@ public class MySqlBinlogParser {
             return headerV4.getNextPosition();
         }
         return 0;
+    }
+
+    private void handleRotate(Event event) {
+        RotateEventData data = event.getData();
+        if (data == null || data.getBinlogFilename() == null || data.getBinlogFilename().isBlank()) {
+            return;
+        }
+        currentBinlogFilename = data.getBinlogFilename();
+        log.debug("检测到binlog切换，新文件: {}", currentBinlogFilename);
     }
 }

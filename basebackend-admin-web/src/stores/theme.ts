@@ -71,11 +71,11 @@ export const useThemeStore = create<ThemeState & ThemeActions>()(
       return {
         // 初始状态
         mode: 'light',
-        primaryColor: '#1890ff',
-        layout: 'side',
+        primaryColor: '#0f172a',
+        layout: 'mix',
         menuCollapsed: false,
         actualMode: 'light',
-        themeConfig: getThemeConfig('light', '#1890ff'),
+        themeConfig: getThemeConfig('light', '#0f172a'),
 
         // Actions
         setMode: (mode) => {

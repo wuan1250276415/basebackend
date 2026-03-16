@@ -1,8 +1,8 @@
 package com.basebackend.notification.service;
 
-import com.basebackend.common.util.JsonUtils;
 import com.basebackend.common.enums.CommonErrorCode;
 import com.basebackend.common.exception.BusinessException;
+import com.basebackend.common.util.JsonUtils;
 import com.basebackend.notification.config.NotificationSecurityConfig;
 import com.basebackend.notification.constants.NotificationConstants;
 import com.basebackend.notification.dto.NotificationMessageDTO;
@@ -14,16 +14,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SSE 通知推送服务
- * P1: 增强连接管理，添加连接数限制和监控
- *
- * @author BaseBackend Team
- * @since 2025-11-18
+ * <p>
+ * 安全改进：
+ * <ul>
+ *   <li>短命令牌（Short-lived stream token）交换机制，避免 JWT 出现在 URL 访问日志</li>
+ *   <li>使用 {@link ConcurrentHashMap#remove(Object, Object)} 原子性地移除连接，消除竞态</li>
+ *   <li>连接数限制检查与写入在同步块内执行，修复 TOCTOU 漏洞</li>
+ *   <li>connectionCounter 改为只增的历史总数，当前连接数直接取 sseEmitters.size()</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -31,225 +38,250 @@ public class SSENotificationService {
 
     private final NotificationSecurityConfig securityConfig;
 
-    /**
-     * 存储用户 SSE 连接
-     * Key: userId, Value: SseEmitter
-     */
+    /** 活跃 SSE 连接：userId → SseEmitter */
     private final Map<Long, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
 
-    /**
-     * 连接计数器（用于监控）
-     */
-    private final AtomicInteger connectionCounter = new AtomicInteger(0);
+    /** 短命令牌库：token → StreamTokenEntry（30 秒有效，一次性消费） */
+    private final Map<String, StreamTokenEntry> streamTokens = new ConcurrentHashMap<>();
 
-    /**
-     * 推送成功计数
-     */
-    private final AtomicInteger pushSuccessCounter = new AtomicInteger(0);
+    /** 历史连接总数（只增不减，供监控使用） */
+    private final AtomicLong totalConnectionCounter = new AtomicLong(0);
 
-    /**
-     * 推送失败计数
-     */
-    private final AtomicInteger pushFailureCounter = new AtomicInteger(0);
+    /** 推送成功计数 */
+    private final AtomicLong pushSuccessCounter = new AtomicLong(0);
+
+    /** 推送失败计数 */
+    private final AtomicLong pushFailureCounter = new AtomicLong(0);
+
+    /** 连接操作互斥锁（保证 size 检查与 put 的原子性） */
+    private final Object connectionLock = new Object();
+
+    private static final long STREAM_TOKEN_TTL_MS = 30_000L;
 
     public SSENotificationService(NotificationSecurityConfig securityConfig) {
         this.securityConfig = securityConfig;
     }
 
+    // -------------------------------------------------------------------------
+    // 短命令牌管理（B2）
+    // -------------------------------------------------------------------------
+
     /**
-     * 创建 SSE 连接
-     * P1: 添加连接数限制检查
+     * 生成一个 30 秒有效的一次性 SSE 连接令牌。
+     * 客户端应先调用此接口（通过 Authorization 头认证），再凭令牌建立 SSE 连接。
      *
-     * @param userId 用户ID
+     * @param userId 已认证的用户 ID
+     * @return 不透明的一次性令牌字符串
+     */
+    public String generateStreamToken(Long userId) {
+        String token = UUID.randomUUID().toString().replace("-", "");
+        streamTokens.put(token, new StreamTokenEntry(userId, System.currentTimeMillis() + STREAM_TOKEN_TTL_MS));
+        log.debug("[SSE] 生成连接令牌: userId=***{}", Math.abs(userId % 10000));
+        return token;
+    }
+
+    /**
+     * 验证并消费一次性 SSE 令牌，返回对应的 userId。
+     * 令牌已过期或不存在时抛出 BusinessException。
+     *
+     * @param token 客户端传入的令牌
+     * @return 令牌对应的用户 ID
+     */
+    public Long validateAndConsumeStreamToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, "缺少连接令牌");
+        }
+        StreamTokenEntry entry = streamTokens.remove(token);
+        if (entry == null || System.currentTimeMillis() > entry.expireAt()) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, "连接令牌无效或已过期");
+        }
+        return entry.userId();
+    }
+
+    /** 定时清理已过期但未被消费的令牌（每分钟一次） */
+    @Scheduled(fixedRate = 60_000)
+    public void cleanExpiredStreamTokens() {
+        long now = System.currentTimeMillis();
+        int removed = 0;
+        for (Map.Entry<String, StreamTokenEntry> e : streamTokens.entrySet()) {
+            if (now > e.getValue().expireAt() && streamTokens.remove(e.getKey(), e.getValue())) {
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            log.debug("[SSE] 清理过期令牌: count={}", removed);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // SSE 连接管理（H1 + H2）
+    // -------------------------------------------------------------------------
+
+    /**
+     * 创建 SSE 连接。
+     * <p>
+     * 使用 {@code connectionLock} 保证「连接数检查 → put」的原子性（修复 TOCTOU）；
+     * 使用 {@link ConcurrentHashMap#remove(Object, Object)} 确保回调只移除自身对应的连接。
+     *
+     * @param userId 用户 ID
      * @return SseEmitter
      */
     public SseEmitter createConnection(Long userId) {
-        // P1: 连接数限制检查
-        if (sseEmitters.size() >= securityConfig.getSseMaxConnections()) {
-            log.warn("[SSE] 连接数已达上限: current={}, max={}", 
-                    sseEmitters.size(), securityConfig.getSseMaxConnections());
-            throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE, "服务繁忙，请稍后重试");
+        int maxConn = securityConfig.getSseMaxConnections();
+
+        SseEmitter emitter = new SseEmitter(NotificationConstants.SSE_TIMEOUT);
+        // 回调捕获 emitter 引用，用 remove(key, value) 保证只移除自身连接
+        emitter.onCompletion(() -> removeConnectionIfPresent(userId, emitter));
+        emitter.onTimeout(()   -> removeConnectionIfPresent(userId, emitter));
+        emitter.onError(t      -> removeConnectionIfPresent(userId, emitter));
+
+        SseEmitter old;
+        synchronized (connectionLock) {
+            // 注意：仅当替换同一用户的旧连接时 size 不变；新用户才需检查上限
+            boolean isNewUser = !sseEmitters.containsKey(userId);
+            if (isNewUser && sseEmitters.size() >= maxConn) {
+                log.warn("[SSE] 连接数已达上限: current={}, max={}", sseEmitters.size(), maxConn);
+                throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE, "服务繁忙，请稍后重试");
+            }
+            old = sseEmitters.put(userId, emitter);
+            totalConnectionCounter.incrementAndGet();
         }
 
-        // P2: 日志脱敏 - 不记录完整userId
-        log.info("[SSE] 创建连接: userId=***{}", userId % 10000);
+        // 在锁外关闭旧连接（旧连接的 onCompletion 调用 remove(userId, old)，
+        // 此时 map 已存放新 emitter，remove(userId, old) 返回 false → 安全无副作用）
+        if (old != null) {
+            try { old.complete(); } catch (Exception ignored) { /* 已替换，忽略 */ }
+        }
 
-        // 如果已存在连接，先移除旧连接
-        removeConnection(userId);
+        log.info("[SSE] 连接建立: userId=***{}, 当前连接数={}", Math.abs(userId % 10000), sseEmitters.size());
 
-        // 创建新的 SseEmitter，设置超时时间
-        SseEmitter emitter = new SseEmitter(NotificationConstants.SSE_TIMEOUT);
-
-        // 设置连接完成回调
-        emitter.onCompletion(() -> {
-            log.debug("[SSE] 连接完成: userId=***{}", userId % 10000);
-            doRemoveConnection(userId);
-        });
-
-        // 设置连接超时回调
-        emitter.onTimeout(() -> {
-            log.debug("[SSE] 连接超时: userId=***{}", userId % 10000);
-            doRemoveConnection(userId);
-        });
-
-        // 设置连接错误回调
-        emitter.onError((throwable) -> {
-            // P1: 不暴露详细错误信息
-            log.warn("[SSE] 连接错误: userId=***{}", userId % 10000);
-            doRemoveConnection(userId);
-        });
-
-        // 保存连接
-        sseEmitters.put(userId, emitter);
-        connectionCounter.incrementAndGet();
-
-        // 发送连接成功消息
         try {
             emitter.send(SseEmitter.event()
                     .name("connected")
-                    .data("{\"message\": \"连接成功\", \"timestamp\": " + System.currentTimeMillis() + "}"));
-            log.info("[SSE] 连接建立成功: 当前连接数={}", sseEmitters.size());
+                    .data("{\"message\":\"连接成功\",\"timestamp\":" + System.currentTimeMillis() + "}"));
         } catch (IOException e) {
-            log.warn("[SSE] 发送连接成功消息失败");
-            doRemoveConnection(userId);
+            removeConnectionIfPresent(userId, emitter);
+            throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "SSE 连接建立失败");
         }
 
         return emitter;
     }
 
     /**
-     * 移除 SSE 连接（公开方法）
+     * 原子性地移除指定连接（仅当 map 中存储的仍是传入的 emitter 实例时才移除）。
      */
-    public void removeConnection(Long userId) {
-        doRemoveConnection(userId);
-    }
-
-    /**
-     * 内部移除连接方法
-     */
-    private void doRemoveConnection(Long userId) {
-        SseEmitter emitter = sseEmitters.remove(userId);
-        if (emitter != null) {
-            try {
-                emitter.complete();
-                connectionCounter.decrementAndGet();
-                log.debug("[SSE] 连接已移除: 当前连接数={}", sseEmitters.size());
-            } catch (Exception e) {
-                // P1: 不记录详细异常堆栈
-                log.debug("[SSE] 关闭连接时发生异常");
-            }
+    private void removeConnectionIfPresent(Long userId, SseEmitter emitter) {
+        if (sseEmitters.remove(userId, emitter)) {
+            log.debug("[SSE] 连接已移除: userId=***{}, 当前连接数={}", Math.abs(userId % 10000), sseEmitters.size());
         }
     }
 
     /**
-     * 推送通知到指定用户
-     * P1: 增强异常处理，添加推送统计
+     * 主动关闭指定用户的 SSE 连接（如强制下线场景）。
+     */
+    public void removeConnection(Long userId) {
+        SseEmitter emitter = sseEmitters.remove(userId);
+        if (emitter != null) {
+            try { emitter.complete(); } catch (Exception ignored) { }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 推送与心跳
+    // -------------------------------------------------------------------------
+
+    /**
+     * 异步推送通知到指定用户。
      */
     @Async
     public void pushNotificationToUser(Long userId, NotificationMessageDTO notification) {
         SseEmitter emitter = sseEmitters.get(userId);
-
         if (emitter == null) {
-            log.debug("[SSE] 用户未连接，跳过推送");
+            log.debug("[SSE] 用户未连接，跳过推送: userId=***{}", Math.abs(userId % 10000));
             return;
         }
 
         try {
-            String jsonData = JsonUtils.toJsonString(notification);
             emitter.send(SseEmitter.event()
                     .name("notification")
-                    .data(jsonData));
-
+                    .data(JsonUtils.toJsonString(notification)));
             pushSuccessCounter.incrementAndGet();
-            log.debug("[SSE] 通知推送成功: notificationId={}", notification.id());
-
+            log.debug("[SSE] 推送成功: notificationId={}", notification.id());
         } catch (IOException e) {
             pushFailureCounter.incrementAndGet();
-            // P1: 不暴露详细错误信息
-            log.warn("[SSE] 通知推送失败: notificationId={}", notification.id());
-            doRemoveConnection(userId);
+            log.warn("[SSE] 推送失败: notificationId={}", notification.id());
+            removeConnectionIfPresent(userId, emitter);
         } catch (Exception e) {
             pushFailureCounter.incrementAndGet();
-            log.warn("[SSE] 通知推送异常: notificationId={}", notification.id());
-            doRemoveConnection(userId);
+            log.warn("[SSE] 推送异常: notificationId={}", notification.id());
+            removeConnectionIfPresent(userId, emitter);
         }
     }
 
     /**
-     * 定时发送心跳，保持连接活跃
+     * 定时心跳，保持所有连接活跃（每 30 秒）。
      */
     @Scheduled(fixedRate = NotificationConstants.SSE_HEARTBEAT_INTERVAL)
     public void sendHeartbeat() {
         if (sseEmitters.isEmpty()) {
             return;
         }
-
         log.debug("[SSE] 发送心跳，当前连接数: {}", sseEmitters.size());
+        String heartbeatData = "{\"timestamp\":" + System.currentTimeMillis() + "}";
 
-        // P1: 使用副本遍历，避免并发修改
-        sseEmitters.entrySet().stream().toList().forEach(entry -> {
+        for (Map.Entry<Long, SseEmitter> entry : sseEmitters.entrySet()) {
             try {
-                entry.getValue().send(SseEmitter.event()
-                        .name("heartbeat")
-                        .data("{\"timestamp\": " + System.currentTimeMillis() + "}"));
+                entry.getValue().send(SseEmitter.event().name("heartbeat").data(heartbeatData));
             } catch (IOException e) {
-                log.debug("[SSE] 心跳发送失败，移除连接");
-                doRemoveConnection(entry.getKey());
+                log.debug("[SSE] 心跳失败，移除连接: userId=***{}", entry.getKey() % 10000);
+                removeConnectionIfPresent(entry.getKey(), entry.getValue());
             }
-        });
+        }
     }
 
-    /**
-     * 获取当前连接数
-     */
+    // -------------------------------------------------------------------------
+    // 优雅关闭
+    // -------------------------------------------------------------------------
+
+    @PreDestroy
+    public void closeAllConnections() {
+        log.info("[SSE] 关闭所有连接，当前数: {}", sseEmitters.size());
+        // 先快照再清空，避免并发修改
+        List<SseEmitter> snapshot = new ArrayList<>(sseEmitters.values());
+        sseEmitters.clear();
+        for (SseEmitter emitter : snapshot) {
+            try { emitter.complete(); } catch (Exception ignored) { }
+        }
+        log.info("[SSE] 所有连接已关闭");
+    }
+
+    // -------------------------------------------------------------------------
+    // 监控指标
+    // -------------------------------------------------------------------------
+
     public int getConnectionCount() {
         return sseEmitters.size();
     }
 
-    /**
-     * 检查用户是否已连接
-     */
+    public long getTotalConnectionCount() {
+        return totalConnectionCounter.get();
+    }
+
+    public long getPushSuccessCount() {
+        return pushSuccessCounter.get();
+    }
+
+    public long getPushFailureCount() {
+        return pushFailureCounter.get();
+    }
+
     public boolean isUserConnected(Long userId) {
         return sseEmitters.containsKey(userId);
     }
 
-    /**
-     * 获取推送成功计数
-     */
-    public int getPushSuccessCount() {
-        return pushSuccessCounter.get();
-    }
+    // -------------------------------------------------------------------------
+    // 内部记录
+    // -------------------------------------------------------------------------
 
-    /**
-     * 获取推送失败计数
-     */
-    public int getPushFailureCount() {
-        return pushFailureCounter.get();
-    }
-
-    /**
-     * 获取历史连接总数
-     */
-    public int getTotalConnectionCount() {
-        return connectionCounter.get();
-    }
-
-    /**
-     * 关闭所有连接（应用关闭时调用）
-     */
-    @PreDestroy
-    public void closeAllConnections() {
-        log.info("[SSE] 关闭所有连接，总数: {}", sseEmitters.size());
-
-        sseEmitters.entrySet().stream().toList().forEach(entry -> {
-            try {
-                entry.getValue().complete();
-            } catch (Exception e) {
-                log.debug("[SSE] 关闭连接时发生异常");
-            }
-        });
-
-        sseEmitters.clear();
-        log.info("[SSE] 所有连接已关闭");
-    }
+    private record StreamTokenEntry(Long userId, long expireAt) { }
 }

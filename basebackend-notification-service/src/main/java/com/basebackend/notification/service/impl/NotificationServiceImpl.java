@@ -18,6 +18,7 @@ import com.basebackend.notification.dto.NotificationQueryDTO;
 import com.basebackend.notification.dto.UserNotificationDTO;
 import com.basebackend.notification.entity.UserNotification;
 import com.basebackend.notification.mapper.UserNotificationMapper;
+import com.basebackend.notification.ratelimit.NotificationRateLimiter;
 import com.basebackend.notification.service.NotificationService;
 import com.basebackend.notification.validation.NotificationValidator;
 import jakarta.mail.MessagingException;
@@ -59,8 +60,11 @@ public class NotificationServiceImpl implements NotificationService {
     private final CustomMetrics customMetrics;
     private final RocketMQTemplate rocketMQTemplate;
     private final NotificationValidator validator;
+    private final NotificationRateLimiter rateLimiter;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    /** 广播通知单批次最大记录数 */
+    private static final int BROADCAST_BATCH_SIZE = 500;
 
     public NotificationServiceImpl(
             UserNotificationMapper notificationMapper,
@@ -69,7 +73,8 @@ public class NotificationServiceImpl implements NotificationService {
             TemplateEngine templateEngine,
             CustomMetrics customMetrics,
             RocketMQTemplate rocketMQTemplate,
-            NotificationValidator validator) {
+            NotificationValidator validator,
+            NotificationRateLimiter rateLimiter) {
         this.notificationMapper = notificationMapper;
         this.userServiceClient = userServiceClient;
         this.mailSender = mailSender;
@@ -77,18 +82,21 @@ public class NotificationServiceImpl implements NotificationService {
         this.customMetrics = customMetrics;
         this.rocketMQTemplate = rocketMQTemplate;
         this.validator = validator;
+        this.rateLimiter = rateLimiter;
     }
 
     @Override
     public void sendEmailNotification(String to, String subject, String content) {
-        // P0: 输入验证
+        // 输入验证
         validator.validateEmail(to);
         String sanitizedContent = validator.sanitizeEmailContent(content);
         String sanitizedSubject = validator.sanitizeTitle(subject);
 
-        // P2: 限流由网关层处理，此处仅记录日志
+        // 限流检查（全局 + 当前用户）
+        Long currentUserId = UserContextHolder.getUserId();
+        rateLimiter.checkEmailRateLimit(currentUserId);
 
-        // P2: 日志脱敏 - 邮箱地址部分隐藏
+        // 日志脱敏 - 邮箱地址部分隐藏
         String maskedEmail = maskEmail(to);
         log.info("发送邮件通知: to={}, subject={}", maskedEmail, sanitizedSubject);
         customMetrics.recordBusinessOperation("notification", "send_email");
@@ -158,7 +166,11 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createSystemNotification(CreateNotificationDTO dto) {
-        // P0: 输入验证和XSS防护
+        // 限流检查
+        Long currentUserId = UserContextHolder.getUserId();
+        rateLimiter.checkNotificationRateLimit(currentUserId);
+
+        // 输入验证和XSS防护
         String sanitizedTitle = validator.sanitizeTitle(dto.title());
         String sanitizedContent = validator.sanitizeNotificationContent(dto.content());
         validator.validateUrl(dto.linkUrl());
@@ -196,13 +208,12 @@ public class NotificationServiceImpl implements NotificationService {
 
     /**
      * 创建群发通知（发送给所有活跃用户）
-     * P1: 优化批量插入性能
+     * 使用真正的批量 INSERT，避免 N+1 数据库往返
      */
     private void createBroadcastNotification(CreateNotificationDTO dto, String sanitizedTitle, String sanitizedContent) {
         log.info("创建群发通知: title={}", sanitizedTitle);
         customMetrics.recordBusinessOperation("notification", "broadcast");
 
-        // 获取所有活跃用户ID
         Result<List<Long>> result = userServiceClient.getAllActiveUserIds();
         if (result == null || result.getCode() != 200 || result.getData() == null) {
             log.error("获取活跃用户列表失败");
@@ -217,63 +228,39 @@ public class NotificationServiceImpl implements NotificationService {
 
         log.info("群发通知目标用户数: {}", userIds.size());
 
-        // P1: 优化批量插入
         LocalDateTime now = LocalDateTime.now();
-        int batchSize = 500;
-        int totalInserted = 0;
-        String type = dto.type() != null ? dto.type() : "announcement";
+        String type  = dto.type()  != null ? dto.type()  : "announcement";
         String level = dto.level() != null ? dto.level() : "info";
+        int totalInserted = 0;
 
-        for (int i = 0; i < userIds.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, userIds.size());
-            List<Long> batchUserIds = userIds.subList(i, endIndex);
+        for (int i = 0; i < userIds.size(); i += BROADCAST_BATCH_SIZE) {
+            List<Long> batchUserIds = userIds.subList(i, Math.min(i + BROADCAST_BATCH_SIZE, userIds.size()));
 
-            // 构建批量通知列表
-            List<UserNotification> notifications = new ArrayList<>(batchUserIds.size());
+            List<UserNotification> batch = new ArrayList<>(batchUserIds.size());
             for (Long userId : batchUserIds) {
-                UserNotification notification = new UserNotification();
-                notification.setUserId(userId);
-                notification.setTitle(sanitizedTitle);
-                notification.setContent(sanitizedContent);
-                notification.setType(type);
-                notification.setLevel(level);
-                notification.setLinkUrl(dto.linkUrl());
-                notification.setIsRead(0);
-                notification.setCreateTime(now);
-                notifications.add(notification);
+                UserNotification n = new UserNotification();
+                n.setUserId(userId);
+                n.setTitle(sanitizedTitle);
+                n.setContent(sanitizedContent);
+                n.setType(type);
+                n.setLevel(level);
+                n.setLinkUrl(dto.linkUrl());
+                n.setIsRead(0);
+                n.setCreateTime(now);
+                batch.add(n);
             }
 
-            // P1: 使用批量插入（如果mapper支持）或逐条插入
-            for (UserNotification notification : notifications) {
-                try {
-                    notificationMapper.insert(notification);
-                    totalInserted++;
-
-                    // 异步发送MQ消息
-                    sendNotificationToMQAsync(notification);
-                } catch (Exception e) {
-                    // P1: 单条失败不影响整体
-                    log.warn("通知插入失败: userId=***{}", notification.getUserId() % 10000);
-                }
+            try {
+                totalInserted += notificationMapper.insertBatch(batch);
+            } catch (Exception e) {
+                log.warn("群发通知批次插入失败: batchStart={}, size={}", i, batch.size(), e);
             }
 
-            log.debug("群发通知批次完成: batch={}/{}, inserted={}", 
-                    (i / batchSize) + 1, (userIds.size() + batchSize - 1) / batchSize, notifications.size());
+            log.debug("群发通知批次完成: batch={}/{}", (i / BROADCAST_BATCH_SIZE) + 1,
+                    (userIds.size() + BROADCAST_BATCH_SIZE - 1) / BROADCAST_BATCH_SIZE);
         }
 
         log.info("群发通知创建完成: 总用户数={}, 成功插入={}", userIds.size(), totalInserted);
-    }
-
-    /**
-     * 异步发送MQ消息（不阻塞主流程）
-     */
-    private void sendNotificationToMQAsync(UserNotification notification) {
-        try {
-            sendNotificationToMQ(notification);
-        } catch (Exception e) {
-            // MQ发送失败不影响主流程
-            log.debug("群发通知MQ消息发送失败: notificationId={}", notification.getId());
-        }
     }
 
     @Override
@@ -283,10 +270,12 @@ public class NotificationServiceImpl implements NotificationService {
 
         Long currentUserId = UserContextHolder.getUserId();
 
+        int safeLimit = (limit != null && limit > 0) ? Math.min(limit, 200) : 50;
+
         LambdaQueryWrapper<UserNotification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserNotification::getUserId, currentUserId)
                .orderByDesc(UserNotification::getCreateTime)
-               .last(limit != null && limit > 0 ? "LIMIT " + limit : "LIMIT 50");
+               .last("LIMIT " + safeLimit);
 
         List<UserNotification> notifications = notificationMapper.selectList(wrapper);
         return notifications.stream()
@@ -418,7 +407,15 @@ public class NotificationServiceImpl implements NotificationService {
 
         // 已读状态筛选
         if (StrUtil.isNotBlank(queryDTO.isRead()) && !"all".equals(queryDTO.isRead())) {
-            wrapper.eq(UserNotification::getIsRead, Integer.parseInt(queryDTO.isRead()));
+            try {
+                int isReadVal = Integer.parseInt(queryDTO.isRead());
+                if (isReadVal != 0 && isReadVal != 1) {
+                    throw new BusinessException(CommonErrorCode.PARAM_FORMAT_ERROR, "isRead 参数只能为 0 或 1");
+                }
+                wrapper.eq(UserNotification::getIsRead, isReadVal);
+            } catch (NumberFormatException e) {
+                throw new BusinessException(CommonErrorCode.PARAM_FORMAT_ERROR, "isRead 参数格式无效");
+            }
         }
 
         // 关键词搜索

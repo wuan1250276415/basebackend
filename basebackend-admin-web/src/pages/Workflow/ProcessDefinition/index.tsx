@@ -1,3 +1,4 @@
+import { Plus, UploadCloud, Trash2, Eye, PauseCircle, PlayCircle, CloudDownload, FileText } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -16,16 +17,7 @@ import {
   Descriptions,
   Drawer,
 } from 'antd'
-import {
-  PlusOutlined,
-  UploadOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  PauseCircleOutlined,
-  PlayCircleOutlined,
-  CloudDownloadOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
@@ -250,7 +242,7 @@ const ProcessDefinitionList: React.FC = () => {
       width: 200,
       render: (text, record) => (
         <Space>
-          <FileTextOutlined style={{ color: '#1890ff' }} />
+          <FileText style={{ color: '#1890ff' }} />
           <span>{text}</span>
           {record.version > 1 && <Tag color="blue">v{record.version}</Tag>}
         </Space>
@@ -278,11 +270,11 @@ const ProcessDefinitionList: React.FC = () => {
       width: 100,
       render: (suspended) =>
         suspended ? (
-          <Tag color="warning" icon={<PauseCircleOutlined />}>
+          <Tag color="warning" icon={<PauseCircle />}>
             已挂起
           </Tag>
         ) : (
-          <Tag color="success" icon={<PlayCircleOutlined />}>
+          <Tag color="success" icon={<PlayCircle />}>
             激活
           </Tag>
         ),
@@ -354,7 +346,7 @@ const ProcessDefinitionList: React.FC = () => {
           <Button
             type="link"
             size="small"
-            icon={<EyeOutlined />}
+            icon={<Eye />}
             onClick={() => handleViewXml(record)}
           >
             查看
@@ -363,7 +355,7 @@ const ProcessDefinitionList: React.FC = () => {
             <Button
               type="link"
               size="small"
-              icon={<PlayCircleOutlined />}
+              icon={<PlayCircle />}
               onClick={() => handleActivate(record)}
             >
               激活
@@ -372,7 +364,7 @@ const ProcessDefinitionList: React.FC = () => {
             <Button
               type="link"
               size="small"
-              icon={<PauseCircleOutlined />}
+              icon={<PauseCircle />}
               onClick={() => handleSuspend(record)}
             >
               挂起
@@ -382,7 +374,7 @@ const ProcessDefinitionList: React.FC = () => {
             type="link"
             size="small"
             danger
-            icon={<DeleteOutlined />}
+            icon={<Trash2 />}
             onClick={() => handleDelete(record)}
           >
             删除
@@ -400,12 +392,12 @@ const ProcessDefinitionList: React.FC = () => {
           <Space>
             <Button
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<Plus />}
               onClick={() => navigate('/workflow/bpmn-designer')}
             >
               在线设计
             </Button>
-            <Button icon={<UploadOutlined />} onClick={() => setDeployModalVisible(true)}>
+            <Button icon={<Upload />} onClick={() => setDeployModalVisible(true)}>
               部署流程
             </Button>
             <Button onClick={loadDefinitions}>刷新</Button>
@@ -504,7 +496,7 @@ const ProcessDefinitionList: React.FC = () => {
               accept=".bpmn,.xml"
               maxCount={1}
             >
-              <Button icon={<UploadOutlined />}>选择文件</Button>
+              <Button icon={<Upload />}>选择文件</Button>
             </Upload>
           </Form.Item>
 
@@ -527,7 +519,7 @@ const ProcessDefinitionList: React.FC = () => {
         open={xmlDrawerVisible}
         onClose={() => setXmlDrawerVisible(false)}
         extra={
-          <Button icon={<CloudDownloadOutlined />} onClick={handleDownloadXml}>
+          <Button icon={<CloudDownload />} onClick={handleDownloadXml}>
             下载
           </Button>
         }

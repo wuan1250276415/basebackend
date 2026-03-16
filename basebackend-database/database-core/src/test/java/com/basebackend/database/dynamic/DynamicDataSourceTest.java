@@ -17,7 +17,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -186,6 +185,40 @@ class DynamicDataSourceTest {
     }
 
     @Test
+    @DisplayName("移除数据源后应关闭 AutoCloseable 资源")
+    void shouldCloseAutoCloseableDataSourceWhenRemoved() throws Exception {
+        // Given
+        DataSource closableDataSource = mock(DataSource.class, withSettings().extraInterfaces(AutoCloseable.class));
+        AutoCloseable closeable = (AutoCloseable) closableDataSource;
+        dynamicDataSource.addDataSource("closable", closableDataSource);
+
+        // When
+        boolean removed = dynamicDataSource.removeDataSource("closable");
+
+        // Then
+        assertThat(removed).isTrue();
+        verify(closeable, times(1)).close();
+    }
+
+    @Test
+    @DisplayName("移除数据源时关闭异常不应影响移除结果")
+    void shouldRemoveDataSourceSuccessfullyWhenCloseFails() throws Exception {
+        // Given
+        DataSource closableDataSource = mock(DataSource.class, withSettings().extraInterfaces(AutoCloseable.class));
+        AutoCloseable closeable = (AutoCloseable) closableDataSource;
+        doThrow(new Exception("close failed")).when(closeable).close();
+        dynamicDataSource.addDataSource("closable-fail", closableDataSource);
+
+        // When
+        boolean removed = dynamicDataSource.removeDataSource("closable-fail");
+
+        // Then
+        assertThat(removed).isTrue();
+        assertThat(dynamicDataSource.containsDataSource("closable-fail")).isFalse();
+        verify(closeable, times(1)).close();
+    }
+
+    @Test
     @DisplayName("移除主数据源应抛出异常")
     void shouldThrowExceptionWhenRemovingPrimaryDataSource() {
         // Given - 配置主数据源
@@ -314,6 +347,27 @@ class DynamicDataSourceTest {
         assertThat(dynamicDataSource.getDataSourceCount()).isEqualTo(2);
         assertThat(dynamicDataSource.containsDataSource("master")).isTrue();
         assertThat(dynamicDataSource.containsDataSource("slave")).isTrue();
+    }
+
+    @Test
+    @DisplayName("测试环境标记存在时应跳过数据源校验")
+    void shouldSkipValidationWhenTestEnvironmentPropertyIsSet() throws SQLException {
+        String originalTestEnv = System.getProperty("test.env");
+        try {
+            System.setProperty("test.env", "true");
+            DynamicDataSource localDynamicDataSource = new DynamicDataSource();
+            DataSource dataSource = mock(DataSource.class);
+
+            localDynamicDataSource.addDataSource("test-env-ds", dataSource);
+
+            verify(dataSource, never()).getConnection();
+        } finally {
+            if (originalTestEnv == null) {
+                System.clearProperty("test.env");
+            } else {
+                System.setProperty("test.env", originalTestEnv);
+            }
+        }
     }
 
     @Test

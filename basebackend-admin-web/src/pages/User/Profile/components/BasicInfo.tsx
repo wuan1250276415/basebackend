@@ -1,3 +1,4 @@
+import { Edit, User, UploadCloud } from 'lucide-react';
 import { useState } from 'react'
 import {
   Card,
@@ -14,11 +15,11 @@ import {
   Upload,
   message,
 } from 'antd'
-import { EditOutlined, UserOutlined, UploadOutlined } from '@ant-design/icons'
+
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 import { ProfileDetail, UpdateProfileRequest } from '@/types'
-import { updateProfile } from '@/api/profile'
+import { updateProfile } from '@/api/profileApi'
 
 interface BasicInfoProps {
   data: ProfileDetail
@@ -115,7 +116,7 @@ const BasicInfo = ({ data, onUpdate }: BasicInfoProps) => {
           <Avatar
             size={100}
             src={data.avatar}
-            icon={<UserOutlined />}
+            icon={<User />}
             style={{ marginRight: 24 }}
           />
           <div style={{ flex: 1 }}>
@@ -125,7 +126,7 @@ const BasicInfo = ({ data, onUpdate }: BasicInfoProps) => {
               {getStatusTag(data.status)}
             </Space>
           </div>
-          <Button type="primary" icon={<EditOutlined />} onClick={handleOpenModal}>
+          <Button type="primary" icon={<Edit />} onClick={handleOpenModal}>
             编辑资料
           </Button>
         </div>
@@ -203,7 +204,7 @@ const BasicInfo = ({ data, onUpdate }: BasicInfoProps) => {
 
           <Form.Item label="上传头像">
             <Upload {...uploadProps} maxCount={1}>
-              <Button icon={<UploadOutlined />}>选择图片</Button>
+              <Button icon={<Upload />}>选择图片</Button>
             </Upload>
             <div style={{ color: '#999', marginTop: 8 }}>
               提示: 支持jpg、png格式，文件大小不超过2MB

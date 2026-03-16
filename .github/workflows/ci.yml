@@ -1,4 +1,4 @@
-name: CI - Build and Test
+name: CI - Segmented Build and Verify
 
 on:
   push:
@@ -20,16 +20,27 @@ jobs:
   # ==========================================
   # 编译 + 测试
   # ==========================================
-  build-and-test:
-    name: Build & Test
+  build-and-verify:
+    name: Segmented Build & Verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      plan_count: ${{ steps.segmented-plan-meta.outputs.plan_count }}
+      plan_first: ${{ steps.segmented-plan-meta.outputs.plan_first }}
+      plan_last: ${{ steps.segmented-plan-meta.outputs.plan_last }}
+      executed_count: ${{ steps.segmented-verify-run.outputs.executed_count }}
+      verify_exit_code: ${{ steps.segmented-verify-run.outputs.verify_exit_code }}
+      timeout_count: ${{ steps.segmented-verify-run.outputs.timeout_count }}
+      timeout_segments_json: ${{ steps.segmented-verify-run.outputs.timeout_segments_json }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check Common Module Consistency
+        run: bash .github/scripts/check-basebackend-common-consistency.sh
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -46,11 +57,82 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Compile
-        run: mvn clean compile -B -DskipTests
+      - name: Generate Segmented Verify Plan (JSON)
+        id: segmented-plan
+        run: |
+          PLAN_FILE="segmented-verify-plan-${GITHUB_RUN_ID}.json"
+          bash .github/scripts/verify-segmented-ci.sh --json > "${PLAN_FILE}"
+          echo "plan_file=${PLAN_FILE}" >> "$GITHUB_OUTPUT"
 
-      - name: Run Tests
-        run: mvn test -B -DforkCount=1
+      - name: Append Segmented Plan Summary
+        id: segmented-plan-meta
+        run: |
+          PLAN_FILE="${{ steps.segmented-plan.outputs.plan_file }}"
+          ruby -rjson -e '
+            data = JSON.parse(File.read(ARGV[0]))
+            segments = data.fetch("segments", [])
+            count = segments.length
+            first = count.positive? ? segments.first.fetch("id", "N/A") : "N/A"
+            last = count.positive? ? segments.last.fetch("id", "N/A") : "N/A"
+
+            File.open(ENV.fetch("GITHUB_STEP_SUMMARY"), "a") do |f|
+              f.puts "### Segmented Verify Plan"
+              f.puts ""
+              f.puts "- count: `#{count}`"
+              f.puts "- first: `#{first}`"
+              f.puts "- last: `#{last}`"
+            end
+
+            File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |f|
+              f.puts "plan_count=#{count}"
+              f.puts "plan_first=#{first}"
+              f.puts "plan_last=#{last}"
+            end
+          ' "${PLAN_FILE}"
+
+      - name: Upload Segmented Verify Plan
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: segmented-verify-plan-${{ github.run_id }}
+          path: ${{ steps.segmented-plan.outputs.plan_file }}
+          retention-days: 14
+
+      - name: Run Segmented Verify (Compile + Test)
+        id: segmented-verify-run
+        run: |
+          set -euo pipefail
+          LOG_FILE="segmented-verify-run-${GITHUB_RUN_ID}.log"
+          echo "run_log_file=${LOG_FILE}" >> "$GITHUB_OUTPUT"
+
+          set +e
+          bash .github/scripts/verify-segmented-ci.sh --timeout 60 | tee "${LOG_FILE}"
+          VERIFY_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          EXECUTED_COUNT="$(awk -F'|' '/\| *(PASS|FAIL|TIMEOUT) *\|/ {count++} END {print count+0}' "${LOG_FILE}")"
+          TIMEOUT_COUNT="$(awk -F'|' '/\| *TIMEOUT *\|/ {count++} END {print count+0}' "${LOG_FILE}")"
+          TIMEOUT_SEGMENTS_JSON="$(awk -F'|' '/\| *TIMEOUT *\|/ {id=$1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", id); if (id!="") print id}' "${LOG_FILE}" | ruby -rjson -e 'arr=STDIN.read.lines.map(&:strip).reject(&:empty?); puts JSON.generate(arr)')"
+          echo "executed_count=${EXECUTED_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "verify_exit_code=${VERIFY_EXIT}" >> "$GITHUB_OUTPUT"
+          echo "timeout_count=${TIMEOUT_COUNT}" >> "$GITHUB_OUTPUT"
+          {
+            echo "timeout_segments_json<<EOF"
+            echo "${TIMEOUT_SEGMENTS_JSON}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          if [[ "${VERIFY_EXIT}" -ne 0 ]]; then
+            exit "${VERIFY_EXIT}"
+          fi
+
+      - name: Upload Segmented Verify Run Log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: segmented-verify-run-log-${{ github.run_id }}
+          path: ${{ steps.segmented-verify-run.outputs.run_log_file }}
+          retention-days: 14
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
@@ -111,7 +193,7 @@ jobs:
   build-services:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [build-and-verify]
     timeout-minutes: 20
 
     strategy:
@@ -152,7 +234,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [build-and-test, build-services]
+    needs: [build-and-verify, build-services, dependency-check]
     if: always()
 
     steps:
@@ -162,11 +244,94 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Build & Test | ${{ needs.build-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Segmented Build & Verify | ${{ needs.build-and-verify.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Services | ${{ needs.build-services.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Security Scan | ${{ needs.dependency-check.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.build-and-test.result }}" == "failure" ]] || \
+          PLAN_COUNT="${{ needs.build-and-verify.outputs.plan_count }}"
+          PLAN_FIRST="${{ needs.build-and-verify.outputs.plan_first }}"
+          PLAN_LAST="${{ needs.build-and-verify.outputs.plan_last }}"
+          PLAN_EXECUTED="${{ needs.build-and-verify.outputs.executed_count }}"
+          VERIFY_EXIT_CODE="${{ needs.build-and-verify.outputs.verify_exit_code }}"
+          TIMEOUT_COUNT="${{ needs.build-and-verify.outputs.timeout_count }}"
+          TIMEOUT_SEGMENTS_JSON="${{ needs.build-and-verify.outputs.timeout_segments_json }}"
+          VERIFY_RESULT="${{ needs.build-and-verify.result }}"
+          if [[ -z "${PLAN_COUNT}" ]]; then PLAN_COUNT="N/A"; fi
+          if [[ -z "${PLAN_FIRST}" ]]; then PLAN_FIRST="N/A"; fi
+          if [[ -z "${PLAN_LAST}" ]]; then PLAN_LAST="N/A"; fi
+          if [[ -z "${PLAN_EXECUTED}" ]]; then PLAN_EXECUTED="N/A"; fi
+          if [[ -z "${VERIFY_EXIT_CODE}" ]]; then VERIFY_EXIT_CODE="N/A"; fi
+          if [[ -z "${TIMEOUT_COUNT}" ]]; then TIMEOUT_COUNT="0"; fi
+          if [[ -z "${TIMEOUT_SEGMENTS_JSON}" ]]; then TIMEOUT_SEGMENTS_JSON="[]"; fi
+          TIMEOUT_SEGMENTS="$(ruby -rjson -e 'arr = JSON.parse(ARGV[0]); puts(arr.empty? ? "none" : arr.join(","))' "${TIMEOUT_SEGMENTS_JSON}")"
+
+          echo "### Segmented Verify Plan (Aggregated)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- count: \`${PLAN_COUNT}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- executed: \`${PLAN_EXECUTED}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- exit_code: \`${VERIFY_EXIT_CODE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- timeout_count: \`${TIMEOUT_COUNT}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- timeout_segments: \`${TIMEOUT_SEGMENTS}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- timeout_segments_json: \`${TIMEOUT_SEGMENTS_JSON}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- first: \`${PLAN_FIRST}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- last: \`${PLAN_LAST}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- artifact: \`segmented-verify-plan-${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- run log: \`segmented-verify-run-log-${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- run: [view artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${TIMEOUT_COUNT}" =~ ^[0-9]+$ ]] && [[ "${TIMEOUT_COUNT}" -gt 0 ]]; then
+            echo "> ⚠️ **Timeout detected:** count=\`${TIMEOUT_COUNT}\`, segments=\`${TIMEOUT_SEGMENTS}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${PLAN_COUNT}" =~ ^[0-9]+$ ]] && [[ "${PLAN_EXECUTED}" =~ ^[0-9]+$ ]]; then
+            if [[ "${PLAN_COUNT}" -eq "${PLAN_EXECUTED}" ]]; then
+              echo "- consistency: ✅ expected(\`${PLAN_COUNT}\`) == executed(\`${PLAN_EXECUTED}\`)" >> $GITHUB_STEP_SUMMARY
+            else
+              if [[ "${VERIFY_RESULT}" == "success" ]]; then
+                echo "> ⚠️ **Plan consistency mismatch:** expected=\`${PLAN_COUNT}\`, executed=\`${PLAN_EXECUTED}\`（job=success）" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- consistency: ⚠️ expected(\`${PLAN_COUNT}\`) != executed(\`${PLAN_EXECUTED}\`)（job=\`${VERIFY_RESULT}\`，可能因失败提前停止）" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          else
+            echo "- consistency: N/A（缺少 expected 或 executed 数值）" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${PLAN_COUNT}" == "0" ]]; then
+            echo "> ⚠️ **Plan count anomaly:** \`plan_count=0\`，本次分段计划为空，请检查分段脚本与参数配置。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${PLAN_COUNT}" == "N/A" ]]; then
+            echo "> ⚠️ **Plan count unavailable:** 未读取到分段计划摘要，请检查 \`build-and-verify\` job outputs。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "### Dependency Security Artifact" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.dependency-check.result }}" == "skipped" ]]; then
+            echo "- status: \`skipped\` (仅 main / pull_request 执行)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- artifact: \`dependency-check-report\`" >> $GITHUB_STEP_SUMMARY
+            echo "- run: [view artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Gate Policy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- blocking jobs: \`build-and-verify\`, \`build-services\`" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.dependency-check.result }}" == "failure" ]]; then
+            echo "- dependency-check: \`failure\` (non-blocking, because OWASP step uses \`continue-on-error: true\`; please review report artifact manually)" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.dependency-check.result }}" == "skipped" ]]; then
+            echo "- dependency-check: \`skipped\` (non-blocking by workflow condition)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- dependency-check: \`${{ needs.dependency-check.result }}\` (non-blocking informational scan)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build-and-verify.result }}" == "failure" ]] || \
              [[ "${{ needs.build-services.result }}" == "failure" ]]; then
             echo "❌ **CI Failed**" >> $GITHUB_STEP_SUMMARY
             exit 1

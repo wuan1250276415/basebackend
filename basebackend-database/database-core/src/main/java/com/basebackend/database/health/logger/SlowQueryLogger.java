@@ -5,10 +5,13 @@ import com.basebackend.database.health.alert.AlertNotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Array;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 /**
  * 慢查询日志记录器
@@ -17,6 +20,13 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Component
 public class SlowQueryLogger {
+
+    private static final int MAX_SQL_LOG_LENGTH = 200;
+    private static final int MAX_PARAMETER_METADATA_LENGTH = 120;
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static final Pattern SINGLE_QUOTED_LITERAL_PATTERN = Pattern.compile("'(?:''|[^'])*'");
+    private static final Pattern DOUBLE_QUOTED_LITERAL_PATTERN = Pattern.compile("\"(?:\"\"|[^\"])*\"");
+    private static final Pattern NUMERIC_LITERAL_PATTERN = Pattern.compile("(?<![\\w$])-?\\d+(?:\\.\\d+)?(?![\\w$])");
 
     private final DatabaseEnhancedProperties properties;
     private final AlertNotificationService alertService;
@@ -57,15 +67,18 @@ public class SlowQueryLogger {
         // 增加慢查询计数
         totalSlowQueries.incrementAndGet();
 
+        String sanitizedSql = simplifySql(sql);
+        String parameterMetadata = buildParameterMetadata(parameters);
+
         // 记录慢查询日志
-        log.warn("SLOW QUERY DETECTED - Execution time: {}ms (threshold: {}ms)\nSQL: {}\nParameters: {}",
-                executionTime, threshold, sql, parameters);
+        log.warn("SLOW QUERY DETECTED - Execution time: {}ms (threshold: {}ms)\nSQL: {}\nParameter metadata: {}",
+                executionTime, threshold, sanitizedSql, parameterMetadata);
 
         // 发送慢查询告警
-        alertService.sendSlowQueryAlert(sql, executionTime, threshold);
+        alertService.sendSlowQueryAlert(sanitizedSql, executionTime, threshold);
 
         // 更新统计信息
-        updateSlowQueryStats(sql, executionTime);
+        updateSlowQueryStats(sanitizedSql, executionTime);
     }
 
     /**
@@ -98,16 +111,66 @@ public class SlowQueryLogger {
      * 简化SQL语句（移除具体参数值）
      */
     private String simplifySql(String sql) {
-        if (sql == null) {
+        if (sql == null || sql.isBlank()) {
             return "";
         }
+
         // 移除多余空格
-        String simplified = sql.replaceAll("\\s+", " ").trim();
+        String simplified = WHITESPACE_PATTERN.matcher(sql).replaceAll(" ").trim();
+
+        // 脱敏SQL中的字面量，尽量规避敏感值泄露
+        simplified = SINGLE_QUOTED_LITERAL_PATTERN.matcher(simplified).replaceAll("'?'");
+        simplified = DOUBLE_QUOTED_LITERAL_PATTERN.matcher(simplified).replaceAll("\"?\"");
+        simplified = NUMERIC_LITERAL_PATTERN.matcher(simplified).replaceAll("?");
+
         // 限制长度
-        if (simplified.length() > 200) {
-            simplified = simplified.substring(0, 200) + "...";
+        return limitLength(simplified, MAX_SQL_LOG_LENGTH);
+    }
+
+    /**
+     * 生成参数安全元信息（禁止输出具体值）
+     */
+    private String buildParameterMetadata(Object parameters) {
+        if (parameters == null) {
+            return "none";
         }
-        return simplified;
+
+        if (parameters instanceof CharSequence sequence) {
+            String normalized = WHITESPACE_PATTERN.matcher(sequence).replaceAll(" ").trim();
+            if (looksLikeMetadata(normalized)) {
+                return limitLength(normalized, MAX_PARAMETER_METADATA_LENGTH);
+            }
+            return "type=String,length=" + sequence.length();
+        }
+
+        if (parameters instanceof Map<?, ?> map) {
+            return "type=%s,size=%d".formatted(parameters.getClass().getSimpleName(), map.size());
+        }
+
+        if (parameters instanceof Collection<?> collection) {
+            return "type=%s,size=%d".formatted(parameters.getClass().getSimpleName(), collection.size());
+        }
+
+        if (parameters.getClass().isArray()) {
+            Class<?> componentType = parameters.getClass().getComponentType();
+            String componentTypeName = componentType == null ? "Object" : componentType.getSimpleName();
+            return "type=%s[],size=%d".formatted(componentTypeName, Array.getLength(parameters));
+        }
+
+        return "type=" + parameters.getClass().getSimpleName();
+    }
+
+    private boolean looksLikeMetadata(String text) {
+        return text.startsWith("count=")
+                || text.startsWith("parameterCount=")
+                || text.startsWith("type=");
+    }
+
+    private String limitLength(String text, int maxLength) {
+        if (text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
     }
 
     /**

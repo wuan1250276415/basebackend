@@ -22,7 +22,11 @@ public final class SanitizationUtils {
             .and(Sanitizers.LINKS);
 
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
-            "(?i)(<script|</script>|<iframe|</iframe>|<object|</object>|javascript:|data:text/html|onload=|onerror=)");
+            "(?is)("
+                    + "<\\s*/?\\s*(?:script|iframe|object|embed|svg|math)\\b"
+                    + "|<[^>]*\\bon[a-z][a-z0-9_:-]*\\s*="
+                    + "|(?:javascript|vbscript|data)\\s*(?::|&#0*58;|&#x0*3a;)"
+                    + ")");
 
     /**
      * 清洗字符串，移除潜在的 XSS 载荷

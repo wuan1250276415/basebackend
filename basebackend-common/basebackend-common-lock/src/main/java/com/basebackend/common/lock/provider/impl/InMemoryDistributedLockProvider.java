@@ -54,12 +54,26 @@ public class InMemoryDistributedLockProvider implements DistributedLockProvider 
 
     @Override
     public void forceUnlock(String key) {
-        ReentrantLock lock = lockMap.remove(key);
-        if (lock != null && lock.isLocked()) {
-            // 强制释放所有重入次数
-            while (lock.isHeldByCurrentThread()) {
+        ReentrantLock lock = lockMap.get(key);
+        if (lock == null) {
+            return;
+        }
+
+        if (lock.isHeldByCurrentThread()) {
+            // 当前线程持有锁时，释放所有重入层级
+            while (lock.getHoldCount() > 0) {
                 lock.unlock();
             }
+            // 仅在确认无持有且无等待线程时清理映射，避免并发语义被破坏
+            if (!lock.hasQueuedThreads() && !lock.isLocked()) {
+                lockMap.remove(key, lock);
+            }
+            return;
+        }
+
+        // 非持有线程不允许移除仍在使用中的锁，只清理已空闲锁对象
+        if (!lock.isLocked()) {
+            lockMap.remove(key, lock);
         }
     }
 }

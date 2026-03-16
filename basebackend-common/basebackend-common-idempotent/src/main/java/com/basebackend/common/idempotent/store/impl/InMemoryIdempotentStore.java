@@ -20,11 +20,16 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class InMemoryIdempotentStore implements IdempotentStore {
 
-    private final ConcurrentHashMap<String, Long> store = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> store;
 
     private final ScheduledExecutorService scheduler;
 
     public InMemoryIdempotentStore() {
+        this(new ConcurrentHashMap<>());
+    }
+
+    InMemoryIdempotentStore(ConcurrentHashMap<String, Long> store) {
+        this.store = store;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "idempotent-cleanup");
             t.setDaemon(true);
@@ -37,16 +42,19 @@ public class InMemoryIdempotentStore implements IdempotentStore {
     @Override
     public boolean tryAcquire(String key, long timeout, TimeUnit unit) {
         long expireAt = System.currentTimeMillis() + unit.toMillis(timeout);
-        Long existing = store.putIfAbsent(key, expireAt);
-        if (existing == null) {
-            return true;
+        while (true) {
+            Long existing = store.putIfAbsent(key, expireAt);
+            if (existing == null) {
+                return true;
+            }
+            if (System.currentTimeMillis() <= existing) {
+                return false;
+            }
+            // 过期键使用 CAS 替换，失败说明被并发更新，进入下一轮重试
+            if (store.replace(key, existing, expireAt)) {
+                return true;
+            }
         }
-        // 已过期则替换
-        if (System.currentTimeMillis() > existing) {
-            store.put(key, expireAt);
-            return true;
-        }
-        return false;
     }
 
     @Override

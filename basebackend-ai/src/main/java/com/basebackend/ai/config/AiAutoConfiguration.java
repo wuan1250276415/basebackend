@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,7 +50,7 @@ public class AiAutoConfiguration {
     @ConditionalOnMissingBean(name = "openAiClient")
     @ConditionalOnProperty(prefix = "basebackend.ai.providers.openai", name = "enabled", havingValue = "true")
     public AiClient openAiClient(AiProperties properties) {
-        AiProperties.ProviderConfig config = properties.getProviders().get("openai");
+        AiProperties.ProviderConfig config = requireAndValidateProviderConfig(properties, "openai");
         log.info("注册 AI Provider: openai, model={}", config.getDefaultModel());
         return new OpenAiClient(config, "openai");
     }
@@ -58,7 +59,7 @@ public class AiAutoConfiguration {
     @ConditionalOnMissingBean(name = "deepSeekClient")
     @ConditionalOnProperty(prefix = "basebackend.ai.providers.deepseek", name = "enabled", havingValue = "true")
     public AiClient deepSeekClient(AiProperties properties) {
-        AiProperties.ProviderConfig config = properties.getProviders().get("deepseek");
+        AiProperties.ProviderConfig config = requireAndValidateProviderConfig(properties, "deepseek");
         log.info("注册 AI Provider: deepseek, model={}", config.getDefaultModel());
         return new DeepSeekClient(config);
     }
@@ -67,7 +68,7 @@ public class AiAutoConfiguration {
     @ConditionalOnMissingBean(name = "qianWenClient")
     @ConditionalOnProperty(prefix = "basebackend.ai.providers.qianwen", name = "enabled", havingValue = "true")
     public AiClient qianWenClient(AiProperties properties) {
-        AiProperties.ProviderConfig config = properties.getProviders().get("qianwen");
+        AiProperties.ProviderConfig config = requireAndValidateProviderConfig(properties, "qianwen");
         log.info("注册 AI Provider: qianwen, model={}", config.getDefaultModel());
         return new QianWenClient(config);
     }
@@ -78,7 +79,7 @@ public class AiAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "defaultAiClient")
     public AiClient defaultAiClient(AiProperties properties, Map<String, AiClient> allClients) {
-        String defaultProvider = properties.getDefaultProvider();
+        String defaultProvider = requireNonBlank(properties.getDefaultProvider(), "basebackend.ai.default-provider");
 
         // 从已注册的客户端中查找匹配的默认 Provider
         for (Map.Entry<String, AiClient> entry : allClients.entrySet()) {
@@ -86,6 +87,13 @@ public class AiAutoConfiguration {
                 log.info("默认 AI Provider: {}", defaultProvider);
                 return entry.getValue();
             }
+        }
+
+        if (properties.isStrictProviderResolution()) {
+            throw new IllegalStateException(
+                    "严格模式下默认 Provider '%s' 未找到，可用 Provider: %s"
+                            .formatted(defaultProvider, allClients.values().stream().map(AiClient::getProvider).toList())
+            );
         }
 
         // 如果无匹配，使用第一个可用的
@@ -182,6 +190,7 @@ public class AiAutoConfiguration {
     @ConditionalOnMissingBean
     public TextSplitter textSplitter(AiProperties properties) {
         AiProperties.RagConfig rag = properties.getRag();
+        validateRagConfig(rag);
         return new TextSplitter(rag.getChunkSize(), rag.getChunkOverlap());
     }
 
@@ -205,6 +214,7 @@ public class AiAutoConfiguration {
             return null;
         }
         AiProperties.RagConfig rag = properties.getRag();
+        validateRagConfig(rag);
         log.info("RAG 服务已启用, topK={}, threshold={}", rag.getTopK(), rag.getSimilarityThreshold());
         return new RagService(defaultAiClient, embeddingClient, vectorStore, textSplitter,
                 rag.getTopK(), rag.getSimilarityThreshold());
@@ -217,8 +227,67 @@ public class AiAutoConfiguration {
     @ConditionalOnClass(name = "org.aspectj.lang.ProceedingJoinPoint")
     public AIGenerateAspect aiGenerateAspect(Map<String, AiClient> aiClientMap,
                                               AiClient defaultAiClient,
-                                              PromptTemplateRegistry templateRegistry) {
+                                              PromptTemplateRegistry templateRegistry,
+                                              AiProperties properties) {
         log.info("@AIGenerate 注解切面已启用");
-        return new AIGenerateAspect(aiClientMap, defaultAiClient, templateRegistry);
+        return new AIGenerateAspect(
+                aiClientMap,
+                defaultAiClient,
+                templateRegistry,
+                properties.isStrictProviderResolution()
+        );
+    }
+
+    private AiProperties.ProviderConfig requireAndValidateProviderConfig(AiProperties properties, String provider) {
+        AiProperties.ProviderConfig config = properties.getProviders().get(provider);
+        if (config == null) {
+            throw new IllegalStateException("Provider '%s' 已启用但缺少配置段 basebackend.ai.providers.%s"
+                    .formatted(provider, provider));
+        }
+        validateProviderConfig(provider, config);
+        return config;
+    }
+
+    private void validateProviderConfig(String provider, AiProperties.ProviderConfig config) {
+        requireNonBlank(config.getApiKey(), "basebackend.ai.providers.%s.api-key".formatted(provider));
+
+        String baseUrl = requireNonBlank(config.getBaseUrl(), "basebackend.ai.providers.%s.base-url".formatted(provider));
+        try {
+            URI uri = URI.create(baseUrl);
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                throw new IllegalStateException("basebackend.ai.providers.%s.base-url 非法: %s".formatted(provider, baseUrl));
+            }
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("basebackend.ai.providers.%s.base-url 非法: %s".formatted(provider, baseUrl), e);
+        }
+
+        requireNonBlank(config.getDefaultModel(), "basebackend.ai.providers.%s.default-model".formatted(provider));
+
+        if (config.getTimeout() == null || config.getTimeout().isZero() || config.getTimeout().isNegative()) {
+            throw new IllegalStateException(
+                    "basebackend.ai.providers.%s.timeout 必须为正数，当前值: %s"
+                            .formatted(provider, config.getTimeout())
+            );
+        }
+
+        if (config.getMaxRetries() < 0) {
+            throw new IllegalStateException(
+                    "basebackend.ai.providers.%s.max-retries 不能为负数，当前值: %d"
+                            .formatted(provider, config.getMaxRetries())
+            );
+        }
+    }
+
+    private void validateRagConfig(AiProperties.RagConfig rag) {
+        if (rag.getTopK() <= 0) {
+            throw new IllegalStateException("basebackend.ai.rag.top-k 必须大于 0，当前值: " + rag.getTopK());
+        }
+    }
+
+    private String requireNonBlank(String value, String key) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(key + " 不能为空");
+        }
+        return value;
     }
 }

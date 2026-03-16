@@ -1,3 +1,4 @@
+import { Search, Eye, Send } from 'lucide-react';
 import { useEffect, useState } from 'react'
 import {
   Card,
@@ -14,7 +15,7 @@ import {
   Form,
   Input
 } from 'antd'
-import { SearchOutlined, EyeOutlined, SendOutlined } from '@ant-design/icons'
+
 import { getWebhookLogPage, getWebhookLog } from '@/api/integration/event'
 import { getEnabledWebhookConfigs } from '@/api/integration/webhook'
 import { publishEvent } from '@/api/integration/event'
@@ -202,7 +203,7 @@ const EventLog = () => {
         <Button
           type="link"
           size="small"
-          icon={<EyeOutlined />}
+          icon={<Eye />}
           onClick={() => handleViewDetail(record.id)}
         >
           详情
@@ -218,7 +219,7 @@ const EventLog = () => {
         extra={
           <Button
             type="primary"
-            icon={<SendOutlined />}
+            icon={<Send />}
             onClick={() => setPublishVisible(true)}
           >
             发布事件
@@ -264,7 +265,7 @@ const EventLog = () => {
 
           <Button
             type="primary"
-            icon={<SearchOutlined />}
+            icon={<Search />}
             onClick={fetchData}
           >
             查询

@@ -1,0 +1,30 @@
+# 商城交易服务（dev）Nacos 模板
+server:
+  port: 8092
+
+basebackend:
+  idempotent:
+    enabled: true
+  lock:
+    type: redis
+  common:
+    ratelimit:
+      enabled: true
+      type: redis
+      algorithm: TOKEN_BUCKET
+    event:
+      enabled: true
+
+messaging:
+  rocketmq:
+    default-topic: mall-trade-topic
+    topic-prefix: mall.trade.
+
+mall:
+  business-idempotent:
+    ttl-seconds: 86400
+  trade:
+    timeout-close:
+      enabled: true
+      minutes: 15
+      fixed-delay-ms: 60000

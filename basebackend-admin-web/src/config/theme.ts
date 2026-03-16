@@ -15,6 +15,8 @@ export type LayoutMode = 'side' | 'top' | 'mix';
  * Fluent 2 palettes
  */
 export const presetColors = [
+  { name: 'Modern Dark', value: '#0f172a' },
+  { name: 'Indigo', value: '#6366f1' },
   { name: 'Fluent Blue', value: '#0078D4' },
   { name: 'Teal', value: '#008272' },
   { name: 'Green', value: '#107C10' },
@@ -29,48 +31,56 @@ export const presetColors = [
  */
 export const lightTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#0078D4', // Microsoft Blue
-    borderRadius: 8,         // Medium radius
-    borderRadiusSM: 4,       // Small radius
-    borderRadiusLG: 12,      // Large radius
+    colorPrimary: '#0f172a', // Modern Dark
+    borderRadius: 8,         // Micro border radius
+    borderRadiusSM: 4,
+    borderRadiusLG: 12,
     colorBgContainer: '#ffffff',
     colorBgElevated: '#ffffff',
-    colorBgLayout: '#f3f3f3', // Mica light
-    colorText: '#242424',
-    colorTextSecondary: '#424242',
-    colorBorder: '#e1e1e1',
-    fontFamily: "'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif",
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.04)', // Soft shadow
+    colorBgLayout: '#f8fafc', // Very light grey blue background
+    colorText: '#0f172a',
+    colorTextSecondary: '#64748b',
+    colorBorder: '#e2e8f0',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)', // Soft shadow
+    fontSize: 14,
   },
   components: {
     Layout: {
-      headerBg: 'rgba(255, 255, 255, 0.8)', // Acrylic fallback
+      headerBg: 'rgba(255, 255, 255, 0.6)', // Glassmorphism
       headerHeight: 60,
-      siderBg: 'rgba(255, 255, 255, 0.8)',   // Acrylic fallback
-      bodyBg: 'transparent', // Let Mica background show through
+      siderBg: '#ffffff',
+      bodyBg: 'transparent',
     },
     Menu: {
       itemBorderRadius: 6,
       itemHeight: 40,
       colorItemBg: 'transparent',
-      itemSelectedColor: '#0078D4',
-      itemSelectedBg: '#EFF6FC', // Light blue highlight
+      itemSelectedColor: '#0f172a',
+      itemSelectedBg: '#f1f5f9', // Slate 100
       activeBarBorderWidth: 3,
     },
     Button: {
-      borderRadius: 4,
-      controlHeight: 32,
-      defaultShadow: '0px 1px 1px rgba(0, 0, 0, 0.05)', // Subtle shadow
-      primaryShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+      borderRadius: 6,
+      controlHeight: 36,
+      defaultShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', // Subtle shadow
+      primaryShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
     },
     Card: {
       borderRadiusLG: 12,
-      boxShadowTertiary: '0px 2px 4px rgba(0, 0, 0, 0.04)',
+      boxShadowTertiary: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+      colorBorderSecondary: 'transparent', // Borderless
+    },
+    Table: {
+      colorBgContainer: '#ffffff',
+      headerBg: '#f8fafc',
+      headerBorderRadius: 8,
     },
     Input: {
-      borderRadius: 4,
-      activeBorderColor: '#0078D4',
-      hoverBorderColor: '#005A9E',
+      borderRadius: 6,
+      activeBorderColor: '#0f172a',
+      hoverBorderColor: '#334155',
+      controlHeight: 36,
     }
   },
 };

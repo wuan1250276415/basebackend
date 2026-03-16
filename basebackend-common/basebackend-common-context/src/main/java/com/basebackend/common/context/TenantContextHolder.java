@@ -2,7 +2,9 @@ package com.basebackend.common.context;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * 租户上下文持有者
@@ -270,14 +272,13 @@ public final class TenantContextHolder {
      * @param action 要执行的操作
      */
     public static void ignoreTenant(Runnable action) {
+        Objects.requireNonNull(action, "action cannot be null");
         TenantContextInfo backup = CONTEXT.get();
         try {
             CONTEXT.remove();
             action.run();
         } finally {
-            if (backup != null) {
-                CONTEXT.set(backup);
-            }
+            restoreContext(backup);
         }
     }
 
@@ -292,15 +293,27 @@ public final class TenantContextHolder {
      * @param <T>      返回值类型
      * @return 操作返回值
      */
-    public static <T> T ignoreTenant(java.util.function.Supplier<T> supplier) {
+    public static <T> T ignoreTenant(Supplier<T> supplier) {
+        Objects.requireNonNull(supplier, "supplier cannot be null");
         TenantContextInfo backup = CONTEXT.get();
         try {
             CONTEXT.remove();
             return supplier.get();
         } finally {
-            if (backup != null) {
-                CONTEXT.set(backup);
-            }
+            restoreContext(backup);
+        }
+    }
+
+    /**
+     * 恢复租户上下文
+     *
+     * @param backup 备份上下文
+     */
+    private static void restoreContext(TenantContextInfo backup) {
+        if (backup == null) {
+            CONTEXT.remove();
+        } else {
+            CONTEXT.set(backup);
         }
     }
 }

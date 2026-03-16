@@ -16,6 +16,7 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 @SpringBootApplication(scanBasePackages = {
         "com.basebackend.user",
         "com.basebackend.common",
+        "com.basebackend.security",
 })
 @MapperScan({
     "com.basebackend.user.mapper",

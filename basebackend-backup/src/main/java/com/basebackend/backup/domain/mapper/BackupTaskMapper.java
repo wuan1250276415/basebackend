@@ -26,5 +26,5 @@ public interface BackupTaskMapper extends BaseMapper<BackupTask> {
     /**
      * 查询需要执行的任务（基于CRON调度）
      */
-    List<BackupTask> selectTasksToExecute(@Param("now") String now);
+    List<BackupTask> selectTasksToExecute();
 }

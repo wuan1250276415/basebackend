@@ -70,6 +70,19 @@ class UserContextTest {
         }
 
         @Test
+        @DisplayName("hasPermission支持分段通配符")
+        void shouldSupportSegmentWildcardPermission() {
+            assertTrue(userContext.hasPermission("system:role:add"));
+            assertFalse(userContext.hasPermission("system:dept:list"));
+
+            UserContext segmentWildcardContext = UserContext.builder()
+                    .permissions(new HashSet<>(Arrays.asList("system:*:list")))
+                    .build();
+            assertTrue(segmentWildcardContext.hasPermission("system:user:list"));
+            assertFalse(segmentWildcardContext.hasPermission("system:user:add"));
+        }
+
+        @Test
         @DisplayName("空权限列表返回false")
         void shouldReturnFalseForEmptyPermissions() {
             UserContext emptyContext = UserContext.builder().build();

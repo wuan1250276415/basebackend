@@ -1,3 +1,4 @@
+import { Plus, Edit, Trash2, Search, RefreshCw, LayoutGrid } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import {
   Card,
@@ -14,14 +15,7 @@ import {
   InputNumber,
   Switch,
 } from 'antd'
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  AppstoreOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import {
   getApplicationList,
@@ -219,7 +213,7 @@ const ApplicationManagement = () => {
           <Button
             type="link"
             size="small"
-            icon={<EditOutlined />}
+            icon={<Edit />}
             onClick={() => handleOpenModal(record)}
           >
             编辑
@@ -231,14 +225,14 @@ const ApplicationManagement = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="link" size="small" danger icon={<Trash2 />}>
               删除
             </Button>
           </Popconfirm>
           <Button
             type="link"
             size="small"
-            icon={<AppstoreOutlined />}
+            icon={<LayoutGrid />}
             onClick={() => {
               window.location.href = `/system/application-resource?appId=${record.id}&appName=${record.appName}`
             }}
@@ -263,10 +257,10 @@ const ApplicationManagement = () => {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+              <Button type="primary" icon={<Search />} onClick={handleSearch}>
                 搜索
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+              <Button icon={<RefreshCw />} onClick={handleReset}>
                 重置
               </Button>
             </Space>
@@ -277,7 +271,7 @@ const ApplicationManagement = () => {
         <div style={{ marginBottom: 16 }}>
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<Plus />}
             onClick={() => handleOpenModal()}
           >
             新增应用

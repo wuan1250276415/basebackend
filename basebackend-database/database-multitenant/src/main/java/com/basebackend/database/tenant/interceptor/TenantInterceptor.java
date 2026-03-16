@@ -70,7 +70,7 @@ public class TenantInterceptor implements InnerInterceptor {
             log.debug("Added tenant filter to query. Tenant: {}", tenantId);
         } catch (Exception e) {
             log.error("Failed to add tenant filter to SQL: {}", originalSql, e);
-            // 不抛出异常，让原始 SQL 执行（可能会查询到其他租户的数据）
+            throw new TenantContextException("Failed to apply tenant filter for query operation", e);
         }
     }
     
@@ -129,6 +129,7 @@ public class TenantInterceptor implements InnerInterceptor {
             }
         } catch (Exception e) {
             log.error("Failed to add tenant filter to SQL: {}", originalSql, e);
+            throw new TenantContextException("Failed to apply tenant filter for update/delete operation", e);
         }
     }
     
@@ -142,25 +143,69 @@ public class TenantInterceptor implements InnerInterceptor {
             log.debug("Table {} is excluded from tenant filtering", tableName);
             return sql;
         }
-        
-        Statement statement = CCJSqlParserUtil.parse(sql);
-        
-        if (statement instanceof Select select) {
-            if (select instanceof PlainSelect plainSelect) {
-                Expression where = plainSelect.getWhere();
-                Expression tenantCondition = createTenantCondition(tenantId);
 
-                if (where != null) {
-                    plainSelect.setWhere(new AndExpression(where, tenantCondition));
-                } else {
-                    plainSelect.setWhere(tenantCondition);
-                }
+        Statement statement = CCJSqlParserUtil.parse(sql);
+        if (!(statement instanceof Select select)) {
+            throw new TenantContextException("Unsupported SQL type for tenant filtering in query: " + statement.getClass().getSimpleName());
+        }
+
+        addTenantFilterToSelect(select, tenantId);
+        return select.toString();
+    }
+
+    /**
+     * 为 SELECT 语句（包含普通查询、UNION、WITH）添加租户过滤
+     */
+    private void addTenantFilterToSelect(Select select, String tenantId) {
+        if (select instanceof PlainSelect plainSelect) {
+            applyTenantCondition(plainSelect, tenantId);
+            return;
+        }
+
+        if (select instanceof SetOperationList setOperationList) {
+            List<Select> selectList = setOperationList.getSelects();
+            for (Select childSelect : selectList) {
+                addTenantFilterToSelect(childSelect, tenantId);
             }
 
-            return select.toString();
+            if (setOperationList.getWithItemsList() != null) {
+                for (WithItem<?> withItem : setOperationList.getWithItemsList()) {
+                    Select withSelect = withItem.getSelect();
+                    if (withSelect != null) {
+                        addTenantFilterToSelect(withSelect, tenantId);
+                    }
+                }
+            }
+            return;
         }
-        
-        return sql;
+
+        if (select instanceof Values) {
+            return;
+        }
+
+        if (select instanceof ParenthesedSelect parenthesedSelect) {
+            Select inner = parenthesedSelect.getSelect();
+            if (inner != null) {
+                addTenantFilterToSelect(inner, tenantId);
+                return;
+            }
+        }
+
+        throw new TenantContextException("Unsupported SELECT structure for tenant filtering: " + select.getClass().getSimpleName());
+    }
+
+    /**
+     * 为 PlainSelect 添加租户条件
+     */
+    private void applyTenantCondition(PlainSelect plainSelect, String tenantId) {
+        Expression where = plainSelect.getWhere();
+        Expression tenantCondition = createTenantCondition(tenantId);
+
+        if (where != null) {
+            plainSelect.setWhere(new AndExpression(where, tenantCondition));
+        } else {
+            plainSelect.setWhere(tenantCondition);
+        }
     }
     
     /**

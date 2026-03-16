@@ -1,11 +1,7 @@
+import { Inbox, FileText, CheckCircle2, Clock } from 'lucide-react';
 import React from 'react'
 import { Empty, Button } from 'antd'
-import {
-  InboxOutlined,
-  FileTextOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-} from '@ant-design/icons'
+
 
 /**
  * 空状态组件 - 无待办任务
@@ -13,7 +9,7 @@ import {
 export const EmptyTodoTasks: React.FC<{ onRefresh?: () => void }> = ({ onRefresh }) => {
   return (
     <Empty
-      image={<CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a' }} />}
+      image={<CheckCircle2 style={{ fontSize: 64, color: '#52c41a' }} />}
       description={
         <div>
           <div style={{ fontSize: 16, marginBottom: 8 }}>太棒了！没有待办任务</div>
@@ -32,7 +28,7 @@ export const EmptyTodoTasks: React.FC<{ onRefresh?: () => void }> = ({ onRefresh
 export const EmptyProcessInstances: React.FC<{ onCreate?: () => void }> = ({ onCreate }) => {
   return (
     <Empty
-      image={<InboxOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
+      image={<Inbox style={{ fontSize: 64, color: '#d9d9d9' }} />}
       description={
         <div>
           <div style={{ fontSize: 16, marginBottom: 8 }}>暂无流程实例</div>
@@ -57,7 +53,7 @@ export const EmptyProcessDefinitions: React.FC<{ onDeploy?: () => void }> = ({
 }) => {
   return (
     <Empty
-      image={<FileTextOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
+      image={<FileText style={{ fontSize: 64, color: '#d9d9d9' }} />}
       description={
         <div>
           <div style={{ fontSize: 16, marginBottom: 8 }}>暂无流程定义</div>
@@ -98,7 +94,7 @@ export const EmptySearchResult: React.FC<{ onClear?: () => void }> = ({ onClear 
 export const EmptyHistory: React.FC = () => {
   return (
     <Empty
-      image={<ClockCircleOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
+      image={<Clock style={{ fontSize: 64, color: '#d9d9d9' }} />}
       description={
         <div>
           <div style={{ fontSize: 16, marginBottom: 8 }}>暂无历史记录</div>
@@ -131,7 +127,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <Empty
-      image={icon || <InboxOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
+      image={icon || <Inbox style={{ fontSize: 64, color: '#d9d9d9' }} />}
       description={
         <div>
           <div style={{ fontSize: 16, marginBottom: 8 }}>{title}</div>

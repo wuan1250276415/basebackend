@@ -1,0 +1,72 @@
+{
+  "inviteSkillSelections": {
+    "assistant": [
+      "/Users/wuan/.openclaw/workspace/basebackend/.golutra/skills/project-development-quality-maintainability"
+    ],
+    "member": [
+      "/Users/wuan/.openclaw/workspace/basebackend/.golutra/skills/project-development-quality-maintainability"
+    ]
+  },
+  "memberSequence": {
+    "claude-assistant-basebackend": 2,
+    "codex-member-basebackend": 2,
+    "gemini-member-basebackend": 2
+  },
+  "members": [
+    {
+      "autoStartTerminal": false,
+      "avatar": "css:orbit",
+      "id": "01J00000000000000000000000",
+      "name": "群主",
+      "role": "",
+      "roleKey": "members.roles.owner",
+      "roleType": "owner",
+      "status": "online"
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:ember",
+      "collaborationMode": true,
+      "id": "01KJP5Z21DPFQZQC5YTAA4AEY7",
+      "name": "1-codex-member-basebackend",
+      "role": "",
+      "roleKey": "members.roles.member",
+      "roleType": "member",
+      "sandboxed": false,
+      "skillPaths": [
+        "/Users/wuan/.openclaw/workspace/basebackend/.golutra/skills/project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "codex",
+      "terminalType": "codex",
+      "unlimitedAccess": true
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:storm",
+      "collaborationMode": true,
+      "id": "01KJP5Z730B988GCDPWJQEQ1V3",
+      "name": "1-claude-assistant-basebackend",
+      "role": "",
+      "roleKey": "members.roles.aiAssistant",
+      "roleType": "assistant",
+      "sandboxed": false,
+      "skillPaths": [
+        "/Users/wuan/.openclaw/workspace/basebackend/.golutra/skills/project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    }
+  ],
+  "projectId": "5edf2702182a7806ab56279e48bd7d902631fe4c3331f0bc09e8a5f963b04210",
+  "roadmap": {
+    "objective": "",
+    "tasks": []
+  },
+  "terminal": {
+    "recentClosedTabs": []
+  },
+  "version": 1
+}

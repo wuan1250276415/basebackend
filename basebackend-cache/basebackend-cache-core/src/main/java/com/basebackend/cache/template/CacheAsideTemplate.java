@@ -2,6 +2,7 @@ package com.basebackend.cache.template;
 
 import com.basebackend.cache.manager.MultiLevelCacheManager;
 import com.basebackend.cache.metrics.CacheMetricsService;
+import com.basebackend.cache.hook.CacheOperationHook;
 import com.basebackend.cache.service.RedisService;
 import com.basebackend.cache.util.BloomFilterUtil;
 import com.basebackend.cache.util.RedissonLockUtil;
@@ -34,6 +35,7 @@ public class CacheAsideTemplate {
     private final RedissonLockUtil lockUtil;
     private final BloomFilterUtil bloomFilterUtil;
     private final CacheMetricsService metricsService;
+    private final CacheOperationHook cacheOperationHook;
     
     /**
      * 默认锁等待时间（秒）
@@ -55,12 +57,14 @@ public class CacheAsideTemplate {
             @Autowired(required = false) MultiLevelCacheManager multiLevelCacheManager,
             RedissonLockUtil lockUtil,
             BloomFilterUtil bloomFilterUtil,
-            CacheMetricsService metricsService) {
+            CacheMetricsService metricsService,
+            @Autowired(required = false) CacheOperationHook cacheOperationHook) {
         this.redisService = redisService;
         this.multiLevelCacheManager = multiLevelCacheManager;
         this.lockUtil = lockUtil;
         this.bloomFilterUtil = bloomFilterUtil;
         this.metricsService = metricsService;
+        this.cacheOperationHook = cacheOperationHook != null ? cacheOperationHook : CacheOperationHook.NO_OP;
     }
 
     /**
@@ -88,8 +92,21 @@ public class CacheAsideTemplate {
      */
     public <T> T get(String key, Supplier<T> dataLoader, Duration ttl, Class<T> type, boolean useBloomFilter) {
         long startTime = System.currentTimeMillis();
+        long ttlSeconds = ttl != null && !ttl.isNegative() ? ttl.getSeconds() : 0;
         
         try {
+            Object preloadedValue = safeBeforeCacheLookup("cache-aside", key, ttlSeconds);
+            if (preloadedValue != null) {
+                if (!type.isInstance(preloadedValue)) {
+                    log.debug("Hook preloaded value type mismatch for key: {}, expected={}, actual={}",
+                            key, type.getName(), preloadedValue.getClass().getName());
+                } else {
+                    metricsService.recordHit("cache-aside");
+                    metricsService.recordLatency("cache-aside-get", System.currentTimeMillis() - startTime);
+                    return type.cast(preloadedValue);
+                }
+            }
+
             // 1. 布隆过滤器检查（如果启用）
             if (useBloomFilter && !bloomFilterUtil.mightContain(key)) {
                 log.debug("Bloom filter check failed for key: {}, data does not exist", key);
@@ -100,6 +117,7 @@ public class CacheAsideTemplate {
             // 2. 查询缓存（多级缓存或单级 Redis）
             T cachedValue = getCachedValue(key, type);
             if (cachedValue != null) {
+                safeAfterCacheHit("cache-aside", key, cachedValue, ttlSeconds);
                 metricsService.recordHit("cache-aside");
                 metricsService.recordLatency("cache-aside-get", System.currentTimeMillis() - startTime);
                 return cachedValue;
@@ -120,6 +138,7 @@ public class CacheAsideTemplate {
                 cachedValue = getCachedValue(key, type);
                 if (cachedValue != null) {
                     log.debug("Cache hit after acquiring lock for key: {}", key);
+                    safeAfterCacheHit("cache-aside", key, cachedValue, ttlSeconds);
                     metricsService.recordHit("cache-aside");
                     return cachedValue;
                 }
@@ -131,6 +150,7 @@ public class CacheAsideTemplate {
                 // 6. 缓存数据
                 if (loadedValue != null) {
                     setCachedValue(key, loadedValue, ttl);
+                    safeAfterCachePut("cache-aside", key, loadedValue);
                     
                     // 添加到布隆过滤器
                     if (useBloomFilter) {
@@ -246,6 +266,7 @@ public class CacheAsideTemplate {
         } else {
             redisService.delete(key);
         }
+        safeAfterCacheEvict("cache-aside", key);
     }
 
     /**
@@ -260,5 +281,38 @@ public class CacheAsideTemplate {
      */
     private boolean isNullMarker(Object value) {
         return "NULL_MARKER".equals(value);
+    }
+
+    private Object safeBeforeCacheLookup(String cacheName, String key, long ttlSeconds) {
+        try {
+            return cacheOperationHook.beforeCacheLookup(cacheName, key, ttlSeconds, null);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook beforeCacheLookup failed for key={}", key, e);
+            return null;
+        }
+    }
+
+    private void safeAfterCacheHit(String cacheName, String key, Object value, long ttlSeconds) {
+        try {
+            cacheOperationHook.afterCacheHit(cacheName, key, value, ttlSeconds, null);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheHit failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCachePut(String cacheName, String key, Object value) {
+        try {
+            cacheOperationHook.afterCachePut(cacheName, key, value);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCachePut failed for key={}", key, e);
+        }
+    }
+
+    private void safeAfterCacheEvict(String cacheName, String key) {
+        try {
+            cacheOperationHook.afterCacheEvict(cacheName, key);
+        } catch (Exception e) {
+            log.warn("CacheOperationHook afterCacheEvict failed for key={}", key, e);
+        }
     }
 }

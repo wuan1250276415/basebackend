@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
@@ -19,7 +20,7 @@ import java.util.function.Supplier;
  * @author BaseBackend Team
  * @since 1.0.0
  */
-public class AsyncExportService {
+public class AsyncExportService implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncExportService.class);
 
@@ -31,7 +32,11 @@ public class AsyncExportService {
 
     public AsyncExportService(ExportManager exportManager, int threadPoolSize, long taskTtlHours) {
         this.exportManager = exportManager;
-        this.executor = Executors.newVirtualThreadPerTaskExecutor();
+        int normalizedPoolSize = threadPoolSize > 0 ? threadPoolSize : 1;
+        if (normalizedPoolSize != threadPoolSize) {
+            log.warn("Invalid async export threadPoolSize={}, fallback to 1", threadPoolSize);
+        }
+        this.executor = Executors.newFixedThreadPool(normalizedPoolSize, createWorkerThreadFactory());
         this.taskTtlMillis = TimeUnit.HOURS.toMillis(taskTtlHours);
         this.cleanupScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "async-export-cleanup");
@@ -51,23 +56,26 @@ public class AsyncExportService {
      */
     public <T> String exportAsync(Supplier<List<T>> dataSupplier, Class<T> clazz, ExportFormat format) {
         String taskId = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
         ExportTaskStatus status = ExportTaskStatus.builder()
                 .taskId(taskId)
                 .status(ExportTaskStatus.Status.PENDING)
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
         taskMap.put(taskId, status);
 
         executor.submit(() -> {
             try {
-                status.setStatus(ExportTaskStatus.Status.PROCESSING);
+                updateStatus(status, ExportTaskStatus.Status.PROCESSING);
                 List<T> data = dataSupplier.get();
                 ExportResult result = exportManager.export(data, clazz, format);
                 status.setResult(result);
-                status.setStatus(ExportTaskStatus.Status.COMPLETED);
+                updateStatus(status, ExportTaskStatus.Status.COMPLETED);
                 log.info("Async export task completed: taskId={}, format={}, rows={}", taskId, format, data.size());
             } catch (Exception e) {
-                status.setStatus(ExportTaskStatus.Status.FAILED);
                 status.setMessage(e.getMessage());
+                updateStatus(status, ExportTaskStatus.Status.FAILED);
                 log.error("Async export task failed: taskId={}", taskId, e);
             }
         });
@@ -93,12 +101,53 @@ public class AsyncExportService {
         return null;
     }
 
-    private void cleanupExpiredTasks() {
-        // 简单策略：清理所有已完成/失败超过 TTL 的任务
-        // 由于没有记录创建时间在 status 中，这里清理所有已完成/失败的任务
+    void cleanupExpiredTasks() {
+        long now = System.currentTimeMillis();
         taskMap.entrySet().removeIf(entry -> {
-            ExportTaskStatus.Status s = entry.getValue().getStatus();
-            return s == ExportTaskStatus.Status.COMPLETED || s == ExportTaskStatus.Status.FAILED;
+            ExportTaskStatus taskStatus = entry.getValue();
+            ExportTaskStatus.Status status = taskStatus.getStatus();
+            if (status != ExportTaskStatus.Status.COMPLETED && status != ExportTaskStatus.Status.FAILED) {
+                return false;
+            }
+            long completedAt = resolveTerminalTimestamp(taskStatus, now);
+            return now - completedAt >= taskTtlMillis;
         });
+    }
+
+    private long resolveTerminalTimestamp(ExportTaskStatus status, long now) {
+        if (status.getCompletedAt() != null) {
+            return status.getCompletedAt();
+        }
+        if (status.getUpdatedAt() != null) {
+            return status.getUpdatedAt();
+        }
+        if (status.getCreatedAt() != null) {
+            return status.getCreatedAt();
+        }
+        return now;
+    }
+
+    private void updateStatus(ExportTaskStatus status, ExportTaskStatus.Status newStatus) {
+        long now = System.currentTimeMillis();
+        status.setStatus(newStatus);
+        status.setUpdatedAt(now);
+        if (newStatus == ExportTaskStatus.Status.COMPLETED || newStatus == ExportTaskStatus.Status.FAILED) {
+            status.setCompletedAt(now);
+        }
+    }
+
+    private ThreadFactory createWorkerThreadFactory() {
+        AtomicInteger threadIndex = new AtomicInteger(1);
+        return runnable -> {
+            Thread t = new Thread(runnable, "async-export-worker-" + threadIndex.getAndIncrement());
+            t.setDaemon(true);
+            return t;
+        };
+    }
+
+    @Override
+    public void close() {
+        executor.shutdownNow();
+        cleanupScheduler.shutdownNow();
     }
 }

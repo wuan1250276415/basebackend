@@ -8,6 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -16,6 +20,8 @@ import java.util.UUID;
  */
 @Slf4j
 public class CacheInvalidationPublisher {
+
+    private static final String SIGNATURE_ALGORITHM = "HmacSHA256";
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final CacheProperties cacheProperties;
@@ -70,16 +76,45 @@ public class CacheInvalidationPublisher {
         event.setTimestamp(System.currentTimeMillis());
         event.setCorrelationId(UUID.randomUUID().toString());
 
+        if (config.isSignatureEnabled()) {
+            String secret = config.getSignatureSecret();
+            if (secret == null || secret.isBlank()) {
+                log.error("Skip publishing invalidation event because signature is enabled but secret is empty: correlationId={}",
+                        event.getCorrelationId());
+                return;
+            }
+            String signature = signEvent(event, secret);
+            if (signature == null) {
+                log.error("Skip publishing invalidation event because signature generation failed: correlationId={}",
+                        event.getCorrelationId());
+                return;
+            }
+            event.setSignature(signature);
+        }
+
         String channel = config.getChannel();
         String json = JsonUtils.toJsonString(event);
 
         try {
             redisTemplate.convertAndSend(channel, json);
-            log.debug("Published invalidation event: channel={}, type={}, cacheName={}, key={}",
-                    channel, event.getType(), event.getCacheName(), event.getKeyPattern());
+            log.debug("Published invalidation event: channel={}, type={}, cacheName={}, key={}, signed={}",
+                    channel, event.getType(), event.getCacheName(), event.getKeyPattern(), config.isSignatureEnabled());
             recordPublished(event);
         } catch (Exception e) {
             log.error("Failed to publish invalidation event: {}", event, e);
+        }
+    }
+
+    private String signEvent(CacheInvalidationEvent event, String secret) {
+        try {
+            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SIGNATURE_ALGORITHM);
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(event.buildSignaturePayload().getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            log.error("Failed to sign invalidation event: correlationId={}", event.getCorrelationId(), e);
+            return null;
         }
     }
 

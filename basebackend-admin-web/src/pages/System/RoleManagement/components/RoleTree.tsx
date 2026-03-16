@@ -1,9 +1,10 @@
+import { Plus, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { Tree, Button, Input, Modal, Form, InputNumber, Select, Space, message } from 'antd'
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
+
 import type { DataNode } from 'antd/es/tree'
 import { Role } from '@/types'
-import { getRoleTree, createRole } from '@/api/role'
+import { getRoleTree, createRole } from '@/api/roleApi'
 
 interface RoleTreeProps {
   appId?: string
@@ -157,7 +158,7 @@ const RoleTree: React.FC<RoleTreeProps> = ({ appId, onSelect, selectedRoleId }) 
       <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<Plus />}
           onClick={handleCreateRole}
           block
         >
@@ -165,7 +166,7 @@ const RoleTree: React.FC<RoleTreeProps> = ({ appId, onSelect, selectedRoleId }) 
         </Button>
         <Input
           placeholder="搜索角色"
-          prefix={<SearchOutlined />}
+          prefix={<Search />}
           allowClear
           onChange={(e) => handleSearch(e.target.value)}
         />

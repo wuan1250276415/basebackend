@@ -27,8 +27,24 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HotKeyDetector {
 
+    /**
+     * 回收检查步长，避免每次访问都做昂贵回收
+     */
+    private static final int TRIM_CHECK_INTERVAL = 64;
+
+    /**
+     * 强制回收阈值倍率，窗口超过该倍率时立即回收到上限
+     */
+    private static final int FORCE_TRIM_RATIO = 2;
+
+    /**
+     * 单次常规回收上限
+     */
+    private static final int MAX_TRIM_BATCH = 128;
+
     private final CacheProperties cacheProperties;
     private final MeterRegistry meterRegistry;
+    private final LongAdder accessCounter = new LongAdder();
 
     private volatile ConcurrentHashMap<String, LongAdder> currentWindow = new ConcurrentHashMap<>();
     private volatile ConcurrentHashMap<String, LongAdder> previousWindow = new ConcurrentHashMap<>();
@@ -57,7 +73,7 @@ public class HotKeyDetector {
      */
     public void recordAccess(String key) {
         currentWindow.computeIfAbsent(key, k -> new LongAdder()).increment();
-        enforceMemoryBound();
+        maybeEnforceMemoryBound();
     }
 
     /**
@@ -131,18 +147,64 @@ public class HotKeyDetector {
     /**
      * 内存限制：计数 Map 大小不超过 topK * 10
      */
-    private void enforceMemoryBound() {
+    private void maybeEnforceMemoryBound() {
         int maxSize = cacheProperties.getHotKey().getTopK() * 10;
-        if (currentWindow.size() > maxSize) {
-            // 移除计数最小的条目
-            List<Map.Entry<String, LongAdder>> entries = new ArrayList<>(currentWindow.entrySet());
-            entries.sort(Comparator.comparingLong(e -> e.getValue().sum()));
+        int currentSize = currentWindow.size();
+        if (currentSize <= maxSize) {
+            return;
+        }
 
-            int removeCount = currentWindow.size() - maxSize;
-            for (int i = 0; i < removeCount && i < entries.size(); i++) {
-                currentWindow.remove(entries.get(i).getKey());
+        boolean forceTrim = maxSize <= 0 || currentSize > maxSize * FORCE_TRIM_RATIO;
+        if (!forceTrim) {
+            accessCounter.increment();
+            if (accessCounter.sum() % TRIM_CHECK_INTERVAL != 0) {
+                return;
             }
         }
+
+        enforceMemoryBound(maxSize, currentSize, forceTrim);
+    }
+
+    /**
+     * 内存限制：计数 Map 大小不超过 topK * 10
+     * 算法：使用固定大小最大堆选出“计数最小”的 removeCount 个 key，复杂度 O(n log k)
+     */
+    private void enforceMemoryBound(int maxSize, int currentSize, boolean forceTrim) {
+        if (maxSize <= 0) {
+            currentWindow.clear();
+            return;
+        }
+
+        int overflow = currentSize - maxSize;
+        if (overflow <= 0) {
+            return;
+        }
+
+        int removeCount = forceTrim
+                ? overflow
+                : Math.min(overflow, Math.max(16, Math.min(MAX_TRIM_BATCH, maxSize / 4)));
+
+        PriorityQueue<KeyCount> smallestKeys = new PriorityQueue<>(Comparator.comparingLong(KeyCount::count).reversed());
+        for (Map.Entry<String, LongAdder> entry : currentWindow.entrySet()) {
+            long count = entry.getValue().sum();
+            if (smallestKeys.size() < removeCount) {
+                smallestKeys.offer(new KeyCount(entry.getKey(), count));
+                continue;
+            }
+
+            KeyCount currentMaxInSmallest = smallestKeys.peek();
+            if (currentMaxInSmallest != null && count < currentMaxInSmallest.count()) {
+                smallestKeys.poll();
+                smallestKeys.offer(new KeyCount(entry.getKey(), count));
+            }
+        }
+
+        while (!smallestKeys.isEmpty()) {
+            currentWindow.remove(smallestKeys.poll().key());
+        }
+    }
+
+    private record KeyCount(String key, long count) {
     }
 
     private long getCount(ConcurrentHashMap<String, LongAdder> window, String key) {

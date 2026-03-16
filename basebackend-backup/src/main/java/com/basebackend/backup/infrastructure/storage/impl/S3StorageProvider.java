@@ -31,6 +31,7 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -54,9 +55,9 @@ public class S3StorageProvider implements StorageProvider {
     private static final String STORAGE_TYPE = "s3";
 
     /**
-     * 初始化S3客户端
+     * 初始化S3客户端（线程安全的懒加载）
      */
-    private void initS3Client() {
+    private synchronized void initS3Client() {
         if (s3Client != null) {
             return;
         }
@@ -159,10 +160,14 @@ public class S3StorageProvider implements StorageProvider {
             .metadata(request.getMetadata())
             .build();
 
-        // 计算MD5用于验证
-        String md5Hash = calculateMD5(fileData);
+        // 计算MD5用于验证：
+        // - contentMD5 头必须是 Base64
+        // - metadata 保留十六进制，便于可读
+        byte[] md5Bytes = calculateMD5Bytes(fileData);
+        String md5Base64 = Base64.getEncoder().encodeToString(md5Bytes);
+        String md5Hex = bytesToHex(md5Bytes);
         putObjectRequest = putObjectRequest.toBuilder()
-            .contentMD5(md5Hash)
+            .contentMD5(md5Base64)
             .build();
 
         // 执行上传
@@ -182,7 +187,7 @@ public class S3StorageProvider implements StorageProvider {
             .createdAt(LocalDateTime.now())
             .lastModified(LocalDateTime.now())
             .etag(response.eTag())
-            .metadata(Map.of("md5", md5Hash))
+            .metadata(Map.of("md5", md5Hex))
             .build();
     }
 
@@ -212,44 +217,27 @@ public class S3StorageProvider implements StorageProvider {
             // 2. 上传分块
             List<CompletedPart> completedParts = new ArrayList<>();
             @Cleanup("close") ByteArrayOutputStream partBuffer = new ByteArrayOutputStream();
-            byte[] buffer = new byte[s3Config.getMultipartChunkSize().intValue()];
+            int chunkSize = s3Config.getMultipartChunkSize().intValue();
+            byte[] buffer = new byte[Math.min(8192, chunkSize)];
             int partNumber = 1;
             int bytesRead;
 
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 partBuffer.write(buffer, 0, bytesRead);
 
-                // 当缓冲区达到分块大小或到达文件末尾时上传
-                if (partBuffer.size() >= s3Config.getMultipartChunkSize() ||
-                    (bytesRead = inputStream.read(buffer)) == -1) {
-
+                // 缓冲区达到分块大小时上传
+                if (partBuffer.size() >= chunkSize) {
                     byte[] partData = partBuffer.toByteArray();
-
-                    UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
-                        .bucket(bucket)
-                        .key(key)
-                        .uploadId(uploadId)
-                        .partNumber(partNumber)
-                        .contentLength((long) partData.length)
-                        .build();
-
-                    UploadPartResponse uploadPartResponse = s3Client.uploadPart(
-                        uploadPartRequest,
-                        RequestBody.fromBytes(partData)
-                    );
-
-                    String etag = uploadPartResponse.eTag();
-                    completedParts.add(CompletedPart.builder()
-                        .partNumber(partNumber)
-                        .eTag(etag)
-                        .build());
-
-                    log.debug("上传分块完成: part={}, size={} bytes, etag={}",
-                        partNumber, partData.length, etag);
-
+                    completedParts.add(uploadPart(bucket, key, uploadId, partNumber, partData));
                     partNumber++;
                     partBuffer.reset();
                 }
+            }
+
+            // 上传最后一个不足分块大小的尾块
+            if (partBuffer.size() > 0) {
+                byte[] partData = partBuffer.toByteArray();
+                completedParts.add(uploadPart(bucket, key, uploadId, partNumber, partData));
             }
 
             // 3. 完成多部分上传
@@ -305,6 +293,25 @@ public class S3StorageProvider implements StorageProvider {
 
             throw e;
         }
+    }
+
+    private CompletedPart uploadPart(String bucket, String key, String uploadId, int partNumber, byte[] partData) {
+        UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
+            .bucket(bucket)
+            .key(key)
+            .uploadId(uploadId)
+            .partNumber(partNumber)
+            .contentLength((long) partData.length)
+            .build();
+
+        UploadPartResponse uploadPartResponse = s3Client.uploadPart(
+            uploadPartRequest,
+            RequestBody.fromBytes(partData)
+        );
+
+        String etag = uploadPartResponse.eTag();
+        log.debug("上传分块完成: part={}, size={} bytes, etag={}", partNumber, partData.length, etag);
+        return CompletedPart.builder().partNumber(partNumber).eTag(etag).build();
     }
 
     @Override
@@ -516,14 +523,13 @@ public class S3StorageProvider implements StorageProvider {
     /**
      * 计算MD5校验和
      */
-    private String calculateMD5(byte[] data) {
+    private byte[] calculateMD5Bytes(byte[] data) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] hash = md.digest(data);
-            return bytesToHex(hash);
+            return md.digest(data);
         } catch (Exception e) {
             log.error("计算MD5失败", e);
-            return null;
+            throw new IllegalStateException("计算MD5失败", e);
         }
     }
 

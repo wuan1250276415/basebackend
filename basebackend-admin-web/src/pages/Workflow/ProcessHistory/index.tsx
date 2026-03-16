@@ -1,3 +1,4 @@
+import { Eye, CheckCircle2, Clock, XCircle, History, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,14 +18,7 @@ import {
   Modal,
   Descriptions,
 } from 'antd'
-import {
-  EyeOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  HistoryOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -157,25 +151,25 @@ const ProcessHistory: React.FC = () => {
   const getStatusTag = (instance: HistoricProcessInstance) => {
     if (instance.state === 'EXTERNALLY_TERMINATED' || instance.state === 'INTERNALLY_TERMINATED') {
       return (
-        <Tag icon={<CloseCircleOutlined />} color="error">
+        <Tag icon={<XCircle />} color="error">
           已终止
         </Tag>
       )
     } else if (instance.state === 'COMPLETED') {
       return (
-        <Tag icon={<CheckCircleOutlined />} color="success">
+        <Tag icon={<CheckCircle2 />} color="success">
           已完成
         </Tag>
       )
     } else if (instance.state === 'SUSPENDED') {
       return (
-        <Tag icon={<CloseCircleOutlined />} color="warning">
+        <Tag icon={<XCircle />} color="warning">
           已挂起
         </Tag>
       )
     } else {
       return (
-        <Tag icon={<ClockCircleOutlined />} color="processing">
+        <Tag icon={<Clock />} color="processing">
           进行中
         </Tag>
       )
@@ -286,7 +280,7 @@ const ProcessHistory: React.FC = () => {
           <Button
             type="link"
             size="small"
-            icon={<EyeOutlined />}
+            icon={<Eye />}
             onClick={() => navigate(`/workflow/instance/${record.id}`)}
           >
             详情
@@ -294,7 +288,7 @@ const ProcessHistory: React.FC = () => {
           <Button
             type="link"
             size="small"
-            icon={<HistoryOutlined />}
+            icon={<History />}
             onClick={() => handleViewHistory(record)}
           >
             历史
@@ -465,9 +459,9 @@ const ProcessHistory: React.FC = () => {
                         color={isCompleted ? 'green' : 'blue'}
                         dot={
                           isCompleted ? (
-                            <CheckCircleOutlined style={{ fontSize: 16 }} />
+                            <CheckCircle2 style={{ fontSize: 16 }} />
                           ) : (
-                            <ClockCircleOutlined style={{ fontSize: 16 }} />
+                            <Clock style={{ fontSize: 16 }} />
                           )
                         }
                       >

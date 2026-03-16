@@ -1,3 +1,4 @@
+import { Plus, Trash2, UploadCloud } from 'lucide-react';
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -15,12 +16,12 @@ import {
   Row,
   Col,
 } from 'antd'
-import { PlusOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons'
+
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 
 import { startProcessInstance } from '@/api/workflow/processInstance'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -216,7 +217,7 @@ const ExpenseApproval: React.FC = () => {
         <Button
           type="link"
           danger
-          icon={<DeleteOutlined />}
+          icon={<Trash2 />}
           onClick={() => handleDeleteExpenseItem(record.key)}
           disabled={expenseItems.length === 1}
         >
@@ -285,7 +286,7 @@ const ExpenseApproval: React.FC = () => {
                     <Button
                       type="dashed"
                       onClick={handleAddExpenseItem}
-                      icon={<PlusOutlined />}
+                      icon={<Plus />}
                     >
                       添加费用项
                     </Button>
@@ -355,7 +356,7 @@ const ExpenseApproval: React.FC = () => {
               >
                 {fileList.length < 10 && (
                   <div>
-                    <PlusOutlined />
+                    <Plus />
                     <div style={{ marginTop: 8 }}>上传</div>
                   </div>
                 )}

@@ -10,6 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+
+import java.lang.reflect.Method;
 
 /**
  * 数据权限 AOP 切面
@@ -29,9 +34,17 @@ public class DataScopeAspect {
 
     private final DataScopeProperties properties;
 
-    @Around("@annotation(dataScope)")
-    public Object around(ProceedingJoinPoint joinPoint, DataScope dataScope) throws Throwable {
+    @Around("execution(* *(..)) && (" +
+            "@annotation(com.basebackend.common.datascope.annotation.DataScope) || " +
+            "@within(com.basebackend.common.datascope.annotation.DataScope) || " +
+            "@target(com.basebackend.common.datascope.annotation.DataScope))")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         if (!properties.isEnabled()) {
+            return joinPoint.proceed();
+        }
+
+        DataScope dataScope = resolveDataScope(joinPoint);
+        if (dataScope == null) {
             return joinPoint.proceed();
         }
 
@@ -60,5 +73,35 @@ public class DataScopeAspect {
         } finally {
             DataScopeContext.clear();
         }
+    }
+
+    private DataScope resolveDataScope(ProceedingJoinPoint joinPoint) {
+        if (!(joinPoint.getSignature() instanceof MethodSignature methodSignature)) {
+            return null;
+        }
+
+        Method method = methodSignature.getMethod();
+        Object target = joinPoint.getTarget();
+        Class<?> targetClass = target != null
+                ? AopUtils.getTargetClass(target)
+                : methodSignature.getDeclaringType();
+
+        Method specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
+
+        DataScope methodScope = AnnotatedElementUtils.findMergedAnnotation(specificMethod, DataScope.class);
+        if (methodScope != null) {
+            return methodScope;
+        }
+
+        if (method != specificMethod) {
+            methodScope = AnnotatedElementUtils.findMergedAnnotation(method, DataScope.class);
+            if (methodScope != null) {
+                return methodScope;
+            }
+        }
+
+        return targetClass != null
+                ? AnnotatedElementUtils.findMergedAnnotation(targetClass, DataScope.class)
+                : null;
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Cache 模块可观测性集成切面
@@ -55,7 +56,7 @@ public class CacheObservabilityAspect {
         // 提取缓存 key（如果是第一个参数）
         Object[] args = joinPoint.getArgs();
         if (args.length > 0 && args[0] instanceof String key) {
-            observation.highCardinalityKeyValue("cache.key", key);
+            observation.lowCardinalityKeyValue("cache.key.namespace", extractKeyNamespace(key));
         }
 
         return observation.observeChecked(() -> {
@@ -83,7 +84,7 @@ public class CacheObservabilityAspect {
         // 提取锁 key
         Object[] args = joinPoint.getArgs();
         if (args.length > 0 && args[0] instanceof String key) {
-            observation.highCardinalityKeyValue("lock.key", key);
+            observation.lowCardinalityKeyValue("lock.key.namespace", extractKeyNamespace(key));
         }
 
         return observation.observeChecked(() -> {
@@ -107,5 +108,18 @@ public class CacheObservabilityAspect {
         } else {
             return "unknown";
         }
+    }
+
+    private String extractKeyNamespace(String key) {
+        if (!StringUtils.hasText(key)) {
+            return "unknown";
+        }
+        String normalizedKey = key.trim();
+        int separatorIndex = normalizedKey.indexOf(':');
+        if (separatorIndex < 0) {
+            separatorIndex = normalizedKey.indexOf('|');
+        }
+        String namespace = separatorIndex > 0 ? normalizedKey.substring(0, separatorIndex) : normalizedKey;
+        return namespace.length() > 64 ? namespace.substring(0, 64) : namespace;
     }
 }

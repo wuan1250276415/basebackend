@@ -1,1 +1,3 @@
 com.basebackend.observability.metrics.MetricsConfiguration
+com.basebackend.observability.metrics.CustomMetrics
+com.basebackend.observability.metrics.BusinessMetrics

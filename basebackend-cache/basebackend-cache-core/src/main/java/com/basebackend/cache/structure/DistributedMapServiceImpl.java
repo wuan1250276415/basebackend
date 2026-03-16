@@ -3,6 +3,7 @@ package com.basebackend.cache.structure;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
+import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
@@ -35,10 +36,9 @@ public class DistributedMapServiceImpl implements DistributedMapService {
 
     @Override
     public <K, V> void put(String mapName, K key, V value, long ttl, TimeUnit timeUnit) {
-        RMap<K, V> map = getMap(mapName);
-        map.fastPut(key, value);
-        map.expire(java.time.Duration.ofMillis(timeUnit.toMillis(ttl)));
-        log.debug("Put key-value pair in map {} with TTL {}{}: {} = {}", 
+        RMapCache<K, V> mapCache = redissonClient.getMapCache(mapName);
+        mapCache.fastPut(key, value, ttl, timeUnit);
+        log.debug("Put key-value pair in map {} with entry TTL {}{}: {} = {}",
                 mapName, ttl, timeUnit, key, value);
     }
 

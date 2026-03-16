@@ -4,10 +4,10 @@
  */
 
 import { useQueries } from 'react-query'
-import * as userApi from '@/api/user'
-import * as roleApi from '@/api/role'
-import * as monitorApi from '@/api/monitor'
-import * as logApi from '@/api/log'
+import * as userApi from '@/api/userApi'
+import * as roleApi from '@/api/roleApi'
+import * as monitorApi from '@/api/monitorApi'
+import * as logApi from '@/api/logApi'
 import * as notificationApi from '@/api/notification'
 import type { DashboardData, CoreMetricsData, SystemMonitorData } from '../types'
 

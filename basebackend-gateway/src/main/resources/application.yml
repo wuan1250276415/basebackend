@@ -111,6 +111,11 @@ gateway:
       - /basebackend-system-api/v3/api-docs/**
       - /basebackend-system-api/doc.html
       - /basebackend-system-api/webjars/**
+      # Swagger 文档（ticket-api）
+      - /basebackend-ticket-api/swagger-ui/**
+      - /basebackend-ticket-api/v3/api-docs/**
+      - /basebackend-ticket-api/doc.html
+      - /basebackend-ticket-api/webjars/**
       # stream
       - /basebackend-notification-service/api/notifications/stream
     # Actuator 端点白名单（安全限制，只开放必要端点）

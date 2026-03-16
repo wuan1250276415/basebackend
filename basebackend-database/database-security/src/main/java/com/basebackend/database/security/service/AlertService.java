@@ -1,14 +1,16 @@
 package com.basebackend.database.security.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 /**
  * 告警服务
  * 用于发送加密失败等安全相关告警
+ * <p>
+ * Bean 注册由 {@link com.basebackend.database.security.config.EncryptionConfig} 负责，
+ * 不使用 {@code @Service}，因为本模块通过 {@code @AutoConfiguration + @Import} 加载，
+ * 不走组件扫描。
  */
 @Slf4j
-@Service
 public class AlertService {
 
     /**

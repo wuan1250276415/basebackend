@@ -7,7 +7,20 @@
       "Bash(then echo \"$dir\")",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(tail:*)",
+      "Bash(npm create:*)",
+      "Bash(cd /Users/wuan/Downloads/basebackend/basebackend-chat-ui && npm install 2>&1)",
+      "Bash(cd /Users/wuan/Downloads/basebackend/basebackend-chat-ui && npx tsc -b 2>&1)",
+      "Bash(npm run:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "mcp__ace-tool__enhance_prompt",
+      "mcp__ace-tool__search_context",
+      "Bash(echo OpenSpec not initialized or no changes:*)",
+      "Bash(/Users/wuan/.claude/bin/codeagent-wrapper:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

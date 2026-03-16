@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,15 @@ public class BlacklistManager {
 
     /** 静态黑名单路径列表 */
     private List<String> deniedPaths = new ArrayList<>();
+
+    /**
+     * 受信代理 CIDR 列表，仅当来源命中此列表时才信任 X-Forwarded-For / X-Real-IP
+     * 默认值仅本地回环，避免外部伪造转发头
+     */
+    private List<String> trustedProxyCidrs = new ArrayList<>(Arrays.asList(
+            "127.0.0.1/32",
+            "::1/128"
+    ));
 
     /** 动态黑名单 IP（运行时通过 API 添加） */
     private final Set<String> dynamicDeniedIps = ConcurrentHashMap.newKeySet();

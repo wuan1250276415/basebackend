@@ -34,7 +34,7 @@ public interface DistributedMapService {
     <K, V> void put(String mapName, K key, V value);
 
     /**
-     * 向 Map 中添加键值对，并设置过期时间
+     * 向 Map 中添加键值对，并设置条目级过期时间
      *
      * @param mapName  Map 名称
      * @param key      键

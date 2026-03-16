@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -129,7 +130,7 @@ public class GrayLoadBalancer {
      * 选择服务实例（支持灰度路由和会话黏性）
      */
     public ServiceInstance choose(String serviceId, ServerWebExchange exchange, List<ServiceInstance> instances) {
-        if (!grayRouteProperties.getEnabled() || instances == null || instances.isEmpty()) {
+        if (!Boolean.TRUE.equals(grayRouteProperties.getEnabled()) || instances == null || instances.isEmpty()) {
             // 未启用灰度或无实例，返回第一个
             return instances != null && !instances.isEmpty() ? instances.get(0) : null;
         }
@@ -149,7 +150,7 @@ public class GrayLoadBalancer {
         List<ServiceInstance> matchedInstances = instances.stream()
                 .filter(instance -> {
                     String version = instance.getMetadata().get("version");
-                    return targetVersion.equals(version);
+                    return Objects.equals(targetVersion, version);
                 })
                 .collect(Collectors.toList());
 
@@ -167,14 +168,19 @@ public class GrayLoadBalancer {
      */
     private String determineTargetVersion(GrayRouteProperties.GrayRule rule, ServerWebExchange exchange) {
         String strategy = rule.getStrategy();
+        if (!StringUtils.hasText(strategy)) {
+            return rule.getStableVersion();
+        }
         ServerHttpRequest request = exchange.getRequest();
         HttpHeaders headers = request.getHeaders();
 
         switch (strategy) {
             case "header" -> {
                 // 基于Header
-                String headerValue = headers.getFirst(rule.getHeaderName());
-                if (rule.getHeaderValue().equals(headerValue)) {
+                String headerName = rule.getHeaderName();
+                String headerValue = rule.getHeaderValue();
+                if (StringUtils.hasText(headerName) && headerValue != null
+                        && headerValue.equals(headers.getFirst(headerName))) {
                     return rule.getGrayVersion();
                 }
             }
@@ -195,7 +201,8 @@ public class GrayLoadBalancer {
             case "weight" -> {
                 // 基于权重，使用稳定哈希驱动，确保同一用户落同一版本
                 int bucket = stableBucket(exchange, 100);
-                if (bucket < rule.getWeight()) {
+                int normalizedWeight = normalizeWeight(rule.getWeight());
+                if (bucket < normalizedWeight) {
                     return rule.getGrayVersion();
                 }
             }
@@ -210,10 +217,27 @@ public class GrayLoadBalancer {
      * 查找服务的灰度规则
      */
     private GrayRouteProperties.GrayRule findGrayRule(String serviceId) {
-        return grayRouteProperties.getRules().stream()
-                .filter(rule -> rule.getServiceName().equals(serviceId))
+        List<GrayRouteProperties.GrayRule> rules = grayRouteProperties.getRules();
+        if (!StringUtils.hasText(serviceId) || rules == null || rules.isEmpty()) {
+            return null;
+        }
+
+        // serviceName 为空的配置直接忽略，避免空指针并保持路由可用性
+        return rules.stream()
+                .filter(Objects::nonNull)
+                .filter(rule -> serviceId.equals(rule.getServiceName()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * 归一化权重到 [0,100]，空值按 0 处理
+     */
+    private int normalizeWeight(Integer weight) {
+        if (weight == null) {
+            return 0;
+        }
+        return Math.max(0, Math.min(100, weight));
     }
 
     /**

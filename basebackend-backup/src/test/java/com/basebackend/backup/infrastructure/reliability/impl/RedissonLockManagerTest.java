@@ -78,7 +78,7 @@ class RedissonLockManagerTest {
     @DisplayName("成功执行带锁的Runnable操作")
     void shouldExecuteRunnableWithLockSuccessfully() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         AtomicBoolean executed = new AtomicBoolean(false);
@@ -89,7 +89,7 @@ class RedissonLockManagerTest {
 
         // Then
         assertThat(executed.get()).isTrue();
-        verify(mockLock, times(1)).tryLock(10000, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(10000, TimeUnit.MILLISECONDS);
         verify(mockLock, times(1)).unlock();
     }
 
@@ -97,7 +97,7 @@ class RedissonLockManagerTest {
     @DisplayName("成功执行带锁的Callable操作")
     void shouldExecuteCallableWithLockSuccessfully() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         Callable<String> action = () -> "test-result";
@@ -107,7 +107,7 @@ class RedissonLockManagerTest {
 
         // Then
         assertThat(result).isEqualTo("test-result");
-        verify(mockLock, times(1)).tryLock(10000, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(10000, TimeUnit.MILLISECONDS);
         verify(mockLock, times(1)).unlock();
     }
 
@@ -115,7 +115,7 @@ class RedissonLockManagerTest {
     @DisplayName("获取锁失败时抛出异常")
     void shouldThrowExceptionWhenLockAcquisitionFails() throws Exception {
         // Given - 模拟获取锁失败
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
 
         Runnable action = () -> {};
 
@@ -132,7 +132,7 @@ class RedissonLockManagerTest {
     @DisplayName("获取锁被中断时抛出异常")
     void shouldThrowExceptionWhenLockAcquisitionIsInterrupted() throws Exception {
         // Given - 模拟获取锁时被中断
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS)))
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS)))
                 .thenThrow(new InterruptedException("Thread interrupted"));
 
         Runnable action = () -> {};
@@ -150,7 +150,7 @@ class RedissonLockManagerTest {
     @DisplayName("操作执行异常时确保锁被释放")
     void shouldEnsureLockReleasedWhenActionThrowsException() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         RuntimeException testException = new RuntimeException("Test exception");
@@ -190,63 +190,63 @@ class RedissonLockManagerTest {
     @DisplayName("尝试获取锁（不阻塞）成功")
     void shouldTryLockSuccessfully() throws InterruptedException {
         // Given
-        when(mockLock.tryLock(eq(0L), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(eq(0L), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
 
         // When
         boolean result = lockManager.tryLock("test-lock");
 
         // Then
         assertThat(result).isTrue();
-        verify(mockLock, times(1)).tryLock(0, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(0, TimeUnit.MILLISECONDS);
     }
 
     @Test
     @DisplayName("尝试获取锁（不阻塞）失败")
     void shouldFailToTryLock() throws InterruptedException {
         // Given
-        when(mockLock.tryLock(eq(0L), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
+        when(mockLock.tryLock(eq(0L), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
 
         // When
         boolean result = lockManager.tryLock("test-lock");
 
         // Then
         assertThat(result).isFalse();
-        verify(mockLock, times(1)).tryLock(0, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(0, TimeUnit.MILLISECONDS);
     }
 
     @Test
     @DisplayName("尝试获取锁带超时时间成功")
     void shouldTryLockWithTimeoutSuccessfully() throws InterruptedException {
         // Given
-        when(mockLock.tryLock(eq(5000L), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(eq(5000L), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
 
         // When
         boolean result = lockManager.tryLock("test-lock", 5000);
 
         // Then
         assertThat(result).isTrue();
-        verify(mockLock, times(1)).tryLock(5000, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(5000, TimeUnit.MILLISECONDS);
     }
 
     @Test
     @DisplayName("尝试获取锁带超时时间失败")
     void shouldFailToTryLockWithTimeout() throws InterruptedException {
         // Given
-        when(mockLock.tryLock(eq(5000L), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
+        when(mockLock.tryLock(eq(5000L), eq(TimeUnit.MILLISECONDS))).thenReturn(false);
 
         // When
         boolean result = lockManager.tryLock("test-lock", 5000);
 
         // Then
         assertThat(result).isFalse();
-        verify(mockLock, times(1)).tryLock(5000, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(5000, TimeUnit.MILLISECONDS);
     }
 
     @Test
     @DisplayName("尝试获取锁被中断")
     void shouldHandleInterruptedExceptionInTryLock() throws InterruptedException {
         // Given
-        when(mockLock.tryLock(eq(5000L), anyLong(), eq(TimeUnit.MILLISECONDS)))
+        when(mockLock.tryLock(eq(5000L), eq(TimeUnit.MILLISECONDS)))
                 .thenThrow(new InterruptedException("Interrupted"));
 
         // When
@@ -254,7 +254,7 @@ class RedissonLockManagerTest {
 
         // Then
         assertThat(result).isFalse();
-        verify(mockLock, times(1)).tryLock(5000, 30000, TimeUnit.MILLISECONDS);
+        verify(mockLock, times(1)).tryLock(5000, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -330,7 +330,7 @@ class RedissonLockManagerTest {
     @DisplayName("使用空锁键执行操作")
     void shouldHandleEmptyLockKey() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         AtomicBoolean executed = new AtomicBoolean(false);
@@ -350,7 +350,7 @@ class RedissonLockManagerTest {
         // Given - mock getLock返回值以避免NullPointer
         RLock nullLock = mock(RLock.class);
         when(redissonClient.getLock((String) null)).thenReturn(nullLock);
-        when(nullLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(nullLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(nullLock.isHeldByCurrentThread()).thenReturn(true);
 
         AtomicBoolean executed = new AtomicBoolean(false);
@@ -368,7 +368,7 @@ class RedissonLockManagerTest {
     @DisplayName("幂等性：同一操作重复执行")
     void shouldHandleMultipleLockExecutions() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         AtomicInteger executionCount = new AtomicInteger(0);
@@ -387,7 +387,7 @@ class RedissonLockManagerTest {
     @DisplayName("Callable操作返回null")
     void shouldHandleNullReturnValueFromCallable() throws Exception {
         // Given
-        when(mockLock.tryLock(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
+        when(mockLock.tryLock(anyLong(), eq(TimeUnit.MILLISECONDS))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         Callable<String> action = () -> null;
