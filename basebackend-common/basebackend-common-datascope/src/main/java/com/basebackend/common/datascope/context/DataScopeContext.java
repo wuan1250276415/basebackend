@@ -1,10 +1,13 @@
 package com.basebackend.common.datascope.context;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
+
 /**
  * 数据权限上下文
  * <p>
- * 基于 ThreadLocal 存储当前查询的数据权限 SQL 片段。
- * 支持手动设置/清除数据权限条件。
+ * 基于 TransmittableThreadLocal 存储当前查询的数据权限 SQL 片段。
+ * 使用 TTL 而非普通 ThreadLocal，确保在线程池、@Async、CompletableFuture
+ * 等异步场景下数据权限条件不会丢失，防止数据越权访问。
  * </p>
  *
  * @author BaseBackend Team
@@ -16,7 +19,7 @@ public final class DataScopeContext {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }
 
-    private static final ThreadLocal<String> SQL_CONDITION = new ThreadLocal<>();
+    private static final TransmittableThreadLocal<String> SQL_CONDITION = new TransmittableThreadLocal<>();
 
     /**
      * 设置数据权限 SQL 条件片段

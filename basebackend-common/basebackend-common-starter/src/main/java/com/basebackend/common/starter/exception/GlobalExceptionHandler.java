@@ -279,7 +279,8 @@ public class GlobalExceptionHandler {
             log.warn("Illegal argument, uri={}", getRequestUri(request), e);
         }
 
-        return Result.error(CommonErrorCode.BAD_REQUEST, e.getMessage());
+        // 不直接暴露 e.getMessage()，避免内部信息泄露给客户端
+        return Result.error(CommonErrorCode.BAD_REQUEST);
     }
 
     /**
@@ -297,7 +298,8 @@ public class GlobalExceptionHandler {
             log.error("Illegal state, uri={}", getRequestUri(request), e);
         }
 
-        return Result.error(CommonErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
+        // 不直接暴露 e.getMessage()，避免内部状态信息泄露给客户端
+        return Result.error(CommonErrorCode.INTERNAL_SERVER_ERROR);
     }
 
     /**

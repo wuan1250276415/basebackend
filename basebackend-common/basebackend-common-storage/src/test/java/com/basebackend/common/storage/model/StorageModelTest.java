@@ -1,6 +1,6 @@
-package com.basebackend.storage.model;
+package com.basebackend.common.storage.model;
 
-import com.basebackend.storage.config.StorageProperties;
+import com.basebackend.common.storage.config.StorageProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

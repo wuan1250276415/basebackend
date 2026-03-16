@@ -1,8 +1,8 @@
-package com.basebackend.storage.spi;
+package com.basebackend.common.storage.spi;
 
-import com.basebackend.storage.model.StorageResult;
-import com.basebackend.storage.model.StorageUsage;
-import com.basebackend.storage.model.UploadRequest;
+import com.basebackend.common.storage.model.StorageResult;
+import com.basebackend.common.storage.model.StorageUsage;
+import com.basebackend.common.storage.model.UploadRequest;
 
 import java.io.InputStream;
 import java.util.List;

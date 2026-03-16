@@ -1,6 +1,6 @@
-package com.basebackend.storage.model;
+package com.basebackend.common.storage.model;
 
-import com.basebackend.storage.spi.StorageType;
+import com.basebackend.common.storage.spi.StorageType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

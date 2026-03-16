@@ -35,9 +35,14 @@ public class InMemoryEventStore implements EventStore {
 
     @Override
     public List<DomainEvent> findPendingEvents(int limit) {
+        LocalDateTime now = LocalDateTime.now();
         return events.values().stream()
-                .filter(e -> e.status == EventStatus.PENDING)
-                .filter(e -> e.event.getNextRetryTime() == null || !e.event.getNextRetryTime().isAfter(LocalDateTime.now()))
+                .filter(e -> {
+                    synchronized (e) {
+                        return e.status == EventStatus.PENDING;
+                    }
+                })
+                .filter(e -> e.event.getNextRetryTime() == null || !e.event.getNextRetryTime().isAfter(now))
                 .limit(limit)
                 .map(e -> e.event)
                 .collect(Collectors.toList());
@@ -45,10 +50,15 @@ public class InMemoryEventStore implements EventStore {
 
     @Override
     public List<DomainEvent> findFailedEvents(int limit) {
+        LocalDateTime now = LocalDateTime.now();
         return events.values().stream()
-                .filter(e -> e.status == EventStatus.FAILED)
+                .filter(e -> {
+                    synchronized (e) {
+                        return e.status == EventStatus.FAILED;
+                    }
+                })
                 .filter(e -> e.event.getRetryCount() < e.event.getMaxRetries())
-                .filter(e -> e.event.getNextRetryTime() == null || !e.event.getNextRetryTime().isAfter(LocalDateTime.now()))
+                .filter(e -> e.event.getNextRetryTime() == null || !e.event.getNextRetryTime().isAfter(now))
                 .limit(limit)
                 .map(e -> e.event)
                 .collect(Collectors.toList());
@@ -58,7 +68,9 @@ public class InMemoryEventStore implements EventStore {
     public void markAsPublished(String eventId) {
         EventEntry entry = events.get(eventId);
         if (entry != null) {
-            entry.status = EventStatus.PUBLISHED;
+            synchronized (entry) {
+                entry.status = EventStatus.PUBLISHED;
+            }
         }
     }
 
@@ -66,8 +78,10 @@ public class InMemoryEventStore implements EventStore {
     public void markAsFailed(String eventId, String reason) {
         EventEntry entry = events.get(eventId);
         if (entry != null) {
-            entry.status = EventStatus.FAILED;
-            entry.failReason = reason;
+            synchronized (entry) {
+                entry.status = EventStatus.FAILED;
+                entry.failReason = reason;
+            }
         }
     }
 
@@ -75,7 +89,9 @@ public class InMemoryEventStore implements EventStore {
     public void markAsConsumed(String eventId) {
         EventEntry entry = events.get(eventId);
         if (entry != null) {
-            entry.status = EventStatus.CONSUMED;
+            synchronized (entry) {
+                entry.status = EventStatus.CONSUMED;
+            }
         }
     }
 

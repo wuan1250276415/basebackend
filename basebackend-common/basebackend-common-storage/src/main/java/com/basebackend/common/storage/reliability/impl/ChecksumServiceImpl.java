@@ -1,8 +1,8 @@
-package com.basebackend.storage.reliability.impl;
+package com.basebackend.common.storage.reliability.impl;
 
-import com.basebackend.storage.config.StorageProperties;
-import com.basebackend.storage.model.Checksum;
-import com.basebackend.storage.reliability.ChecksumProvider;
+import com.basebackend.common.storage.config.StorageProperties;
+import com.basebackend.common.storage.model.Checksum;
+import com.basebackend.common.storage.reliability.ChecksumProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;

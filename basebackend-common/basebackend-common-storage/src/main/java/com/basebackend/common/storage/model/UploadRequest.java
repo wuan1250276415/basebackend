@@ -1,4 +1,4 @@
-package com.basebackend.storage.model;
+package com.basebackend.common.storage.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

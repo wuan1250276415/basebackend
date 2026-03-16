@@ -1,4 +1,4 @@
-package com.basebackend.storage.config;
+package com.basebackend.common.storage.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

@@ -1,12 +1,12 @@
-package com.basebackend.storage.provider;
+package com.basebackend.common.storage.provider;
 
-import com.basebackend.storage.config.StorageProperties;
-import com.basebackend.storage.exception.StorageException;
-import com.basebackend.storage.model.StorageResult;
-import com.basebackend.storage.model.StorageUsage;
-import com.basebackend.storage.model.UploadRequest;
-import com.basebackend.storage.spi.StorageProvider;
-import com.basebackend.storage.spi.StorageType;
+import com.basebackend.common.storage.config.StorageProperties;
+import com.basebackend.common.storage.exception.StorageException;
+import com.basebackend.common.storage.model.StorageResult;
+import com.basebackend.common.storage.model.StorageUsage;
+import com.basebackend.common.storage.model.UploadRequest;
+import com.basebackend.common.storage.spi.StorageProvider;
+import com.basebackend.common.storage.spi.StorageType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileInputStream;
@@ -246,9 +246,19 @@ public class LocalStorageProvider implements StorageProvider {
     }
     
     /**
-     * 解析完整路径
+     * 解析完整路径，并防御路径穿越攻击。
+     * <p>
+     * 对解析后的路径执行 normalize()，然后验证其是否仍在配置的 basePath 范围内。
+     * 若检测到路径穿越（如 key = "../../etc/passwd"），抛出 StorageException。
+     * </p>
      */
     private Path resolvePath(String bucket, String key) {
-        return Paths.get(localConfig.getBasePath(), bucket, key);
+        Path base = Paths.get(localConfig.getBasePath()).toAbsolutePath().normalize();
+        Path resolved = base.resolve(bucket).resolve(key != null ? key : "").normalize();
+        if (!resolved.startsWith(base)) {
+            log.warn("路径穿越攻击被检测到: bucket={}, key={}", bucket, key);
+            throw new StorageException("INVALID_PATH", "非法存储路径：路径超出基础目录范围");
+        }
+        return resolved;
     }
 }

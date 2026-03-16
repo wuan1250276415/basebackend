@@ -1,4 +1,4 @@
-package com.basebackend.storage.exception;
+package com.basebackend.common.storage.exception;
 
 /**
  * 存储操作异常
