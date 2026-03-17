@@ -17,6 +17,11 @@ import java.util.List;
  *     endpoint: /ws
  *     allowed-origins:
  *       - "*"
+ *     max-connections: 10000        # 全局最大连接数
+ *     max-user-connections: 5       # 单用户最大连接数
+ *     max-message-size-kb: 64       # 单条消息最大字节数(KB)
+ *     send-time-limit-ms: 5000      # 单次发送超时(ms)，超时关闭连接
+ *     send-buffer-size-kb: 512      # 发送缓冲区(KB)，超出关闭连接
  *     heartbeat:
  *       interval: 25s
  *       timeout: 60s
@@ -40,6 +45,21 @@ public class WebSocketProperties {
 
     /** 是否启用 SockJS 回退 */
     private boolean sockjsEnabled = true;
+
+    /** 全局最大连接数，超出时拒绝新连接 */
+    private int maxConnections = 10_000;
+
+    /** 单用户最大连接数（多设备），超出时拒绝 */
+    private int maxUserConnections = 5;
+
+    /** 单条消息最大大小 (KB)，超出时丢弃并返回错误 */
+    private int maxMessageSizeKb = 64;
+
+    /** 单次发送超时 (ms)，超时强制关闭连接 */
+    private int sendTimeLimitMs = 5_000;
+
+    /** 发送缓冲区大小 (KB)，积压超出后强制关闭连接 */
+    private int sendBufferSizeKb = 512;
 
     /** 心跳配置 */
     private HeartbeatConfig heartbeat = new HeartbeatConfig();
