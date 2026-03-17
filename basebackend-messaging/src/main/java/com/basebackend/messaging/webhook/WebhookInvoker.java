@@ -4,15 +4,18 @@ import com.basebackend.common.util.JsonUtils;
 import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.*;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 /**
- * Webhook调用服务
+ * Webhook 调用服务
+ *
+ * <p>支持同步调用 {@link #invoke} 和异步调用 {@link #invokeAsync}。
+ * 异步调用在 webhookExecutor（虚拟线程）中执行，调用失败时通过指数退避延迟消息触发重试。</p>
  */
 @Slf4j
 public class WebhookInvoker {
@@ -20,19 +23,22 @@ public class WebhookInvoker {
     private final RestClient restClient;
     private final WebhookSignatureService signatureService;
     private final MessageProducer messageProducer;
+    private final TaskExecutor webhookExecutor;
 
     public WebhookInvoker(RestClient restClient,
             WebhookSignatureService signatureService,
-            MessageProducer messageProducer) {
+            MessageProducer messageProducer,
+            TaskExecutor webhookExecutor) {
         this.restClient = restClient;
         this.signatureService = signatureService;
         this.messageProducer = messageProducer;
+        this.webhookExecutor = webhookExecutor;
     }
 
     /**
-     * 调用Webhook
+     * 同步调用 Webhook
      *
-     * @param config Webhook配置
+     * @param config Webhook 配置
      * @param event  事件数据
      * @return 调用日志
      */
@@ -47,28 +53,24 @@ public class WebhookInvoker {
         webhookLog.setRetryCount(0);
 
         try {
-            // 构建请求
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // 添加自定义请求头
             if (config.getHeaders() != null) {
+                @SuppressWarnings("unchecked")
                 Map<String, String> customHeaders = JsonUtils.parseObject(config.getHeaders(), Map.class);
                 customHeaders.forEach(headers::set);
             }
 
-            // 构建请求体
             String requestBody = JsonUtils.toJsonString(event);
             webhookLog.setRequestBody(requestBody);
 
-            // 添加签名
             if (config.getSignatureEnabled() && config.getSecret() != null) {
                 signatureService.addSignatureHeaders(headers, requestBody, config.getSecret());
             }
 
             webhookLog.setRequestHeaders(JsonUtils.toJsonString(headers.toSingleValueMap()));
 
-            // 发送请求
             long startTime = System.currentTimeMillis();
 
             ResponseEntity<String> response;
@@ -82,7 +84,6 @@ public class WebhookInvoker {
 
             long responseTime = System.currentTimeMillis() - startTime;
 
-            // 记录响应
             webhookLog.setResponseStatus(response.getStatusCode().value());
             webhookLog.setResponseBody(response.getBody());
             webhookLog.setResponseTime(responseTime);
@@ -103,7 +104,6 @@ public class WebhookInvoker {
             webhookLog.setErrorMessage(e.getMessage());
             webhookLog.setResponseTime(0L);
 
-            // 如果需要重试，发送到重试队列
             if (webhookLog.getRetryCount() < config.getMaxRetries()) {
                 scheduleRetry(config, event, webhookLog.getRetryCount() + 1);
             }
@@ -114,12 +114,25 @@ public class WebhookInvoker {
     }
 
     /**
-     * 安排重试
+     * 异步调用 Webhook（在 webhookExecutor 虚拟线程中执行）
      *
-     * @param config     Webhook配置
-     * @param event      事件数据
-     * @param retryCount 重试次数
+     * @param config Webhook 配置
+     * @param event  事件数据
      */
+    public void invokeAsync(WebhookProperties config, WebhookEvent event) {
+        webhookExecutor.execute(() -> {
+            try {
+                invoke(config, event);
+            } catch (Exception e) {
+                log.error("Async webhook invocation failed: webhookId={}, eventId={}",
+                        config.getId(), event.getEventId(), e);
+            }
+        });
+
+        log.info("Webhook async invocation queued: webhookId={}, eventId={}",
+                config.getId(), event.getEventId());
+    }
+
     private void scheduleRetry(WebhookProperties config, WebhookEvent event, int retryCount) {
         if (messageProducer == null) {
             log.warn("MessageProducer not available, cannot schedule webhook retry: webhookId={}, eventId={}",
@@ -127,11 +140,9 @@ public class WebhookInvoker {
             return;
         }
 
-        // 计算重试延迟（指数退避）
         long delaySeconds = (long) (config.getRetryInterval() * Math.pow(2, retryCount - 1));
         long delayMillis = delaySeconds * 1000;
 
-        // 构建重试消息
         Message<Map<String, Object>> retryMessage = Message.<Map<String, Object>>builder()
                 .topic("webhook.retry")
                 .routingKey("webhook.retry." + config.getId())
@@ -141,38 +152,9 @@ public class WebhookInvoker {
                         "retryCount", retryCount))
                 .build();
 
-        // 发送延迟消息
         messageProducer.sendDelay(retryMessage, delayMillis);
 
         log.info("Webhook retry scheduled: webhookId={}, eventId={}, retryCount={}, delaySeconds={}",
                 config.getId(), event.getEventId(), retryCount, delaySeconds);
-    }
-
-    /**
-     * 异步调用Webhook（通过消息队列）
-     *
-     * @param config Webhook配置
-     * @param event  事件数据
-     */
-    public void invokeAsync(WebhookProperties config, WebhookEvent event) {
-        if (messageProducer == null) {
-            log.warn("MessageProducer not available, falling back to sync invocation: webhookId={}, eventId={}",
-                    config.getId(), event.getEventId());
-            invoke(config, event);
-            return;
-        }
-
-        Message<Map<String, Object>> message = Message.<Map<String, Object>>builder()
-                .topic("webhook.invoke")
-                .routingKey("webhook.invoke." + config.getId())
-                .payload(Map.of(
-                        "config", config,
-                        "event", event))
-                .build();
-
-        messageProducer.send(message);
-
-        log.info("Webhook async invocation queued: webhookId={}, eventId={}",
-                config.getId(), event.getEventId());
     }
 }

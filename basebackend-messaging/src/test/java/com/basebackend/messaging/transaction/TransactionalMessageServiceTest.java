@@ -1,5 +1,6 @@
 package com.basebackend.messaging.transaction;
 
+import com.basebackend.messaging.config.MessagingProperties;
 import com.basebackend.messaging.model.Message;
 import com.basebackend.messaging.model.MessageStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,9 @@ class TransactionalMessageServiceTest {
     @Mock
     private JdbcTemplate jdbcTemplate;
 
+    @Mock
+    private MessagingProperties messagingProperties;
+
     @InjectMocks
     private TransactionalMessageService transactionalMessageService;
 
@@ -39,6 +43,11 @@ class TransactionalMessageServiceTest {
 
     @BeforeEach
     void setUp() {
+        // 配置 MessagingProperties.Transaction mock
+        MessagingProperties.Transaction transactionProps = new MessagingProperties.Transaction();
+        transactionProps.setTimeout(30L);
+        lenient().when(messagingProperties.getTransaction()).thenReturn(transactionProps);
+
         testMessage = Message.<String>builder()
                 .messageId("msg-001")
                 .topic("test-topic")
@@ -167,7 +176,7 @@ class TransactionalMessageServiceTest {
 
             // Assert
             verify(jdbcTemplate).queryForList(anyString(),
-                    eq("PENDING"), eq("FAILED"), eq(30));
+                    eq("PENDING"), eq("FAILED"), eq(30L));
         }
 
         @Test
@@ -186,7 +195,7 @@ class TransactionalMessageServiceTest {
 
             // Assert
             verify(jdbcTemplate).queryForList(anyString(),
-                    eq("PENDING"), eq("FAILED"), eq(30));
+                    eq("PENDING"), eq("FAILED"), eq(30L));
         }
 
         @Test

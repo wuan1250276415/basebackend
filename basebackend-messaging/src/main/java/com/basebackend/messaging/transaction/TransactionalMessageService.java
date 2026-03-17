@@ -1,5 +1,6 @@
 package com.basebackend.messaging.transaction;
 
+import com.basebackend.messaging.config.MessagingProperties;
 import com.basebackend.messaging.model.Message;
 import com.basebackend.messaging.model.MessageStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +15,16 @@ import com.basebackend.common.util.JsonUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * 事务消息服务
- * 基于本地消息表实现最终一致性
+ * 基于本地消息表实现最终一致性。
+ *
+ * <p>消息超时判定时间通过 {@code messaging.transaction.timeout}（分钟）配置，默认 30 分钟。
+ * 消息补偿扫描间隔通过 {@code messaging.transaction.check-interval}（秒）配置，默认 60 秒。</p>
+ *
+ * <p>如需在补偿时重新发送消息，请通过 {@link #setCompensationHandler} 注册回调。</p>
  */
 @Slf4j
 @Service
@@ -25,15 +32,27 @@ import java.util.Map;
 public class TransactionalMessageService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final MessagingProperties messagingProperties;
 
-    public TransactionalMessageService(JdbcTemplate jdbcTemplate) {
+    /** 可选的补偿回调，由上层服务注入，用于重新发送超时消息 */
+    private Consumer<Map<String, Object>> compensationHandler;
+
+    public TransactionalMessageService(JdbcTemplate jdbcTemplate, MessagingProperties messagingProperties) {
         this.jdbcTemplate = jdbcTemplate;
+        this.messagingProperties = messagingProperties;
+    }
+
+    /**
+     * 注册消息补偿处理回调
+     *
+     * @param handler 处理超时消息的回调，入参为消息 Map（含 message_id、topic 等字段）
+     */
+    public void setCompensationHandler(Consumer<Map<String, Object>> handler) {
+        this.compensationHandler = handler;
     }
 
     /**
      * 保存消息到本地消息表
-     *
-     * @param message 消息对象
      */
     @Transactional(rollbackFor = Exception.class)
     public <T> void saveMessage(Message<T> message) {
@@ -49,7 +68,7 @@ public class TransactionalMessageService {
                 message.getMessageId(),
                 message.getTopic(),
                 message.getRoutingKey(),
-                message.getTags(),  // 使用 getTags()
+                message.getTags(),
                 JsonUtils.toJsonString(message.getPayload()),
                 JsonUtils.toJsonString(message.getHeaders()),
                 message.getSendTime(),
@@ -66,9 +85,6 @@ public class TransactionalMessageService {
 
     /**
      * 更新消息状态
-     *
-     * @param messageId 消息ID
-     * @param status    状态
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateStatus(String messageId, MessageStatus status) {
@@ -79,8 +95,6 @@ public class TransactionalMessageService {
 
     /**
      * 增加重试次数
-     *
-     * @param messageId 消息ID
      */
     @Transactional(rollbackFor = Exception.class)
     public void incrementRetryCount(String messageId) {
@@ -90,9 +104,6 @@ public class TransactionalMessageService {
 
     /**
      * 更新消息为已发送状态
-     *
-     * @param messageId 消息ID
-     * @param msgId RocketMQ消息ID
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateSentStatus(String messageId, String msgId) {
@@ -103,9 +114,6 @@ public class TransactionalMessageService {
 
     /**
      * 更新消息为失败状态
-     *
-     * @param messageId 消息ID
-     * @param errorMessage 错误信息
      */
     @Transactional(rollbackFor = Exception.class)
     public void updateFailedStatus(String messageId, String errorMessage) {
@@ -115,12 +123,14 @@ public class TransactionalMessageService {
     }
 
     /**
-     * 消息补偿：扫描超时未确认的消息并重新发送
-     * 每分钟执行一次
+     * 消息补偿：扫描超时未确认的消息，触发补偿回调。
+     * 调度间隔由 {@code messaging.transaction.check-interval} 配置（秒），默认 60 秒。
      */
     @Scheduled(fixedDelayString = "${messaging.transaction.check-interval:60}000")
     @Transactional(rollbackFor = Exception.class)
     public void compensateTimeoutMessages() {
+        long timeoutMinutes = messagingProperties.getTransaction().getTimeout();
+
         String sql = """
                 SELECT message_id, topic, routing_key, tag, payload, headers,
                        retry_count, max_retries
@@ -135,11 +145,18 @@ public class TransactionalMessageService {
             List<Map<String, Object>> timeoutMessages = jdbcTemplate.queryForList(sql,
                     MessageStatus.PENDING.name(),
                     MessageStatus.FAILED.name(),
-                    30); // 超时时间：30分钟
+                    timeoutMinutes);
 
             if (!timeoutMessages.isEmpty()) {
-                log.warn("Found {} timeout messages to compensate", timeoutMessages.size());
-                // TODO: 重新发送消息的逻辑由上层服务实现
+                log.warn("Found {} timeout messages to compensate (timeoutMinutes={})",
+                        timeoutMessages.size(), timeoutMinutes);
+
+                if (compensationHandler != null) {
+                    timeoutMessages.forEach(compensationHandler);
+                } else {
+                    log.warn("No compensationHandler registered; " +
+                            "call setCompensationHandler() to enable automatic retry.");
+                }
             }
         } catch (Exception e) {
             log.error("Failed to compensate timeout messages", e);
@@ -147,8 +164,7 @@ public class TransactionalMessageService {
     }
 
     /**
-     * 清理过期的已完成消息
-     * 每天执行一次
+     * 清理过期的已完成消息（每天凌晨 2 点执行）
      */
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional(rollbackFor = Exception.class)

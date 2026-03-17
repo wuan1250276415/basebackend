@@ -1,7 +1,6 @@
 package com.basebackend.messaging.webhook;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.SecureUtil;
 import com.basebackend.common.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -10,6 +9,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
@@ -58,7 +58,9 @@ public class WebhookSignatureService {
      */
     public boolean verifySignature(String payload, String secret, long timestamp, String signature) {
         String expectedSignature = generateSignature(payload, secret, timestamp);
-        return expectedSignature.equals(signature);
+        return MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

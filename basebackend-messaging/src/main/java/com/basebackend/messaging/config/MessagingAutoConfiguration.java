@@ -23,9 +23,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -63,8 +65,9 @@ public class MessagingAutoConfiguration {
     @ConditionalOnBean(RocketMQTemplate.class)
     public RocketMQProducer rocketMQProducer(RocketMQTemplate rocketMQTemplate,
             MessagingProperties messagingProperties,
-            TransactionalMessageService transactionalMessageService) {
-        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService);
+            TransactionalMessageService transactionalMessageService,
+            @Qualifier("messageSenderExecutor") TaskExecutor messageSenderExecutor) {
+        return new RocketMQProducer(rocketMQTemplate, messagingProperties, transactionalMessageService, messageSenderExecutor);
     }
 
     @Bean
@@ -77,8 +80,10 @@ public class MessagingAutoConfiguration {
     @ConditionalOnMissingBean
     public WebhookInvoker webhookInvoker(RestClient messagingRestClient,
             WebhookSignatureService signatureService,
-            ObjectProvider<MessageProducer> messageProducerProvider) {
-        return new WebhookInvoker(messagingRestClient, signatureService, messageProducerProvider.getIfAvailable());
+            ObjectProvider<MessageProducer> messageProducerProvider,
+            @Qualifier("webhookExecutor") TaskExecutor webhookExecutor) {
+        return new WebhookInvoker(messagingRestClient, signatureService,
+                messageProducerProvider.getIfAvailable(), webhookExecutor);
     }
 
     @Bean
@@ -122,17 +127,17 @@ public class MessagingAutoConfiguration {
         @ConditionalOnBean(name = "jdbcTemplate")
         @ConditionalOnProperty(prefix = "messaging.transaction", name = "enabled", havingValue = "true", matchIfMissing = true)
         public TransactionalMessageService transactionalMessageService(
-                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
-            return new TransactionalMessageService(jdbcTemplate);
+                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+                MessagingProperties messagingProperties) {
+            return new TransactionalMessageService(jdbcTemplate, messagingProperties);
         }
 
         @Bean
         @ConditionalOnMissingBean
-        @ConditionalOnBean(name = "jdbcTemplate")
         public EventPublisher eventPublisher(
-                org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+                com.basebackend.messaging.mapper.WebhookEndpointMapper webhookEndpointMapper,
                 WebhookInvoker webhookInvoker) {
-            return new EventPublisher(jdbcTemplate, webhookInvoker);
+            return new EventPublisher(webhookEndpointMapper, webhookInvoker);
         }
     }
 }

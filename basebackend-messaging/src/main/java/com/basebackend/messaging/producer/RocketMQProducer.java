@@ -11,14 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * RocketMQ 消息生产者
@@ -31,15 +31,22 @@ import java.util.concurrent.Executors;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class RocketMQProducer implements MessageProducer {
 
     private final RocketMQTemplate rocketMQTemplate;
     private final MessagingProperties messagingProperties;
     private final TransactionalMessageService transactionalMessageService;
+    private final TaskExecutor messageSenderExecutor;
 
-    /** 异步发送执行器（虚拟线程） */
-    private final ExecutorService asyncExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    public RocketMQProducer(RocketMQTemplate rocketMQTemplate,
+                             MessagingProperties messagingProperties,
+                             TransactionalMessageService transactionalMessageService,
+                             @Qualifier("messageSenderExecutor") TaskExecutor messageSenderExecutor) {
+        this.rocketMQTemplate = rocketMQTemplate;
+        this.messagingProperties = messagingProperties;
+        this.transactionalMessageService = transactionalMessageService;
+        this.messageSenderExecutor = messageSenderExecutor;
+    }
 
     @Override
     public <T> String send(Message<T> message) {
@@ -84,9 +91,16 @@ public class RocketMQProducer implements MessageProducer {
                 log.error("异步消息发送失败: messageId={}, error={}", message.getMessageId(), e.getMessage());
                 throw new MessageSendException("异步消息发送失败: " + e.getMessage(), e);
             }
-        }, asyncExecutor);
+        }, messageSenderExecutor);
     }
 
+    /**
+     * 逐条发送消息聚合接口（非 RocketMQ 原生批量）。
+     *
+     * <p>依次调用 {@link #send} 发送每条消息，部分失败时对应位置返回 {@code null}，
+     * 而非抛出异常，以保证其余消息继续发送。
+     * 若需要真正意义上的批量（减少网络往返），请直接使用底层 RocketMQ 批量 API。</p>
+     */
     @Override
     public <T> List<String> sendBatch(List<Message<T>> messages) {
         if (messages == null || messages.isEmpty()) {
@@ -124,7 +138,7 @@ public class RocketMQProducer implements MessageProducer {
     public <T> CompletableFuture<List<String>> sendBatchAsync(List<Message<T>> messages) {
         log.debug("异步批量发送消息: count={}", messages != null ? messages.size() : 0);
 
-        return CompletableFuture.supplyAsync(() -> sendBatch(messages), asyncExecutor);
+        return CompletableFuture.supplyAsync(() -> sendBatch(messages), messageSenderExecutor);
     }
 
     @Override

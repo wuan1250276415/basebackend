@@ -24,6 +24,9 @@ public class DeadLetterEntity {
 
     private String headers;
 
+    /** 原始消息 JSON（完整的序列化内容，用于问题排查） */
+    private String originalMessage;
+
     private Integer retryCount;
 
     private String errorMessage;

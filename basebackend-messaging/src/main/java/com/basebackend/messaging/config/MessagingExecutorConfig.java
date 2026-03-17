@@ -21,50 +21,26 @@ import org.springframework.core.task.TaskExecutor;
 public class MessagingExecutorConfig {
 
     /**
-     * 消息处理执行器（虚拟线程）
-     * <p>
-     * 用于异步处理消息消费任务。
-     * </p>
-     */
-    @Bean("messageProcessorExecutor")
-    public TaskExecutor messageProcessorExecutor() {
-        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("msg-processor-");
-        executor.setVirtualThreads(true);
-
-        log.info("MessageProcessorExecutor initialized with virtual threads");
-
-        return executor;
-    }
-
-    /**
-     * 消息发送执行器（虚拟线程）
-     * <p>
-     * 用于异步发送消息。
-     * </p>
+     * 消息异步发送执行器（虚拟线程）
+     * <p>用于 {@code RocketMQProducer.sendAsync} / {@code sendBatchAsync} 的异步发送。</p>
      */
     @Bean("messageSenderExecutor")
     public TaskExecutor messageSenderExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("msg-sender-");
         executor.setVirtualThreads(true);
-
         log.info("MessageSenderExecutor initialized with virtual threads");
-
         return executor;
     }
 
     /**
-     * Webhook调用执行器（虚拟线程）
-     * <p>
-     * 用于异步调用Webhook。
-     * </p>
+     * Webhook 调用执行器（虚拟线程）
+     * <p>用于 {@code WebhookInvoker.invokeAsync} 的异步 HTTP 调用。</p>
      */
     @Bean("webhookExecutor")
     public TaskExecutor webhookExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("webhook-");
         executor.setVirtualThreads(true);
-
         log.info("WebhookExecutor initialized with virtual threads");
-
         return executor;
     }
 }

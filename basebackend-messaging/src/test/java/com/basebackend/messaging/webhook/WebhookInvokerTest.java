@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.http.*;
 import org.springframework.web.client.RestClient;
 
@@ -56,7 +57,7 @@ class WebhookInvokerTest {
 
     @BeforeEach
     void setUp() {
-        webhookInvoker = new WebhookInvoker(restClient, signatureService, messageProducer);
+        webhookInvoker = new WebhookInvoker(restClient, signatureService, messageProducer, new SyncTaskExecutor());
 
         webhookConfig = new WebhookProperties();
         webhookConfig.setId(1L);
@@ -251,19 +252,16 @@ class WebhookInvokerTest {
     class AsyncInvokeTests {
 
         @Test
-        @DisplayName("异步调用Webhook")
+        @DisplayName("异步调用Webhook（SyncTaskExecutor 同步执行）")
         void testInvokeAsync() {
-            // Arrange
-            when(messageProducer.send(any(Message.class))).thenReturn("async-msg-001");
+            // Arrange — mock HTTP成功响应
+            mockPostChain(new ResponseEntity<>("ok", HttpStatus.OK));
 
             // Act
             webhookInvoker.invokeAsync(webhookConfig, webhookEvent);
 
-            // Assert
-            verify(messageProducer).send(messageCaptor.capture());
-            Message<?> capturedMessage = messageCaptor.getValue();
-            assertEquals("webhook.invoke", capturedMessage.getTopic());
-            assertTrue(capturedMessage.getRoutingKey().contains("webhook.invoke.1"));
+            // Assert — 异步任务已被执行（通过 SyncTaskExecutor 同步执行），且无重试触发
+            verifyNoInteractions(messageProducer);
         }
     }
 

@@ -1,14 +1,13 @@
 package com.basebackend.messaging.metrics;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 消息服务监控指标
@@ -26,6 +25,9 @@ import java.util.concurrent.TimeUnit;
 public class MessagingMetrics {
 
     private final MeterRegistry registry;
+
+    /** 待处理事务消息数量（AtomicLong 作为 gauge 数据源，保证值持续可读） */
+    private final AtomicLong pendingTransactionCount = new AtomicLong(0);
 
     // ========== 指标名称常量 ==========
     private static final String METRIC_PREFIX = "messaging";
@@ -56,6 +58,8 @@ public class MessagingMetrics {
 
     public MessagingMetrics(MeterRegistry registry) {
         this.registry = registry;
+        // 在构造时注册 gauge，使用 AtomicLong 作为数据源
+        registry.gauge(TRANSACTION_PENDING, pendingTransactionCount);
         log.info("MessagingMetrics initialized");
     }
 
@@ -67,16 +71,8 @@ public class MessagingMetrics {
      * @param topic 消息主题
      */
     public void recordSendSuccess(String topic) {
-        Counter.builder(SEND_TOTAL)
-                .tag("topic", topic)
-                .tag("status", "success")
-                .register(registry)
-                .increment();
-
-        Counter.builder(SEND_SUCCESS)
-                .tag("topic", topic)
-                .register(registry)
-                .increment();
+        registry.counter(SEND_TOTAL, "topic", topic, "status", "success").increment();
+        registry.counter(SEND_SUCCESS, "topic", topic).increment();
     }
 
     /**
@@ -86,17 +82,8 @@ public class MessagingMetrics {
      * @param errorType 错误类型
      */
     public void recordSendFailure(String topic, String errorType) {
-        Counter.builder(SEND_TOTAL)
-                .tag("topic", topic)
-                .tag("status", "failure")
-                .register(registry)
-                .increment();
-
-        Counter.builder(SEND_FAILURE)
-                .tag("topic", topic)
-                .tag("error", errorType)
-                .register(registry)
-                .increment();
+        registry.counter(SEND_TOTAL, "topic", topic, "status", "failure").increment();
+        registry.counter(SEND_FAILURE, "topic", topic, "error", errorType).increment();
     }
 
     /**
@@ -106,10 +93,7 @@ public class MessagingMetrics {
      * @param latencyMs 耗时（毫秒）
      */
     public void recordSendLatency(String topic, long latencyMs) {
-        Timer.builder(SEND_LATENCY)
-                .tag("topic", topic)
-                .register(registry)
-                .record(latencyMs, TimeUnit.MILLISECONDS);
+        registry.timer(SEND_LATENCY, "topic", topic).record(latencyMs, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -130,12 +114,7 @@ public class MessagingMetrics {
      * @param success 是否成功
      */
     public void stopSendTimer(Timer.Sample sample, String topic, boolean success) {
-        Timer timer = Timer.builder(SEND_LATENCY)
-                .tag("topic", topic)
-                .tag("status", success ? "success" : "failure")
-                .register(registry);
-        sample.stop(timer);
-
+        sample.stop(registry.timer(SEND_LATENCY, "topic", topic, "status", success ? "success" : "failure"));
         if (success) {
             recordSendSuccess(topic);
         } else {
@@ -152,18 +131,8 @@ public class MessagingMetrics {
      * @param consumerGroup 消费者组
      */
     public void recordConsumeSuccess(String topic, String consumerGroup) {
-        Counter.builder(CONSUME_TOTAL)
-                .tag("topic", topic)
-                .tag("consumer_group", consumerGroup)
-                .tag("status", "success")
-                .register(registry)
-                .increment();
-
-        Counter.builder(CONSUME_SUCCESS)
-                .tag("topic", topic)
-                .tag("consumer_group", consumerGroup)
-                .register(registry)
-                .increment();
+        registry.counter(CONSUME_TOTAL, "topic", topic, "consumer_group", consumerGroup, "status", "success").increment();
+        registry.counter(CONSUME_SUCCESS, "topic", topic, "consumer_group", consumerGroup).increment();
     }
 
     /**
@@ -174,19 +143,8 @@ public class MessagingMetrics {
      * @param errorType     错误类型
      */
     public void recordConsumeFailure(String topic, String consumerGroup, String errorType) {
-        Counter.builder(CONSUME_TOTAL)
-                .tag("topic", topic)
-                .tag("consumer_group", consumerGroup)
-                .tag("status", "failure")
-                .register(registry)
-                .increment();
-
-        Counter.builder(CONSUME_FAILURE)
-                .tag("topic", topic)
-                .tag("consumer_group", consumerGroup)
-                .tag("error", errorType)
-                .register(registry)
-                .increment();
+        registry.counter(CONSUME_TOTAL, "topic", topic, "consumer_group", consumerGroup, "status", "failure").increment();
+        registry.counter(CONSUME_FAILURE, "topic", topic, "consumer_group", consumerGroup, "error", errorType).increment();
     }
 
     /**
@@ -197,10 +155,7 @@ public class MessagingMetrics {
      * @param latencyMs     耗时（毫秒）
      */
     public void recordConsumeLatency(String topic, String consumerGroup, long latencyMs) {
-        Timer.builder(CONSUME_LATENCY)
-                .tag("topic", topic)
-                .tag("consumer_group", consumerGroup)
-                .register(registry)
+        registry.timer(CONSUME_LATENCY, "topic", topic, "consumer_group", consumerGroup)
                 .record(latencyMs, TimeUnit.MILLISECONDS);
     }
 
@@ -213,11 +168,7 @@ public class MessagingMetrics {
      * @param retryCount 重试次数
      */
     public void recordRetry(String topic, int retryCount) {
-        Counter.builder(RETRY_TOTAL)
-                .tag("topic", topic)
-                .tag("retry_count", String.valueOf(retryCount))
-                .register(registry)
-                .increment();
+        registry.counter(RETRY_TOTAL, "topic", topic, "retry_count", String.valueOf(retryCount)).increment();
     }
 
     /**
@@ -227,11 +178,7 @@ public class MessagingMetrics {
      * @param reason 进入死信原因
      */
     public void recordDeadLetter(String topic, String reason) {
-        Counter.builder(DEAD_LETTER_TOTAL)
-                .tag("topic", topic)
-                .tag("reason", reason)
-                .register(registry)
-                .increment();
+        registry.counter(DEAD_LETTER_TOTAL, "topic", topic, "reason", reason).increment();
     }
 
     // ========== 幂等性指标 ==========
@@ -242,10 +189,7 @@ public class MessagingMetrics {
      * @param topic 消息主题
      */
     public void recordIdempotentHit(String topic) {
-        Counter.builder(IDEMPOTENT_HIT)
-                .tag("topic", topic)
-                .register(registry)
-                .increment();
+        registry.counter(IDEMPOTENT_HIT, "topic", topic).increment();
     }
 
     /**
@@ -254,10 +198,7 @@ public class MessagingMetrics {
      * @param topic 消息主题
      */
     public void recordIdempotentMiss(String topic) {
-        Counter.builder(IDEMPOTENT_MISS)
-                .tag("topic", topic)
-                .register(registry)
-                .increment();
+        registry.counter(IDEMPOTENT_MISS, "topic", topic).increment();
     }
 
     // ========== 事务消息指标 ==========
@@ -268,7 +209,7 @@ public class MessagingMetrics {
      * @param count 待处理数量
      */
     public void setPendingTransactions(long count) {
-        registry.gauge(TRANSACTION_PENDING, count);
+        pendingTransactionCount.set(count);
     }
 
     /**
@@ -277,9 +218,7 @@ public class MessagingMetrics {
      * @param messageId 消息ID
      */
     public void recordTransactionCompensate(String messageId) {
-        Counter.builder(TRANSACTION_COMPENSATE)
-                .register(registry)
-                .increment();
+        registry.counter(TRANSACTION_COMPENSATE).increment();
     }
 
     // ========== 便捷方法 ==========

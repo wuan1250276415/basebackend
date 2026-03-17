@@ -45,16 +45,14 @@ public class AesGcmMessageEncryptor implements MessageEncryptor {
     public AesGcmMessageEncryptor(MessagingProperties properties) {
         MessagingProperties.Encryption encryption = properties.getEncryption();
 
-        // 初始化密钥
         if (encryption.getSecretKey() != null && !encryption.getSecretKey().isEmpty()) {
             byte[] keyBytes = Base64.getDecoder().decode(encryption.getSecretKey());
             this.secretKey = new SecretKeySpec(keyBytes, ALGORITHM);
             log.info("MessageEncryptor initialized with provided secret key");
         } else {
-            // 生成随机密钥（仅用于开发，生产环境必须配置密钥）
-            this.secretKey = generateRandomKey();
-            log.warn(
-                    "MessageEncryptor using generated random key. Configure 'messaging.encryption.secret-key' for production!");
+            throw new IllegalStateException(
+                    "messaging.encryption.secret-key must be configured when encryption is enabled. " +
+                    "Generate a key with: AesGcmMessageEncryptor.generateKeyString()");
         }
 
         this.encryptTopics = encryption.getEncryptTopics();
