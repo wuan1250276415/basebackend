@@ -1,7 +1,6 @@
 package com.basebackend.search.query;
 
 import java.util.*;
-import java.util.Arrays;
 
 /**
  * 搜索查询 DSL Builder
@@ -53,17 +52,34 @@ public class SearchQuery {
         return new Builder(indexName);
     }
 
+    /**
+     * 创建带最大分页限制的 Builder。
+     * <p>
+     * 建议通过 {@code SearchProperties.getMaxPageSize()} 传入配置值，
+     * 在服务层统一限制查询规模：
+     * <pre>
+     * SearchQuery.builder("articles", properties.getMaxPageSize())
+     *     .must(Condition.match("title", "Java"))
+     *     .build();
+     * </pre>
+     *
+     * @param maxSize 允许的最大 size 值，超出时自动截断
+     */
+    public static Builder builder(String indexName, int maxSize) {
+        return new Builder(indexName, maxSize);
+    }
+
     // --- Getters ---
 
     public String getIndexName() { return indexName; }
-    public List<Condition> getMustConditions() { return mustConditions; }
-    public List<Condition> getShouldConditions() { return shouldConditions; }
-    public List<Condition> getMustNotConditions() { return mustNotConditions; }
-    public List<Condition> getFilterConditions() { return filterConditions; }
-    public List<String> getHighlightFields() { return highlightFields; }
-    public List<SortField> getSortFields() { return sortFields; }
-    public List<String> getSourceIncludes() { return sourceIncludes; }
-    public List<String> getSourceExcludes() { return sourceExcludes; }
+    public List<Condition> getMustConditions() { return Collections.unmodifiableList(mustConditions); }
+    public List<Condition> getShouldConditions() { return Collections.unmodifiableList(shouldConditions); }
+    public List<Condition> getMustNotConditions() { return Collections.unmodifiableList(mustNotConditions); }
+    public List<Condition> getFilterConditions() { return Collections.unmodifiableList(filterConditions); }
+    public List<String> getHighlightFields() { return Collections.unmodifiableList(highlightFields); }
+    public List<SortField> getSortFields() { return Collections.unmodifiableList(sortFields); }
+    public List<String> getSourceIncludes() { return Collections.unmodifiableList(sourceIncludes); }
+    public List<String> getSourceExcludes() { return Collections.unmodifiableList(sourceExcludes); }
     public int getFrom() { return from; }
     public int getSize() { return size; }
     public Integer getMinimumShouldMatch() { return minimumShouldMatch; }
@@ -94,6 +110,16 @@ public class SearchQuery {
         /** 短语匹配 */
         public static Condition matchPhrase(String field, Object value) {
             return new Condition(ConditionType.MATCH_PHRASE, field, value, null, null);
+        }
+
+        /**
+         * 多字段全文匹配
+         *
+         * @param fields 逗号分隔的字段列表，支持权重语法，如 {@code "title^2,content,summary"}
+         * @param value  查询文本
+         */
+        public static Condition multiMatch(String fields, Object value) {
+            return new Condition(ConditionType.MULTI_MATCH, fields, value, null, null);
         }
 
         /** 精确匹配 */
@@ -134,11 +160,20 @@ public class SearchQuery {
 
     // --- Builder ---
 
+    /** 默认最大分页大小，与 ES 默认值保持一致 */
+    private static final int DEFAULT_MAX_SIZE = 10000;
+
     public static class Builder {
         private final SearchQuery query;
+        private final int maxSize;
 
         Builder(String indexName) {
+            this(indexName, DEFAULT_MAX_SIZE);
+        }
+
+        Builder(String indexName, int maxSize) {
             this.query = new SearchQuery(indexName);
+            this.maxSize = maxSize > 0 ? maxSize : DEFAULT_MAX_SIZE;
         }
 
         public Builder must(Condition condition) {
@@ -177,8 +212,9 @@ public class SearchQuery {
         }
 
         public Builder page(int page, int size) {
-            query.from = Math.max(0, (page - 1) * size);
-            query.size = Math.max(1, size);
+            int effectiveSize = clampSize(size);
+            query.from = Math.max(0, (page - 1) * effectiveSize);
+            query.size = effectiveSize;
             return this;
         }
 
@@ -188,8 +224,12 @@ public class SearchQuery {
         }
 
         public Builder size(int size) {
-            query.size = Math.max(1, size);
+            query.size = clampSize(size);
             return this;
+        }
+
+        private int clampSize(int size) {
+            return Math.min(Math.max(1, size), maxSize);
         }
 
         public Builder includes(String... fields) {

@@ -1,5 +1,6 @@
 package com.basebackend.search.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public class IndexDefinition {
     }
 
     public String getIndexName() { return indexName; }
-    public Map<String, FieldMapping> getFields() { return fields; }
+    public Map<String, FieldMapping> getFields() { return Collections.unmodifiableMap(fields); }
     public int getNumberOfShards() { return numberOfShards; }
     public int getNumberOfReplicas() { return numberOfReplicas; }
     public String getDefaultAnalyzer() { return defaultAnalyzer; }
@@ -89,7 +90,7 @@ public class IndexDefinition {
 
         public Builder textField(String name, String analyzer) {
             return field(FieldMapping.text(name, analyzer));
-            }
+        }
 
         public Builder keywordField(String name) {
             return field(FieldMapping.keyword(name));

@@ -2,7 +2,9 @@ package com.basebackend.search.config;
 
 import com.basebackend.search.client.RestClientSearchClient;
 import com.basebackend.search.client.SearchClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,14 +31,10 @@ public class SearchAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public SearchClient searchClient(SearchProperties properties) {
-        String baseUrl = properties.getUris().isEmpty() ? "http://localhost:9200" : properties.getUris().getFirst();
-        log.info("注册 SearchClient: baseUrl={}", baseUrl);
-        return new RestClientSearchClient(
-                baseUrl,
-                properties.getUsername(),
-                properties.getPassword(),
-                properties.getIndexPrefix()
-        );
+    public SearchClient searchClient(SearchProperties properties,
+                                     ObjectProvider<ObjectMapper> objectMapperProvider) {
+        ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(ObjectMapper::new);
+        log.info("注册 SearchClient: uris={}", properties.getUris());
+        return new RestClientSearchClient(properties, objectMapper);
     }
 }
