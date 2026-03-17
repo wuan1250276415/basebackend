@@ -5,12 +5,16 @@ import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -25,6 +29,10 @@ import java.util.regex.Pattern;
 public class SecurityBaselineProperties {
 
     private static final Pattern ORIGIN_PATTERN = Pattern.compile("^https?://[\\w.-]+(:\\d+)?$");
+    private static final Set<String> DEV_PROFILES = Set.of("dev", "test", "local", "default");
+
+    @Autowired
+    private Environment environment;
 
     /**
      * 允许的请求来源（Origin 或 Referer 前缀），为空时不强制校验
@@ -58,7 +66,12 @@ public class SecurityBaselineProperties {
 
     private void validateAllowedOrigins() {
         if (allowedOrigins == null || allowedOrigins.isEmpty()) {
-            log.warn("allowedOrigins 为空，Origin/Referer 校验将被跳过");
+            if (isProductionProfile()) {
+                throw new IllegalStateException(
+                        "security.baseline.allowedOrigins 在非开发环境中不能为空，"
+                        + "Origin/Referer 校验将完全失效。请配置允许的请求来源列表。");
+            }
+            log.warn("allowedOrigins 为空，Origin/Referer 校验将被跳过（仅允许在 dev/test 环境）");
             return;
         }
 
@@ -98,6 +111,20 @@ public class SecurityBaselineProperties {
         return rateLimit.maxAttempts >= 1
                 && !rateLimit.blockDuration.isNegative()
                 && !rateLimit.blockDuration.isZero();
+    }
+
+    /**
+     * 判断当前是否运行在生产级 profile（非 dev/test/local/default）
+     */
+    private boolean isProductionProfile() {
+        if (environment == null) {
+            return false;
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles.length == 0) {
+            return false;
+        }
+        return Arrays.stream(activeProfiles).noneMatch(DEV_PROFILES::contains);
     }
 
     /**

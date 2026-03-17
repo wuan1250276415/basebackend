@@ -1,18 +1,22 @@
 package com.basebackend.security.context;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
 import com.basebackend.security.enums.DataScopeType;
 import lombok.Data;
 
 /**
  * 数据权限上下文持有者
- * 用于在线程中传递数据权限信息
+ * 用于在线程中传递数据权限信息。
+ * <p>
+ * 使用 {@link TransmittableThreadLocal} 实现，支持在 {@code @Async}、
+ * {@code CompletableFuture}、线程池等异步场景中自动传递数据权限上下文。
  *
  * @author Claude Code (浮浮酱)
  * @since 2025-11-26
  */
 public class DataScopeContextHolder {
 
-    private static final ThreadLocal<DataScopeContext> CONTEXT = new ThreadLocal<>();
+    private static final TransmittableThreadLocal<DataScopeContext> CONTEXT = new TransmittableThreadLocal<>();
 
     /**
      * 设置数据权限上下文

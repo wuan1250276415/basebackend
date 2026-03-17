@@ -1,6 +1,8 @@
 package com.basebackend.security.filter;
 
 import com.basebackend.security.config.SecurityBaselineProperties;
+import com.basebackend.security.event.SecurityAuditEventPublisher;
+import com.basebackend.security.event.SecurityEventType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -48,10 +50,15 @@ public class OriginValidationFilter extends OncePerRequestFilter {
 
     private final SecurityBaselineProperties properties;
     private final Set<String> normalizedAllowedOrigins;
+    private SecurityAuditEventPublisher auditEventPublisher;
 
     public OriginValidationFilter(SecurityBaselineProperties properties) {
         this.properties = properties;
         this.normalizedAllowedOrigins = normalizeAllowedOrigins(properties.getAllowedOrigins());
+    }
+
+    public void setAuditEventPublisher(SecurityAuditEventPublisher auditEventPublisher) {
+        this.auditEventPublisher = auditEventPublisher;
     }
 
     @Override
@@ -83,6 +90,11 @@ public class OriginValidationFilter extends OncePerRequestFilter {
 
         log.warn("Blocked request due to invalid origin. method={}, uri={}, origin={}, referer={}",
                 request.getMethod(), request.getRequestURI(), origin, request.getHeader("Referer"));
+        if (auditEventPublisher != null) {
+            auditEventPublisher.publish(this, SecurityEventType.ORIGIN_REJECTED,
+                    null, request.getRemoteAddr(),
+                    "Origin rejected: " + origin + ", URI: " + request.getRequestURI());
+        }
         respondForbidden(response);
     }
 

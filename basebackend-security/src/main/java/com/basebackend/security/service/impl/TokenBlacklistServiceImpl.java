@@ -1,10 +1,13 @@
 package com.basebackend.security.service.impl;
 
 import com.basebackend.jwt.JwtUtil;
+import com.basebackend.security.event.SecurityAuditEventPublisher;
+import com.basebackend.security.event.SecurityEventType;
 import com.basebackend.security.exception.TokenBlacklistException;
 import com.basebackend.security.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,9 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtUtil jwtUtil;
 
+    @Autowired(required = false)
+    private SecurityAuditEventPublisher auditEventPublisher;
+
     private static final String TOKEN_BLACKLIST_PREFIX = "token:blacklist:";
     private static final String USER_SESSION_PREFIX = "user:session:";
     private static final String BLACKLIST_PLACEHOLDER = "1";
@@ -48,6 +54,8 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             String key = buildBlacklistKey(token);
             valueOps().set(key, BLACKLIST_PLACEHOLDER, ttlHours, TimeUnit.HOURS);
             log.info("Token已加入黑名单，TTL={}小时: {}", ttlHours, maskToken(token));
+            publishAuditEvent(SecurityEventType.TOKEN_ADDED_TO_BLACKLIST, null,
+                    "Token加入黑名单, TTL=" + ttlHours + "h");
         } catch (Exception e) {
             log.error("添加Token到黑名单失败", e);
         }
@@ -144,6 +152,7 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             // 移除用户会话
             removeUserSession(userId);
             log.info("用户已被强制下线: userId={}", userId);
+            publishAuditEvent(SecurityEventType.FORCE_LOGOUT, userId, "用户被强制下线");
         } catch (Exception e) {
             log.error("强制用户下线失败", e);
         }
@@ -208,9 +217,9 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             }
             return hexString.toString();
         } catch (Exception e) {
-            log.error("Token哈希失败，使用原始值: {}", e.getMessage());
-            // 如果哈希失败，回退到使用原始Token（不应该发生）
-            return token;
+            // SHA-256 在标准 JDK 中必定可用，此处不应发生；
+            // 绝不能回退到明文 Token 作为 Redis Key，否则会导致凭证泄露
+            throw new IllegalStateException("SHA-256 算法不可用，无法安全处理 Token", e);
         }
     }
 
@@ -220,5 +229,11 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
         }
         int prefixLen = Math.min(6, token.length());
         return token.substring(0, prefixLen) + "...";
+    }
+
+    private void publishAuditEvent(SecurityEventType type, String principal, String detail) {
+        if (auditEventPublisher != null) {
+            auditEventPublisher.publish(this, type, principal, null, detail);
+        }
     }
 }

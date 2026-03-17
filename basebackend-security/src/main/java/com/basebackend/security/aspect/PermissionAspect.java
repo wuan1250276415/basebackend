@@ -2,9 +2,12 @@ package com.basebackend.security.aspect;
 
 import com.basebackend.security.annotation.RequiresPermission;
 import com.basebackend.security.annotation.RequiresRole;
+import com.basebackend.security.event.SecurityAuditEventPublisher;
+import com.basebackend.security.event.SecurityEventType;
 import com.basebackend.security.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -36,6 +39,9 @@ public class PermissionAspect {
 
     private final PermissionService permissionService;
 
+    @Autowired(required = false)
+    private SecurityAuditEventPublisher auditEventPublisher;
+
     /**
      * 权限校验切面
      */
@@ -48,9 +54,10 @@ public class PermissionAspect {
 
         // 检查权限
         if (!hasPermission(userPermissions, requiresPermission)) {
-            log.warn("权限不足，需要权限: {}, 用户权限数量: {}",
-                Arrays.toString(getRequiredPermissions(requiresPermission)),
-                userPermissions == null ? 0 : userPermissions.size());
+            String detail = "需要权限: " + Arrays.toString(getRequiredPermissions(requiresPermission));
+            log.warn("权限不足，{}, 用户权限数量: {}",
+                detail, userPermissions == null ? 0 : userPermissions.size());
+            publishAccessDenied(detail);
             throw new AccessDeniedException("权限不足，无法访问该资源");
         }
 
@@ -70,9 +77,10 @@ public class PermissionAspect {
 
         // 检查角色
         if (!hasRole(userRoles, requiresRole)) {
-            log.warn("角色权限不足，需要角色: {}, 用户角色数量: {}",
-                Arrays.toString(getRequiredRoles(requiresRole)),
-                userRoles == null ? 0 : userRoles.size());
+            String detail = "需要角色: " + Arrays.toString(getRequiredRoles(requiresRole));
+            log.warn("角色权限不足，{}, 用户角色数量: {}",
+                detail, userRoles == null ? 0 : userRoles.size());
+            publishAccessDenied(detail);
             throw new AccessDeniedException("角色权限不足，无法访问该资源");
         }
 
@@ -144,5 +152,13 @@ public class PermissionAspect {
             return requiresRole.values();
         }
         return new String[]{requiresRole.value()};
+    }
+
+    private void publishAccessDenied(String detail) {
+        if (auditEventPublisher != null) {
+            Long userId = permissionService.getCurrentUserId();
+            String principal = userId != null ? String.valueOf(userId) : null;
+            auditEventPublisher.publish(this, SecurityEventType.ACCESS_DENIED, principal, null, detail);
+        }
     }
 }

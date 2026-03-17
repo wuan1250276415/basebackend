@@ -1,2 +1,5 @@
 com.basebackend.security.config.SecurityBaselineConfiguration
 com.basebackend.security.config.PasswordEncoderConfig
+com.basebackend.security.config.SecurityConfig
+com.basebackend.security.config.PermissionServiceCheckConfiguration
+com.basebackend.security.config.RateLimitConfiguration

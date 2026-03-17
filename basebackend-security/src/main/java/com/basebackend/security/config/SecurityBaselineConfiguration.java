@@ -1,7 +1,9 @@
 package com.basebackend.security.config;
 
+import com.basebackend.security.event.SecurityAuditEventPublisher;
 import com.basebackend.security.filter.CsrfCookieFilter;
 import com.basebackend.security.filter.OriginValidationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,9 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(SecurityBaselineProperties.class)
 public class SecurityBaselineConfiguration {
 
+    @Autowired(required = false)
+    private SecurityAuditEventPublisher auditEventPublisher;
+
     @Bean
     public CsrfCookieFilter csrfCookieFilter() {
         return new CsrfCookieFilter();
@@ -20,6 +25,10 @@ public class SecurityBaselineConfiguration {
 
     @Bean
     public OriginValidationFilter originValidationFilter(SecurityBaselineProperties properties) {
-        return new OriginValidationFilter(properties);
+        OriginValidationFilter filter = new OriginValidationFilter(properties);
+        if (auditEventPublisher != null) {
+            filter.setAuditEventPublisher(auditEventPublisher);
+        }
+        return filter;
     }
 }
