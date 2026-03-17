@@ -13,5 +13,7 @@ public enum ProcessStatus {
     /** 已取消 */
     CANCELLED,
     /** 已挂起 */
-    SUSPENDED
+    SUSPENDED,
+    /** 异常（如条件分支无匹配） */
+    ERROR
 }

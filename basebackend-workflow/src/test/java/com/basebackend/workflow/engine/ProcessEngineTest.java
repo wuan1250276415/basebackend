@@ -359,5 +359,224 @@ class ProcessEngineTest {
                     ApprovalRecord.approve("fake", "fake", "hacker", "inject")))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
+
+        @Test
+        @DisplayName("流程变量视图不可变")
+        void variablesImmutable() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", Map.of("days", 3));
+            assertThatThrownBy(() -> inst.getVariables().put("hack", "value"))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    // ==================== 权限校验 ====================
+
+    @Nested
+    @DisplayName("审批权限校验测试")
+    class PermissionTest {
+
+        /** ROLE_LEADER 只有 "李经理" 一人 */
+        private final RoleChecker checker = (user, role) ->
+                "ROLE_LEADER".equals(role) && "李经理".equals(user);
+
+        @BeforeEach
+        void deploy() {
+            // 使用注入了 RoleChecker 的引擎
+            engine = new ProcessEngine(checker);
+            engine.deploy(buildSimpleApproval());
+        }
+
+        @Test
+        @DisplayName("有权限的用户可以正常审批")
+        void authorizedUserCanApprove() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            engine.approve(inst.getInstanceId(), "李经理", "同意");
+            assertThat(inst.getStatus()).isEqualTo(ProcessStatus.COMPLETED);
+        }
+
+        @Test
+        @DisplayName("无权限的用户审批时抛出 SecurityException")
+        void unauthorizedUserThrows() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            assertThatThrownBy(() -> engine.approve(inst.getInstanceId(), "陌生人", "随便"))
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessageContaining("无权操作");
+        }
+
+        @Test
+        @DisplayName("未配置 RoleChecker 时任何人都可审批")
+        void noCheckerAllowsAll() {
+            ProcessEngine noCheckEngine = new ProcessEngine();
+            noCheckEngine.deploy(buildSimpleApproval());
+            ProcessInstance inst = noCheckEngine.startProcess("leave", "张三", null);
+            noCheckEngine.approve(inst.getInstanceId(), "任意人", "ok");
+            assertThat(inst.getStatus()).isEqualTo(ProcessStatus.COMPLETED);
+        }
+
+        @Test
+        @DisplayName("转交后被转交人可审批，原审批人不可审批")
+        void transfereeCanApproveWithChecker() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            engine.transfer(inst.getInstanceId(), "李经理", "王副理", "出差代理");
+
+            // 原审批人不可操作（任务已转交）
+            assertThatThrownBy(() -> engine.approve(inst.getInstanceId(), "李经理", "ok"))
+                    .isInstanceOf(SecurityException.class);
+
+            // 被转交人可操作
+            engine.approve(inst.getInstanceId(), "王副理", "同意");
+            assertThat(inst.getStatus()).isEqualTo(ProcessStatus.COMPLETED);
+        }
+    }
+
+    // ==================== 流程定义版本保护 ====================
+
+    @Nested
+    @DisplayName("流程定义版本保护测试")
+    class VersionControlTest {
+
+        @Test
+        @DisplayName("无运行中实例时可重复部署同版本")
+        void redeployWithoutRunningInstances() {
+            engine.deploy(buildSimpleApproval());
+            // 无运行中实例，允许重复部署
+            assertThatCode(() -> engine.deploy(buildSimpleApproval())).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("有运行中实例时部署同版本抛出异常")
+        void redeployWithRunningInstancesThrows() {
+            engine.deploy(buildSimpleApproval());
+            engine.startProcess("leave", "张三", null); // 产生运行中实例
+
+            assertThatThrownBy(() -> engine.deploy(buildSimpleApproval()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("版本号必须递增");
+        }
+
+        @Test
+        @DisplayName("有运行中实例时部署更高版本成功")
+        void redeployHigherVersionSucceeds() {
+            engine.deploy(buildSimpleApproval());
+            engine.startProcess("leave", "张三", null);
+
+            ProcessDefinition v2 = ProcessDefinition.builder("leave", "请假审批")
+                    .version(2)
+                    .startNode("start", "提交申请")
+                    .approvalNode("leader", "主管审批", "ROLE_LEADER")
+                    .endNode("end", "审批完成")
+                    .transition("start", "leader")
+                    .transition("leader", "end")
+                    .build();
+
+            assertThatCode(() -> engine.deploy(v2)).doesNotThrowAnyException();
+            assertThat(engine.getDefinition("leave").getVersion()).isEqualTo(2);
+        }
+    }
+
+    // ==================== 转交 ====================
+
+    @Nested
+    @DisplayName("转交任务测试")
+    class TransferTest {
+
+        @BeforeEach
+        void deploy() {
+            engine.deploy(buildSimpleApproval());
+        }
+
+        @Test
+        @DisplayName("转交后原角色不再有待办")
+        void transferRemovesFromRole() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            engine.transfer(inst.getInstanceId(), "李经理", "王副理", "出差代理");
+
+            assertThat(engine.getTasksByRole("ROLE_LEADER")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("转交后被转交人可查询到待办")
+        void transfereeCanQueryTask() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            engine.transfer(inst.getInstanceId(), "李经理", "王副理", "出差代理");
+
+            assertThat(engine.getTasksByUser("王副理")).hasSize(1);
+            assertThat(engine.getTasksByUser("李经理")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("转交后被转交人可正常审批")
+        void transfereeCanApprove() {
+            ProcessInstance inst = engine.startProcess("leave", "张三", null);
+            engine.transfer(inst.getInstanceId(), "李经理", "王副理", "出差代理");
+            engine.approve(inst.getInstanceId(), "王副理", "同意");
+
+            assertThat(inst.getStatus()).isEqualTo(ProcessStatus.COMPLETED);
+            assertThat(inst.getApprovalHistory()).hasSize(2); // transfer + approve
+        }
+    }
+
+    // ==================== 条件分支异常 ====================
+
+    @Nested
+    @DisplayName("条件分支异常测试")
+    class ConditionErrorTest {
+
+        @Test
+        @DisplayName("条件无匹配时 startProcess 抛出异常")
+        void noMatchThrowsOnStart() {
+            ProcessDefinition def = ProcessDefinition.builder("order", "订单审批")
+                    .startNode("start", "提交")
+                    .conditionNode("check", "金额检查", List.of(
+                            ConditionBranch.of("amount > 10000", "ceo")
+                            // 故意不添加 default 分支
+                    ))
+                    .approvalNode("ceo", "CEO审批", "ROLE_CEO")
+                    .endNode("end", "完成")
+                    .transition("start", "check")
+                    .transition("ceo", "end")
+                    .build();
+            engine.deploy(def);
+
+            assertThatThrownBy(() -> engine.startProcess("order", "张三", Map.of("amount", 100)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("条件分支无匹配");
+        }
+    }
+
+    // ==================== 实例清理 ====================
+
+    @Nested
+    @DisplayName("实例清理测试")
+    class CleanupTest {
+
+        @BeforeEach
+        void deploy() {
+            engine.deploy(buildSimpleApproval());
+        }
+
+        @Test
+        @DisplayName("cleanupFinished 清理已结束实例")
+        void cleanupFinishedInstances() {
+            ProcessInstance inst1 = engine.startProcess("leave", "张三", null);
+            ProcessInstance inst2 = engine.startProcess("leave", "李四", null);
+            engine.startProcess("leave", "王五", null); // 运行中不清理
+
+            engine.approve(inst1.getInstanceId(), "经理", "ok");
+            engine.reject(inst2.getInstanceId(), "经理", "不批");
+
+            int cleaned = engine.cleanupFinished();
+            assertThat(cleaned).isEqualTo(2);
+            assertThat(engine.getTasksByRole("ROLE_LEADER")).hasSize(1); // 只剩王五的任务
+        }
+
+        @Test
+        @DisplayName("cleanupFinished 不影响运行中的实例")
+        void cleanupDoesNotAffectRunning() {
+            engine.startProcess("leave", "张三", null);
+            int cleaned = engine.cleanupFinished();
+            assertThat(cleaned).isEqualTo(0);
+            assertThat(engine.getTasksByRole("ROLE_LEADER")).hasSize(1);
+        }
     }
 }

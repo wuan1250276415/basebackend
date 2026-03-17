@@ -19,6 +19,13 @@ import java.util.regex.Pattern;
  *   <li>{@code level != "senior"}</li>
  *   <li>{@code default} — 默认分支（始终匹配）</li>
  * </ul>
+ *
+ * <h3>安全说明</h3>
+ * <p>
+ * 当前实现基于简单字符串/数值比较，不涉及脚本执行，不存在代码注入风险。
+ * <strong>但条件表达式必须由开发人员在流程定义阶段写入，严禁将终端用户的输入直接作为表达式使用。</strong>
+ * 若未来需要支持用户自定义表达式，须引入沙箱求值器（如 Spring Expression Language 的只读上下文），
+ * 并对变量名和值做严格白名单校验。
  */
 @Slf4j
 public class ConditionEvaluator {
@@ -26,6 +33,9 @@ public class ConditionEvaluator {
     private static final Pattern EXPR_PATTERN = Pattern.compile(
             "(\\w+)\\s*(==|!=|>=|<=|>|<)\\s*(.+)"
     );
+
+    /** 浮点数等值比较容差，避免 0.1 + 0.2 != 0.3 类精度问题 */
+    private static final double EPSILON = 1e-9;
 
     /**
      * 从分支列表中选择第一个满足条件的目标节点
@@ -89,8 +99,8 @@ public class ConditionEvaluator {
                 double numValue = Double.parseDouble(valueStr);
                 double varDouble = numVar.doubleValue();
                 return switch (operator) {
-                    case "==" -> varDouble == numValue;
-                    case "!=" -> varDouble != numValue;
+                    case "==" -> Math.abs(varDouble - numValue) <= EPSILON;
+                    case "!=" -> Math.abs(varDouble - numValue) > EPSILON;
                     case ">" -> varDouble > numValue;
                     case ">=" -> varDouble >= numValue;
                     case "<" -> varDouble < numValue;

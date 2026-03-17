@@ -1,6 +1,7 @@
 package com.basebackend.workflow.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -36,7 +37,11 @@ public class ProcessNode {
     public Long getTimeoutMinutes() { return timeoutMinutes; }
     public List<ConditionBranch> getBranches() { return branches; }
     public List<String> getNotifyRoles() { return notifyRoles; }
-    public List<String> getNextNodeIds() { return nextNodeIds; }
+    /** 返回后继节点列表的不可变视图，禁止外部直接修改 */
+    public List<String> getNextNodeIds() { return Collections.unmodifiableList(nextNodeIds); }
+
+    /** 包级私有，仅供 {@link ProcessDefinition.Builder#transition} 在构建期间调用 */
+    void addNextNode(String nodeId) { nextNodeIds.add(nodeId); }
 
     public boolean isApproval() { return type == NodeType.APPROVAL; }
     public boolean isCondition() { return type == NodeType.CONDITION; }

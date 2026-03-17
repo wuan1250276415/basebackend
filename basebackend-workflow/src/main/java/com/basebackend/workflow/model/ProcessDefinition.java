@@ -129,7 +129,7 @@ public class ProcessDefinition {
         public Builder transition(String fromNodeId, String toNodeId) {
             ProcessNode node = nodes.get(fromNodeId);
             if (node != null) {
-                node.getNextNodeIds().add(toNodeId);
+                node.addNextNode(toNodeId);
             }
             return this;
         }
