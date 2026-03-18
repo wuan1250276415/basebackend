@@ -46,8 +46,8 @@ const ApplicationResourceManagement = () => {
     }
     setLoading(true)
     try {
-      const response = await getResourceTree(appId)
-      setDataSource(response.data)
+      const resourceTree = await getResourceTree(appId)
+      setDataSource(resourceTree)
     } catch (error) {
       message.error('加载资源列表失败')
     } finally {

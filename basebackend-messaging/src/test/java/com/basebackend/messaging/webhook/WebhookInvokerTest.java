@@ -1,5 +1,6 @@
 package com.basebackend.messaging.webhook;
 
+import com.basebackend.messaging.management.service.WebhookLogStore;
 import com.basebackend.messaging.model.Message;
 import com.basebackend.messaging.producer.MessageProducer;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ class WebhookInvokerTest {
     @Mock
     private MessageProducer messageProducer;
 
+    @Mock
+    private WebhookLogStore webhookLogStore;
+
     private WebhookInvoker webhookInvoker;
 
     @Captor
@@ -57,7 +61,13 @@ class WebhookInvokerTest {
 
     @BeforeEach
     void setUp() {
-        webhookInvoker = new WebhookInvoker(restClient, signatureService, messageProducer, new SyncTaskExecutor());
+        webhookInvoker = new WebhookInvoker(
+                restClient,
+                signatureService,
+                messageProducer,
+                new SyncTaskExecutor(),
+                webhookLogStore
+        );
 
         webhookConfig = new WebhookProperties();
         webhookConfig.setId(1L);
@@ -133,6 +143,7 @@ class WebhookInvokerTest {
             assertEquals("{\"status\":\"ok\"}", log.getResponseBody());
             assertEquals("event-001", log.getEventId());
             assertEquals("user.created", log.getEventType());
+            verify(webhookLogStore).save(log);
         }
 
         @Test
@@ -185,6 +196,7 @@ class WebhookInvokerTest {
             assertFalse(log.getSuccess());
             assertEquals("Connection refused", log.getErrorMessage());
             verify(messageProducer).sendDelay(any(Message.class), anyLong());
+            verify(webhookLogStore).save(log);
         }
 
         @Test

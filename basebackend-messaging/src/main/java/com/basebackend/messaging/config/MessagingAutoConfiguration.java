@@ -4,6 +4,7 @@ import com.basebackend.messaging.encryption.AesGcmMessageEncryptor;
 import com.basebackend.messaging.encryption.MessageEncryptor;
 import com.basebackend.messaging.event.EventPublisher;
 import com.basebackend.messaging.idempotency.IdempotencyService;
+import com.basebackend.messaging.management.service.WebhookLogStore;
 import com.basebackend.messaging.metrics.MessagingMetrics;
 import com.basebackend.messaging.order.OrderedMessageConsumer;
 import com.basebackend.messaging.producer.MessageProducer;
@@ -38,7 +39,7 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(MessagingProperties.class)
 @EnableScheduling
 @MapperScan("com.basebackend.messaging.mapper")
-@Import(MessagingExecutorConfig.class)
+@Import({MessagingExecutorConfig.class, MessagingManagementConfiguration.class})
 public class MessagingAutoConfiguration {
 
     @Bean
@@ -81,9 +82,11 @@ public class MessagingAutoConfiguration {
     public WebhookInvoker webhookInvoker(RestClient messagingRestClient,
             WebhookSignatureService signatureService,
             ObjectProvider<MessageProducer> messageProducerProvider,
-            @Qualifier("webhookExecutor") TaskExecutor webhookExecutor) {
+            @Qualifier("webhookExecutor") TaskExecutor webhookExecutor,
+            ObjectProvider<WebhookLogStore> webhookLogStoreProvider) {
         return new WebhookInvoker(messagingRestClient, signatureService,
-                messageProducerProvider.getIfAvailable(), webhookExecutor);
+                messageProducerProvider.getIfAvailable(), webhookExecutor,
+                webhookLogStoreProvider.getIfAvailable());
     }
 
     @Bean

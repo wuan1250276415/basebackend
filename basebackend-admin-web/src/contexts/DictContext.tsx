@@ -72,22 +72,17 @@ export const DictProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading((prev) => ({ ...prev, [dictType]: true }))
 
       try {
-        const response = await getDictDataByType(dictType)
-        if (response.data.code === 200 && response.data.data) {
-          const data = response.data.data
+        const data = await getDictDataByType(dictType)
 
-          // 更新缓存
-          setDictCache((prev) => ({
-            ...prev,
-            [dictType]: {
-              data,
-              timestamp: Date.now(),
-            },
-          }))
+        setDictCache((prev) => ({
+          ...prev,
+          [dictType]: {
+            data,
+            timestamp: Date.now(),
+          },
+        }))
 
-          return data
-        }
-        return []
+        return data
       } catch (error) {
         console.error(`获取字典数据失败 [${dictType}]:`, error)
         return dictCache[dictType]?.data || []

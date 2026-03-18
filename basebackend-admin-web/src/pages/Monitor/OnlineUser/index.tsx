@@ -23,8 +23,8 @@ const OnlineUserPage = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await getOnlineUsers()
-      setDataSource(response.data || [])
+      const onlineUsers = await getOnlineUsers()
+      setDataSource(onlineUsers || [])
     } catch (error: any) {
       message.error(error.message || '加载在线用户失败')
     } finally {

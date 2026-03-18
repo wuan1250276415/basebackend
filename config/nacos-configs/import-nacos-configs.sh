@@ -11,21 +11,26 @@
 #    - NAMESPACE: 命名空间 ID（默认：public，开发环境）
 #    - USERNAME: Nacos 用户名（默认：nacos）
 #    - PASSWORD: Nacos 密码（默认：nacos）
+#    - GROUP: 配置分组（默认：DEFAULT_GROUP）
+#    - CONFIG_DIR: 配置目录（默认：脚本所在目录下的 dev）
 #
 # 示例：
-#    NACOS_SERVER=192.168.66.126:8848 bash import-nacos-configs.sh
+#    NACOS_SERVER=localhost:8848 bash import-nacos-configs.sh
 #
 # ================================================================================================
 
 # 配置参数
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 NACOS_SERVER=${NACOS_SERVER:-localhost:8848}
 NAMESPACE=${NAMESPACE:-public}  # public 或具体的命名空间 ID
 USERNAME=${USERNAME:-nacos}
 PASSWORD=${PASSWORD:-nacos}
-GROUP="DEFAULT_GROUP"
+GROUP=${GROUP:-DEFAULT_GROUP}
+CONFIG_DIR=${CONFIG_DIR:-"${SCRIPT_DIR}/dev"}
+NACOS_WAIT_TIMEOUT=${NACOS_WAIT_TIMEOUT:-90}
+NACOS_WAIT_INTERVAL=${NACOS_WAIT_INTERVAL:-3}
 
-# 配置文件目录
-CONFIG_DIR="./nacos-configs/dev"
+ACCESS_TOKEN=""
 
 # 颜色输出
 GREEN='\033[0;32m'
@@ -49,6 +54,96 @@ if [ ! -d "$CONFIG_DIR" ]; then
     exit 1
 fi
 
+split_response() {
+    local response=$1
+    RESPONSE_HTTP_CODE=$(printf '%s\n' "$response" | tail -n1)
+    RESPONSE_BODY=$(printf '%s\n' "$response" | sed '$d')
+}
+
+wait_for_nacos() {
+    local start_time
+    start_time=$(date +%s)
+
+    while true; do
+        if curl -fsS "http://${NACOS_SERVER}/nacos/" >/dev/null 2>&1; then
+            return 0
+        fi
+
+        if [ $(( $(date +%s) - start_time )) -ge "$NACOS_WAIT_TIMEOUT" ]; then
+            echo -e "${RED}错误: 等待 Nacos 就绪超时（${NACOS_WAIT_TIMEOUT}s）${NC}"
+            return 1
+        fi
+
+        sleep "$NACOS_WAIT_INTERVAL"
+    done
+}
+
+is_success_response() {
+    printf '%s' "$1" | grep -q '"code":0'
+}
+
+extract_access_token() {
+    printf '%s' "$1" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'
+}
+
+extract_message() {
+    local message
+    message=$(printf '%s' "$1" | sed -n 's/.*"message":"\([^"]*\)".*/\1/p')
+    if [ -n "$message" ]; then
+        printf '%s' "$message"
+    else
+        printf '%s' "$1"
+    fi
+}
+
+ensure_access_token() {
+    local response
+    local login_url="http://${NACOS_SERVER}/nacos/v3/auth/user/login"
+    local admin_init_url="http://${NACOS_SERVER}/nacos/v3/auth/user/admin"
+
+    response=$(curl -sS -w "\n%{http_code}" -X POST \
+        "$login_url" \
+        -d "username=${USERNAME}" \
+        -d "password=${PASSWORD}")
+    split_response "$response"
+
+    if [ "$RESPONSE_HTTP_CODE" = "200" ]; then
+        ACCESS_TOKEN=$(extract_access_token "$RESPONSE_BODY")
+        if [ -n "$ACCESS_TOKEN" ]; then
+            return 0
+        fi
+    fi
+
+    echo "首次登录未获取到 accessToken，尝试初始化管理员密码..."
+
+    response=$(curl -sS -w "\n%{http_code}" -X POST \
+        "$admin_init_url" \
+        -d "password=${PASSWORD}")
+    split_response "$response"
+
+    if [ "$RESPONSE_HTTP_CODE" != "200" ] || ! is_success_response "$RESPONSE_BODY"; then
+        echo -e "${YELLOW}管理员初始化未成功，继续尝试登录...${NC}"
+    fi
+
+    response=$(curl -sS -w "\n%{http_code}" -X POST \
+        "$login_url" \
+        -d "username=${USERNAME}" \
+        -d "password=${PASSWORD}")
+    split_response "$response"
+
+    if [ "$RESPONSE_HTTP_CODE" = "200" ]; then
+        ACCESS_TOKEN=$(extract_access_token "$RESPONSE_BODY")
+    fi
+
+    if [ -n "$ACCESS_TOKEN" ]; then
+        return 0
+    fi
+
+    echo -e "${RED}错误: 无法获取 Nacos accessToken${NC}"
+    echo "  响应: $(extract_message "$RESPONSE_BODY")"
+    return 1
+}
+
 # 导入配置文件的函数
 import_config() {
     local data_id=$1
@@ -61,39 +156,44 @@ import_config() {
 
     echo -n "导入: ${data_id} ... "
 
-    # URL 编码内容
-    local content=$(cat "$config_file" | python3 -c "import sys; import urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2>/dev/null || cat "$config_file" | perl -MURI::Escape -e 'print uri_escape(<STDIN>);' 2>/dev/null)
-
-    if [ -z "$content" ]; then
-        echo -e "${RED}失败（无法编码内容）${NC}"
-        return 1
-    fi
-
-    # 发送请求到 Nacos
-    local response=$(curl -s -w "\n%{http_code}" -X POST \
-        "http://${NACOS_SERVER}/nacos/v1/cs/configs" \
+    local response
+    response=$(curl -sS -w "\n%{http_code}" -X POST \
+        "http://${NACOS_SERVER}/nacos/v3/admin/cs/config" \
+        -H "accessToken: ${ACCESS_TOKEN}" \
         -d "dataId=${data_id}" \
-        -d "group=${GROUP}" \
-        -d "content=${content}" \
+        -d "groupName=${GROUP}" \
+        -d "namespaceId=${NAMESPACE}" \
         -d "type=yaml" \
-        -d "tenant=${NAMESPACE}" \
-        -d "username=${USERNAME}" \
-        -d "password=${PASSWORD}")
+        --data-urlencode "content@${config_file}")
 
-    local http_code=$(echo "$response" | tail -n1)
-    local body=$(echo "$response" | head -n-1)
+    split_response "$response"
 
-    if [ "$http_code" = "200" ] && [ "$body" = "true" ]; then
+    if [ "$RESPONSE_HTTP_CODE" = "200" ] && is_success_response "$RESPONSE_BODY"; then
         echo -e "${GREEN}✓ 成功${NC}"
         return 0
-    else
-        echo -e "${RED}✗ 失败 (HTTP ${http_code})${NC}"
-        echo "  响应: $body"
-        return 1
     fi
+
+    echo -e "${RED}✗ 失败 (HTTP ${RESPONSE_HTTP_CODE})${NC}"
+    echo "  响应: $(extract_message "$RESPONSE_BODY")"
+    return 1
 }
 
 # 导入所有配置文件
+echo "等待 Nacos 就绪..."
+if ! wait_for_nacos; then
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Nacos 已就绪${NC}"
+echo ""
+
+echo "检查 Nacos 认证状态..."
+if ! ensure_access_token; then
+    exit 1
+fi
+
+echo -e "${GREEN}✓ 已获取 accessToken${NC}"
+echo ""
 echo "开始导入配置..."
 echo ""
 

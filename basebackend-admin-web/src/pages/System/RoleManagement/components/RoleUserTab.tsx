@@ -23,10 +23,8 @@ const RoleUserTab: React.FC<RoleUserTabProps> = ({ roleId }) => {
 
     setLoading(true)
     try {
-      const res = await getRoleUsers(roleId, username)
-      if (res.code === 200) {
-        setUserList(res.data || [])
-      }
+      const users = await getRoleUsers(roleId, username)
+      setUserList(users || [])
     } catch (error) {
       message.error('加载用户列表失败')
       console.error(error)

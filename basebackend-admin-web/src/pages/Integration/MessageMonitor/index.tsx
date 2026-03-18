@@ -14,17 +14,12 @@ const MessageMonitor = () => {
   const fetchStatistics = async () => {
     try {
       setLoading(true)
-      const [statsRes, queueRes] = await Promise.all([
+      const [statisticsData, queueMonitor] = await Promise.all([
         getMessageStatistics(),
         getQueueMonitor()
       ])
-
-      if (statsRes.code === 200) {
-        setStatistics(statsRes.data)
-      }
-      if (queueRes.code === 200) {
-        setQueueData(queueRes.data)
-      }
+      setStatistics(statisticsData || {})
+      setQueueData(queueMonitor || {})
     } catch (error) {
       message.error('获取监控数据失败')
     } finally {

@@ -44,10 +44,8 @@ const EventLog = () => {
   useEffect(() => {
     const fetchWebhooks = async () => {
       try {
-        const res = await getEnabledWebhookConfigs()
-        if (res.code === 200) {
-          setWebhookList(res.data)
-        }
+        const enabledWebhooks = await getEnabledWebhookConfigs()
+        setWebhookList(enabledWebhooks || [])
       } catch (error) {
         console.error('获取Webhook列表失败')
       }
@@ -59,7 +57,7 @@ const EventLog = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const res = await getWebhookLogPage({
+      const pageResult = await getWebhookLogPage({
         page,
         size,
         webhookId,
@@ -68,11 +66,8 @@ const EventLog = () => {
         startTime: timeRange[0] ? dayjs(timeRange[0]).format('YYYY-MM-DD HH:mm:ss') : undefined,
         endTime: timeRange[1] ? dayjs(timeRange[1]).format('YYYY-MM-DD HH:mm:ss') : undefined,
       })
-
-      if (res.code === 200) {
-        setDataSource(res.data.records)
-        setTotal(res.data.total)
-      }
+      setDataSource(pageResult.records || [])
+      setTotal(pageResult.total || 0)
     } catch (error) {
       message.error('获取事件日志失败')
     } finally {
@@ -87,11 +82,9 @@ const EventLog = () => {
   // 查看详情
   const handleViewDetail = async (id: number) => {
     try {
-      const res = await getWebhookLog(id)
-      if (res.code === 200) {
-        setDetailData(res.data)
-        setDetailVisible(true)
-      }
+      const detail = await getWebhookLog(id)
+      setDetailData(detail)
+      setDetailVisible(true)
     } catch (error) {
       message.error('获取详情失败')
     }

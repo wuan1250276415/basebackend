@@ -81,6 +81,12 @@ spring:
               filters:
                 - StripPrefix=1
 
+            # 消息管理路由
+            - id: messaging-management
+              uri: lb://basebackend-system-api
+              predicates:
+                - Path=/messaging/**
+
           # 全局CORS配置
           globalcors:
             cors-configurations:

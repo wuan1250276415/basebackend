@@ -34,8 +34,8 @@ const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const loadVersions = async () => {
     setLoading(true)
     try {
-      const res = await getFileVersions(file.fileId)
-      setVersionList(res.data || [])
+      const versions = await getFileVersions(file.fileId)
+      setVersionList(versions || [])
     } catch (error) {
       message.error('加载版本历史失败')
     } finally {

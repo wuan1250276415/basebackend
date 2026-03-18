@@ -1,5 +1,4 @@
 import request from '@/api/request'
-import { Result } from '@/types'
 
 /**
  * 用户设备信息
@@ -51,28 +50,28 @@ const BASE_URL = '/basebackend-user-api/api/user/security'
  * 获取当前用户设备列表
  */
 export const getUserDevices = () => {
-  return request.get<Result<UserDevice[]>>(`${BASE_URL}/devices`)
+  return request.get<UserDevice[]>(`${BASE_URL}/devices`)
 }
 
 /**
  * 移除设备
  */
 export const removeDevice = (deviceId: number) => {
-  return request.delete<Result<void>>(`${BASE_URL}/devices/${deviceId}`)
+  return request.delete<void>(`${BASE_URL}/devices/${deviceId}`)
 }
 
 /**
  * 信任设备
  */
 export const trustDevice = (deviceId: number) => {
-  return request.put<Result<void>>(`${BASE_URL}/devices/${deviceId}/trust`)
+  return request.put<void>(`${BASE_URL}/devices/${deviceId}/trust`)
 }
 
 /**
  * 获取操作日志
  */
 export const getOperationLogs = (limit?: number) => {
-  return request.get<Result<UserOperationLog[]>>(`${BASE_URL}/operation-logs`, {
+  return request.get<UserOperationLog[]>(`${BASE_URL}/operation-logs`, {
     params: { limit },
   })
 }
@@ -81,14 +80,14 @@ export const getOperationLogs = (limit?: number) => {
  * 获取2FA配置
  */
 export const get2FAConfig = () => {
-  return request.get<Result<User2FAConfig>>(`${BASE_URL}/2fa`)
+  return request.get<User2FAConfig>(`${BASE_URL}/2fa`)
 }
 
 /**
  * 启用2FA
  */
 export const enable2FA = (type: string, verifyCode: string) => {
-  return request.post<Result<void>>(`${BASE_URL}/2fa/enable`, null, {
+  return request.post<void>(`${BASE_URL}/2fa/enable`, null, {
     params: { type, verifyCode },
   })
 }
@@ -97,7 +96,7 @@ export const enable2FA = (type: string, verifyCode: string) => {
  * 禁用2FA
  */
 export const disable2FA = (verifyCode: string) => {
-  return request.post<Result<void>>(`${BASE_URL}/2fa/disable`, null, {
+  return request.post<void>(`${BASE_URL}/2fa/disable`, null, {
     params: { verifyCode },
   })
 }

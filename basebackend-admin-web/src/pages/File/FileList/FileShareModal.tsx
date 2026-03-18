@@ -48,8 +48,8 @@ const FileShareModal: React.FC<FileShareModalProps> = ({
         allowPreview: values.allowPreview ?? true,
       }
 
-      const res = await createFileShare(data)
-      setShareInfo(res.data)
+      const share = await createFileShare(data)
+      setShareInfo(share)
       message.success('创建分享成功')
     } catch (error: any) {
       message.error(error.response?.data?.message || '创建分享失败')

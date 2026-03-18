@@ -45,10 +45,10 @@
 
 2. **硬编码的外部服务地址**
    ```java
-   @Value("${observability.trace.endpoint:http://192.168.66.126:9411}")
+   @Value("${observability.trace.endpoint:http://localhost:9411}")
    private String traceEndpoint;
    ```
-   - **风险**: 默认值使用内网IP，生产环境可能无法访问
+   - **风险**: 默认值使用固定地址，切换环境时容易遗漏配置
    - **建议**: 使用localhost或通过环境变量强制配置
 
 3. **缺少认证和授权**

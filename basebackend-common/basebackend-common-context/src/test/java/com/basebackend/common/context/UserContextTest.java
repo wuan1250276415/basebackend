@@ -250,7 +250,7 @@ class UserContextTest {
                     .deptName("IT Department")
                     .userType(1)
                     .status(1)
-                    .ipAddress("192.168.1.1")
+                    .ipAddress("198.51.100.1")
                     .requestTime(System.currentTimeMillis())
                     .build();
 
@@ -266,7 +266,7 @@ class UserContextTest {
             assertEquals("IT Department", ctx.getDeptName());
             assertEquals(1, ctx.getUserType());
             assertEquals(1, ctx.getStatus());
-            assertEquals("192.168.1.1", ctx.getIpAddress());
+            assertEquals("198.51.100.1", ctx.getIpAddress());
         }
 
         @Test

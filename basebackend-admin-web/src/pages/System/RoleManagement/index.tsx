@@ -1,12 +1,12 @@
 import { User, Shield } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
-import { Layout, Tabs, Card, Empty, Select, Space, message } from 'antd'
+import { Layout, Tabs, Card, Empty, Select, Space } from 'antd'
 
 import { Role, Application } from '@/types'
+import { getEnabledApplications } from '@/api/application'
 import RoleTree from './components/RoleTree'
 import RoleUserTab from './components/RoleUserTab'
 import RolePermissionTab from './components/RolePermissionTab'
-import request from '@/api/request'
 import './index.css'
 
 const { Content, Sider } = Layout
@@ -20,15 +20,12 @@ const RoleManagement: React.FC = () => {
   // 加载应用列表
   const loadApplications = async () => {
     try {
-      const res = await request.get('/basebackend-system-api/api/system/application/enabled')
-      if (res.code === 200) {
-        const apps = res.data || []
-        setApplications(apps)
+      const apps = await getEnabledApplications()
+      setApplications(apps || [])
 
-        // 默认选中第一个应用
-        if (apps.length > 0 && !selectedAppId) {
-          setSelectedAppId(apps[0].id)
-        }
+      // 默认选中第一个应用
+      if (apps.length > 0 && !selectedAppId) {
+        setSelectedAppId(apps[0].id)
       }
     } catch (error) {
       console.error('加载应用列表失败:', error)

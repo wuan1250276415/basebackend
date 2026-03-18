@@ -11,6 +11,7 @@ import com.basebackend.user.dto.profile.UpdateProfileDTO;
 import com.basebackend.user.entity.SysUser;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.service.ProfileService;
+import com.basebackend.user.service.UserSessionService;
 import com.basebackend.user.util.DeptInfoHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final DeptInfoHelper deptInfoHelper;
     private final PasswordEncoder passwordEncoder;
     private final CustomMetrics customMetrics;
+    private final UserSessionService userSessionService;
 
     @Override
     public ProfileDetailDTO getCurrentUserProfile() {
@@ -148,6 +150,7 @@ public class ProfileServiceImpl implements ProfileService {
             throw BusinessException.paramError("修改密码失败");
         }
 
+        userSessionService.invalidateSession(currentUserId);
         log.info("用户密码修改成功: userId={}", currentUserId);
     }
 

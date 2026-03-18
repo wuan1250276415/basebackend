@@ -31,8 +31,8 @@ const AlertManagement = () => {
   const loadRules = async () => {
     try {
       setLoading(true)
-      const res = await getAllAlertRules()
-      setRules(res.data || [])
+      const rules = await getAllAlertRules()
+      setRules(rules)
     } catch (error: any) {
       message.error(error.message || '加载告警规则失败')
     } finally {
@@ -43,8 +43,8 @@ const AlertManagement = () => {
   // 加载告警事件
   const loadEvents = async () => {
     try {
-      const res = await getRecentAlerts()
-      setEvents(res.data || [])
+      const events = await getRecentAlerts()
+      setEvents(events)
     } catch (error: any) {
       console.error('加载告警事件失败:', error)
     }
@@ -97,12 +97,12 @@ const AlertManagement = () => {
   // 测试规则
   const handleTestRule = async (rule: AlertRule) => {
     try {
-      const res = await testAlertRule(rule)
+      const result = await testAlertRule(rule)
       Modal.info({
         title: '测试结果',
         content: (
           <pre style={{ background: '#f5f5f5', padding: '12px', borderRadius: '4px' }}>
-            {JSON.stringify(res.data, null, 2)}
+            {JSON.stringify(result, null, 2)}
           </pre>
         ),
         width: 600

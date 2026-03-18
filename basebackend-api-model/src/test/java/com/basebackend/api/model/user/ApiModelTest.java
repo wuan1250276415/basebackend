@@ -98,9 +98,10 @@ class ApiModelTest {
         void shouldCreate() {
             var userInfo = new LoginResponse.UserInfo(1L, "admin", "管理员",
                     "admin@test.com", "13800138000", "/avatar.png", 1, 100L, "技术部", 0, 1);
-            var resp = new LoginResponse("token123", "Bearer", 3600L, userInfo,
+            var resp = new LoginResponse("token123", "refresh123", "Bearer", 3600L, userInfo,
                     List.of("sys:user:list"), List.of("admin"));
             assertThat(resp.accessToken()).isEqualTo("token123");
+            assertThat(resp.refreshToken()).isEqualTo("refresh123");
             assertThat(resp.tokenType()).isEqualTo("Bearer");
             assertThat(resp.expiresIn()).isEqualTo(3600L);
             assertThat(resp.userInfo().username()).isEqualTo("admin");
@@ -111,8 +112,9 @@ class ApiModelTest {
         @Test
         @DisplayName("标准构造")
         void shouldDefaultBearer() {
-            var resp = new LoginResponse("token", "Bearer", 7200L, null, List.of(), List.of());
+            var resp = new LoginResponse("token", "refresh", 7200L, null, List.of(), List.of());
             assertThat(resp.accessToken()).isEqualTo("token");
+            assertThat(resp.refreshToken()).isEqualTo("refresh");
             assertThat(resp.tokenType()).isEqualTo("Bearer");
             assertThat(resp.expiresIn()).isEqualTo(7200L);
         }
@@ -120,10 +122,11 @@ class ApiModelTest {
         @Test
         @DisplayName("JSON 序列化/反序列化往返")
         void shouldRoundTrip() throws Exception {
-            var resp = new LoginResponse("tk", "Bearer", 100L, null, List.of("p1"), List.of("r1"));
+            var resp = new LoginResponse("tk", "rtk", "Bearer", 100L, null, List.of("p1"), List.of("r1"));
             String json = MAPPER.writeValueAsString(resp);
             var restored = MAPPER.readValue(json, LoginResponse.class);
             assertThat(restored.accessToken()).isEqualTo("tk");
+            assertThat(restored.refreshToken()).isEqualTo("rtk");
             assertThat(restored.permissions()).containsExactly("p1");
         }
     }

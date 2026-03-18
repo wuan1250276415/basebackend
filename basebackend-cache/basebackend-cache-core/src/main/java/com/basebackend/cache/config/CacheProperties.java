@@ -414,10 +414,6 @@ public class CacheProperties {
          */
         private boolean fairLockEnabled = false;
 
-        /**
-         * 是否启用红锁
-         */
-        private boolean redLockEnabled = false;
     }
 
     /**

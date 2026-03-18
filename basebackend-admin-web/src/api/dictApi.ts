@@ -42,3 +42,7 @@ export const dictApi = {
   refreshCache: (): Promise<void> =>
     request.post('/api/system/dicts/refresh-cache'),
 };
+
+export const getDictTypePage = dictApi.typePage;
+export const getDictDataByType = dictApi.dataByType;
+export const refreshDictCache = dictApi.refreshCache;

@@ -40,6 +40,7 @@ import { useTabStore } from '@/stores/tabStore';
 import TabBar from './TabBar';
 import UserDropdown from './UserDropdown';
 import type { MenuItem } from '@/types';
+import { filterUnsupportedMenus } from '@/router/menuAvailability';
 
 /** 图标名称到 Ant Design 图标组件的映射表 */
 const iconMap: Record<string, React.ReactNode> = {
@@ -143,6 +144,7 @@ const BasicLayout: React.FC = () => {
   const { theme: appTheme, collapsed, toggleTheme, toggleCollapsed, setCollapsed } = useSettingStore();
   const { addTab } = useTabStore();
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
+  const supportedMenus = useMemo(() => filterUnsupportedMenus(menus), [menus]);
 
   /**
    * 响应式侧边栏：视口宽度 < 768px 时自动折叠为图标模式
@@ -162,19 +164,19 @@ const BasicLayout: React.FC = () => {
   }, [setCollapsed]);
 
   // 将后端菜单转换为 ProLayout 菜单格式
-  const menuData = useMemo(() => convertMenus(menus), [menus]);
+  const menuData = useMemo(() => convertMenus(supportedMenus), [supportedMenus]);
 
   // 面包屑数据
   const breadcrumbItems = useMemo(() => {
     const items: { title: React.ReactNode; href?: string }[] = [
       { title: <HomeOutlined />, href: '/' },
     ];
-    const trail = buildBreadcrumb(menus, location.pathname);
+    const trail = buildBreadcrumb(supportedMenus, location.pathname);
     trail.forEach((item) => {
       items.push({ title: item.title, href: item.path });
     });
     return items;
-  }, [menus, location.pathname]);
+  }, [supportedMenus, location.pathname]);
 
   /** 在菜单树中查找路径对应的名称 */
   const findMenuName = useCallback(
@@ -194,11 +196,11 @@ const BasicLayout: React.FC = () => {
   /** 菜单点击导航 */
   const handleMenuClick = useCallback(
     (path: string) => {
-      const title = findMenuName(menus, path);
+      const title = findMenuName(supportedMenus, path);
       addTab({ key: path, title, closable: path !== '/' });
       navigate(path);
     },
-    [menus, addTab, navigate, findMenuName],
+    [supportedMenus, addTab, navigate, findMenuName],
   );
 
   return (

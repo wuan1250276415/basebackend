@@ -42,16 +42,13 @@ const WebhookConfig = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const res = await getWebhookConfigPage({
+      const pageResult = await getWebhookConfigPage({
         page,
         size,
         name: searchName
       })
-
-      if (res.code === 200) {
-        setDataSource(res.data.records)
-        setTotal(res.data.total)
-      }
+      setDataSource(pageResult.records || [])
+      setTotal(pageResult.total || 0)
     } catch (error) {
       message.error('获取Webhook配置失败')
     } finally {

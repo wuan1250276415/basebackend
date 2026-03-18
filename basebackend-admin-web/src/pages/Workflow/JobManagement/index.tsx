@@ -91,13 +91,9 @@ const JobManagement: React.FC = () => {
                 params.processDefinitionKey = processDefinitionKey
             }
 
-            const response = await listJobs(params)
-            if (response.code === 200) {
-                setJobs(response.data?.records || [])
-                setTotal(response.data?.total || 0)
-            } else {
-                message.error(response.message || '加载作业列表失败')
-            }
+            const pageData = await listJobs(params)
+            setJobs(pageData?.records || [])
+            setTotal(pageData?.total || 0)
         } catch (error) {
             message.error('加载作业列表失败')
             console.error(error)
@@ -109,10 +105,7 @@ const JobManagement: React.FC = () => {
     // 加载统计信息
     const loadStatistics = useCallback(async () => {
         try {
-            const response = await getJobStatistics()
-            if (response.code === 200) {
-                setStatistics(response.data)
-            }
+            setStatistics(await getJobStatistics())
         } catch (error) {
             console.error('Failed to load statistics', error)
         }
@@ -128,12 +121,7 @@ const JobManagement: React.FC = () => {
         setDetailLoading(true)
         setDetailModalVisible(true)
         try {
-            const response = await getJobById(job.id)
-            if (response.code === 200) {
-                setCurrentJob(response.data)
-            } else {
-                message.error(response.message || '获取作业详情失败')
-            }
+            setCurrentJob(await getJobById(job.id))
         } catch (error) {
             message.error('获取作业详情失败')
             console.error(error)
@@ -145,14 +133,10 @@ const JobManagement: React.FC = () => {
     // 重试作业
     const handleRetry = async (jobId: string, retries?: number) => {
         try {
-            const response = await retryJob(jobId, { retries: retries || 3 })
-            if (response.code === 200) {
-                message.success('作业已设置重试')
-                loadJobs()
-                loadStatistics()
-            } else {
-                message.error(response.message || '重试失败')
-            }
+            await retryJob(jobId, { retries: retries || 3 })
+            message.success('作业已设置重试')
+            loadJobs()
+            loadStatistics()
         } catch (error) {
             message.error('重试失败')
             console.error(error)
@@ -162,14 +146,10 @@ const JobManagement: React.FC = () => {
     // 立即执行
     const handleExecute = async (jobId: string) => {
         try {
-            const response = await executeJob(jobId)
-            if (response.code === 200) {
-                message.success('作业执行成功')
-                loadJobs()
-                loadStatistics()
-            } else {
-                message.error(response.message || '执行失败')
-            }
+            await executeJob(jobId)
+            message.success('作业执行成功')
+            loadJobs()
+            loadStatistics()
         } catch (error) {
             message.error('执行失败')
             console.error(error)
@@ -179,14 +159,10 @@ const JobManagement: React.FC = () => {
     // 删除作业
     const handleDelete = async (jobId: string) => {
         try {
-            const response = await deleteJob(jobId)
-            if (response.code === 200) {
-                message.success('作业删除成功')
-                loadJobs()
-                loadStatistics()
-            } else {
-                message.error(response.message || '删除失败')
-            }
+            await deleteJob(jobId)
+            message.success('作业删除成功')
+            loadJobs()
+            loadStatistics()
         } catch (error) {
             message.error('删除失败')
             console.error(error)
@@ -196,15 +172,11 @@ const JobManagement: React.FC = () => {
     // 挂起/激活
     const handleSuspend = async (job: Job) => {
         try {
-            const response = job.suspended
+            await (job.suspended
                 ? await activateJob(job.id)
-                : await suspendJob(job.id)
-            if (response.code === 200) {
-                message.success(job.suspended ? '作业已激活' : '作业已挂起')
-                loadJobs()
-            } else {
-                message.error(response.message || '操作失败')
-            }
+                : await suspendJob(job.id))
+            message.success(job.suspended ? '作业已激活' : '作业已挂起')
+            loadJobs()
         } catch (error) {
             message.error('操作失败')
             console.error(error)
@@ -224,15 +196,11 @@ const JobManagement: React.FC = () => {
             content: `确定要重试选中的 ${selectedRowKeys.length} 个作业吗？`,
             onOk: async () => {
                 try {
-                    const response = await batchRetryJobs(selectedRowKeys as string[], 3)
-                    if (response.code === 200) {
-                        message.success(`成功重试 ${response.data.success} 个作业`)
-                        setSelectedRowKeys([])
-                        loadJobs()
-                        loadStatistics()
-                    } else {
-                        message.error(response.message || '批量重试失败')
-                    }
+                    const result = await batchRetryJobs(selectedRowKeys as string[], 3)
+                    message.success(`成功重试 ${result.success} 个作业`)
+                    setSelectedRowKeys([])
+                    loadJobs()
+                    loadStatistics()
                 } catch (error) {
                     message.error('批量重试失败')
                     console.error(error)
@@ -255,15 +223,11 @@ const JobManagement: React.FC = () => {
             okType: 'danger',
             onOk: async () => {
                 try {
-                    const response = await batchDeleteJobs(selectedRowKeys as string[])
-                    if (response.code === 200) {
-                        message.success(`成功删除 ${response.data.success} 个作业`)
-                        setSelectedRowKeys([])
-                        loadJobs()
-                        loadStatistics()
-                    } else {
-                        message.error(response.message || '批量删除失败')
-                    }
+                    const result = await batchDeleteJobs(selectedRowKeys as string[])
+                    message.success(`成功删除 ${result.success} 个作业`)
+                    setSelectedRowKeys([])
+                    loadJobs()
+                    loadStatistics()
                 } catch (error) {
                     message.error('批量删除失败')
                     console.error(error)

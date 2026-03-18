@@ -6,11 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,6 +31,19 @@ import java.util.List;
 public class JdbcEventStore implements EventStore {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcEventStore.class);
+    private static final String SELECT_PENDING_SQL =
+            "SELECT id, event_type, event_data, source, retry_count, max_retries, status, created_at, next_retry_time "
+                    + "FROM domain_event WHERE status = ? AND (next_retry_time IS NULL OR next_retry_time <= ?) "
+                    + "ORDER BY created_at ASC LIMIT ?";
+    private static final String SELECT_FAILED_SQL =
+            "SELECT id, event_type, event_data, source, retry_count, max_retries, status, created_at, next_retry_time "
+                    + "FROM domain_event WHERE status = ? AND retry_count < max_retries "
+                    + "AND (next_retry_time IS NULL OR next_retry_time <= ?) "
+                    + "ORDER BY next_retry_time ASC, created_at ASC LIMIT ?";
+    private static final String UPDATE_STATUS_SQL =
+            "UPDATE domain_event SET status = ?, updated_at = ? WHERE id = ?";
+    private static final String UPDATE_FAILED_WITH_REASON_SQL =
+            "UPDATE domain_event SET status = ?, fail_reason = ?, updated_at = ? WHERE id = ?";
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -61,42 +79,51 @@ public class JdbcEventStore implements EventStore {
 
     @Override
     public List<DomainEvent> findPendingEvents(int limit) {
-        // JDBC 模式下需要具体子类类型注册才能完成反序列化，当前版本暂不支持。
-        // 自动事件重试在 JDBC 存储模式下不可用，请改用 RedisEventStore 或实现自定义 EventStore。
-        // 若确实需要 JDBC 重试支持，请子类化本类并重写此方法以提供类型注册逻辑。
-        log.warn("JdbcEventStore 不支持自动事件重试（findPendingEvents），如需此功能请配置 Redis 事件存储");
-        return Collections.emptyList();
+        return jdbcTemplate.query(
+                SELECT_PENDING_SQL,
+                eventRowMapper(),
+                EventStatus.PENDING.name(),
+                LocalDateTime.now(),
+                limit
+        );
     }
 
     @Override
     public List<DomainEvent> findFailedEvents(int limit) {
-        // 同 findPendingEvents，JDBC 模式下不支持失败事件自动恢复。
-        log.warn("JdbcEventStore 不支持失败事件自动恢复（findFailedEvents），如需此功能请配置 Redis 事件存储");
-        return Collections.emptyList();
+        return jdbcTemplate.query(
+                SELECT_FAILED_SQL,
+                eventRowMapper(),
+                EventStatus.FAILED.name(),
+                LocalDateTime.now(),
+                limit
+        );
     }
 
     @Override
     public void markAsPublished(String eventId) {
-        jdbcTemplate.update(
-                "UPDATE domain_event SET status = ?, updated_at = ? WHERE id = ?",
-                EventStatus.PUBLISHED.name(), LocalDateTime.now(), eventId
-        );
+        jdbcTemplate.update(UPDATE_STATUS_SQL, EventStatus.PUBLISHED.name(), LocalDateTime.now(), eventId);
     }
 
     @Override
     public void markAsFailed(String eventId, String reason) {
-        jdbcTemplate.update(
-                "UPDATE domain_event SET status = ?, updated_at = ? WHERE id = ?",
-                EventStatus.FAILED.name(), LocalDateTime.now(), eventId
-        );
+        try {
+            jdbcTemplate.update(
+                    UPDATE_FAILED_WITH_REASON_SQL,
+                    EventStatus.FAILED.name(), reason, LocalDateTime.now(), eventId
+            );
+        } catch (BadSqlGrammarException ex) {
+            if (isMissingFailReasonColumn(ex)) {
+                log.warn("domain_event 缺少 fail_reason 列，回退到兼容 SQL: eventId={}", eventId);
+                jdbcTemplate.update(UPDATE_STATUS_SQL, EventStatus.FAILED.name(), LocalDateTime.now(), eventId);
+                return;
+            }
+            throw ex;
+        }
     }
 
     @Override
     public void markAsConsumed(String eventId) {
-        jdbcTemplate.update(
-                "UPDATE domain_event SET status = ?, updated_at = ? WHERE id = ?",
-                EventStatus.CONSUMED.name(), LocalDateTime.now(), eventId
-        );
+        jdbcTemplate.update(UPDATE_STATUS_SQL, EventStatus.CONSUMED.name(), LocalDateTime.now(), eventId);
     }
 
     @Override
@@ -110,5 +137,104 @@ public class JdbcEventStore implements EventStore {
             log.info("Deleted {} expired domain events older than {}", deleted, threshold);
         }
         return deleted;
+    }
+
+    private RowMapper<DomainEvent> eventRowMapper() {
+        return (rs, rowNum) -> mapEventRow(rs);
+    }
+
+    private DomainEvent mapEventRow(ResultSet rs) throws SQLException {
+        String eventId = rs.getString("id");
+        String eventType = rs.getString("event_type");
+        String eventData = rs.getString("event_data");
+        String source = rs.getString("source");
+        int retryCount = rs.getInt("retry_count");
+        int maxRetries = rs.getInt("max_retries");
+        EventStatus status = EventStatus.valueOf(rs.getString("status"));
+        LocalDateTime createdAt = toLocalDateTime(rs.getTimestamp("created_at"));
+        Timestamp nextRetryTimestamp = rs.getTimestamp("next_retry_time");
+        LocalDateTime nextRetryTime = nextRetryTimestamp != null ? nextRetryTimestamp.toLocalDateTime() : null;
+
+        DomainEvent event = deserializeEvent(eventType, eventData, source);
+        restoreStoredState(event, eventId, eventType, createdAt, source, retryCount, maxRetries, status, nextRetryTime);
+        return event;
+    }
+
+    private DomainEvent deserializeEvent(String eventType, String eventData, String source) {
+        try {
+            Class<?> rawClass = Class.forName(eventType);
+            if (DomainEvent.class.isAssignableFrom(rawClass)) {
+                @SuppressWarnings("unchecked")
+                Class<? extends DomainEvent> eventClass = (Class<? extends DomainEvent>) rawClass;
+                return objectMapper.readValue(eventData, eventClass);
+            }
+        } catch (ClassNotFoundException e) {
+            log.warn("事件类不存在，使用降级包装事件: eventType={}", eventType);
+        } catch (Exception e) {
+            log.warn("事件反序列化失败，使用降级包装事件: eventType={}", eventType, e);
+        }
+        return new RehydratedDomainEvent(source, eventData);
+    }
+
+    private void restoreStoredState(DomainEvent event, String eventId, String eventType,
+                                    LocalDateTime timestamp, String source,
+                                    int retryCount, int maxRetries,
+                                    EventStatus status, LocalDateTime nextRetryTime) {
+        setField(event, "eventId", eventId);
+        setField(event, "eventType", eventType);
+        setField(event, "timestamp", timestamp);
+        setField(event, "source", source);
+        setField(event, "retryCount", retryCount);
+        event.setMaxRetries(maxRetries);
+        event.setStatus(status);
+        event.setNextRetryTime(nextRetryTime);
+    }
+
+    private void setField(DomainEvent target, String fieldName, Object value) {
+        try {
+            Class<?> current = target.getClass();
+            while (current != null) {
+                try {
+                    var field = current.getDeclaredField(fieldName);
+                    field.setAccessible(true);
+                    field.set(target, value);
+                    return;
+                } catch (NoSuchFieldException ignored) {
+                    current = current.getSuperclass();
+                }
+            }
+            throw new NoSuchFieldException(fieldName);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed to restore event field: " + fieldName, e);
+        }
+    }
+
+    private LocalDateTime toLocalDateTime(Timestamp timestamp) {
+        return timestamp != null ? timestamp.toLocalDateTime() : null;
+    }
+
+    private boolean isMissingFailReasonColumn(DataAccessException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof SQLException sqlException) {
+            String message = sqlException.getMessage();
+            return sqlException.getErrorCode() == 1054
+                    || "42S22".equals(sqlException.getSQLState())
+                    || (message != null && message.contains("fail_reason"));
+        }
+        String message = ex.getMessage();
+        return message != null && message.contains("fail_reason");
+    }
+
+    private static final class RehydratedDomainEvent extends DomainEvent {
+        private final String rawEventData;
+
+        private RehydratedDomainEvent(String source, String rawEventData) {
+            super(source);
+            this.rawEventData = rawEventData;
+        }
+
+        public String getRawEventData() {
+            return rawEventData;
+        }
     }
 }

@@ -115,7 +115,7 @@ sum(rate({level="ERROR"}[5m])) by (service)
 ### 访问日志格式
 
 ```
-192.168.1.100 - - [15/Jan/2024:10:30:45 +0800] "GET /api/users HTTP/1.1" 200 1234 "-" "Mozilla/5.0"
+198.51.100.10 - - [15/Jan/2024:10:30:45 +0800] "GET /api/users HTTP/1.1" 200 1234 "-" "Mozilla/5.0"
 ```
 
 ### 操作日志格式（JSON）
@@ -127,7 +127,7 @@ sum(rate({level="ERROR"}[5m])) by (service)
   "operation": "用户登录",
   "method": "POST",
   "params": "{\"username\":\"admin\"}",
-  "ip": "192.168.1.100",
+  "ip": "198.51.100.10",
   "status": "success"
 }
 ```

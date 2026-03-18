@@ -21,8 +21,8 @@ const ServerMonitorPage = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await getServerInfo()
-      setServerInfo(response.data as ServerInfo)
+      const info = await getServerInfo()
+      setServerInfo(info as ServerInfo)
     } catch (error: any) {
       message.error(error.message || '加载服务器信息失败')
     } finally {

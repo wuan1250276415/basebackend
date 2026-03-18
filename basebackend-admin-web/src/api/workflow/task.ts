@@ -5,7 +5,6 @@ import type {
   CompleteTaskParams,
   ClaimTaskParams,
   DelegateTaskParams,
-  ApiResponse,
   PageResult,
 } from '@/types/workflow'
 
@@ -17,7 +16,7 @@ const BASE_URL = '/api/camunda/tasks'
  */
 export const listTasks = async (
   params?: TaskQueryParams
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return request.get(BASE_URL, { params })
 }
 
@@ -27,7 +26,7 @@ export const listTasks = async (
 export const listPendingTasks = async (
   assignee: string,
   params?: Omit<TaskQueryParams, 'assignee'>
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return listTasks({ ...params, assignee })
 }
 
@@ -37,7 +36,7 @@ export const listPendingTasks = async (
 export const listCandidateTasks = async (
   candidateUser: string,
   params?: Omit<TaskQueryParams, 'candidateUser'>
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return listTasks({ ...params, candidateUser })
 }
 
@@ -46,7 +45,7 @@ export const listCandidateTasks = async (
  */
 export const listTasksByProcessInstanceId = async (
   processInstanceId: string
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return listTasks({ processInstanceId })
 }
 
@@ -56,7 +55,7 @@ export const listTasksByProcessInstanceId = async (
 export const getTaskById = async (
   taskId: string,
   withVariables: boolean = false
-): Promise<ApiResponse<Task>> => {
+): Promise<Task> => {
   return request.get(`${BASE_URL}/${taskId}`, {
     params: { withVariables }
   })
@@ -68,7 +67,7 @@ export const getTaskById = async (
 export const completeTask = async (
   taskId: string,
   variables: CompleteTaskParams
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${taskId}/complete`, variables)
 }
 
@@ -78,14 +77,14 @@ export const completeTask = async (
 export const claimTask = async (
   taskId: string,
   data: ClaimTaskParams
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${taskId}/claim`, data)
 }
 
 /**
  * 释放任务 (Unclaim)
  */
-export const unclaimTask = async (taskId: string): Promise<ApiResponse> => {
+export const unclaimTask = async (taskId: string): Promise<void> => {
   return request.post(`${BASE_URL}/${taskId}/unclaim`)
 }
 
@@ -95,7 +94,7 @@ export const unclaimTask = async (taskId: string): Promise<ApiResponse> => {
 export const delegateTask = async (
   taskId: string,
   data: DelegateTaskParams
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${taskId}/delegate`, data)
 }
 
@@ -104,7 +103,7 @@ export const delegateTask = async (
  */
 export const getTaskVariables = async (
   taskId: string
-): Promise<ApiResponse<Record<string, any>>> => {
+): Promise<Record<string, any>> => {
   return request.get(`${BASE_URL}/${taskId}/variables`)
 }
 
@@ -114,7 +113,7 @@ export const getTaskVariables = async (
 export const setTaskVariables = async (
   taskId: string,
   variables: { key: string; value: any; local?: boolean }
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.put(`${BASE_URL}/${taskId}/variables`, variables)
 }
 
@@ -124,7 +123,7 @@ export const setTaskVariables = async (
 export const deleteTaskVariable = async (
   taskId: string,
   key: string
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.delete(`${BASE_URL}/${taskId}/variables/${key}`)
 }
 
@@ -133,7 +132,7 @@ export const deleteTaskVariable = async (
  */
 export const listTaskAttachments = async (
   taskId: string
-): Promise<ApiResponse<any[]>> => {
+): Promise<any[]> => {
   return request.get(`${BASE_URL}/${taskId}/attachments`)
 }
 
@@ -143,7 +142,7 @@ export const listTaskAttachments = async (
 export const addTaskAttachment = async (
   taskId: string,
   data: { name: string; description?: string; type: string; url: string }
-): Promise<ApiResponse<any>> => {
+): Promise<any> => {
   return request.post(`${BASE_URL}/${taskId}/attachments`, data)
 }
 
@@ -152,7 +151,7 @@ export const addTaskAttachment = async (
  */
 export const listTaskComments = async (
   taskId: string
-): Promise<ApiResponse<any[]>> => {
+): Promise<any[]> => {
   return request.get(`${BASE_URL}/${taskId}/comments`)
 }
 
@@ -162,7 +161,7 @@ export const listTaskComments = async (
 export const addTaskComment = async (
   taskId: string,
   data: { message: string }
-): Promise<ApiResponse<any>> => {
+): Promise<any> => {
   return request.post(`${BASE_URL}/${taskId}/comments`, data)
 }
 
@@ -173,7 +172,7 @@ export const addTaskComment = async (
  */
 export const listOverdueTasks = async (
   params?: TaskQueryParams
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return request.get(`${BASE_URL}/overdue`, { params })
 }
 
@@ -183,21 +182,21 @@ export const listOverdueTasks = async (
 export const listDueSoonTasks = async (
   params?: TaskQueryParams,
   hours: number = 24
-): Promise<ApiResponse<PageResult<Task>>> => {
+): Promise<PageResult<Task>> => {
   return request.get(`${BASE_URL}/due-soon`, { params: { ...params, hours } })
 }
 
 /**
  * 统计已超时任务数量
  */
-export const countOverdueTasks = async (): Promise<ApiResponse<number>> => {
+export const countOverdueTasks = async (): Promise<number> => {
   return request.get(`${BASE_URL}/overdue/count`)
 }
 
 /**
  * 统计即将超时任务数量
  */
-export const countDueSoonTasks = async (hours: number = 24): Promise<ApiResponse<number>> => {
+export const countDueSoonTasks = async (hours: number = 24): Promise<number> => {
   return request.get(`${BASE_URL}/due-soon/count`, { params: { hours } })
 }
 
@@ -215,7 +214,7 @@ export interface BatchOperationResult {
 export const batchCompleteTasks = async (
   taskIds: string[],
   variables?: Record<string, any>
-): Promise<ApiResponse<BatchOperationResult>> => {
+): Promise<BatchOperationResult> => {
   return request.post(`${BASE_URL}/batch-complete`, taskIds, {
     params: variables ? { variables } : undefined
   })
@@ -227,7 +226,7 @@ export const batchCompleteTasks = async (
 export const batchClaimTasks = async (
   taskIds: string[],
   userId: string
-): Promise<ApiResponse<BatchOperationResult>> => {
+): Promise<BatchOperationResult> => {
   return request.post(`${BASE_URL}/batch-claim`, taskIds, {
     params: { userId }
   })
@@ -239,7 +238,7 @@ export const batchClaimTasks = async (
 export const batchDelegateTasks = async (
   taskIds: string[],
   userId: string
-): Promise<ApiResponse<BatchOperationResult>> => {
+): Promise<BatchOperationResult> => {
   return request.post(`${BASE_URL}/batch-delegate`, taskIds, {
     params: { userId }
   })

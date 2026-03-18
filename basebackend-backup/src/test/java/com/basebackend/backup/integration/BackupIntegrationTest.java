@@ -270,6 +270,9 @@ class BackupIntegrationTest {
                 mysql.getPassword());
              Statement stmt = conn.createStatement()) {
 
+            stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+            stmt.execute("DROP VIEW IF EXISTS user_order_summary");
+            stmt.execute("DROP TABLE IF EXISTS test_orders");
             stmt.execute("DROP TABLE IF EXISTS test_users");
             stmt.execute("""
                         CREATE TABLE test_users (
@@ -279,6 +282,7 @@ class BackupIntegrationTest {
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
                     """);
+            stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to create test tables", e);

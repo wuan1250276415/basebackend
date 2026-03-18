@@ -97,14 +97,14 @@ nacos:
 # 适用于生产环境，需要高可用配置
 nacos:
   config:
-    server-addr: ${NACOS_SERVER_ADDR:192.168.1.100:8848,192.168.1.101:8848,192.168.1.102:8848}
+    server-addr: ${NACOS_SERVER_ADDR:203.0.113.10:8848,203.0.113.11:8848,203.0.113.12:8848}
     namespace: ${SPRING_PROFILES_ACTIVE:prod}
     group: ${NACOS_GROUP:DEFAULT_GROUP}
     username: ${NACOS_USERNAME:${nacos.username}}
     password: ${NACOS_PASSWORD:${nacos.password}}
 
   discovery:
-    server-addr: ${NACOS_SERVER_ADDR:192.168.1.100:8848,192.168.1.101:8848,192.168.1.102:8848}
+    server-addr: ${NACOS_SERVER_ADDR:203.0.113.10:8848,203.0.113.11:8848,203.0.113.12:8848}
     namespace: ${SPRING_PROFILES_ACTIVE:prod}
     group: ${NACOS_GROUP:DEFAULT_GROUP}
     username: ${NACOS_USERNAME:${nacos.username}}

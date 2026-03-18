@@ -13,12 +13,8 @@ const Statistics: React.FC = () => {
     const loadData = async () => {
         setLoading(true)
         try {
-            const response = await getWorkflowOverview()
-            if (response.code === 200) {
-                setData(response.data)
-            } else {
-                message.error(response.message || '加载统计数据失败')
-            }
+            const overview = await getWorkflowOverview()
+            setData(overview)
         } catch (error) {
             message.error('加载统计数据失败')
             console.error(error)

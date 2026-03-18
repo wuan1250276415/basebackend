@@ -119,8 +119,6 @@ basebackend:
       default-lease-time: 30s
       # 是否启用公平锁
       fair-lock-enabled: false
-      # 是否启用红锁
-      red-lock-enabled: false
 
     # 跨服务缓存失效配置
     invalidation:

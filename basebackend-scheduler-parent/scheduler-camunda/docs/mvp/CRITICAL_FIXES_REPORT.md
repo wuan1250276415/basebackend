@@ -116,7 +116,7 @@ request.setTargetProcessDefinitionId("order-flow-v2:1:123");
 **修复方案**：
 ```yaml
 # 修正前
-password: redis_TChiFW
+password: <hardcoded-password>
 
 # 修正后
 password: ${REDIS_PASSWORD:}

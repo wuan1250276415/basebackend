@@ -37,16 +37,13 @@ const DeadLetter = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const res = await getDeadLetterPage({
+      const pageResult = await getDeadLetterPage({
         page,
         size,
         status: status || undefined,
       })
-
-      if (res.code === 200) {
-        setDataSource(res.data.records)
-        setTotal(res.data.total)
-      }
+      setDataSource(pageResult.records || [])
+      setTotal(pageResult.total || 0)
     } catch (error) {
       message.error('获取死信列表失败')
     } finally {
@@ -61,11 +58,9 @@ const DeadLetter = () => {
   // 查看详情
   const handleViewDetail = async (id: number) => {
     try {
-      const res = await getDeadLetter(id)
-      if (res.code === 200) {
-        setDetailData(res.data)
-        setDetailVisible(true)
-      }
+      const detail = await getDeadLetter(id)
+      setDetailData(detail)
+      setDetailVisible(true)
     } catch (error) {
       message.error('获取详情失败')
     }

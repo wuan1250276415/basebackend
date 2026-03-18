@@ -22,9 +22,9 @@ class BlacklistManagerTest {
     @Test
     @DisplayName("静态黑名单 IP 被拒绝")
     void staticDeniedIp() {
-        manager.getDeniedIps().add("192.168.1.100");
-        assertThat(manager.isIpDenied("192.168.1.100")).isTrue();
-        assertThat(manager.isIpDenied("192.168.1.101")).isFalse();
+        manager.getDeniedIps().add("198.51.100.100");
+        assertThat(manager.isIpDenied("198.51.100.100")).isTrue();
+        assertThat(manager.isIpDenied("198.51.100.101")).isFalse();
     }
 
     @Test
@@ -49,15 +49,15 @@ class BlacklistManagerTest {
     @Test
     @DisplayName("白名单模式：仅允许列表中的 IP")
     void whitelistMode() {
-        manager.getAllowedIps().add("192.168.1.1");
-        assertThat(manager.isIpDenied("192.168.1.1")).isFalse();   // 在白名单中
-        assertThat(manager.isIpDenied("192.168.1.2")).isTrue();    // 不在白名单中
+        manager.getAllowedIps().add("198.51.100.1");
+        assertThat(manager.isIpDenied("198.51.100.1")).isFalse();   // 在白名单中
+        assertThat(manager.isIpDenied("198.51.100.2")).isTrue();    // 不在白名单中
     }
 
     @Test
     @DisplayName("白名单模式：动态添加白名单 IP")
     void whitelistModeDynamic() {
-        manager.getAllowedIps().add("192.168.1.1");
+        manager.getAllowedIps().add("198.51.100.1");
         assertThat(manager.isIpDenied("10.0.0.1")).isTrue();
 
         // 动态加入白名单

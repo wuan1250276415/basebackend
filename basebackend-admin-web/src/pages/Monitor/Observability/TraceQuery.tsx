@@ -1,8 +1,14 @@
 import { Search, RefreshCw, Eye } from 'lucide-react';
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, Form, Input, Button, Table, Tag, Space, message, Drawer, Descriptions } from 'antd'
 
-import { searchTraces, getTraceById, TraceQueryRequest } from '@/api/observability/traces'
+import {
+  searchTraces,
+  getTraceById,
+  type TraceDetail,
+  type TraceItem,
+  type TraceQueryRequest,
+} from '@/api/observability/traces'
 import dayjs from 'dayjs'
 
 /**
@@ -11,11 +17,11 @@ import dayjs from 'dayjs'
 const TraceQuery = () => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [traces, setTraces] = useState<any[]>([])
+  const [traces, setTraces] = useState<TraceItem[]>([])
   const [total, setTotal] = useState(0)
   const [drawerVisible, setDrawerVisible] = useState(false)
-  const [selectedTrace, setSelectedTrace] = useState<any>(null)
-  const [traceDetail, setTraceDetail] = useState<any>(null)
+  const [selectedTrace, setSelectedTrace] = useState<TraceItem | null>(null)
+  const [traceDetail, setTraceDetail] = useState<TraceDetail | null>(null)
 
   // 搜索追踪
   const handleSearch = async (values: any) => {
@@ -30,14 +36,8 @@ const TraceQuery = () => {
       }
 
       const res = await searchTraces(params)
-
-      if (res.data?.traces) {
-        setTraces(res.data.traces)
-        setTotal(res.data.total || 0)
-      } else {
-        setTraces([])
-        setTotal(0)
-      }
+      setTraces(res.traces)
+      setTotal(res.total)
     } catch (error: any) {
       message.error(error.message || '搜索追踪失败')
     } finally {
@@ -46,13 +46,13 @@ const TraceQuery = () => {
   }
 
   // 查看追踪详情
-  const handleViewDetail = async (record: any) => {
+  const handleViewDetail = async (record: TraceItem) => {
     try {
       setSelectedTrace(record)
       setDrawerVisible(true)
 
-      const res = await getTraceById(record.traceId)
-      setTraceDetail(res.data)
+      const detail = await getTraceById(record.traceId)
+      setTraceDetail(detail)
     } catch (error: any) {
       message.error(error.message || '加载追踪详情失败')
     }
@@ -76,20 +76,20 @@ const TraceQuery = () => {
     },
     {
       title: '服务名称',
-      dataIndex: 'rootServiceName',
-      key: 'rootServiceName',
+      dataIndex: 'serviceName',
+      key: 'serviceName',
       width: 200
     },
     {
       title: '操作名称',
-      dataIndex: 'rootTraceName',
-      key: 'rootTraceName',
+      dataIndex: 'operationName',
+      key: 'operationName',
       width: 250
     },
     {
       title: '持续时间',
-      dataIndex: 'durationMs',
-      key: 'durationMs',
+      dataIndex: 'duration',
+      key: 'duration',
       width: 120,
       render: (duration: number) => {
         const color = duration > 1000 ? 'red' : duration > 500 ? 'orange' : 'green'
@@ -98,10 +98,10 @@ const TraceQuery = () => {
     },
     {
       title: '开始时间',
-      dataIndex: 'startTimeUnixNano',
-      key: 'startTimeUnixNano',
+      dataIndex: 'startTime',
+      key: 'startTime',
       width: 180,
-      render: (time: number) => dayjs(time / 1000000).format('YYYY-MM-DD HH:mm:ss')
+      render: (time: number) => dayjs(time).format('YYYY-MM-DD HH:mm:ss')
     },
     {
       title: '操作',
@@ -185,16 +185,16 @@ const TraceQuery = () => {
               <code>{selectedTrace.traceId}</code>
             </Descriptions.Item>
             <Descriptions.Item label="服务名称">
-              {selectedTrace.rootServiceName}
+              {selectedTrace.serviceName}
             </Descriptions.Item>
             <Descriptions.Item label="操作名称">
-              {selectedTrace.rootTraceName}
+              {selectedTrace.operationName}
             </Descriptions.Item>
             <Descriptions.Item label="持续时间">
-              {selectedTrace.durationMs} ms
+              {selectedTrace.duration} ms
             </Descriptions.Item>
             <Descriptions.Item label="开始时间">
-              {dayjs(selectedTrace.startTimeUnixNano / 1000000).format('YYYY-MM-DD HH:mm:ss.SSS')}
+              {dayjs(selectedTrace.startTime).format('YYYY-MM-DD HH:mm:ss.SSS')}
             </Descriptions.Item>
             <Descriptions.Item label="Span 数量">
               {traceDetail?.spanCount || '-'}

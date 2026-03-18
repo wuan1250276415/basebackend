@@ -1,6 +1,7 @@
 package com.basebackend.messaging.webhook;
 
 import com.basebackend.common.util.JsonUtils;
+import com.basebackend.messaging.management.service.WebhookLogStore;
 import com.basebackend.messaging.producer.MessageProducer;
 import com.basebackend.messaging.model.Message;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +25,25 @@ public class WebhookInvoker {
     private final WebhookSignatureService signatureService;
     private final MessageProducer messageProducer;
     private final TaskExecutor webhookExecutor;
+    private final WebhookLogStore webhookLogStore;
 
     public WebhookInvoker(RestClient restClient,
             WebhookSignatureService signatureService,
             MessageProducer messageProducer,
             TaskExecutor webhookExecutor) {
+        this(restClient, signatureService, messageProducer, webhookExecutor, null);
+    }
+
+    public WebhookInvoker(RestClient restClient,
+            WebhookSignatureService signatureService,
+            MessageProducer messageProducer,
+            TaskExecutor webhookExecutor,
+            WebhookLogStore webhookLogStore) {
         this.restClient = restClient;
         this.signatureService = signatureService;
         this.messageProducer = messageProducer;
         this.webhookExecutor = webhookExecutor;
+        this.webhookLogStore = webhookLogStore;
     }
 
     /**
@@ -110,6 +121,7 @@ public class WebhookInvoker {
         }
 
         webhookLog.setCreateTime(LocalDateTime.now());
+        persistLog(webhookLog);
         return webhookLog;
     }
 
@@ -156,5 +168,18 @@ public class WebhookInvoker {
 
         log.info("Webhook retry scheduled: webhookId={}, eventId={}, retryCount={}, delaySeconds={}",
                 config.getId(), event.getEventId(), retryCount, delaySeconds);
+    }
+
+    private void persistLog(WebhookLog webhookLog) {
+        if (webhookLogStore == null) {
+            return;
+        }
+
+        try {
+            webhookLogStore.save(webhookLog);
+        } catch (Exception ex) {
+            log.warn("Failed to persist webhook log: webhookId={}, eventId={}",
+                    webhookLog.getWebhookId(), webhookLog.getEventId(), ex);
+        }
     }
 }

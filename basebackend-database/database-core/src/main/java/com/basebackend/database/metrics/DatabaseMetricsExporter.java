@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,15 +34,18 @@ public class DatabaseMetricsExporter {
     private final MeterRegistry meterRegistry;
     private final DataSource dataSource;
     private final DatabaseEnhancedProperties properties;
+    private final ObjectProvider<SqlInjectionPreventionInterceptor> sqlInjectionInterceptorProvider;
     
     private static final String METRIC_PREFIX = "database_enhanced";
     
     public DatabaseMetricsExporter(MeterRegistry meterRegistry, 
                                    DataSource dataSource,
-                                   DatabaseEnhancedProperties properties) {
+                                   DatabaseEnhancedProperties properties,
+                                   ObjectProvider<SqlInjectionPreventionInterceptor> sqlInjectionInterceptorProvider) {
         this.meterRegistry = meterRegistry;
         this.dataSource = dataSource;
         this.properties = properties;
+        this.sqlInjectionInterceptorProvider = sqlInjectionInterceptorProvider;
     }
     
     @PostConstruct
@@ -123,26 +127,31 @@ public class DatabaseMetricsExporter {
     private void registerSqlInjectionMetrics(String prefix) {
         // SQL注入检测统计
         Gauge.builder(prefix + "_sql_injection_total_checks", () -> {
-            Map<String, Object> stats = SqlInjectionPreventionInterceptor.getStatistics();
+            Map<String, Object> stats = getSqlInjectionStatistics();
             return ((Number) stats.getOrDefault("totalChecks", 0L)).doubleValue();
         })
             .description("Total SQL injection checks performed")
             .register(meterRegistry);
         
         Gauge.builder(prefix + "_sql_injection_blocked_count", () -> {
-            Map<String, Object> stats = SqlInjectionPreventionInterceptor.getStatistics();
+            Map<String, Object> stats = getSqlInjectionStatistics();
             return ((Number) stats.getOrDefault("blockedCount", 0L)).doubleValue();
         })
             .description("Total SQL injection attempts blocked")
             .register(meterRegistry);
         
         Gauge.builder(prefix + "_sql_injection_whitelisted_count", () -> {
-            Map<String, Object> stats = SqlInjectionPreventionInterceptor.getStatistics();
+            Map<String, Object> stats = getSqlInjectionStatistics();
             return ((Number) stats.getOrDefault("whitelistedCount", 0L)).doubleValue();
         })
             .description("Total SQL queries whitelisted")
             .register(meterRegistry);
         
         log.debug("SQL injection metrics registered");
+    }
+
+    private Map<String, Object> getSqlInjectionStatistics() {
+        SqlInjectionPreventionInterceptor interceptor = sqlInjectionInterceptorProvider.getIfAvailable();
+        return interceptor != null ? interceptor.getStatistics() : Map.of();
     }
 }

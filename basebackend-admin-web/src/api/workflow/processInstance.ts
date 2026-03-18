@@ -3,7 +3,6 @@ import type {
   ProcessInstance,
   StartProcessInstanceParams,
   ProcessInstanceQueryParams,
-  ApiResponse,
   PageResult,
 } from '@/types/workflow'
 
@@ -14,7 +13,7 @@ const BASE_URL = '/api/camunda/process-instances'
  */
 export const startProcessInstance = async (
   data: StartProcessInstanceParams
-): Promise<ApiResponse<ProcessInstance>> => {
+): Promise<ProcessInstance> => {
   return request.post(`${BASE_URL}/start`, data)
 }
 
@@ -23,7 +22,7 @@ export const startProcessInstance = async (
  */
 export const listRunningProcessInstances = async (
   params?: ProcessInstanceQueryParams
-): Promise<ApiResponse<PageResult<ProcessInstance>>> => {
+): Promise<PageResult<ProcessInstance>> => {
   return request.get(`${BASE_URL}/running`, { params })
 }
 
@@ -32,7 +31,7 @@ export const listRunningProcessInstances = async (
  */
 export const listRunningProcessInstancesByKey = async (
   key: string
-): Promise<ApiResponse<PageResult<ProcessInstance>>> => {
+): Promise<PageResult<ProcessInstance>> => {
   return request.get(`${BASE_URL}/running/key/${key}`)
 }
 
@@ -41,7 +40,7 @@ export const listRunningProcessInstancesByKey = async (
  */
 export const getProcessInstanceById = async (
   id: string
-): Promise<ApiResponse<ProcessInstance>> => {
+): Promise<ProcessInstance> => {
   return request.get(`${BASE_URL}/${id}`)
 }
 
@@ -50,7 +49,7 @@ export const getProcessInstanceById = async (
  */
 export const getProcessInstanceByBusinessKey = async (
   businessKey: string
-): Promise<ApiResponse<ProcessInstance>> => {
+): Promise<ProcessInstance> => {
   return request.get(`${BASE_URL}/business-key/${businessKey}`)
 }
 
@@ -59,7 +58,7 @@ export const getProcessInstanceByBusinessKey = async (
  */
 export const suspendProcessInstance = async (
   id: string
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.put(`${BASE_URL}/${id}/suspend`)
 }
 
@@ -68,7 +67,7 @@ export const suspendProcessInstance = async (
  */
 export const activateProcessInstance = async (
   id: string
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.put(`${BASE_URL}/${id}/activate`)
 }
 
@@ -78,7 +77,7 @@ export const activateProcessInstance = async (
 export const terminateProcessInstance = async (
   id: string,
   reason?: string
-): Promise<ApiResponse> => {
+): Promise<void> => {
   const data = reason ? { reason } : undefined
   return request.post(`${BASE_URL}/${id}/terminate`, data)
 }
@@ -93,7 +92,7 @@ export const migrateProcessInstance = async (
     targetTenantId?: string
     variables?: Record<string, any>
   }
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${id}/migrate`, migrationData)
 }
 
@@ -103,7 +102,7 @@ export const migrateProcessInstance = async (
 export const deleteProcessInstance = async (
   id: string,
   deleteReason?: string
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.delete(`${BASE_URL}/${id}`, {
     params: { deleteReason },
   })
@@ -115,7 +114,7 @@ export const deleteProcessInstance = async (
 export const setProcessVariables = async (
   id: string,
   variables: Record<string, any>
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.put(`${BASE_URL}/${id}/variables`, variables)
 }
 
@@ -124,7 +123,7 @@ export const setProcessVariables = async (
  */
 export const getProcessVariables = async (
   id: string
-): Promise<ApiResponse<Record<string, any>>> => {
+): Promise<Record<string, any>> => {
   return request.get(`${BASE_URL}/${id}/variables`)
 }
 
@@ -133,7 +132,7 @@ export const getProcessVariables = async (
  */
 export const listProcessInstances = async (
   params?: ProcessInstanceQueryParams
-): Promise<ApiResponse<PageResult<ProcessInstance>>> => {
+): Promise<PageResult<ProcessInstance>> => {
   return request.get(`${BASE_URL}`, { params })
 }
 
@@ -143,6 +142,6 @@ export const listProcessInstances = async (
  */
 export const getProcessInstanceVariables = async (
   id: string
-): Promise<ApiResponse<Record<string, any>>> => {
+): Promise<Record<string, any>> => {
   return request.get(`${BASE_URL}/${id}/variables`)
 }

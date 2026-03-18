@@ -11,11 +11,11 @@ export const menuApi = {
     request.get('/api/system/application/resource/current-user'),
 
   /** 菜单树 */
-  getTree: () =>
+  getTree: (): Promise<MenuItem[]> =>
     request.get('/api/system/application/resource/tree'),
 
   /** 资源列表 */
-  list: () =>
+  list: (): Promise<any[]> =>
     request.get('/api/system/application/resource'),
 
   /** 创建菜单 */
@@ -33,4 +33,8 @@ export const menuApi = {
   /** 根据用户ID查询菜单列表 (用于兼容或其他需要) */
   getByUser: (userId: number): Promise<MenuItem[]> =>
     request.get(`/api/system/application/resource/user/${userId}`),
+
+  /** 根据角色ID查询菜单列表 */
+  getByRole: (roleId: number): Promise<any[]> =>
+    request.get(`/api/system/application/resource/role/${roleId}`),
 };

@@ -11,8 +11,8 @@ const DeptTreeSelectTest: React.FC = () => {
   // 加载部门数据
   const loadDeptList = async () => {
     try {
-      const response = await getDeptTree()
-      setDeptList(response.data)
+      const deptTree = await getDeptTree()
+      setDeptList(deptTree)
     } catch (error) {
       console.error('加载部门列表失败', error)
     }

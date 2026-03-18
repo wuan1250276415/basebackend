@@ -122,18 +122,13 @@ const BpmnDesigner: React.FC = () => {
             const blob = new Blob([xml], { type: 'text/xml' })
             const file = new File([blob], `${processName}.bpmn`, { type: 'text/xml' })
 
-            const response = await deployProcessDefinition({
+            await deployProcessDefinition({
                 file: file,
                 deploymentName: processName,
                 name: processName
             })
-
-            if (response.code === 200) {
-                message.success('部署成功')
-                setDeployModalVisible(false)
-            } else {
-                message.error(response.message || '部署失败')
-            }
+            message.success('部署成功')
+            setDeployModalVisible(false)
         } catch (err) {
             console.error(err)
             message.error('部署失败')

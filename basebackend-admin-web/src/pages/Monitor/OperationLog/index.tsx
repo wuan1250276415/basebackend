@@ -50,8 +50,7 @@ const OperationLogPage = () => {
         params.endTime = dateRange[1]
       }
 
-      const response = await getOperationLogPage(params)
-      const result = response.data
+      const result = await getOperationLogPage(params)
       setDataSource(result.records || [])
       setTotal(result.total || 0)
     } catch (error: any) {
@@ -77,8 +76,8 @@ const OperationLogPage = () => {
 
   const handleViewDetail = async (record: OperationLog) => {
     try {
-      const response = await getOperationLogById(record.id!)
-      setCurrentLog(response.data)
+      const detail = await getOperationLogById(record.id!)
+      setCurrentLog(detail)
       setDetailModalVisible(true)
     } catch (error: any) {
       message.error(error.message || '获取日志详情失败')

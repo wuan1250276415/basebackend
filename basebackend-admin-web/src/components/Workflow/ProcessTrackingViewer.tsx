@@ -63,12 +63,8 @@ const ProcessTrackingViewer: React.FC<ProcessTrackingViewerProps> = ({
         setLoading(true)
         setError(null)
         try {
-            const response = await getProcessTracking(processInstanceId)
-            if (response.code === 200) {
-                setTracking(response.data)
-            } else {
-                setError(response.message || '加载流程跟踪信息失败')
-            }
+            const trackingInfo = await getProcessTracking(processInstanceId)
+            setTracking(trackingInfo)
         } catch (err) {
             setError('加载流程跟踪信息失败')
             console.error(err)

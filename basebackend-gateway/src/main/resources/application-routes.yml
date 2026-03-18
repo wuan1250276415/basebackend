@@ -27,6 +27,16 @@ spring:
                 name: systemServiceCircuitBreaker
                 fallbackUri: forward:/fallback/system
 
+        - id: messaging-management
+          uri: lb://basebackend-system-api
+          predicates:
+            - Path=/messaging/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: systemServiceCircuitBreaker
+                fallbackUri: forward:/fallback/system
+
         # ==================== 认证服务路由 ====================
         - id: auth-api
           uri: lb://basebackend-auth-api

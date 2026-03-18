@@ -16,6 +16,10 @@
     <name>Base Backend Cache Core</name>
     <description>基础缓存能力：Redis/Redisson、多级缓存、分布式锁、限流、缓存模板、序列化、数据结构</description>
 
+    <properties>
+        <argLine></argLine>
+    </properties>
+
     <dependencies>
         <!-- Common Module -->
         <dependency>
@@ -126,4 +130,31 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>expose-mockito-core-agent</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

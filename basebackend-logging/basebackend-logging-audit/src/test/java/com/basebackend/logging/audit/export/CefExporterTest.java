@@ -31,7 +31,7 @@ class CefExporterTest {
                 .eventType(AuditEventType.LOGIN)
                 .resource("/api/auth/login")
                 .result("SUCCESS")
-                .clientIp("192.168.1.100")
+                .clientIp("198.51.100.100")
                 .traceId("trace-abc")
                 .build();
 
@@ -39,7 +39,7 @@ class CefExporterTest {
 
         assertThat(cef).startsWith("CEF:0|TestVendor|TestProduct|1.0|LOGIN|");
         assertThat(cef).contains("suid=user-123");
-        assertThat(cef).contains("src=192.168.1.100");
+        assertThat(cef).contains("src=198.51.100.100");
         assertThat(cef).contains("outcome=SUCCESS");
         assertThat(cef).contains("externalId=test-id-001");
         assertThat(cef).contains("cs2=trace-abc");

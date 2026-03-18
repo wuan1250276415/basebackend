@@ -19,12 +19,12 @@ const Preferences = () => {
   // 加载偏好设置
   const loadPreference = async () => {
     try {
-      const response = await getPreference()
-      setPreference(response.data)
+      const currentPreference = await getPreference()
+      setPreference(currentPreference)
 
       // 设置表单值
       form.setFieldsValue({
-        ...response.data,
+        ...currentPreference,
         theme: mode,
         primaryColor: primaryColor,
         layout: layout,

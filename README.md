@@ -59,22 +59,28 @@
 git clone https://github.com/wuan1250276415/basebackend.git
 cd basebackend
 
-# 2. 启动基础设施
-docker-compose -f docker/compose/base/docker-compose.base.yml up -d
-docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d nacos
+# 2. 准备私有环境文件（如需连接共享环境，请只改这份）
+cp docker/compose/env/.env.example docker/compose/env/.env.local
 
-# 3. 上传 Nacos 配置
-./bin/maintenance/upload-nacos-configs.sh
+# 3. 启动基础设施
+./docker/compose/start-all.sh docker/compose/env/.env.local
 
-# 4. 编译项目
+# 4. 上传 Nacos 配置
+cd config/nacos-configs && bash import-nacos-configs.sh && cd ../..
+
+# 5. 编译项目
 mvn clean package -DskipTests
 
-# 5. 启动微服务
-./bin/start/start-microservices.sh
+# 6. 启动核心微服务
+docker-compose -f docker/compose/services/docker-compose.services.yml --env-file docker/compose/env/.env.local up -d gateway user-api system-api
 
-# 6. 验证
-./bin/test/verify-services.sh
+# 7. 验证
+docker-compose -f docker/compose/services/docker-compose.services.yml --env-file docker/compose/env/.env.local ps
 ```
+
+> 💡 `docker/compose/env/.env.dev` 只保留可提交的本地默认值。
+> 如果你需要连接共享数据库、Redis 或 Nacos，请使用私有 `.env.local`
+> 之类的文件，不要把真实地址和密码提交回仓库。
 
 > 💡 详细步骤请查看 [快速启动指南](https://github.com/wuan1250276415/basebackend/wiki/快速启动指南)
 
@@ -362,21 +368,21 @@ userMapper.selectList(null); // → SELECT * FROM user WHERE tenant_id = 'tenant
 ## 🐳 Docker 部署
 
 ```bash
-# 一键启动全部基础设施 + 微服务
+# 一键启动基础设施 + 中间件
 docker/compose/start-all.sh
 
-# 或分层启动
+# 或分层启动 / 按需启动微服务
 docker-compose -f docker/compose/base/docker-compose.base.yml up -d           # MySQL + Redis
 docker-compose -f docker/compose/middleware/docker-compose.middleware.yml up -d # Nacos + RocketMQ
 docker-compose -f docker/compose/observability/docker-compose.yml up -d        # Prometheus + Loki + Tempo + Grafana
-docker-compose -f docker/compose/services/docker-compose.yml up -d             # 全部微服务
+docker-compose -f docker/compose/services/docker-compose.services.yml up -d gateway user-api system-api
 ```
 
 ### 端口规划
 
 | 服务 | 端口 |
 |------|------|
-| API Gateway | 8180 |
+| API Gateway | 8080 |
 | User API | 8081 |
 | System API | 8082 |
 | Nacos | 8848 |

@@ -48,11 +48,11 @@ class IpUtilTest {
         @DisplayName("可信代理但转发头无效时回退 remoteAddr")
         void shouldFallbackToRemoteAddrWhenForwardedHeaderInvalid() {
             HttpServletRequest request = mock(HttpServletRequest.class);
-            when(request.getRemoteAddr()).thenReturn("192.168.1.20");
+            when(request.getRemoteAddr()).thenReturn("198.51.100.20");
             when(request.getHeader("X-Forwarded-For")).thenReturn("unknown");
             when(request.getHeader("Proxy-Client-IP")).thenReturn("");
 
-            assertThat(IpUtil.getIpAddress(request)).isEqualTo("192.168.1.20");
+            assertThat(IpUtil.getIpAddress(request)).isEqualTo("198.51.100.20");
         }
 
         @Test

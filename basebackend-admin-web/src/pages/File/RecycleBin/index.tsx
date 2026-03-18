@@ -41,8 +41,7 @@ const RecycleBin: React.FC = () => {
   const loadRecycleBinList = async () => {
     setLoading(true)
     try {
-      const res = await getRecycleBinList({ current, size: pageSize })
-      const pageData = res.data
+      const pageData = await getRecycleBinList({ current, size: pageSize })
       setRecycleBinList(pageData?.records ?? [])
       setTotal(pageData?.total ?? 0)
     } catch (error) {

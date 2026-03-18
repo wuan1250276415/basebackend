@@ -13,6 +13,11 @@ public record LoginResponse(
         String accessToken,
 
         /**
+         * 刷新令牌
+         */
+        String refreshToken,
+
+        /**
          * 令牌类型
          */
         String tokenType,
@@ -40,11 +45,19 @@ public record LoginResponse(
 ) {
 
     /**
-     * 便捷构造方法，默认 tokenType 为 "Bearer"
+     * 便捷构造方法，默认 tokenType 为 "Bearer"。
+     */
+    public LoginResponse(String accessToken, String refreshToken, Long expiresIn, UserInfo userInfo,
+                         List<String> permissions, List<String> roles) {
+        this(accessToken, refreshToken, "Bearer", expiresIn, userInfo, permissions, roles);
+    }
+
+    /**
+     * 兼容旧调用方的便捷构造方法，不显式传 refreshToken。
      */
     public LoginResponse(String accessToken, Long expiresIn, UserInfo userInfo,
-                          List<String> permissions, List<String> roles) {
-        this(accessToken, "Bearer", expiresIn, userInfo, permissions, roles);
+                         List<String> permissions, List<String> roles) {
+        this(accessToken, null, "Bearer", expiresIn, userInfo, permissions, roles);
     }
 
     /**

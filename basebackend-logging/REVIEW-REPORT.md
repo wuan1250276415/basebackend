@@ -139,7 +139,7 @@ basebackend-logging (POM 聚合)
 | # | 位置 | 问题 |
 |---|------|------|
 | M-1 | `core/context/LogContext` | setter 无 null 守卫，`MDC.put(key, null)` 在 Logback 中抛异常 |
-| M-2 | `core/config/StructuredLogConfig` | 硬编码内网 IP `192.168.66.126` 作为 Loki 默认 URL |
+| M-2 | `core/config/StructuredLogConfig` | 硬编码固定环境地址作为 Loki 默认 URL，降低了配置可移植性 |
 | M-3 | `core/config/StructuredLogConfig` | 使用 `@Configuration` 而非纯 `@ConfigurationProperties`，且使用 Spring 保留前缀 `logging.*` |
 | M-4 | `core/logback-structured.xml` | SQL 日志 logger 硬编码为 `admin-api` 的 mapper 包，不适合共享库 |
 | M-5 | `audit/aspect/AuditAspect` | `getSession(true)` 在 AOP 中**创建新 HTTP Session**，产生副作用 |

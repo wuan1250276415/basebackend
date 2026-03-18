@@ -1,7 +1,7 @@
 import request from '@/api/request'
-import type { ApiResponse, PageResult } from '@/types/workflow'
+import type { PageResult } from '@/types/workflow'
 
-const BASE_URL = '/api/camunda/ops/jobs'
+const BASE_URL = '/api/camunda/jobs'
 
 /**
  * 作业信息
@@ -85,7 +85,7 @@ export interface JobStatistics {
  */
 export const listJobs = async (
     params?: JobQueryParams
-): Promise<ApiResponse<PageResult<Job>>> => {
+): Promise<PageResult<Job>> => {
     return request.get(BASE_URL, { params })
 }
 
@@ -94,7 +94,7 @@ export const listJobs = async (
  */
 export const getJobById = async (
     jobId: string
-): Promise<ApiResponse<JobDetail>> => {
+): Promise<JobDetail> => {
     return request.get(`${BASE_URL}/${jobId}`)
 }
 
@@ -103,7 +103,7 @@ export const getJobById = async (
  */
 export const getJobExceptionStacktrace = async (
     jobId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.get(`${BASE_URL}/${jobId}/exception-stacktrace`)
 }
 
@@ -112,7 +112,7 @@ export const getJobExceptionStacktrace = async (
  */
 export const listFailedJobs = async (
     maxResults: number = 100
-): Promise<ApiResponse<Job[]>> => {
+): Promise<Job[]> => {
     return request.get(`${BASE_URL}/failed`, { params: { maxResults } })
 }
 
@@ -124,7 +124,7 @@ export const listFailedJobs = async (
 export const retryJob = async (
     jobId: string,
     data?: JobRetryRequest
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.post(`${BASE_URL}/${jobId}/retry`, data || {})
 }
 
@@ -133,7 +133,7 @@ export const retryJob = async (
  */
 export const executeJob = async (
     jobId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.post(`${BASE_URL}/${jobId}/execute`)
 }
 
@@ -142,7 +142,7 @@ export const executeJob = async (
  */
 export const deleteJob = async (
     jobId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.delete(`${BASE_URL}/${jobId}`)
 }
 
@@ -152,7 +152,7 @@ export const deleteJob = async (
 export const setJobDuedate = async (
     jobId: string,
     duedate: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.put(`${BASE_URL}/${jobId}/duedate`, null, {
         params: { duedate }
     })
@@ -164,7 +164,7 @@ export const setJobDuedate = async (
 export const setJobPriority = async (
     jobId: string,
     priority: number
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.put(`${BASE_URL}/${jobId}/priority`, null, {
         params: { priority }
     })
@@ -176,7 +176,7 @@ export const setJobPriority = async (
 export const setJobRetries = async (
     jobId: string,
     retries: number
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.put(`${BASE_URL}/${jobId}/retries`, null, {
         params: { retries }
     })
@@ -187,7 +187,7 @@ export const setJobRetries = async (
  */
 export const suspendJob = async (
     jobId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.post(`${BASE_URL}/${jobId}/suspend`)
 }
 
@@ -196,7 +196,7 @@ export const suspendJob = async (
  */
 export const activateJob = async (
     jobId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.post(`${BASE_URL}/${jobId}/activate`)
 }
 
@@ -208,7 +208,7 @@ export const activateJob = async (
 export const batchRetryJobs = async (
     jobIds: string[],
     retries?: number
-): Promise<ApiResponse<{ total: number; success: number; failed: number }>> => {
+): Promise<{ total: number; success: number; failed: number }> => {
     return request.post(`${BASE_URL}/batch-retry`, jobIds, {
         params: { retries: retries || 3 }
     })
@@ -219,7 +219,7 @@ export const batchRetryJobs = async (
  */
 export const batchDeleteJobs = async (
     jobIds: string[]
-): Promise<ApiResponse<{ total: number; success: number; failed: number }>> => {
+): Promise<{ total: number; success: number; failed: number }> => {
     return request.post(`${BASE_URL}/batch-delete`, jobIds)
 }
 
@@ -228,14 +228,14 @@ export const batchDeleteJobs = async (
 /**
  * 获取作业统计信息
  */
-export const getJobStatistics = async (): Promise<ApiResponse<JobStatistics>> => {
+export const getJobStatistics = async (): Promise<JobStatistics> => {
     return request.get(`${BASE_URL}/statistics`)
 }
 
 /**
  * 统计失败作业数量
  */
-export const countFailedJobs = async (): Promise<ApiResponse<number>> => {
+export const countFailedJobs = async (): Promise<number> => {
     return request.get(`${BASE_URL}/statistics/failed-count`)
 }
 
@@ -243,7 +243,7 @@ export const countFailedJobs = async (): Promise<ApiResponse<number>> => {
  * 按流程定义统计失败作业
  */
 export const countFailedJobsByProcessDefinition = async (): Promise<
-    ApiResponse<Record<string, number>>
+    Record<string, number>
 > => {
     return request.get(`${BASE_URL}/statistics/failed-by-definition`)
 }

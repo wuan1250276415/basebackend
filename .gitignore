@@ -56,6 +56,10 @@ uploads/
 /docker/nacos/nacos1/logs/
 /docker/nacos/nacos2/logs/
 /docker/nacos/nacos3/logs/
+/docker/compose/env/.env.local
+/docker/compose/env/.env.*.local
+/config/nacos-configs/.env.local
+/config/nacos-configs/.env.*.local
 
 # CI/CD
 *.sarif

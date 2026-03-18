@@ -93,17 +93,6 @@ public class DistributedLockServiceImpl implements DistributedLockService {
         return redissonClient.getMultiLock(locks);
     }
 
-    /**
-     * @deprecated RedLock 需要多 Redis 实例部署，当前实现回退为单实例锁，不具备 RedLock 安全保证。
-     */
-    @Deprecated(since = "1.0", forRemoval = true)
-    @Override
-    public RLock getRedLock(String lockKey) {
-        log.warn("getRedLock() is deprecated: current implementation falls back to a single-instance lock "
-                + "and does NOT provide RedLock-level safety guarantees. Use tryLock() or getMultiLock() instead. lockKey: {}", lockKey);
-        return redissonClient.getLock(lockKey);
-    }
-
     @Override
     public RReadWriteLock getReadWriteLock(String lockKey) {
         log.debug("Creating read-write lock: {}", lockKey);

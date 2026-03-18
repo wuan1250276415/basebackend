@@ -19,8 +19,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardUserCount'],
       queryFn: async () => {
-        const res = await userApi.getUserPage({ current: 1, size: 1 })
-        return res.data?.total || 0
+        const page = await userApi.getUserPage({ current: 1, size: 1 })
+        return page?.total || 0
       },
       refetchInterval: 30000,
     },
@@ -28,8 +28,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardRoleCount'],
       queryFn: async () => {
-        const res = await roleApi.getRolePage({ current: 1, size: 1 })
-        return res.data?.total || 0
+        const page = await roleApi.getRolePage({ current: 1, size: 1 })
+        return page?.total || 0
       },
       refetchInterval: 30000,
     },
@@ -37,8 +37,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardOnlineUsers'],
       queryFn: async () => {
-        const res = await monitorApi.getOnlineUsers()
-        return res.data?.length || 0
+        const onlineUsers = await monitorApi.getOnlineUsers()
+        return onlineUsers?.length || 0
       },
       refetchInterval: 10000,
     },
@@ -46,8 +46,7 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardServerInfo'],
       queryFn: async () => {
-        const res = await monitorApi.getServerInfo()
-        return res.data
+        return monitorApi.getServerInfo()
       },
       refetchInterval: 5000,
     },
@@ -55,13 +54,13 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardTodayLogs'],
       queryFn: async () => {
-        const res = await logApi.getOperationLogPage({
+        const result = await logApi.getOperationLogPage({
           current: 1,
           size: 1,
           startTime: `${today} 00:00:00`,
           endTime: `${today} 23:59:59`,
         })
-        return res.data?.total || 0
+        return result?.total || 0
       },
       refetchInterval: 30000,
     },
@@ -69,8 +68,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardRecentLogins'],
       queryFn: async () => {
-        const res = await logApi.getLoginLogPage({ current: 1, size: 5 })
-        return res.data?.records || []
+        const result = await logApi.getLoginLogPage({ current: 1, size: 5 })
+        return result?.records || []
       },
       refetchInterval: 60000,
     },
@@ -78,8 +77,8 @@ export const useDashboardData = () => {
     {
       queryKey: ['dashboardRecentOperations'],
       queryFn: async () => {
-        const res = await logApi.getOperationLogPage({ current: 1, size: 5 })
-        return res.data?.records || []
+        const result = await logApi.getOperationLogPage({ current: 1, size: 5 })
+        return result?.records || []
       },
       refetchInterval: 60000,
     },

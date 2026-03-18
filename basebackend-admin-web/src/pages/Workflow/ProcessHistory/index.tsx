@@ -55,14 +55,10 @@ const ProcessHistory: React.FC = () => {
   const loadHistoricInstances = async () => {
     setLoading(true)
     try {
-      const response = await listHistoricProcessInstances({})
-      if (response.code === 200) {
-        const instanceList = response.data?.records || []
-        setInstances(instanceList)
-        setFilteredInstances(instanceList)
-      } else {
-        message.error(response.message || '加载历史流程失败')
-      }
+      const pageResult = await listHistoricProcessInstances({})
+      const instanceList = pageResult.records || []
+      setInstances(instanceList)
+      setFilteredInstances(instanceList)
     } catch (error) {
       message.error('加载历史流程失败')
       console.error(error)
@@ -120,25 +116,20 @@ const ProcessHistory: React.FC = () => {
     setHistoryLoading(true)
 
     try {
-      const response = await listHistoricActivities(instance.id, { size: 100 })
-      if (response.code === 200) {
-        const activities = response.data?.records || []
-        // Process activities to user task history format
-        const userTasks = activities
-          .filter(activity => activity.activityType === 'userTask')
-          .map(activity => ({
-            id: activity.taskId || activity.id,
-            name: activity.activityName,
-            assignee: activity.assignee,
-            startTime: activity.startTime,
-            endTime: activity.endTime,
-            deleteReason: activity.canceled ? '已取消' : undefined,
-            activityType: activity.activityType
-          }))
-        setTaskHistory(userTasks)
-      } else {
-        message.error(response.message || '加载任务历史失败')
-      }
+      const activityPage = await listHistoricActivities(instance.id, { size: 100 })
+      const activities = activityPage.records || []
+      const userTasks = activities
+        .filter(activity => activity.activityType === 'userTask')
+        .map(activity => ({
+          id: activity.taskId || activity.id,
+          name: activity.activityName,
+          assignee: activity.assignee,
+          startTime: activity.startTime,
+          endTime: activity.endTime,
+          deleteReason: activity.canceled ? '已取消' : undefined,
+          activityType: activity.activityType
+        }))
+      setTaskHistory(userTasks)
     } catch (error) {
       message.error('加载任务历史失败')
       console.error(error)

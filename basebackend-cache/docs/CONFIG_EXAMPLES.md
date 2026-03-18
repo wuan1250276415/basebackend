@@ -335,7 +335,7 @@ basebackend:
     lock:
       default-wait-time: 3s
       default-lease-time: 20s
-      red-lock-enabled: true  # 启用红锁
+      fair-lock-enabled: true # 高并发下按顺序获取锁
 
 # Redisson 哨兵配置
 redisson:

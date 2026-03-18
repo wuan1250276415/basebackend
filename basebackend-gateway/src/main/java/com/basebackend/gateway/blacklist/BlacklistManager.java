@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   blacklist:
  *     enabled: true
  *     denied-ips:
- *       - 192.168.1.100
+ *       - 198.51.100.10
  *       - 10.0.0.0/8
  *     allowed-ips: []          # 为空表示不启用白名单模式
  *     denied-paths:

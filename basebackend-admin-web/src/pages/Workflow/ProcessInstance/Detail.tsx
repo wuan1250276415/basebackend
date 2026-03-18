@@ -46,44 +46,32 @@ const ProcessInstanceDetail: React.FC = () => {
     setLoading(true)
     try {
       // 加载流程实例信息
-      const instanceResponse = await getProcessInstanceById(instanceId)
-      if (instanceResponse.code === 200 && instanceResponse.data) {
-        const instanceData = instanceResponse.data
-        setInstance(instanceData)
+      const instanceData = await getProcessInstanceById(instanceId)
+      setInstance(instanceData)
 
-        // 加载流程变量
-        const variablesResponse = await getProcessInstanceVariables(instanceId)
-        if (variablesResponse.code === 200) {
-          setVariables(variablesResponse.data || {})
-        }
+      // 加载流程变量
+      const processVariables = await getProcessInstanceVariables(instanceId)
+      setVariables(processVariables || {})
 
-        // 加载任务历史 (通过活动历史获取用户任务)
-        const historyResponse = await listHistoricActivities(instanceId, { size: 100 })
-        if (historyResponse.code === 200) {
-          const activities = historyResponse.data?.records || []
-          // 过滤出用户任务
-          const userTasks = activities
-            .filter((activity) => activity.activityType === 'userTask')
-            .map((activity) => ({
-              id: activity.taskId || activity.id,
-              name: activity.activityName,
-              assignee: activity.assignee,
-              startTime: activity.startTime,
-              endTime: activity.endTime,
-              deleteReason: activity.canceled ? '已取消' : undefined,
-            }))
-          setTaskHistory(userTasks)
-        }
+      // 加载任务历史 (通过活动历史获取用户任务)
+      const activityPage = await listHistoricActivities(instanceId, { size: 100 })
+      const activities = activityPage.records || []
+      const userTasks = activities
+        .filter((activity) => activity.activityType === 'userTask')
+        .map((activity) => ({
+          id: activity.taskId || activity.id,
+          name: activity.activityName,
+          assignee: activity.assignee,
+          startTime: activity.startTime,
+          endTime: activity.endTime,
+          deleteReason: activity.canceled ? '已取消' : undefined,
+        }))
+      setTaskHistory(userTasks)
 
-        // 加载BPMN XML
-        if (instanceData.processDefinitionId) {
-          const xmlResponse = await getProcessDefinitionXml(instanceData.processDefinitionId)
-          if (xmlResponse.code === 200 && xmlResponse.data) {
-            setBpmnXml(xmlResponse.data.xml)
-          }
-        }
-      } else {
-        message.error(instanceResponse.message || '加载流程实例失败')
+      // 加载BPMN XML
+      if (instanceData.processDefinitionId) {
+        const xmlContent = await getProcessDefinitionXml(instanceData.processDefinitionId)
+        setBpmnXml(xmlContent.xml)
       }
     } catch (error) {
       message.error('加载流程实例失败')

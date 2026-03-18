@@ -25,16 +25,13 @@ const RoleTree: React.FC<RoleTreeProps> = ({ appId, onSelect, selectedRoleId }) 
   const loadRoleTree = async () => {
     setLoading(true)
     try {
-      const res = await getRoleTree(appId)
-      if (res.code === 200) {
-        const roles = res.data || []
-        const treeNodes = convertToTreeData(roles)
-        setTreeData(treeNodes)
+      const roles = await getRoleTree(appId)
+      const treeNodes = convertToTreeData(roles || [])
+      setTreeData(treeNodes)
 
-        // 默认展开第一层
-        if (roles.length > 0) {
-          setExpandedKeys(roles.map((r: Role) => r.id!))
-        }
+      // 默认展开第一层
+      if (roles.length > 0) {
+        setExpandedKeys(roles.map((r: Role) => r.id!))
       }
     } catch (error) {
       message.error('加载角色树失败')
@@ -117,7 +114,7 @@ const RoleTree: React.FC<RoleTreeProps> = ({ appId, onSelect, selectedRoleId }) 
       loadRoleTree()
     } catch (error: any) {
       if (error.response) {
-        message.error(error.response.data.message || '创建失败')
+        message.error(error.response?.data?.message || error.message || '创建失败')
       } else if (error.errorFields) {
         message.error('请检查表单输入')
       }

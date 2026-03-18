@@ -198,7 +198,6 @@ class CachePropertiesTest {
         assertEquals(Duration.ofSeconds(10), defaultProps.getLock().getDefaultWaitTime());
         assertEquals(Duration.ofSeconds(30), defaultProps.getLock().getDefaultLeaseTime());
         assertFalse(defaultProps.getLock().isFairLockEnabled());
-        assertFalse(defaultProps.getLock().isRedLockEnabled());
     }
 
     @Test

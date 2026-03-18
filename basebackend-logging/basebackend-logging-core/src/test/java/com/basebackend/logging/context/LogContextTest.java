@@ -76,8 +76,8 @@ class LogContextTest {
         @Test
         @DisplayName("ipAddress 存取")
         void shouldSetAndGetIpAddress() {
-            LogContext.setIpAddress("192.168.1.1");
-            assertThat(LogContext.getIpAddress()).isEqualTo("192.168.1.1");
+            LogContext.setIpAddress("198.51.100.1");
+            assertThat(LogContext.getIpAddress()).isEqualTo("198.51.100.1");
         }
 
         @Test

@@ -6,7 +6,7 @@
 # 1. 确保 Nacos 服务已启动（默认地址：http://localhost:8848/nacos）
 # 2. 在 PowerShell 中执行此脚本：.\import-nacos-configs.ps1
 # 3. 可选参数：
-#    .\import-nacos-configs.ps1 -NacosServer "192.168.66.126:8848" -Namespace "dev"
+#    .\import-nacos-configs.ps1 -NacosServer "localhost:8848" -Namespace "public"
 #
 # ================================================================================================
 
@@ -14,11 +14,14 @@ param(
     [string]$NacosServer = "localhost:8848",
     [string]$Namespace = "public",
     [string]$Username = "nacos",
-    [string]$Password = "nacos"
+    [string]$Password = "nacos",
+    [string]$Group = "DEFAULT_GROUP",
+    [string]$ConfigDir = (Join-Path $PSScriptRoot "dev"),
+    [int]$NacosWaitTimeoutSeconds = 90,
+    [int]$NacosWaitIntervalSeconds = 3
 )
 
-$Group = "DEFAULT_GROUP"
-$ConfigDir = Join-Path $PSScriptRoot "dev"
+$AccessToken = $null
 
 Write-Host "================================================================================================" -ForegroundColor Cyan
 Write-Host " Nacos 配置导入脚本" -ForegroundColor Cyan
@@ -34,6 +37,89 @@ Write-Host ""
 if (-not (Test-Path $ConfigDir)) {
     Write-Host "错误: 配置目录不存在: $ConfigDir" -ForegroundColor Red
     exit 1
+}
+
+function Get-Message {
+    param(
+        [object]$Response
+    )
+
+    if ($null -ne $Response -and $null -ne $Response.message) {
+        return $Response.message
+    }
+
+    return ($Response | Out-String).Trim()
+}
+
+function Wait-ForNacos {
+    $Deadline = (Get-Date).AddSeconds($NacosWaitTimeoutSeconds)
+    $HealthUrl = "http://$NacosServer/nacos/"
+
+    while ((Get-Date) -lt $Deadline) {
+        try {
+            $Response = Invoke-WebRequest -Uri $HealthUrl -Method Get -UseBasicParsing -TimeoutSec 5
+            if ($Response.StatusCode -ge 200 -and $Response.StatusCode -lt 400) {
+                return $true
+            }
+        }
+        catch {
+        }
+
+        Start-Sleep -Seconds $NacosWaitIntervalSeconds
+    }
+
+    Write-Host "错误: 等待 Nacos 就绪超时（$NacosWaitTimeoutSeconds 秒）" -ForegroundColor Red
+    return $false
+}
+
+function Ensure-AccessToken {
+    $LoginUrl = "http://$NacosServer/nacos/v3/auth/user/login"
+    $AdminInitUrl = "http://$NacosServer/nacos/v3/auth/user/admin"
+
+    try {
+        $LoginResponse = Invoke-RestMethod -Uri $LoginUrl -Method Post -Body @{
+            username = $Username
+            password = $Password
+        } -ContentType "application/x-www-form-urlencoded; charset=UTF-8"
+
+        if ($null -ne $LoginResponse.accessToken) {
+            $script:AccessToken = $LoginResponse.accessToken
+            return $true
+        }
+    }
+    catch {
+    }
+
+    Write-Host "首次登录未获取到 accessToken，尝试初始化管理员密码..." -ForegroundColor Yellow
+
+    try {
+        [void](Invoke-RestMethod -Uri $AdminInitUrl -Method Post -Body @{
+            password = $Password
+        } -ContentType "application/x-www-form-urlencoded; charset=UTF-8")
+    }
+    catch {
+        Write-Host "管理员初始化未成功，继续尝试登录..." -ForegroundColor Yellow
+    }
+
+    try {
+        $LoginResponse = Invoke-RestMethod -Uri $LoginUrl -Method Post -Body @{
+            username = $Username
+            password = $Password
+        } -ContentType "application/x-www-form-urlencoded; charset=UTF-8"
+
+        if ($null -ne $LoginResponse.accessToken) {
+            $script:AccessToken = $LoginResponse.accessToken
+            return $true
+        }
+    }
+    catch {
+        Write-Host "错误: 无法获取 Nacos accessToken" -ForegroundColor Red
+        Write-Host "  错误: $($_.Exception.Message)" -ForegroundColor Yellow
+        return $false
+    }
+
+    Write-Host "错误: 无法获取 Nacos accessToken" -ForegroundColor Red
+    return $false
 }
 
 # 导入配置文件的函数
@@ -57,26 +143,27 @@ function Import-Config {
 
         # 构建请求体
         $Body = @{
-            dataId   = $DataId
-            group    = $Group
-            content  = $Content
-            type     = "yaml"
-            tenant   = $Namespace
-            username = $Username
-            password = $Password
+            dataId      = $DataId
+            groupName   = $Group
+            namespaceId = $Namespace
+            content     = $Content
+            type        = "yaml"
         }
 
         # 发送请求到 Nacos
-        $Url = "http://$NacosServer/nacos/v1/cs/configs"
-        $Response = Invoke-RestMethod -Uri $Url -Method Post -Body $Body -ContentType "application/x-www-form-urlencoded; charset=UTF-8"
+        $Url = "http://$NacosServer/nacos/v3/admin/cs/config"
+        $Headers = @{
+            accessToken = $script:AccessToken
+        }
+        $Response = Invoke-RestMethod -Uri $Url -Method Post -Headers $Headers -Body $Body -ContentType "application/x-www-form-urlencoded; charset=UTF-8"
 
-        if ($Response -eq "true" -or $Response -eq $true) {
+        if ($Response.code -eq 0 -and $Response.data -eq $true) {
             Write-Host "✓ 成功" -ForegroundColor Green
             return $true
         }
         else {
             Write-Host "✗ 失败" -ForegroundColor Red
-            Write-Host "  响应: $Response" -ForegroundColor Yellow
+            Write-Host "  响应: $(Get-Message -Response $Response)" -ForegroundColor Yellow
             return $false
         }
     }
@@ -88,6 +175,21 @@ function Import-Config {
 }
 
 # 导入所有配置文件
+Write-Host "等待 Nacos 就绪..." -ForegroundColor Cyan
+if (-not (Wait-ForNacos)) {
+    exit 1
+}
+
+Write-Host "✓ Nacos 已就绪" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "检查 Nacos 认证状态..." -ForegroundColor Cyan
+if (-not (Ensure-AccessToken)) {
+    exit 1
+}
+
+Write-Host "✓ 已获取 accessToken" -ForegroundColor Green
+Write-Host ""
 Write-Host "开始导入配置..." -ForegroundColor Cyan
 Write-Host ""
 

@@ -21,7 +21,7 @@ spring:
     nacos:
       discovery:
         enabled: true
-        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
         namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         username: ${NACOS_DISCOVERY_USERNAME:nacos}
@@ -36,7 +36,7 @@ spring:
           region: ${APP_REGION:beijing}
           zone: ${APP_ZONE:zone-a}
       config:
-        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
         namespace: ${NACOS_CONFIG_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         username: ${NACOS_CONFIG_USERNAME:nacos}
@@ -75,7 +75,7 @@ nacos:
   app-id: 10001
   config:
     enabled: true
-    server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+    server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
     namespace: ${NACOS_CONFIG_NAMESPACE:public}
     group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
     file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
@@ -107,7 +107,7 @@ nacos:
         refresh: true
   discovery:
     enabled: true
-    server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+    server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
     namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
     group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
     weight: ${NACOS_DISCOVERY_WEIGHT:1.0}

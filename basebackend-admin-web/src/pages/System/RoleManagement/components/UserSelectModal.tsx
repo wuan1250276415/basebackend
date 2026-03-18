@@ -4,7 +4,7 @@ import { Modal, Table, Input, Space, message } from 'antd'
 
 import type { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { User } from '@/types'
-import request from '@/api/request'
+import { getUserPage } from '@/api/userApi'
 
 interface UserSelectModalProps {
   visible: boolean
@@ -33,27 +33,22 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   const loadUserList = async (page = 1, size = 10, username = '') => {
     setLoading(true)
     try {
-      const res = await request.get('/admin/users', {
-        params: {
-          current: page,
-          size,
-          username,
-        },
+      const data = await getUserPage({
+        current: page,
+        size,
+        username,
       })
 
-      if (res.code === 200) {
-        const data = res.data
-        // 过滤掉已关联的用户
-        const filteredUsers = (data.records || []).filter(
-          (user: User) => !excludeUserIds.includes(user.id!)
-        )
-        setUserList(filteredUsers)
-        setPagination({
-          current: data.current,
-          pageSize: data.size,
-          total: data.total,
-        })
-      }
+      // 过滤掉已关联的用户
+      const filteredUsers = (data.records || []).filter(
+        (user: User) => !excludeUserIds.includes(user.id!)
+      )
+      setUserList(filteredUsers)
+      setPagination({
+        current: data.current,
+        pageSize: data.size,
+        total: data.total,
+      })
     } catch (error) {
       message.error('加载用户列表失败')
       console.error(error)

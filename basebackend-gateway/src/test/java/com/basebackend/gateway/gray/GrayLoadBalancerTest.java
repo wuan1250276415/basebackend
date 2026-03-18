@@ -251,7 +251,7 @@ class GrayLoadBalancerTest {
             GrayRouteProperties.GrayRule rule = new GrayRouteProperties.GrayRule();
             rule.setServiceName("test-service");
             rule.setStrategy("ip");
-            rule.setIpList(Arrays.asList("192.168.1.100", "192.168.1.101"));
+            rule.setIpList(Arrays.asList("198.51.100.100", "198.51.100.101"));
             rule.setGrayVersion("v2");
             rule.setStableVersion("v1");
 

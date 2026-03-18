@@ -1,4 +1,4 @@
-import axios from 'axios';
+import request from '@/api/request';
 import type {
   FeatureCheckResponse,
   FeatureBatchCheckRequest,
@@ -19,28 +19,18 @@ export const featureToggleApi = {
     featureName: string,
     context?: { userId?: string; username?: string; email?: string }
   ): Promise<FeatureCheckResponse> {
-    const params = new URLSearchParams();
-    if (context?.userId) params.append('userId', context.userId);
-    if (context?.username) params.append('username', context.username);
-    if (context?.email) params.append('email', context.email);
-
-    const response = await axios.get<{ data: FeatureCheckResponse }>(
-      `${API_BASE_URL}/check/${featureName}?${params.toString()}`
-    );
-    return response.data.data;
+    return request.get<FeatureCheckResponse, FeatureCheckResponse>(`${API_BASE_URL}/check/${featureName}`, {
+      params: context,
+    });
   },
 
   /**
    * 批量检查多个特性
    */
   async checkFeaturesBatch(
-    request: FeatureBatchCheckRequest
+    payload: FeatureBatchCheckRequest
   ): Promise<Record<string, boolean>> {
-    const response = await axios.post<{ data: Record<string, boolean> }>(
-      `${API_BASE_URL}/check-batch`,
-      request
-    );
-    return response.data.data;
+    return request.post<Record<string, boolean>, Record<string, boolean>>(`${API_BASE_URL}/check-batch`, payload);
   },
 
   /**
@@ -51,15 +41,9 @@ export const featureToggleApi = {
     username?: string;
     email?: string;
   }): Promise<Record<string, boolean>> {
-    const params = new URLSearchParams();
-    if (context?.userId) params.append('userId', context.userId);
-    if (context?.username) params.append('username', context.username);
-    if (context?.email) params.append('email', context.email);
-
-    const response = await axios.get<{ data: Record<string, boolean> }>(
-      `${API_BASE_URL}/all?${params.toString()}`
-    );
-    return response.data.data;
+    return request.get<Record<string, boolean>, Record<string, boolean>>(`${API_BASE_URL}/all`, {
+      params: context,
+    });
   },
 
   /**
@@ -69,32 +53,23 @@ export const featureToggleApi = {
     featureName: string,
     context?: { userId?: string; username?: string; email?: string }
   ): Promise<VariantResponse> {
-    const params = new URLSearchParams();
-    if (context?.userId) params.append('userId', context.userId);
-    if (context?.username) params.append('username', context.username);
-    if (context?.email) params.append('email', context.email);
-
-    const response = await axios.get<{ data: VariantResponse }>(
-      `${API_BASE_URL}/variant/${featureName}?${params.toString()}`
-    );
-    return response.data.data;
+    return request.get<VariantResponse, VariantResponse>(`${API_BASE_URL}/variant/${featureName}`, {
+      params: context,
+    });
   },
 
   /**
    * 获取服务状态
    */
   async getStatus(): Promise<FeatureToggleStatus> {
-    const response = await axios.get<{ data: FeatureToggleStatus }>(
-      `${API_BASE_URL}/status`
-    );
-    return response.data.data;
+    return request.get<FeatureToggleStatus, FeatureToggleStatus>(`${API_BASE_URL}/status`);
   },
 
   /**
    * 刷新特性开关配置
    */
   async refresh(): Promise<void> {
-    await axios.post(`${API_BASE_URL}/refresh`);
+    await request.post<void, void>(`${API_BASE_URL}/refresh`);
   },
 };
 

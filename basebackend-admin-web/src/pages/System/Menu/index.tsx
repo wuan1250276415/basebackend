@@ -292,7 +292,7 @@ const MenuPage: React.FC = () => {
           /* 获取扁平权限列表并转换为树形结构 */
           const list = await menuApi.list();
           /* 将 PermissionDTO 映射为 MenuItem 格式 */
-          const menuItems: MenuItem[] = (list as any[]).map((item: any) => ({
+          const menuItems: MenuItem[] = list.map((item: any) => ({
             id: item.id,
             parentId: item.parentId ?? 0,
             name: item.permissionName ?? item.name,

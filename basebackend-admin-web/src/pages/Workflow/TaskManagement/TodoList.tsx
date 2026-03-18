@@ -63,12 +63,12 @@ const TodoList: React.FC = () => {
     // 加载超时统计
     const loadOverdueStats = useCallback(async () => {
         try {
-            const [overdueRes, dueSoonRes] = await Promise.all([
+            const [overdueCountValue, dueSoonCountValue] = await Promise.all([
                 countOverdueTasks(),
                 countDueSoonTasks(24)
             ])
-            if (overdueRes.code === 200) setOverdueCount(overdueRes.data || 0)
-            if (dueSoonRes.code === 200) setDueSoonCount(dueSoonRes.data || 0)
+            setOverdueCount(overdueCountValue || 0)
+            setDueSoonCount(dueSoonCountValue || 0)
         } catch (error) {
             console.error('Failed to load overdue stats', error)
         }
@@ -81,11 +81,11 @@ const TodoList: React.FC = () => {
         setLoading(true)
         setSelectedRowKeys([])
         try {
-            let response
+            let pageResult
             switch (activeTab) {
                 case 'assigned':
                     // 我的待办任务
-                    response = await listTasks({
+                    pageResult = await listTasks({
                         assignee: userInfo.username,
                         current: 1,
                         size: 100,
@@ -93,7 +93,7 @@ const TodoList: React.FC = () => {
                     break
                 case 'candidate':
                     // 候选任务 (待认领)
-                    response = await listTasks({
+                    pageResult = await listTasks({
                         candidateUser: userInfo.username,
                         current: 1,
                         size: 100,
@@ -101,31 +101,27 @@ const TodoList: React.FC = () => {
                     break
                 case 'overdue':
                     // 已超时任务
-                    response = await listOverdueTasks({
+                    pageResult = await listOverdueTasks({
                         current: 1,
                         size: 100,
                     })
                     break
                 case 'dueSoon':
                     // 即将超时任务
-                    response = await listDueSoonTasks({
+                    pageResult = await listDueSoonTasks({
                         current: 1,
                         size: 100,
                     }, 24)
                     break
                 default:
-                    response = await listTasks({
+                    pageResult = await listTasks({
                         assignee: userInfo.username,
                         current: 1,
                         size: 100,
                     })
             }
 
-            if (response.code === 200) {
-                setTasks(response.data?.records || [])
-            } else {
-                message.error(response.message || '加载任务失败')
-            }
+            setTasks(pageResult.records || [])
         } catch (error) {
             message.error('加载任务失败')
             console.error(error)
@@ -149,13 +145,9 @@ const TodoList: React.FC = () => {
         if (!userInfo?.username) return
 
         try {
-            const response = await claimTask(task.id, { userId: userInfo.username })
-            if (response.code === 200) {
-                message.success('认领成功')
-                loadTasks()
-            } else {
-                message.error(response.message || '认领失败')
-            }
+            await claimTask(task.id, { userId: userInfo.username })
+            message.success('认领成功')
+            loadTasks()
         } catch (error) {
             message.error('认领失败')
             console.error(error)
@@ -175,14 +167,10 @@ const TodoList: React.FC = () => {
             onOk: async () => {
                 setBatchLoading(true)
                 try {
-                    const response = await batchCompleteTasks(selectedRowKeys as string[])
-                    if (response.code === 200) {
-                        message.success(`批量完成：成功 ${response.data?.success} 个，失败 ${response.data?.failed} 个`)
-                        loadTasks()
-                        loadOverdueStats()
-                    } else {
-                        message.error(response.message || '批量完成失败')
-                    }
+                    const result = await batchCompleteTasks(selectedRowKeys as string[])
+                    message.success(`批量完成：成功 ${result.success} 个，失败 ${result.failed} 个`)
+                    loadTasks()
+                    loadOverdueStats()
                 } catch (error) {
                     message.error('批量完成失败')
                     console.error(error)
@@ -207,13 +195,9 @@ const TodoList: React.FC = () => {
             onOk: async () => {
                 setBatchLoading(true)
                 try {
-                    const response = await batchClaimTasks(selectedRowKeys as string[], userInfo.username)
-                    if (response.code === 200) {
-                        message.success(`批量认领：成功 ${response.data?.success} 个，失败 ${response.data?.failed} 个`)
-                        loadTasks()
-                    } else {
-                        message.error(response.message || '批量认领失败')
-                    }
+                    const result = await batchClaimTasks(selectedRowKeys as string[], userInfo.username)
+                    message.success(`批量认领：成功 ${result.success} 个，失败 ${result.failed} 个`)
+                    loadTasks()
                 } catch (error) {
                     message.error('批量认领失败')
                     console.error(error)
@@ -233,15 +217,11 @@ const TodoList: React.FC = () => {
 
         setBatchLoading(true)
         try {
-            const response = await batchDelegateTasks(selectedRowKeys as string[], delegateUserId.trim())
-            if (response.code === 200) {
-                message.success(`批量委派：成功 ${response.data?.success} 个，失败 ${response.data?.failed} 个`)
-                setBatchDelegateVisible(false)
-                setDelegateUserId('')
-                loadTasks()
-            } else {
-                message.error(response.message || '批量委派失败')
-            }
+            const result = await batchDelegateTasks(selectedRowKeys as string[], delegateUserId.trim())
+            message.success(`批量委派：成功 ${result.success} 个，失败 ${result.failed} 个`)
+            setBatchDelegateVisible(false)
+            setDelegateUserId('')
+            loadTasks()
         } catch (error) {
             message.error('批量委派失败')
             console.error(error)

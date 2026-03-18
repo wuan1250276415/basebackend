@@ -69,8 +69,7 @@ export const DeptProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTreeLoading(true)
 
       try {
-        const response = await getDeptTree()
-        const data = response.data || []
+        const data = await getDeptTree()
 
         setDeptTree(data)
         setTreeTimestamp(Date.now())
@@ -100,8 +99,7 @@ export const DeptProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setListLoading(true)
 
       try {
-        const response = await getDeptList()
-        const data = response.data || []
+        const data = await getDeptList()
 
         setDeptList(data)
         setListTimestamp(Date.now())

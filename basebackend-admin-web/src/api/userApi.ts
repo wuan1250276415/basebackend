@@ -38,3 +38,12 @@ export const userApi = {
   changeStatus: (id: number, status: number): Promise<void> =>
     request.put(`/api/user/users/${id}/status`, null, { params: { status } }),
 };
+
+export const getUserPage = userApi.page;
+export const getUserById = userApi.getById;
+export const createUser = userApi.create;
+export const updateUser = userApi.update;
+export const deleteUser = userApi.delete;
+export const resetUserPassword = userApi.resetPassword;
+export const assignUserRoles = userApi.assignRoles;
+export const changeUserStatus = userApi.changeStatus;

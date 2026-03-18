@@ -23,7 +23,7 @@ spring:
     nacos:
       discovery:
         enabled: true
-        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
         namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         username: ${NACOS_DISCOVERY_USERNAME:nacos}
@@ -31,7 +31,7 @@ spring:
         service-name: ${spring.application.name}
         port: ${NACOS_DISCOVERY_PORT:${server.port:8091}}
       config:
-        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
         namespace: ${NACOS_CONFIG_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         username: ${NACOS_CONFIG_USERNAME:nacos}
@@ -45,7 +45,7 @@ basebackend:
     enabled: true
     type: elasticsearch
     elasticsearch:
-      url: ${ES_URL:http://192.168.66.126:9200}
+      url: ${ES_URL:http://localhost:9200}
       index-prefix: ${ES_INDEX_PREFIX:mall_}
 
 # 消息配置

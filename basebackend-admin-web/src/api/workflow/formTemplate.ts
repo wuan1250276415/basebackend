@@ -1,6 +1,5 @@
 import request from '@/api/request'
 import type {
-  ApiResponse,
   PageResult,
   FormTemplate,
   FormTemplateQueryParams,
@@ -15,7 +14,7 @@ const BASE_URL = '/api/camunda/form-templates'
  */
 export const listFormTemplates = async (
   params?: FormTemplateQueryParams
-): Promise<ApiResponse<PageResult<FormTemplate>>> => {
+): Promise<PageResult<FormTemplate>> => {
   return request.get(BASE_URL, { params })
 }
 
@@ -24,7 +23,7 @@ export const listFormTemplates = async (
  */
 export const getFormTemplateById = async (
   id: string
-): Promise<ApiResponse<FormTemplate>> => {
+): Promise<FormTemplate> => {
   return request.get(`${BASE_URL}/${id}`)
 }
 
@@ -33,7 +32,7 @@ export const getFormTemplateById = async (
  */
 export const createFormTemplate = async (
   data: FormTemplateCreateParams
-): Promise<ApiResponse<FormTemplate>> => {
+): Promise<FormTemplate> => {
   return request.post(BASE_URL, data)
 }
 
@@ -43,13 +42,13 @@ export const createFormTemplate = async (
 export const updateFormTemplate = async (
   id: string,
   data: FormTemplateUpdateParams
-): Promise<ApiResponse<FormTemplate>> => {
+): Promise<FormTemplate> => {
   return request.put(`${BASE_URL}/${id}`, data)
 }
 
 /**
  * 删除表单模板
  */
-export const deleteFormTemplate = async (id: string): Promise<ApiResponse> => {
+export const deleteFormTemplate = async (id: string): Promise<void> => {
   return request.delete(`${BASE_URL}/${id}`)
 }

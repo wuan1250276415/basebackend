@@ -248,16 +248,23 @@ public class LocalStorageProvider implements StorageProvider {
     /**
      * 解析完整路径，并防御路径穿越攻击。
      * <p>
-     * 对解析后的路径执行 normalize()，然后验证其是否仍在配置的 basePath 范围内。
+     * 先规范化 bucket 根目录，再对解析后的路径执行 normalize()，
+     * 最终验证目标路径是否仍在当前 bucket 根目录范围内。
      * 若检测到路径穿越（如 key = "../../etc/passwd"），抛出 StorageException。
      * </p>
      */
     private Path resolvePath(String bucket, String key) {
         Path base = Paths.get(localConfig.getBasePath()).toAbsolutePath().normalize();
-        Path resolved = base.resolve(bucket).resolve(key != null ? key : "").normalize();
-        if (!resolved.startsWith(base)) {
+        Path bucketRoot = base.resolve(bucket != null ? bucket : defaultBucket).normalize();
+        String pathForLog = (bucket != null ? bucket : defaultBucket) + "/" + (key != null ? key : "");
+        if (!bucketRoot.startsWith(base)) {
             log.warn("路径穿越攻击被检测到: bucket={}, key={}", bucket, key);
-            throw new StorageException("INVALID_PATH", "非法存储路径：路径超出基础目录范围");
+            throw StorageException.accessDenied(pathForLog);
+        }
+        Path resolved = bucketRoot.resolve(key != null ? key : "").normalize();
+        if (!resolved.startsWith(bucketRoot)) {
+            log.warn("路径穿越攻击被检测到: bucket={}, key={}", bucket, key);
+            throw StorageException.accessDenied(pathForLog);
         }
         return resolved;
     }

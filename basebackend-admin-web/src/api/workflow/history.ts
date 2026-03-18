@@ -1,6 +1,5 @@
 import request from '@/api/request'
 import type {
-    ApiResponse,
     PageResult,
     HistoricProcessInstance,
     HistoricActivityInstance,
@@ -21,7 +20,7 @@ const BASE_URL = '/api/camunda/historic/process-instances'
  */
 export const listHistoricProcessInstances = async (
     params?: HistoricProcessInstanceQuery
-): Promise<ApiResponse<PageResult<HistoricProcessInstance>>> => {
+): Promise<PageResult<HistoricProcessInstance>> => {
     return request.get(BASE_URL, { params })
 }
 
@@ -30,7 +29,7 @@ export const listHistoricProcessInstances = async (
  */
 export const getHistoricProcessInstanceDetail = async (
     id: string
-): Promise<ApiResponse<HistoricProcessInstanceDetail>> => {
+): Promise<HistoricProcessInstanceDetail> => {
     return request.get(`${BASE_URL}/${id}`)
 }
 
@@ -39,7 +38,7 @@ export const getHistoricProcessInstanceDetail = async (
  */
 export const getHistoricProcessInstanceStatus = async (
     id: string
-): Promise<ApiResponse<HistoricProcessInstanceStatus>> => {
+): Promise<HistoricProcessInstanceStatus> => {
     return request.get(`${BASE_URL}/${id}/status`)
 }
 
@@ -49,7 +48,7 @@ export const getHistoricProcessInstanceStatus = async (
 export const listHistoricActivities = async (
     id: string,
     params?: SimplePageQuery
-): Promise<ApiResponse<PageResult<HistoricActivityInstance>>> => {
+): Promise<PageResult<HistoricActivityInstance>> => {
     return request.get(`${BASE_URL}/${id}/activities`, { params })
 }
 
@@ -59,6 +58,6 @@ export const listHistoricActivities = async (
 export const listHistoricAuditLogs = async (
     id: string,
     params?: SimplePageQuery
-): Promise<ApiResponse<PageResult<UserOperationLog>>> => {
+): Promise<PageResult<UserOperationLog>> => {
     return request.get(`${BASE_URL}/${id}/audit-logs`, { params })
 }

@@ -164,7 +164,7 @@ class SerializerRoundTripPropertyTest {
     /**
      * Property: Null handling for all serializers
      */
-    @Property(tries = 10)
+    @Example
     void serializersHandleNullCorrectly() throws CacheSerializationException {
         // JSON serializer
         byte[] jsonNull = jsonSerializer.serialize(null);
@@ -202,9 +202,7 @@ class SerializerRoundTripPropertyTest {
             Arbitraries.strings().withCharRange('a', 'z').ofMaxLength(50),
             Arbitraries.integers().between(0, 1000),
             Arbitraries.doubles().between(0.0, 1000.0),
-            Arbitraries.defaultFor(List.class, String.class).map(list -> 
-                list.stream().limit(10).toList()
-            )
+            Arbitraries.strings().withCharRange('a', 'z').ofMaxLength(20).list().ofMaxSize(10)
         ).as(TestData::new);
     }
     

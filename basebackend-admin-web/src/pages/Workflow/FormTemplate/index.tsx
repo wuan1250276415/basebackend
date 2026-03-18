@@ -43,19 +43,15 @@ const FormTemplateList: React.FC = () => {
     const loadData = async (page = current, pageSize = size) => {
         setLoading(true)
         try {
-            const response = await listFormTemplates({
+            const pageResult = await listFormTemplates({
                 current: page,
                 size: pageSize,
                 keyword: searchText,
             })
-            if (response.code === 200) {
-                setData(response.data.records)
-                setTotal(response.data.total)
-                setCurrent(response.data.current)
-                setSize(response.data.size)
-            } else {
-                message.error(response.message || '加载表单模板失败')
-            }
+            setData(pageResult.records || [])
+            setTotal(pageResult.total || 0)
+            setCurrent(pageResult.current || page)
+            setSize(pageResult.size || pageSize)
         } catch (error) {
             message.error('加载表单模板失败')
             console.error(error)
@@ -92,13 +88,9 @@ const FormTemplateList: React.FC = () => {
 
     const handleDelete = async (id: string) => {
         try {
-            const response = await deleteFormTemplate(id)
-            if (response.code === 200) {
-                message.success('删除成功')
-                loadData()
-            } else {
-                message.error(response.message || '删除失败')
-            }
+            await deleteFormTemplate(id)
+            message.success('删除成功')
+            loadData()
         } catch (error) {
             message.error('删除失败')
             console.error(error)
@@ -109,33 +101,26 @@ const FormTemplateList: React.FC = () => {
         try {
             const values = await form.validateFields()
 
-            let response
             if (currentTemplate) {
-                // Update
                 const params: FormTemplateUpdateParams = {
                     name: values.name,
                     description: values.description,
                     content: values.content
                 }
-                response = await updateFormTemplate(currentTemplate.id, params)
+                await updateFormTemplate(currentTemplate.id, params)
             } else {
-                // Create
                 const params: FormTemplateCreateParams = {
                     name: values.name,
                     description: values.description,
                     type: values.type,
                     content: values.content
                 }
-                response = await createFormTemplate(params)
+                await createFormTemplate(params)
             }
 
-            if (response.code === 200) {
-                message.success(currentTemplate ? '更新成功' : '创建成功')
-                setModalVisible(false)
-                loadData()
-            } else {
-                message.error(response.message || '操作失败')
-            }
+            message.success(currentTemplate ? '更新成功' : '创建成功')
+            setModalVisible(false)
+            loadData()
         } catch (error) {
             console.error(error)
         }

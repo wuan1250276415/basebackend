@@ -66,7 +66,9 @@ class AuthenticationFilterTest {
 
                 // 设置默认白名单
                 securityProperties.setWhitelist(Arrays.asList(
-                                "/basebackend-user-api/api/user/auth/**",
+                                "/basebackend-user-api/api/user/auth/login",
+                                "/basebackend-user-api/api/user/auth/refresh",
+                                "/basebackend-user-api/api/user/auth/wechat-login",
                                 "/api/public/**"));
                 securityProperties.setActuatorWhitelist(Arrays.asList(
                                 "/actuator/health",
@@ -102,6 +104,23 @@ class AuthenticationFilterTest {
 
                         verify(filterChain).filter(exchange);
                         verify(jwtUtil, never()).validateToken(anyString());
+                }
+
+                @Test
+                @DisplayName("auth/info 不应落入公开白名单")
+                void shouldRequireAuthenticationForAuthInfoPath() {
+                        MockServerHttpRequest request = MockServerHttpRequest
+                                        .get("/basebackend-user-api/api/user/auth/info")
+                                        .build();
+                        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+                        Mono<Void> result = authenticationFilter.filter(exchange, filterChain);
+
+                        StepVerifier.create(result)
+                                        .verifyComplete();
+
+                        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+                        verify(filterChain, never()).filter(any());
                 }
 
                 @Test
@@ -351,6 +370,25 @@ class AuthenticationFilterTest {
                                         .verifyComplete();
 
                         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+                }
+
+                @Test
+                @DisplayName("危险的 auth 通配白名单应被忽略")
+                void shouldIgnoreUnsafeAuthWildcardFromConfig() {
+                        securityProperties.setWhitelist(Collections.singletonList("/basebackend-user-api/api/user/auth/**"));
+
+                        MockServerHttpRequest request = MockServerHttpRequest
+                                        .get("/basebackend-user-api/api/user/auth/info")
+                                        .build();
+                        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+                        Mono<Void> result = authenticationFilter.filter(exchange, filterChain);
+
+                        StepVerifier.create(result)
+                                        .verifyComplete();
+
+                        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+                        verify(filterChain, never()).filter(any());
                 }
         }
 }

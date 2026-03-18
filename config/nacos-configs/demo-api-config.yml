@@ -6,8 +6,8 @@ spring:
   # 数据源配置（可选，如果需要测试数据库功能）
   datasource:
     url: jdbc:mysql://localhost:3306/basebackend_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: mysql_S4deB5
+    username: ${DEMO_DB_USERNAME:root}
+    password: ${DEMO_DB_PASSWORD:root123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis配置
@@ -16,7 +16,7 @@ spring:
       host: localhost
       port: 6379
       database: 0
-      password: redis_ZJGE42
+      password: ${DEMO_REDIS_PASSWORD:redis2025}
 
 # RocketMQ配置
 rocketmq:

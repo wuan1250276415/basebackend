@@ -26,14 +26,12 @@ export default defineConfig({
         port: 3000,
         open: true,
         proxy: {
-            // 统一代理 /api 请求到后端网关
-            '/api': {
-                target: 'http://localhost:8080',
+            '/api/user': {
+                target: 'http://localhost:8081',
                 changeOrigin: true,
             },
-            // 代理微服务前缀的请求到后端网关
-            '^/basebackend-.*': {
-                target: 'http://localhost:8080',
+            '/api/system': {
+                target: 'http://localhost:8082',
                 changeOrigin: true,
             },
         },

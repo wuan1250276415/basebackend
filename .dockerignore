@@ -81,6 +81,15 @@ docker-compose.*.yml
 Dockerfile
 .dockerignore
 
+# 不参与 Maven reactor 的前端工程
+basebackend-admin-web/
+basebackend-album-ui/
+basebackend-chat-ui/
+
+# 本地代理/工具元数据
+.claude/
+.serena/
+
 # 脚本
 *.sh
 

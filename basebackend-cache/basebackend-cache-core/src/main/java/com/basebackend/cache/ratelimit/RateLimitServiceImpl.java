@@ -3,11 +3,11 @@ package com.basebackend.cache.ratelimit;
 import com.basebackend.cache.config.CacheProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RRateLimiter;
-import org.redisson.api.RateIntervalUnit;
 import org.redisson.api.RateType;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,8 +37,7 @@ public class RateLimitServiceImpl implements RateLimitService {
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(fullKey);
 
         // trySetRate 仅在首次设置时生效，已存在则返回 false（幂等）
-        RateIntervalUnit rateUnit = toRateIntervalUnit(unit);
-        rateLimiter.trySetRate(mode, rate, interval, rateUnit);
+        rateLimiter.trySetRate(mode, rate, toDuration(interval, unit));
 
         return rateLimiter.tryAcquire(permits);
     }
@@ -63,14 +62,7 @@ public class RateLimitServiceImpl implements RateLimitService {
         return prefix + key;
     }
 
-    private RateIntervalUnit toRateIntervalUnit(TimeUnit unit) {
-        return switch (unit) {
-            case MILLISECONDS -> RateIntervalUnit.MILLISECONDS;
-            case SECONDS -> RateIntervalUnit.SECONDS;
-            case MINUTES -> RateIntervalUnit.MINUTES;
-            case HOURS -> RateIntervalUnit.HOURS;
-            case DAYS -> RateIntervalUnit.DAYS;
-            default -> RateIntervalUnit.SECONDS;
-        };
+    private Duration toDuration(long interval, TimeUnit unit) {
+        return Duration.of(interval, unit.toChronoUnit());
     }
 }

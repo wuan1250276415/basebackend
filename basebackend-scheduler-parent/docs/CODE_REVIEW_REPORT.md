@@ -71,8 +71,8 @@ integration → workflow → [core, processor, metrics]
 #### 需改进
 ⚠️ 配置文件中存在硬编码的敏感信息
 ```yaml
-password: ${MYSQL_PASSWORD:wk5KknQxrFcD64ZS}  # 不应有默认密码
-password: ${REDIS_PASSWORD:redis_TChiFW}       # 不应有默认密码
+password: ${MYSQL_PASSWORD:<hardcoded-default-password>}  # 不应有默认密码
+password: ${REDIS_PASSWORD:<hardcoded-default-password>}  # 不应有默认密码
 ```
 
 ---
@@ -244,7 +244,7 @@ Executors.newCachedThreadPool()  // 无界线程池风险
 1. **移除硬编码凭据**
    ```java
    // 不要这样
-   password: ${MYSQL_PASSWORD:wk5KknQxrFcD64ZS}
+   password: ${MYSQL_PASSWORD:<hardcoded-default-password>}
    
    // 应该这样
    password: ${MYSQL_PASSWORD}  // 必须从环境变量获取

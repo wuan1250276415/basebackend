@@ -14,6 +14,7 @@ import com.basebackend.user.entity.SysUserRole;
 import com.basebackend.user.mapper.SysRoleMapper;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.mapper.SysUserRoleMapper;
+import com.basebackend.user.service.UserSessionService;
 import com.basebackend.user.service.UserService;
 import com.basebackend.user.util.AuditHelper;
 import com.basebackend.user.util.DeptInfoHelper;
@@ -48,6 +49,7 @@ public class UserServiceImpl implements UserService {
     private final CustomMetrics customMetrics;
     private final AuditHelper auditHelper;
     private final DeptInfoHelper deptInfoHelper;
+    private final UserSessionService userSessionService;
 
     @Override
     public Page<UserDTO> page(UserQueryDTO queryDTO, int current, int size) {
@@ -246,6 +248,7 @@ public class UserServiceImpl implements UserService {
         auditHelper.setUpdateAuditFields(user);
 
         userMapper.updateById(user);
+        userSessionService.invalidateSession(id);
 
         log.info("用户密码重置成功: {}", user.getUsername());
     }

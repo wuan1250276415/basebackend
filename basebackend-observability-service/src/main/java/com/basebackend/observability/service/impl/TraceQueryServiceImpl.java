@@ -29,7 +29,7 @@ public class TraceQueryServiceImpl implements TraceQueryService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${observability.trace.endpoint:http://192.168.66.126:9411}")
+    @Value("${observability.trace.endpoint:http://localhost:9411}")
     private String traceEndpoint;
     
     @Value("${observability.trace.format:zipkin}")

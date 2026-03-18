@@ -194,7 +194,7 @@ public class JwtAuditLogger {
     }
 
     /**
-     * 提取 IP 前两段（如 192.168.x.x → "192.168"）
+     * 提取 IP 前两段（如 198.51.x.x → "198.51"）
      */
     @Nullable
     private static String getIpPrefix(String ip) {

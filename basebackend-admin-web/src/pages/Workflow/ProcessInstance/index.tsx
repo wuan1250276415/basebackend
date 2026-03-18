@@ -54,10 +54,8 @@ const ProcessInstanceList: React.FC = () => {
   // 加载流程定义
   const loadDefinitions = async () => {
     try {
-      const response = await listProcessDefinitions()
-      if (response.code === 200) {
-        setDefinitions(response.data?.records || [])
-      }
+      const pageResult = await listProcessDefinitions()
+      setDefinitions(pageResult.records || [])
     } catch (error) {
       console.error('加载流程定义失败', error)
     }
@@ -67,14 +65,10 @@ const ProcessInstanceList: React.FC = () => {
   const loadInstances = async () => {
     setLoading(true)
     try {
-      const response = await listProcessInstances({})
-      if (response.code === 200) {
-        const instanceList = response.data?.records || []
-        setInstances(instanceList)
-        setFilteredInstances(instanceList)
-      } else {
-        message.error(response.message || '加载流程实例失败')
-      }
+      const pageResult = await listProcessInstances({})
+      const instanceList = pageResult.records || []
+      setInstances(instanceList)
+      setFilteredInstances(instanceList)
     } catch (error) {
       message.error('加载流程实例失败')
       console.error(error)
@@ -142,13 +136,9 @@ const ProcessInstanceList: React.FC = () => {
       content: `确定要挂起流程实例 "${instance.businessKey}" 吗？`,
       onOk: async () => {
         try {
-          const response = await suspendProcessInstance(instance.id)
-          if (response.code === 200) {
-            message.success('挂起成功')
-            loadInstances()
-          } else {
-            message.error(response.message || '挂起失败')
-          }
+          await suspendProcessInstance(instance.id)
+          message.success('挂起成功')
+          loadInstances()
         } catch (error) {
           message.error('挂起失败')
           console.error(error)
@@ -164,13 +154,9 @@ const ProcessInstanceList: React.FC = () => {
       content: `确定要激活流程实例 "${instance.businessKey}" 吗？`,
       onOk: async () => {
         try {
-          const response = await activateProcessInstance(instance.id)
-          if (response.code === 200) {
-            message.success('激活成功')
-            loadInstances()
-          } else {
-            message.error(response.message || '激活失败')
-          }
+          await activateProcessInstance(instance.id)
+          message.success('激活成功')
+          loadInstances()
         } catch (error) {
           message.error('激活失败')
           console.error(error)
@@ -187,13 +173,9 @@ const ProcessInstanceList: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          const response = await deleteProcessInstance(instance.id)
-          if (response.code === 200) {
-            message.success('删除成功')
-            loadInstances()
-          } else {
-            message.error(response.message || '删除失败')
-          }
+          await deleteProcessInstance(instance.id)
+          message.success('删除成功')
+          loadInstances()
         } catch (error) {
           message.error('删除失败')
           console.error(error)

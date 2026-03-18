@@ -1,10 +1,12 @@
+# syntax=docker/dockerfile:1.7
+
 # ==========================================
 # BaseBackend Ticket API — Multi-stage Dockerfile
 # Java 25 + Spring Boot 4.0.3
 # ==========================================
 
 # Stage 1: Build
-FROM maven:3.9.9-eclipse-temurin-25 AS builder
+FROM maven:3.9.11-eclipse-temurin-25 AS builder
 WORKDIR /build
 
 # 复制所有 pom.xml（利用 Docker 缓存层）
@@ -68,11 +70,13 @@ COPY basebackend-observability-service/pom.xml basebackend-observability-service
 COPY basebackend-ticket-api/pom.xml basebackend-ticket-api/
 
 # 下载依赖
-RUN mvn dependency:go-offline -B -DskipTests 2>/dev/null || true
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn dependency:go-offline -B -DskipTests 2>/dev/null || true
 
 # 复制源代码并构建
 COPY . .
-RUN mvn clean package -pl basebackend-ticket-api -am -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -pl basebackend-ticket-api -am -DskipTests -Dmaven.test.skip=true -B
 
 # ==========================================
 # Stage 2: Runtime
@@ -81,11 +85,6 @@ FROM eclipse-temurin:25-jre-alpine
 
 LABEL maintainer="basebackend-team"
 LABEL service="ticket-api"
-
-RUN apk add --no-cache curl tzdata \
-    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone \
-    && apk del tzdata
 
 RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
@@ -97,11 +96,12 @@ COPY --from=builder --chown=appuser:appuser /build/basebackend-ticket-api/target
 USER appuser
 EXPOSE 8085
 
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseZGC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heap-dump.hprof"
+ENV TZ=Asia/Shanghai
+ENV JAVA_OPTS="-Duser.timezone=Asia/Shanghai -Xms512m -Xmx1024m -XX:+UseZGC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heap-dump.hprof"
 ENV SPRING_PROFILES_ACTIVE=dev
 ENV SERVER_PORT=8085
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8085/actuator/health || exit 1
+    CMD wget -q -O /dev/null "http://localhost:${SERVER_PORT}/actuator/health" || exit 1
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

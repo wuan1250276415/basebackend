@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.basebackend.common.exception.BusinessException;
 import com.basebackend.user.dto.LoginLogDTO;
 import com.basebackend.user.dto.OperationLogDTO;
 import com.basebackend.user.entity.SysLoginLog;
@@ -115,7 +116,7 @@ public class LogServiceImpl implements LogService {
         log.info("根据ID查询登录日志: {}", id);
         SysLoginLog loginLog = loginLogMapper.selectById(id);
         if (loginLog == null) {
-            throw new RuntimeException("登录日志不存在");
+            throw new BusinessException("登录日志不存在");
         }
         return convertToLoginLogDTO(loginLog);
     }
@@ -125,7 +126,7 @@ public class LogServiceImpl implements LogService {
         log.info("根据ID查询操作日志: {}", id);
         SysOperationLog operationLog = operationLogMapper.selectById(id);
         if (operationLog == null) {
-            throw new RuntimeException("操作日志不存在");
+            throw new BusinessException("操作日志不存在");
         }
         return convertToOperationLogDTO(operationLog);
     }

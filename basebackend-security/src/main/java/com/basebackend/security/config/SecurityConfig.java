@@ -47,10 +47,20 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/**",
-            "/api/user/auth/**",
+            "/api/user/auth/login",
+            "/api/user/auth/refresh",
+            "/api/user/auth/wechat-login",
             "/api/public/**",
             "/api/files/**",
             "/api/auth/wechat/**",
+            "/api/system/depts/tree",
+            "/api/system/depts/by-name",
+            "/api/system/depts/by-code",
+            "/api/system/depts/batch",
+            "/api/system/depts/by-parent",
+            "/api/system/application/enabled",
+            "/api/system/application/code/**",
+            "/api/system/dicts/**",
             "/actuator/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
@@ -64,6 +74,8 @@ public class SecurityConfig {
      * 仅豁免 CSRF 保护但仍需认证的路径（如 API 文档静态资源）
      */
     private static final String[] CSRF_ONLY_EXEMPT_PATHS = {
+            "/api/user/auth/logout",
+            "/api/user/auth/password",
             "/druid/**"
     };
 

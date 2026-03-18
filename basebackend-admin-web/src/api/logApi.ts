@@ -54,3 +54,12 @@ export const logApi = {
   cleanLoginLog: (): Promise<void> =>
     request.delete('/api/system/logs/login/clean'),
 };
+
+export const getLoginLogPage = logApi.loginLogPage;
+export const getOperationLogPage = logApi.operationLogPage;
+export const getOperationLogById = logApi.logDetail;
+export const deleteOperationLog = logApi.deleteOperationLog;
+export const deleteOperationLogBatch = logApi.batchDeleteOperationLog;
+export const cleanOperationLog = logApi.cleanOperationLog;
+export const deleteLoginLogBatch = logApi.batchDeleteLoginLog;
+export const cleanLoginLog = logApi.cleanLoginLog;

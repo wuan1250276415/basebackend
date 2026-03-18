@@ -39,8 +39,8 @@ const ApplicationManagement = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await getApplicationList()
-      setDataSource(response.data)
+      const applications = await getApplicationList()
+      setDataSource(applications)
     } catch (error) {
       message.error('加载应用列表失败')
     } finally {

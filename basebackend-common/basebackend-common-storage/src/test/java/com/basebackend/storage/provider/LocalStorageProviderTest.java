@@ -1,8 +1,8 @@
-package com.basebackend.storage.provider;
+package com.basebackend.common.storage.provider;
 
-import com.basebackend.storage.config.StorageProperties;
-import com.basebackend.storage.exception.StorageException;
-import com.basebackend.storage.model.UploadRequest;
+import com.basebackend.common.storage.config.StorageProperties;
+import com.basebackend.common.storage.exception.StorageException;
+import com.basebackend.common.storage.model.UploadRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

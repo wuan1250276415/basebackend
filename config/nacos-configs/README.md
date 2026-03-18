@@ -44,8 +44,11 @@ cd config/nacos-configs
 .\import-nacos-configs.ps1
 
 # 自定义参数
-.\import-nacos-configs.ps1 -NacosServer "192.168.66.126:8848" -Namespace "public"
+.\import-nacos-configs.ps1 -NacosServer "localhost:8848" -Namespace "public"
 ```
+
+脚本已适配 Nacos 3，会优先使用 `v3` 登录与配置发布接口。
+如果是首次启动的全新 Nacos，脚本会尝试自动初始化管理员密码。
 
 #### Linux/Mac 用户（Bash）
 
@@ -55,8 +58,11 @@ cd config/nacos-configs
 bash import-nacos-configs.sh
 
 # 自定义参数
-NACOS_SERVER=192.168.66.126:8848 NAMESPACE=public bash import-nacos-configs.sh
+NACOS_SERVER=localhost:8848 NAMESPACE=public bash import-nacos-configs.sh
 ```
+
+脚本会自动从自身目录定位 `dev/` 配置，既支持在 `config/nacos-configs`
+目录内执行，也支持从项目根目录调用。
 
 ### 3. 验证配置导入
 
@@ -182,13 +188,14 @@ Located property source: CompositePropertySource {name='NACOS',
 
 ## 🔧 环境变量配置
 
-建议使用环境变量管理敏感配置。创建 `.env` 文件（不要提交到 Git）：
+建议使用环境变量管理敏感配置。创建私有 `.env.local`
+文件（不要提交到 Git）：
 
 ```bash
-# .env 文件示例
+# .env.local 文件示例
 
 # Nacos 配置
-NACOS_SERVER_ADDR=192.168.66.126:8848
+NACOS_SERVER_ADDR=localhost:8848
 NACOS_NAMESPACE=public
 NACOS_USERNAME=nacos
 NACOS_PASSWORD=nacos
@@ -196,9 +203,9 @@ NACOS_PASSWORD=nacos
 # MySQL 配置
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DATABASE=basebackend
-MYSQL_USERNAME=root
-MYSQL_PASSWORD=your-db-password
+MYSQL_DATABASE=basebackend_admin
+MYSQL_USERNAME=basebackend_admin
+MYSQL_PASSWORD=basebackend123
 
 # Redis 配置
 REDIS_HOST=localhost
@@ -294,15 +301,16 @@ public class SecurityBaselineProperties {
 1. 复制 `dev` 目录为 `test` 或 `prod`
 2. 修改配置文件中的环境相关值（如数据库地址、密码等）
 3. 在 Nacos 中创建对应的命名空间（如 `test`、`prod`）
-4. 执行导入脚本时指定命名空间：`bash import-nacos-configs.sh NAMESPACE=test`
+4. 执行导入脚本时指定命名空间：`NAMESPACE=test bash import-nacos-configs.sh`
 
 ### Q4: 导入脚本执行失败怎么办？
 
 **A:** 常见原因：
 1. **权限问题**：Linux/Mac 需要执行权限（`chmod +x import-nacos-configs.sh`）
 2. **网络问题**：确认能访问 Nacos 服务器
-3. **依赖缺失**：Bash 脚本需要 `curl` 和 `python3` 或 `perl`
-4. **配置文件编码**：确保配置文件是 UTF-8 编码
+3. **认证问题**：首次启动 Nacos 3 时，确认管理员密码初始化成功
+4. **依赖缺失**：Bash 脚本需要 `curl`
+5. **配置文件编码**：确保配置文件是 UTF-8 编码
 
 ## 📚 参考资料
 

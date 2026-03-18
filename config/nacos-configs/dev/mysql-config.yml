@@ -27,6 +27,10 @@ spring:
 
   # 数据源配置
   datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:basebackend}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
     druid:
       # 数据库连接信息（使用环境变量）
       url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:basebackend}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8

@@ -30,3 +30,6 @@ export const deptApi = {
   checkName: (params: { deptName: string; parentId: number }): Promise<boolean> =>
     request.get('/api/system/depts/check-dept-name', { params }),
 };
+
+export const getDeptTree = deptApi.tree;
+export const getDeptList = deptApi.list;

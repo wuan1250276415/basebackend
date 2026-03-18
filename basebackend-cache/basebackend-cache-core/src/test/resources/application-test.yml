@@ -33,5 +33,5 @@ basebackend:
 
 logging:
   level:
-    com.basebackend.cache: DEBUG
+    com.basebackend.cache: WARN
     org.testcontainers: INFO

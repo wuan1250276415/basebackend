@@ -1,5 +1,4 @@
 import request from '@/api/request';
-import { Result } from '@/types';
 
 /**
  * 通知类型
@@ -67,35 +66,32 @@ export interface NotificationListResponse {
  * 获取通知列表（简化版，用于铃铛下拉）
  */
 export const getNotifications = async (limit?: number) => {
-  const res = await request<Result<UserNotificationDTO[]>>({
+  return request<UserNotificationDTO[]>({
     url: '/basebackend-notification-service/api/notifications',
     method: 'GET',
     params: { limit },
   });
-  return res.data || [];
 };
 
 /**
  * 获取通知列表（完整版，支持分页和过滤）
  */
 export const getNotificationList = async (params: NotificationQueryParams) => {
-  const res = await request<Result<NotificationListResponse>>({
+  return request<NotificationListResponse>({
     url: '/basebackend-notification-service/api/notifications/list',
     method: 'GET',
     params,
   });
-  return res.data;
 };
 
 /**
  * 获取未读数量
  */
 export const getUnreadCount = async () => {
-  const res = await request<Result<number>>({
+  return request<number>({
     url: '/basebackend-notification-service/api/notifications/unread-count',
     method: 'GET',
   });
-  return res.data || 0;
 };
 
 /**
@@ -148,5 +144,15 @@ export const createNotification = (data: CreateNotificationDTO) => {
     url: '/basebackend-notification-service/api/notifications',
     method: 'POST',
     data,
+  });
+};
+
+/**
+ * 申请通知 SSE 一次性连接令牌
+ */
+export const getNotificationStreamToken = async () => {
+  return request<string>({
+    url: '/basebackend-notification-service/api/notifications/stream-token',
+    method: 'POST',
   });
 };

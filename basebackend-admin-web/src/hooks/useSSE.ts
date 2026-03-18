@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notification';
+import { getNotificationStreamToken } from '@/api/notification';
 import {
   showNotificationToast,
   showBrowserNotification,
@@ -18,6 +19,7 @@ interface SSEConfig {
   autoReconnect?: boolean;
   maxReconnectAttempts?: number;
   baseReconnectDelay?: number;
+  buildUrl?: (endpoint: string, token: string) => Promise<string>;
 }
 
 interface NotificationEvent {
@@ -43,6 +45,7 @@ export const useSSE = (config: SSEConfig) => {
     autoReconnect = true,
     maxReconnectAttempts = 5,
     baseReconnectDelay = 1000,
+    buildUrl,
   } = config;
 
   const queryClient = useQueryClient();
@@ -164,39 +167,43 @@ export const useSSE = (config: SSEConfig) => {
    * 建立 SSE 连接
    */
   const connect = useCallback(() => {
-    if (!token) {
-      console.warn('[SSE] 未登录，跳过连接');
-      return;
-    }
+    const connectInternal = async () => {
+      if (!token) {
+        console.warn('[SSE] 未登录，跳过连接');
+        return;
+      }
 
-    // 如果已有连接，先关闭
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+      // 如果已有连接，先关闭
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
 
-    setStatus('connecting');
-    console.log('[SSE] 正在连接到:', endpoint);
+      setStatus('connecting');
+      console.log('[SSE] 正在连接到:', endpoint);
 
-    try {
-      // 创建 EventSource 连接
-      // 注意: EventSource 不支持自定义 header，需要通过 URL 参数传递 token
-      const url = `${endpoint}?token=${encodeURIComponent(token)}`;
-      const eventSource = new EventSource(url);
+      try {
+        const url = buildUrl
+          ? await buildUrl(endpoint, token)
+          : `${endpoint}?token=${encodeURIComponent(token)}`;
+        const eventSource = new EventSource(url);
 
-      eventSource.onopen = handleOpen;
-      eventSource.onerror = handleError;
+        eventSource.onopen = handleOpen;
+        eventSource.onerror = handleError;
 
-      // 监听自定义事件
-      eventSource.addEventListener('notification', handleNotification);
-      eventSource.addEventListener('heartbeat', handleHeartbeat);
+        // 监听自定义事件
+        eventSource.addEventListener('notification', handleNotification);
+        eventSource.addEventListener('heartbeat', handleHeartbeat);
 
-      eventSourceRef.current = eventSource;
-    } catch (err) {
-      console.error('[SSE] 创建连接失败:', err);
-      setError(err as Error);
-      setStatus('error');
-    }
-  }, [token, endpoint, handleOpen, handleError, handleNotification, handleHeartbeat]);
+        eventSourceRef.current = eventSource;
+      } catch (err) {
+        console.error('[SSE] 创建连接失败:', err);
+        setError(err as Error);
+        setStatus('error');
+      }
+    };
+
+    void connectInternal();
+  }, [token, endpoint, buildUrl, handleOpen, handleError, handleNotification, handleHeartbeat]);
 
   /**
    * 断开 SSE 连接
@@ -281,5 +288,9 @@ export const useNotificationSSE = () => {
     autoReconnect: true,
     maxReconnectAttempts: 5,
     baseReconnectDelay: 1000,
+    buildUrl: async (endpoint) => {
+      const streamToken = await getNotificationStreamToken();
+      return `${endpoint}?token=${encodeURIComponent(streamToken)}`;
+    },
   });
 };

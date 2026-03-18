@@ -16,6 +16,7 @@ import { Spin } from 'antd';
 import { useAuthStore } from '@/stores/authStore';
 import { findInTree } from '@/utils/tree';
 import type { MenuItem } from '@/types';
+import { filterUnsupportedMenus } from './menuAvailability';
 
 /** 白名单路由列表，无需认证即可访问 */
 const WHITE_LIST = ['/login', '/403', '/404', '/500'];
@@ -45,6 +46,7 @@ function isPathInMenus(menus: MenuItem[], path: string): boolean {
 const RouterGuard: React.FC = () => {
   const location = useLocation();
   const { token, userInfo, menus } = useAuthStore();
+  const supportedMenus = filterUnsupportedMenus(menus);
 
   // 1. 白名单路由直接放行
   if (WHITE_LIST.includes(location.pathname)) {
@@ -68,7 +70,7 @@ const RouterGuard: React.FC = () => {
   }
 
   // 检查当前路由是否在用户菜单中
-  if (!isPathInMenus(menus, location.pathname)) {
+  if (!isPathInMenus(supportedMenus, location.pathname)) {
     return <Navigate to="/403" replace />;
   }
 

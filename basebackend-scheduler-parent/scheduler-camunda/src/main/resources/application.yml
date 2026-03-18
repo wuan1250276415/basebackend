@@ -68,7 +68,7 @@ spring:
   # ========== Redis配置 (Fallback，优先使用Nacos配置) ==========
   data:
     redis:
-      host: ${REDIS_HOST:192.168.66.126}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
@@ -86,7 +86,7 @@ spring:
     nacos:
       discovery:
         enabled: true
-        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
         namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         username: ${NACOS_DISCOVERY_USERNAME:nacos}
@@ -99,7 +99,7 @@ spring:
           region: ${APP_REGION:beijing}
           zone: ${APP_ZONE:zone-a}
       config:
-        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
         namespace: ${NACOS_CONFIG_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         username: ${NACOS_CONFIG_USERNAME:nacos}
@@ -177,7 +177,7 @@ scheduler:
 # RocketMQ 配置
 # ========================================
 rocketmq:
-  name-server: ${ROCKETMQ_NAME_SERVER:192.168.66.126:9876}
+  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
   producer:
     group: ${ROCKETMQ_PRODUCER_GROUP:scheduler-producer-group}
     send-message-timeout: 3000
@@ -189,7 +189,7 @@ rocketmq:
 # ========================================
 redisson:
   single-server-config:
-    address: ${REDIS_ADDRESS:redis://192.168.66.126:6379}
+    address: ${REDIS_ADDRESS:redis://localhost:6379}
     database: ${REDIS_DATABASE:0}
     password: ${REDIS_PASSWORD:}
     connect-timeout: 3000

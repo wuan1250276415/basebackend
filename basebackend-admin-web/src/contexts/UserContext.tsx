@@ -48,15 +48,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null)
 
     try {
-      const response = await getCurrentUserInfo()
-      if (response.data.code === 200 && response.data.data) {
-        authStore.setUserInfo(response.data.data)
-
-        // 这里可以同时获取权限和角色
-        // 假设后端返回了权限和角色信息
-        // authStore.setPermissions(response.data.data.permissions || [])
-        // authStore.setRoles(response.data.data.roles || [])
-      }
+      const userContext = await getCurrentUserInfo()
+      authStore.setUserInfo(userContext)
+      authStore.setPermissions(userContext.permissions || [])
+      authStore.setRoles(userContext.roles || [])
     } catch (err: any) {
       setError(err.message || '获取用户信息失败')
       console.error('刷新用户信息失败:', err)

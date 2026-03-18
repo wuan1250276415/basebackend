@@ -147,26 +147,29 @@ public class LocalStorageProvider implements StorageProvider {
             throw new IllegalArgumentException("路径包含非法字符: " + bucket + "/" + key);
         }
 
-        // 转换为绝对路径
         Path absoluteBasePath = basePath.toAbsolutePath().normalize();
+        Path bucketRoot = absoluteBasePath.resolve(bucket).normalize();
+        Path targetPath = bucketRoot.resolve(key).normalize();
 
-        // 构建目标路径并转换为绝对路径
-        Path targetPath = absoluteBasePath.resolve(bucket).resolve(key).toAbsolutePath().normalize();
-
-        // 若目标文件已存在，解析真实路径（跟随符号链接）以防止符号链接绕过沙箱
-        try {
-            if (Files.exists(targetPath)) {
-                targetPath = targetPath.toRealPath();
-            }
-            // 对 basePath 同样解析真实路径，以防 basePath 本身含符号链接
-            absoluteBasePath = absoluteBasePath.toRealPath(java.nio.file.LinkOption.NOFOLLOW_LINKS);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("无法解析路径真实位置: " + targetPath, e);
+        // 先基于 bucket 根目录做规范化边界检查，避免 key 逃逸到其他目录
+        if (!targetPath.startsWith(bucketRoot)) {
+            throw new IllegalArgumentException("路径遍历攻击检测: " + bucket + "/" + key);
         }
 
-        // 验证目标路径是否在基础路径范围内（防止../遍历和符号链接绕过）
-        if (!targetPath.startsWith(absoluteBasePath)) {
-            throw new IllegalArgumentException("路径遍历攻击检测: " + bucket + "/" + key);
+        // 若 bucket 或目标文件已存在，再解析真实路径，防止符号链接绕过
+        try {
+            if (Files.exists(bucketRoot)) {
+                bucketRoot = bucketRoot.toRealPath();
+            }
+            if (Files.exists(targetPath)) {
+                Path realTargetPath = targetPath.toRealPath();
+                if (Files.exists(bucketRoot) && !realTargetPath.startsWith(bucketRoot)) {
+                    throw new IllegalArgumentException("路径遍历攻击检测: " + bucket + "/" + key);
+                }
+                return realTargetPath;
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("无法解析路径真实位置: " + targetPath, e);
         }
 
         return targetPath;

@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.connection.RedisKeyCommands;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -193,9 +194,10 @@ public class RedisService {
                 .build();
 
             redisTemplate.execute((RedisCallback<Void>) connection -> {
+                RedisKeyCommands keyCommands = connection.keyCommands();
                 List<byte[]> currentBatch = new ArrayList<>();
 
-                try (Cursor<byte[]> cursor = connection.scan(scanOptions)) {
+                try (Cursor<byte[]> cursor = keyCommands.scan(scanOptions)) {
                     while (cursor.hasNext()) {
                         currentBatch.add(cursor.next());
 
@@ -250,9 +252,10 @@ public class RedisService {
         try {
             // 使用 UNLINK 命令（异步删除，不会阻塞 Redis）
             Long deleted = redisTemplate.execute((RedisCallback<Long>) connection -> {
+                RedisKeyCommands keyCommands = connection.keyCommands();
                 long count = 0;
                 for (byte[] key : keys) {
-                    Long result = connection.unlink(key);
+                    Long result = keyCommands.unlink(key);
                     if (result != null && result > 0) {
                         count++;
                     }
@@ -702,7 +705,8 @@ public class RedisService {
 
             try {
                 redisTemplate.execute((RedisCallback<Void>) connection -> {
-                    try (Cursor<byte[]> cursor = connection.scan(scanOptions)) {
+                    RedisKeyCommands keyCommands = connection.keyCommands();
+                    try (Cursor<byte[]> cursor = keyCommands.scan(scanOptions)) {
                         while (cursor.hasNext()) {
                             byte[] keyBytes = cursor.next();
                             collectedKeys.add(new String(keyBytes, StandardCharsets.UTF_8));

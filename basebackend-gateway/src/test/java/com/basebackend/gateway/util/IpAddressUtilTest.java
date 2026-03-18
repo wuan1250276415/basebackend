@@ -22,13 +22,13 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("IPv4 地址无端口应该返回原值")
         void shouldReturnOriginalForIPv4WithoutPort() {
-            assertEquals("192.168.1.1", IpAddressUtil.stripPort("192.168.1.1"));
+            assertEquals("198.51.100.1", IpAddressUtil.stripPort("198.51.100.1"));
         }
 
         @Test
         @DisplayName("IPv4 地址带端口应该剥离端口")
         void shouldStripPortFromIPv4() {
-            assertEquals("192.168.1.1", IpAddressUtil.stripPort("192.168.1.1:8080"));
+            assertEquals("198.51.100.1", IpAddressUtil.stripPort("198.51.100.1:8080"));
             assertEquals("10.0.0.1", IpAddressUtil.stripPort("10.0.0.1:80"));
             assertEquals("127.0.0.1", IpAddressUtil.stripPort("127.0.0.1:3000"));
         }
@@ -65,12 +65,12 @@ class IpAddressUtilTest {
         @DisplayName("缓存应该生效")
         void shouldUseCache() {
             // 第一次调用
-            String result1 = IpAddressUtil.stripPort("192.168.1.1:8080");
+            String result1 = IpAddressUtil.stripPort("198.51.100.1:8080");
             // 第二次调用（应该从缓存获取）
-            String result2 = IpAddressUtil.stripPort("192.168.1.1:8080");
+            String result2 = IpAddressUtil.stripPort("198.51.100.1:8080");
 
             assertEquals(result1, result2);
-            assertEquals("192.168.1.1", result1);
+            assertEquals("198.51.100.1", result1);
         }
     }
 
@@ -81,28 +81,28 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("IPv4 CIDR 匹配应该正确")
         void shouldMatchIPv4Cidr() {
-            assertTrue(IpAddressUtil.matchesCidr("192.168.1.100", "192.168.1.0/24"));
-            assertTrue(IpAddressUtil.matchesCidr("192.168.1.1", "192.168.1.0/24"));
-            assertTrue(IpAddressUtil.matchesCidr("192.168.1.254", "192.168.1.0/24"));
+            assertTrue(IpAddressUtil.matchesCidr("198.51.100.100", "198.51.100.0/24"));
+            assertTrue(IpAddressUtil.matchesCidr("198.51.100.1", "198.51.100.0/24"));
+            assertTrue(IpAddressUtil.matchesCidr("198.51.100.254", "198.51.100.0/24"));
 
-            assertFalse(IpAddressUtil.matchesCidr("192.168.2.1", "192.168.1.0/24"));
-            assertFalse(IpAddressUtil.matchesCidr("10.0.0.1", "192.168.1.0/24"));
+            assertFalse(IpAddressUtil.matchesCidr("198.51.101.1", "198.51.100.0/24"));
+            assertFalse(IpAddressUtil.matchesCidr("10.0.0.1", "198.51.100.0/24"));
         }
 
         @Test
         @DisplayName("IPv4 /16 子网匹配应该正确")
         void shouldMatchIPv4Cidr16() {
-            assertTrue(IpAddressUtil.matchesCidr("192.168.0.1", "192.168.0.0/16"));
-            assertTrue(IpAddressUtil.matchesCidr("192.168.255.255", "192.168.0.0/16"));
+            assertTrue(IpAddressUtil.matchesCidr("198.18.0.1", "198.18.0.0/16"));
+            assertTrue(IpAddressUtil.matchesCidr("198.18.255.255", "198.18.0.0/16"));
 
-            assertFalse(IpAddressUtil.matchesCidr("192.169.0.1", "192.168.0.0/16"));
+            assertFalse(IpAddressUtil.matchesCidr("198.19.0.1", "198.18.0.0/16"));
         }
 
         @Test
         @DisplayName("IPv4 完全匹配应该正确")
         void shouldMatchIPv4Exact() {
-            assertTrue(IpAddressUtil.matchesCidr("192.168.1.1", "192.168.1.1/32"));
-            assertFalse(IpAddressUtil.matchesCidr("192.168.1.2", "192.168.1.1/32"));
+            assertTrue(IpAddressUtil.matchesCidr("198.51.100.1", "198.51.100.1/32"));
+            assertFalse(IpAddressUtil.matchesCidr("198.51.100.2", "198.51.100.1/32"));
         }
 
         @Test
@@ -117,15 +117,15 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("不同地址族不应该匹配")
         void shouldNotMatchDifferentAddressFamilies() {
-            assertFalse(IpAddressUtil.matchesCidr("192.168.1.1", "2001:db8::/32"));
-            assertFalse(IpAddressUtil.matchesCidr("2001:db8::1", "192.168.1.0/24"));
+            assertFalse(IpAddressUtil.matchesCidr("198.51.100.1", "2001:db8::/32"));
+            assertFalse(IpAddressUtil.matchesCidr("2001:db8::1", "198.51.100.0/24"));
         }
 
         @Test
         @DisplayName("null 参数应该返回 false")
         void shouldReturnFalseForNull() {
-            assertFalse(IpAddressUtil.matchesCidr(null, "192.168.1.0/24"));
-            assertFalse(IpAddressUtil.matchesCidr("192.168.1.1", null));
+            assertFalse(IpAddressUtil.matchesCidr(null, "198.51.100.0/24"));
+            assertFalse(IpAddressUtil.matchesCidr("198.51.100.1", null));
             assertFalse(IpAddressUtil.matchesCidr(null, null));
         }
     }
@@ -137,7 +137,7 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("isIPv4 应该正确识别 IPv4 地址")
         void shouldIdentifyIPv4() {
-            assertTrue(IpAddressUtil.isIPv4("192.168.1.1"));
+            assertTrue(IpAddressUtil.isIPv4("198.51.100.1"));
             assertTrue(IpAddressUtil.isIPv4("10.0.0.1"));
             assertTrue(IpAddressUtil.isIPv4("127.0.0.1"));
 
@@ -154,7 +154,7 @@ class IpAddressUtilTest {
             assertTrue(IpAddressUtil.isIPv6("::1"));
             assertTrue(IpAddressUtil.isIPv6("fe80::1"));
 
-            assertFalse(IpAddressUtil.isIPv6("192.168.1.1"));
+            assertFalse(IpAddressUtil.isIPv6("198.51.100.1"));
             assertFalse(IpAddressUtil.isIPv6(null));
             assertFalse(IpAddressUtil.isIPv6(""));
         }
@@ -167,9 +167,9 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("有效的 CIDR 应该创建成功")
         void shouldCreateValidCidr() {
-            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("192.168.1.0/24");
+            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("198.51.100.0/24");
             assertTrue(matcher.isValid());
-            assertEquals("192.168.1.0/24", matcher.getCidr());
+            assertEquals("198.51.100.0/24", matcher.getCidr());
         }
 
         @Test
@@ -182,16 +182,16 @@ class IpAddressUtilTest {
         @Test
         @DisplayName("无前缀长度的 CIDR 应该使用默认值")
         void shouldUseDefaultPrefixLength() {
-            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("192.168.1.1");
+            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("198.51.100.1");
             assertTrue(matcher.isValid());
-            assertTrue(matcher.matches("192.168.1.1"));
-            assertFalse(matcher.matches("192.168.1.2"));
+            assertTrue(matcher.matches("198.51.100.1"));
+            assertFalse(matcher.matches("198.51.100.2"));
         }
 
         @Test
         @DisplayName("超出范围的前缀长度应该标记为无效")
         void shouldMarkInvalidPrefixLength() {
-            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("192.168.1.0/33");
+            IpAddressUtil.CidrMatcher matcher = new IpAddressUtil.CidrMatcher("198.51.100.0/33");
             assertFalse(matcher.isValid());
         }
     }
@@ -204,8 +204,8 @@ class IpAddressUtilTest {
         @DisplayName("clearCache 应该清除缓存")
         void shouldClearCache() {
             // 添加一些缓存项
-            IpAddressUtil.stripPort("192.168.1.1:8080");
-            IpAddressUtil.matchesCidr("192.168.1.1", "192.168.1.0/24");
+            IpAddressUtil.stripPort("198.51.100.1:8080");
+            IpAddressUtil.matchesCidr("198.51.100.1", "198.51.100.0/24");
 
             // 清除缓存
             IpAddressUtil.clearCache();

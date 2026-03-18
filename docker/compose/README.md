@@ -11,12 +11,12 @@ docker/compose/
 ├── middleware/                     # 中间件
 │   ├── docker-compose.middleware.yml  # Nacos, RocketMQ
 │   └── broker.conf                # RocketMQ Broker 配置
-├── services/                       # 业务服务 (待添加)
+├── services/                       # 业务服务编排
 ├── env/                           # 环境配置
 │   ├── .env.dev                   # 开发环境配置
 │   └── .env.example               # 配置模板
-├── start-all.sh                   # 启动所有服务
-├── stop-all.sh                    # 停止所有服务
+├── start-all.sh                   # 启动基础设施和中间件
+├── stop-all.sh                    # 停止基础设施和中间件
 └── README.md                      # 本文档
 ```
 
@@ -25,40 +25,49 @@ docker/compose/
 ### 1. 配置环境变量
 
 ```bash
-# 复制配置模板
-cp env/.env.example env/.env.dev
+# 推荐先复制一份私有环境文件
+cp env/.env.example env/.env.local
 
-# 编辑配置文件，修改密码等敏感信息
-vim env/.env.dev
+# 编辑配置文件，填入私有环境信息或远程基础设施地址
+vim env/.env.local
 ```
 
-### 2. 启动服务
+仓库中的 `env/.env.dev` 只保留可提交的本地默认值。
+如果你需要连接共享 MySQL / Redis / Nacos，请使用 `env/.env.local`
+之类的私有文件，并避免提交。
+
+### 2. 启动基础设施和中间件
 
 ```bash
-# 启动所有服务（使用默认开发环境配置）
+# 启动 MySQL / Redis / Nacos / RocketMQ（使用私有环境配置）
+./start-all.sh env/.env.local
+
+# 或直接使用仓库内置的本地安全默认值
 ./start-all.sh
 
-# 或指定环境配置文件
-./start-all.sh env/.env.dev
+# 或指定任意自定义环境配置文件
+./start-all.sh /absolute/path/to/your.env
 ```
+
+脚本会自动创建 `basebackend-network`，并按顺序启动基础设施与中间件。
 
 ### 3. 验证服务
 
 ```bash
 # 检查服务状态
-docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev ps
-docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.dev ps
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local ps
+docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.local ps
 
 # 查看日志
-docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev logs -f mysql
-docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.dev logs -f nacos
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local logs -f mysql
+docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.local logs -f nacos
 ```
 
 ### 4. 访问服务
 
 | 服务 | 地址 | 默认账号/密码 |
 |-----|------|---------|
-| MySQL | localhost:3306 | basebackend/basebackend123 |
+| MySQL | localhost:3306 | basebackend_admin/basebackend123 |
 | Redis | localhost:6379 | 密码: redis2025 |
 | Nacos Console | http://localhost:8848/nacos | nacos/nacos |
 | RocketMQ Console | http://localhost:8180 | (无需登录) |
@@ -70,13 +79,13 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.d
 ### 仅启动基础设施
 
 ```bash
-docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev up -d
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local up -d
 ```
 
 ### 仅启动中间件
 
 ```bash
-docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.dev up -d
+docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.local up -d
 ```
 
 ## 停止服务
@@ -86,8 +95,8 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.d
 ./stop-all.sh
 
 # 停止并删除数据卷（警告：会删除所有数据）
-docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev down -v
-docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.dev down -v
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local down -v
+docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.local down -v
 ```
 
 ## 环境配置说明
@@ -95,18 +104,24 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.d
 ### MySQL 配置
 
 ```bash
-MYSQL_ROOT_PASSWORD=root123456      # Root 密码
-MYSQL_DATABASE=basebackend          # 数据库名
-MYSQL_USER=basebackend              # 用户名
-MYSQL_PASSWORD=basebackend123       # 用户密码
-MYSQL_PORT=3306                     # 端口
+MYSQL_ROOT_PASSWORD=root123456      # Root 密码（仅本地开发）
+MYSQL_DATABASE=basebackend_admin    # 数据库名
+MYSQL_USER=basebackend_admin        # 用户名
+MYSQL_USERNAME=basebackend_admin    # 应用侧读取的用户名变量
+MYSQL_PASSWORD=basebackend123       # 用户密码（仅本地开发）
+MYSQL_HOST=mysql                    # Docker 网络内访问地址
+MYSQL_PORT=3306                     # 容器内端口
+MYSQL_HOST_PORT=3306                # 宿主机映射端口
 ```
 
 ### Redis 配置
 
 ```bash
 REDIS_PORT=6379                     # 端口
-REDIS_PASSWORD=redis2025            # 密码（默认：redis2025）
+REDIS_DATABASE=0                    # 数据库索引
+REDIS_HOST_PORT=6379                # 宿主机映射端口
+REDIS_HOST=redis                    # Docker 网络内访问地址
+REDIS_PASSWORD=redis2025            # 密码（仅本地开发）
 ```
 
 ### Nacos 配置
@@ -116,7 +131,9 @@ NACOS_PORT=8848                     # HTTP 端口
 NACOS_GRPC_PORT=9848                # gRPC 端口
 NACOS_AUTH_ENABLE=true              # 启用认证
 NACOS_AUTH_TOKEN=SecretKey...       # 认证密钥（至少32字符）
-NACOS_NAMESPACE=dev                 # 命名空间
+NACOS_NAMESPACE=public              # 命名空间
+NACOS_DISCOVERY_SERVER=nacos:8848   # Docker 网络内服务发现地址
+NACOS_CONFIG_SERVER=nacos:8848      # Docker 网络内配置中心地址
 ```
 
 ### RocketMQ 配置
@@ -140,7 +157,7 @@ ROCKETMQ_CONSOLE_PORT=8180          # 控制台端口
 docker logs basebackend-mysql
 
 # 等待 MySQL 完全启动（约30秒）
-docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev ps
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local ps
 ```
 
 ### Q2: Nacos 注册失败
@@ -165,8 +182,8 @@ docker exec basebackend-gateway ping nacos
 
 **解决方案**:
 ```bash
-# 修改 env/.env.dev 中的端口配置
-# 例如：MYSQL_PORT=3307
+# 修改 env/.env.local 中的宿主机端口映射
+# 例如：MYSQL_HOST_PORT=3307 或 REDIS_HOST_PORT=6380
 ```
 
 ### Q4: 内存不足
@@ -241,7 +258,7 @@ docker exec -it basebackend-nacos bash
 # 重启单个服务
 docker-compose -f base/docker-compose.base.yml --env-file env/.env.dev restart mysql
 
-# 重启所有服务
+# 重启基础设施和中间件
 ./stop-all.sh && ./start-all.sh
 ```
 

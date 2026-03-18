@@ -2,7 +2,6 @@ import request from '@/api/request'
 import type {
   ProcessDefinition,
   ProcessDefinitionQueryParams,
-  ApiResponse,
   PageResult,
 } from '@/types/workflow'
 
@@ -13,7 +12,7 @@ const BASE_URL = '/api/camunda/process-definitions'
  */
 export const listProcessDefinitions = async (
   params?: ProcessDefinitionQueryParams
-): Promise<ApiResponse<PageResult<ProcessDefinition>>> => {
+): Promise<PageResult<ProcessDefinition>> => {
   return request.get(BASE_URL, { params })
 }
 
@@ -22,7 +21,7 @@ export const listProcessDefinitions = async (
  */
 export const getProcessDefinitionByKey = async (
   key: string
-): Promise<ApiResponse<ProcessDefinition>> => {
+): Promise<ProcessDefinition> => {
   return request.get(`${BASE_URL}/key/${key}`)
 }
 
@@ -31,7 +30,7 @@ export const getProcessDefinitionByKey = async (
  */
 export const getProcessDefinitionById = async (
   id: string
-): Promise<ApiResponse<ProcessDefinition>> => {
+): Promise<ProcessDefinition> => {
   return request.get(`${BASE_URL}/${id}`)
 }
 
@@ -47,7 +46,7 @@ export const deployProcessDefinition = async (data: {
   category?: string
   enableDuplicateFilter?: boolean
   deployChangedOnly?: boolean
-}): Promise<ApiResponse<string>> => {
+}): Promise<string> => {
   const formData = new FormData()
   formData.append('file', data.file)
   if (data.deploymentName) formData.append('deploymentName', data.deploymentName)
@@ -70,7 +69,7 @@ export const deployProcessDefinition = async (data: {
 export const suspendProcessDefinition = async (
   id: string,
   data: { includeProcessInstances?: boolean; executeAt?: string } = { includeProcessInstances: true }
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${id}/suspend`, data)
 }
 
@@ -80,7 +79,7 @@ export const suspendProcessDefinition = async (
 export const activateProcessDefinition = async (
   id: string,
   data: { includeProcessInstances?: boolean; executeAt?: string } = { includeProcessInstances: true }
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.post(`${BASE_URL}/${id}/activate`, data)
 }
 
@@ -90,7 +89,7 @@ export const activateProcessDefinition = async (
 export const deleteDeployment = async (
   deploymentId: string,
   cascade: boolean = false
-): Promise<ApiResponse> => {
+): Promise<void> => {
   return request.delete(`${BASE_URL}/deployments/${deploymentId}`, {
     params: { cascade },
   })
@@ -101,7 +100,7 @@ export const deleteDeployment = async (
  */
 export const getProcessDefinitionXml = async (
   id: string
-): Promise<ApiResponse<{ xml: string }>> => {
+): Promise<{ xml: string }> => {
   return request.get(`${BASE_URL}/${id}/xml-content`)
 }
 

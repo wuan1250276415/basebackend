@@ -229,7 +229,7 @@ Map<String, Object> stats = cacheService.getStats();
 
 | 改进项 | 改进前 | 改进后 |
 |--------|--------|--------|
-| 外部服务地址 | 硬编码192.168.x.x | 配置化，默认localhost |
+| 外部服务地址 | 硬编码固定内网地址 | 配置化，默认localhost |
 | 输入验证 | 无验证 | 完整的Bean Validation |
 | 配置验证 | 无验证 | @Validated + 验证注解 |
 

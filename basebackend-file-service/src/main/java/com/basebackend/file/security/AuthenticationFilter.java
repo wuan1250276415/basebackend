@@ -314,7 +314,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
      * 4. 不信任 localhost（除非明确配置）
      *
      * <strong>生产环境配置</strong>：
-     * -Dtrusted.gateway.ips=192.168.1.100,10.0.0.50
+     * -Dtrusted.gateway.ips=198.51.100.10,203.0.113.50
      * -Dtrust.localhost=true
      */
     private boolean isTrustedSource(String clientIp) {

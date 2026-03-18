@@ -9,8 +9,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 部门信息获取工具类
@@ -42,26 +44,7 @@ public class DeptInfoHelper {
         if (deptId == null) {
             return "";
         }
-
-        var deptServiceClient = deptServiceClientProvider.getIfAvailable();
-        if (deptServiceClient == null) {
-            log.debug("部门服务不可用，跳过获取部门名称: deptId={}", deptId);
-            return "";
-        }
-
-        try {
-            Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
-            if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                return deptResult.getData().deptName();
-            } else {
-                log.warn("获取部门信息失败或返回空: deptId={}, message={}",
-                        deptId, deptResult != null ? deptResult.getMessage() : "null");
-                return "";
-            }
-        } catch (Exception e) {
-            log.warn("调用部门服务异常（系统服务可能未启动）: deptId={}, error={}", deptId, e.getMessage());
-            return "";
-        }
+        return getDeptNameBatch(Set.of(deptId)).getOrDefault(deptId, "");
     }
 
     /**
@@ -85,15 +68,23 @@ public class DeptInfoHelper {
             return deptNameMap;
         }
 
-        for (Long deptId : deptIds) {
-            try {
-                Result<DeptBasicDTO> deptResult = deptServiceClient.getById(deptId);
-                if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
-                    deptNameMap.put(deptId, deptResult.getData().deptName());
+        try {
+            String deptIdsParam = deptIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            Result<List<DeptBasicDTO>> deptResult = deptServiceClient.getBatchByIds(deptIdsParam);
+            if (deptResult != null && deptResult.getCode() == 200 && deptResult.getData() != null) {
+                for (DeptBasicDTO dept : deptResult.getData()) {
+                    if (dept != null && dept.id() != null) {
+                        deptNameMap.put(dept.id(), dept.deptName());
+                    }
                 }
-            } catch (Exception e) {
-                log.warn("批量获取部门信息异常: deptId={}, error={}", deptId, e.getMessage());
+            } else {
+                log.warn("批量获取部门信息失败或返回空: deptIds={}, message={}",
+                        deptIdsParam, deptResult != null ? deptResult.getMessage() : "null");
             }
+        } catch (Exception e) {
+            log.warn("批量获取部门信息异常: deptIds={}, error={}", deptIds, e.getMessage());
         }
 
         return deptNameMap;

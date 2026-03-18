@@ -77,13 +77,9 @@ const IncidentCenter: React.FC = () => {
                 params.processDefinitionKey = processDefinitionKey
             }
 
-            const response = await listIncidents(params)
-            if (response.code === 200) {
-                setIncidents(response.data?.records || [])
-                setTotal(response.data?.total || 0)
-            } else {
-                message.error(response.message || '加载异常事件列表失败')
-            }
+            const pageData = await listIncidents(params)
+            setIncidents(pageData?.records || [])
+            setTotal(pageData?.total || 0)
         } catch (error) {
             message.error('加载异常事件列表失败')
             console.error(error)
@@ -95,10 +91,7 @@ const IncidentCenter: React.FC = () => {
     // 加载统计信息
     const loadStatistics = useCallback(async () => {
         try {
-            const response = await getIncidentStatistics()
-            if (response.code === 200) {
-                setStatistics(response.data)
-            }
+            setStatistics(await getIncidentStatistics())
         } catch (error) {
             console.error('Failed to load statistics', error)
         }
@@ -114,12 +107,7 @@ const IncidentCenter: React.FC = () => {
         setDetailLoading(true)
         setDetailModalVisible(true)
         try {
-            const response = await getIncidentById(incident.id)
-            if (response.code === 200) {
-                setCurrentIncident(response.data)
-            } else {
-                message.error(response.message || '获取异常事件详情失败')
-            }
+            setCurrentIncident(await getIncidentById(incident.id))
         } catch (error) {
             message.error('获取异常事件详情失败')
             console.error(error)
@@ -131,14 +119,10 @@ const IncidentCenter: React.FC = () => {
     // 解决异常事件
     const handleResolve = async (incidentId: string) => {
         try {
-            const response = await resolveIncident(incidentId)
-            if (response.code === 200) {
-                message.success('异常事件处理已启动')
-                loadIncidents()
-                loadStatistics()
-            } else {
-                message.error(response.message || '处理失败')
-            }
+            await resolveIncident(incidentId)
+            message.success('异常事件处理已启动')
+            loadIncidents()
+            loadStatistics()
         } catch (error) {
             message.error('处理失败')
             console.error(error)
@@ -155,14 +139,10 @@ const IncidentCenter: React.FC = () => {
     // 保存注解
     const handleSaveAnnotation = async () => {
         try {
-            const response = await setIncidentAnnotation(annotationIncidentId, annotationText)
-            if (response.code === 200) {
-                message.success('注解保存成功')
-                setAnnotationModalVisible(false)
-                loadIncidents()
-            } else {
-                message.error(response.message || '保存失败')
-            }
+            await setIncidentAnnotation(annotationIncidentId, annotationText)
+            message.success('注解保存成功')
+            setAnnotationModalVisible(false)
+            loadIncidents()
         } catch (error) {
             message.error('保存失败')
             console.error(error)

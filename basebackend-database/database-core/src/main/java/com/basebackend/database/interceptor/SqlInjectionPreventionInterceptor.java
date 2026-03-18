@@ -35,10 +35,9 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
 
-    // H4: removed bare "--" to reduce false positives (SQL-level comments in mapper XML are stripped;
-    //     "/*" injection pattern is retained as it indicates injection attempts in parameterized SQL)
+    // H4: SQL 注释模式视为高风险输入，单行注释和多行注释都应阻断
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
-            "(?i)(/\\*|\\bor\\s+1\\s*=\\s*1\\b|\\bunion\\s+select\\b|(?<!\\w)(?:drop\\s+(?:table|database|schema|view|function|procedure|index)|alter\\s+table|truncate\\s+table)\\b)");
+            "(?i)(--|/\\*|\\bor\\s+1\\s*=\\s*1\\b|\\bunion\\s+select\\b|(?<!\\w)(?:drop\\s+(?:table|database|schema|view|function|procedure|index)|alter\\s+table|truncate\\s+table)\\b)");
 
     private final DatabaseEnhancedProperties properties;
 
@@ -216,14 +215,14 @@ public class SqlInjectionPreventionInterceptor implements InnerInterceptor {
             return "UNION_INJECTION";
         } else if (lowerSql.contains("or 1=1") || lowerSql.contains("or 1 = 1")) {
             return "BOOLEAN_INJECTION";
+        } else if (lowerSql.contains("--") || lowerSql.contains("/*")) {
+            return "COMMENT_INJECTION";
         } else if (lowerSql.contains("drop ")) {
             return "DROP_STATEMENT";
         } else if (lowerSql.contains("alter table")) {
             return "ALTER_STATEMENT";
         } else if (lowerSql.contains("truncate")) {
             return "TRUNCATE_STATEMENT";
-        } else if (lowerSql.contains("/*")) {
-            return "COMMENT_INJECTION";
         }
         return "UNKNOWN";
     }

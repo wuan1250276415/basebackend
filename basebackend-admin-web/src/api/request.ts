@@ -66,6 +66,10 @@ request.interceptors.request.use(
 // ==================== 响应拦截器 ====================
 request.interceptors.response.use(
   (response: AxiosResponse<Result>) => {
+    if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
+      return response.data as any;
+    }
+
     const res = response.data;
 
     // 业务成功：code === 200，解包返回 data 字段

@@ -1,6 +1,5 @@
 import request from '@/api/request'
 import type {
-  ApiResponse,
   ProcessDefinitionsStatistics,
   InstanceStatistics,
   TaskStatistics,
@@ -14,7 +13,7 @@ const BASE_URL = '/api/camunda/statistics'
  */
 export const getProcessDefinitionStatistics = async (
   params?: { tenantId?: string; startTime?: string; endTime?: string }
-): Promise<ApiResponse<ProcessDefinitionsStatistics>> => {
+): Promise<ProcessDefinitionsStatistics> => {
   return request.get(`${BASE_URL}/process-definitions`, { params })
 }
 
@@ -22,7 +21,7 @@ export const getProcessDefinitionStatistics = async (
  * 获取流程实例统计
  */
 export const getInstanceStatistics = async (): Promise<
-  ApiResponse<InstanceStatistics>
+  InstanceStatistics
 > => {
   return request.get(`${BASE_URL}/instances`)
 }
@@ -31,7 +30,7 @@ export const getInstanceStatistics = async (): Promise<
  * 获取任务统计
  */
 export const getTaskStatistics = async (): Promise<
-  ApiResponse<TaskStatistics>
+  TaskStatistics
 > => {
   return request.get(`${BASE_URL}/tasks`)
 }
@@ -40,7 +39,7 @@ export const getTaskStatistics = async (): Promise<
  * 获取工作流运行状态概览
  */
 export const getWorkflowOverview = async (): Promise<
-  ApiResponse<WorkflowOverview>
+  WorkflowOverview
 > => {
   return request.get(`${BASE_URL}/overview`)
 }

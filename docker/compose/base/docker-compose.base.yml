@@ -21,7 +21,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
       TZ: Asia/Shanghai
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ../init-sql:/docker-entrypoint-initdb.d
@@ -45,14 +45,14 @@ services:
     image: redis:7.2-alpine
     container_name: basebackend-redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     networks:
       - basebackend-network
-    command: redis-server --appendonly yes --requirepass redis2025
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis2025}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis2025", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis2025}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

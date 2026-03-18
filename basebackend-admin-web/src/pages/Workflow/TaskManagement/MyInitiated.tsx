@@ -49,16 +49,12 @@ const MyInitiated: React.FC = () => {
 
     setLoading(true)
     try {
-      const response = await listHistoricProcessInstances({
+      const pageResult = await listHistoricProcessInstances({
         startedBy: userInfo.username,
       })
-      if (response.code === 200) {
-        const instanceList = response.data?.records || []
-        setInstances(instanceList)
-        setFilteredInstances(instanceList)
-      } else {
-        message.error(response.message || '加载流程实例失败')
-      }
+      const instanceList = pageResult.records || []
+      setInstances(instanceList)
+      setFilteredInstances(instanceList)
     } catch (error) {
       message.error('加载流程实例失败')
       console.error(error)

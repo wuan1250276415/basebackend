@@ -41,7 +41,7 @@ class AuditLogEntryTest {
             .eventType(AuditEventType.LOGIN)
             .resource("/api/login")
             .result("SUCCESS")
-            .clientIp("192.168.1.1")
+            .clientIp("198.51.100.1")
             .userAgent("Mozilla/5.0")
             .operation("用户登录")
             .build();
@@ -240,7 +240,7 @@ class AuditLogEntryTest {
             .resource("table:users")
             .operation("修改用户信息")
             .result("SUCCESS")
-            .clientIp("192.168.1.100")
+            .clientIp("198.51.100.100")
             .location("上海")
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
             .details(details)

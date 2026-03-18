@@ -56,14 +56,10 @@ const ProcessDefinitionList: React.FC = () => {
   const loadDefinitions = async () => {
     setLoading(true)
     try {
-      const response = await listProcessDefinitions()
-      if (response.code === 200) {
-        const definitionList = response.data?.records || []
-        setDefinitions(definitionList)
-        setFilteredDefinitions(definitionList)
-      } else {
-        message.error(response.message || '加载流程定义失败')
-      }
+      const pageResult = await listProcessDefinitions()
+      const definitionList = pageResult.records || []
+      setDefinitions(definitionList)
+      setFilteredDefinitions(definitionList)
     } catch (error) {
       message.error('加载流程定义失败')
       console.error(error)
@@ -112,21 +108,16 @@ const ProcessDefinitionList: React.FC = () => {
     setDeployLoading(true)
     try {
       const file = fileList[0].originFileObj as File
-      const response = await deployProcessDefinition({
+      await deployProcessDefinition({
         file: file,
         deploymentName: values.name,
         name: values.name,
       })
-
-      if (response.code === 200) {
-        message.success('部署成功')
-        setDeployModalVisible(false)
-        form.resetFields()
-        setFileList([])
-        loadDefinitions()
-      } else {
-        message.error(response.message || '部署失败')
-      }
+      message.success('部署成功')
+      setDeployModalVisible(false)
+      form.resetFields()
+      setFileList([])
+      loadDefinitions()
     } catch (error) {
       message.error('部署失败')
       console.error(error)
@@ -143,13 +134,9 @@ const ProcessDefinitionList: React.FC = () => {
       okType: 'danger',
       onOk: async () => {
         try {
-          const response = await deleteDeployment(definition.deploymentId, true)
-          if (response.code === 200) {
-            message.success('删除成功')
-            loadDefinitions()
-          } else {
-            message.error(response.message || '删除失败')
-          }
+          await deleteDeployment(definition.deploymentId, true)
+          message.success('删除成功')
+          loadDefinitions()
         } catch (error) {
           message.error('删除失败')
           console.error(error)
@@ -165,13 +152,9 @@ const ProcessDefinitionList: React.FC = () => {
       content: `确定要挂起流程定义 "${definition.name}" 吗？挂起后无法发起新的流程实例。`,
       onOk: async () => {
         try {
-          const response = await suspendProcessDefinition(definition.id)
-          if (response.code === 200) {
-            message.success('挂起成功')
-            loadDefinitions()
-          } else {
-            message.error(response.message || '挂起失败')
-          }
+          await suspendProcessDefinition(definition.id)
+          message.success('挂起成功')
+          loadDefinitions()
         } catch (error) {
           message.error('挂起失败')
           console.error(error)
@@ -187,13 +170,9 @@ const ProcessDefinitionList: React.FC = () => {
       content: `确定要激活流程定义 "${definition.name}" 吗？`,
       onOk: async () => {
         try {
-          const response = await activateProcessDefinition(definition.id)
-          if (response.code === 200) {
-            message.success('激活成功')
-            loadDefinitions()
-          } else {
-            message.error(response.message || '激活失败')
-          }
+          await activateProcessDefinition(definition.id)
+          message.success('激活成功')
+          loadDefinitions()
         } catch (error) {
           message.error('激活失败')
           console.error(error)
@@ -205,14 +184,10 @@ const ProcessDefinitionList: React.FC = () => {
   // 查看BPMN XML
   const handleViewXml = async (definition: ProcessDefinition) => {
     try {
-      const response = await getProcessDefinitionXml(definition.id)
-      if (response.code === 200 && response.data) {
-        setCurrentXml(response.data.xml)
-        setCurrentDefinition(definition)
-        setXmlDrawerVisible(true)
-      } else {
-        message.error(response.message || '获取XML失败')
-      }
+      const xmlContent = await getProcessDefinitionXml(definition.id)
+      setCurrentXml(xmlContent.xml)
+      setCurrentDefinition(definition)
+      setXmlDrawerVisible(true)
     } catch (error) {
       message.error('获取XML失败')
       console.error(error)

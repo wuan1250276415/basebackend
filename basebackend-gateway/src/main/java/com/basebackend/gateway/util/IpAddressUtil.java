@@ -32,7 +32,7 @@ public final class IpAddressUtil {
     }
 
     /**
-     * IPv4:port 格式匹配（如 192.168.1.1:8080）
+     * IPv4:port 格式匹配（如 198.51.100.10:8080）
      */
     private static final Pattern IPV4_PORT_PATTERN = Pattern.compile(
             "^(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}):(\\d+)$");
@@ -70,8 +70,8 @@ public final class IpAddressUtil {
      * <p>
      * 支持格式：
      * <ul>
-     * <li>IPv4: 192.168.1.1</li>
-     * <li>IPv4:port: 192.168.1.1:8080</li>
+     * <li>IPv4: 198.51.100.10</li>
+     * <li>IPv4:port: 198.51.100.10:8080</li>
      * <li>IPv6: 2001:db8::1</li>
      * <li>IPv6 带括号: [2001:db8::1]</li>
      * <li>IPv6 带端口: [2001:db8::1]:8080</li>
@@ -105,7 +105,7 @@ public final class IpAddressUtil {
             return ipv6BracketMatcher.group(1);
         }
 
-        // 3. 检查 IPv4:port 格式：192.168.1.1:8080
+        // 3. 检查 IPv4:port 格式：198.51.100.10:8080
         Matcher ipv4PortMatcher = IPV4_PORT_PATTERN.matcher(hostPort);
         if (ipv4PortMatcher.matches()) {
             return ipv4PortMatcher.group(1);
@@ -119,7 +119,7 @@ public final class IpAddressUtil {
      * 检查 IP 是否匹配 CIDR（带缓存）
      *
      * @param ip   IP 地址
-     * @param cidr CIDR 格式（如 192.168.1.0/24）
+     * @param cidr CIDR 格式（如 198.51.100.0/24）
      * @return 是否匹配
      */
     public static boolean matchesCidr(String ip, String cidr) {

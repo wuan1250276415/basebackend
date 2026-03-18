@@ -17,3 +17,7 @@ export const profileApi = {
   changePassword: (params: ChangePasswordParams): Promise<void> =>
     request.put('/api/user/profile/password', params),
 };
+
+export const getProfile = profileApi.getProfile;
+export const updateProfile = profileApi.updateProfile;
+export const changePassword = profileApi.changePassword;

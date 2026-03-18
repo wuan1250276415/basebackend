@@ -9,9 +9,9 @@ spring:
   # 数据源配置 - Scheduler 专用数据库
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.66.126:3306/basebackend_scheduler?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: basebackend_scheduler
-    password: wk5KknQxrFcD64ZS
+    url: jdbc:mysql://${SCHEDULER_DB_HOST:localhost}:${SCHEDULER_DB_PORT:3306}/${SCHEDULER_DB_NAME:basebackend_scheduler}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${SCHEDULER_DB_USERNAME:basebackend_scheduler}
+    password: ${SCHEDULER_DB_PASSWORD:scheduler123}
     hikari:
       pool-name: scheduler-hikari-pool
       minimum-idle: 5
@@ -28,7 +28,7 @@ camunda:
       schema-update: true
     admin-user:
       id: admin
-      password: admin123
+      password: ${CAMUNDA_ADMIN_PASSWORD:admin123}
     history-level: full
     auto-deployment-enabled: true
 
@@ -37,7 +37,7 @@ powerjob:
   worker:
     enabled: true
     app-name: basebackend-scheduler
-    server-address: 192.168.66.126:7700
+    server-address: ${POWERJOB_SERVER_ADDRESS:localhost:7700}
     protocol: HTTP
     port: 27777
     store-strategy: DISK

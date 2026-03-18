@@ -26,3 +26,13 @@ export const monitorApi = {
   systemStats: (): Promise<any> =>
     request.get('/api/system/monitor/stats'),
 };
+
+/**
+ * 兼容项目内历史上的命名导出调用方式。
+ * request 已经统一解包 data，这里直接返回业务数据本身。
+ */
+export const getOnlineUsers = monitorApi.onlineUsers;
+export const forceLogout = monitorApi.forceLogout;
+export const getServerInfo = monitorApi.serverInfo;
+export const getCacheInfo = monitorApi.cacheInfo;
+export const getSystemStats = monitorApi.systemStats;

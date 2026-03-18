@@ -1,5 +1,4 @@
 import request from '@/api/request'
-import type { ApiResponse } from '@/types/workflow'
 
 const BASE_URL = '/api/camunda/historic/process-instances'
 
@@ -46,6 +45,6 @@ export interface ProcessTracking {
  */
 export const getProcessTracking = async (
     instanceId: string
-): Promise<ApiResponse<ProcessTracking>> => {
+): Promise<ProcessTracking> => {
     return request.get(`${BASE_URL}/${instanceId}/tracking`)
 }

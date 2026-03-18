@@ -2,7 +2,7 @@ import { Search, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react'
 import { Card, Form, Input, Select, DatePicker, Button, Table, Tag, Space, message } from 'antd'
 
-import { queryLogs, LogQueryRequest } from '@/api/observability/logs'
+import { queryLogs, type LogEntry, type LogQueryRequest } from '@/api/observability/logs'
 import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
@@ -14,7 +14,7 @@ const { Option } = Select
 const LogQuery = () => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [total, setTotal] = useState(0)
 
   // 查询日志
@@ -36,14 +36,8 @@ const LogQuery = () => {
       }
 
       const res = await queryLogs(params)
-
-      if (res.data?.logs) {
-        setLogs(res.data.logs)
-        setTotal(res.data.total || 0)
-      } else {
-        setLogs([])
-        setTotal(0)
-      }
+      setLogs(res.logs)
+      setTotal(res.total)
     } catch (error: any) {
       message.error(error.message || '查询日志失败')
     } finally {
@@ -65,26 +59,27 @@ const LogQuery = () => {
       dataIndex: 'timestamp',
       key: 'timestamp',
       width: 180,
-      render: (timestamp: number) => dayjs(timestamp / 1000000).format('YYYY-MM-DD HH:mm:ss.SSS')
+      render: (timestamp: string) => timestamp || '-'
+    },
+    {
+      title: '服务',
+      dataIndex: 'service',
+      key: 'service',
+      width: 180
+    },
+    {
+      title: '级别',
+      dataIndex: 'level',
+      key: 'level',
+      width: 100,
+      render: (level: string) => <Tag color={getLevelColor(level)}>{level}</Tag>
     },
     {
       title: '日志内容',
-      dataIndex: 'line',
-      key: 'line',
+      dataIndex: 'message',
+      key: 'message',
       ellipsis: true,
-      render: (text: string) => {
-        try {
-          const log = JSON.parse(text)
-          return (
-            <div>
-              <Tag color={getLevelColor(log.level)}>{log.level}</Tag>
-              <span>{log.message || text}</span>
-            </div>
-          )
-        } catch {
-          return text
-        }
-      }
+      render: (text: string) => text || '-'
     }
   ]
 
@@ -160,7 +155,7 @@ const LogQuery = () => {
           columns={columns}
           dataSource={logs}
           loading={loading}
-          rowKey={(record, index) => `${record.timestamp}-${index}`}
+          rowKey={(record, index) => `${record.timestamp}-${record.logger || index}`}
           pagination={{
             total,
             pageSize: 100,

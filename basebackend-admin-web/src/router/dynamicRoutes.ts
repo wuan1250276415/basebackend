@@ -10,6 +10,7 @@
 import React from 'react';
 import type { RouteObject } from 'react-router-dom';
 import type { MenuItem } from '@/types/menu';
+import { filterUnsupportedMenus } from './menuAvailability';
 
 /**
  * 页面模块映射表类型
@@ -109,7 +110,7 @@ export function generateRoutes(
   modules: PageModuleMap = pageModules
 ): RouteObject[] {
   // 按排序号排序
-  const sorted = sortMenus(menus);
+  const sorted = sortMenus(filterUnsupportedMenus(menus));
   const routes: RouteObject[] = [];
 
   for (const menu of sorted) {

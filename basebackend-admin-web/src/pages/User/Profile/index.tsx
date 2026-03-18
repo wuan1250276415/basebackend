@@ -17,8 +17,8 @@ const Profile = () => {
   const loadProfile = async () => {
     setLoading(true)
     try {
-      const response = await getProfile()
-      setProfileData(response.data)
+      const profile = await getProfile()
+      setProfileData(profile)
     } catch (error) {
       message.error('加载个人资料失败')
     } finally {

@@ -123,7 +123,7 @@ public class MyApplication {
 | 配置项 | 说明 | 默认值 | 示例 |
 |--------|------|--------|------|
 | `nacos.config.enabled` | 是否启用配置中心 | `true` | `true` |
-| `nacos.config.server-addr` | Nacos服务器地址 | `127.0.0.1:8848` | `192.168.1.100:8848` |
+| `nacos.config.server-addr` | Nacos服务器地址 | `127.0.0.1:8848` | `203.0.113.10:8848` |
 | `nacos.config.namespace` | 命名空间 | `public` | `dev/test/prod` |
 | `nacos.config.group` | 分组 | `DEFAULT_GROUP` | `DEFAULT_GROUP` |
 | `nacos.config.refresh-enabled` | 动态刷新开关 | `自动检测` | `true` |
@@ -135,7 +135,7 @@ public class MyApplication {
 | 配置项 | 说明 | 默认值 | 示例 |
 |--------|------|--------|------|
 | `nacos.discovery.enabled` | 是否启用服务发现 | `true` | `true` |
-| `nacos.discovery.server-addr` | Nacos服务器地址 | `127.0.0.1:8848` | `192.168.1.100:8848` |
+| `nacos.discovery.server-addr` | Nacos服务器地址 | `127.0.0.1:8848` | `203.0.113.10:8848` |
 | `nacos.discovery.namespace` | 命名空间 | `public` | `dev/test/prod` |
 | `nacos.discovery.group` | 分组 | `DEFAULT_GROUP` | `DEFAULT_GROUP` |
 | `nacos.discovery.weight` | 实例权重 | `1.0` | `0.5` |
@@ -248,7 +248,7 @@ public class GrayReleaseDemo {
         GrayReleaseConfig grayConfig = new GrayReleaseConfig();
         grayConfig.setDataId("my-config.yml");
         grayConfig.setStrategyType("ip");
-        grayConfig.setTargetInstances("192.168.1.10,192.168.1.11");
+        grayConfig.setTargetInstances("203.0.113.10,203.0.113.11");
 
         GrayReleaseResult result = grayReleaseService.startGrayRelease(configInfo, grayConfig);
         if (result.isSuccess()) {
@@ -434,9 +434,9 @@ A1: 在 `application.yml` 中配置：
 ```yaml
 nacos:
   config:
-    server-addr: 192.168.1.100:8848
+    server-addr: 203.0.113.10:8848
   discovery:
-    server-addr: 192.168.1.100:8848
+    server-addr: 203.0.113.10:8848
 ```
 
 ### Q2: 配置不生效怎么办？

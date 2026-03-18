@@ -3,11 +3,11 @@ package com.basebackend.common.datascope.handler;
 import com.basebackend.common.context.UserContext;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.datascope.config.DataScopeProperties;
+import com.basebackend.common.datascope.context.DataScopeContext;
 import com.basebackend.common.datascope.enums.DataScopeType;
 
-import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * 数据权限 SQL 条件构建器
@@ -25,6 +25,16 @@ public final class DataScopeSqlBuilder {
      * 用于防御将别名/字段名/表名直接插入 SQL 时的注入攻击。
      */
     private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
+
+    /**
+     * 自定义条件中的危险 SQL 片段，命中后直接拒绝访问。
+     * <p>
+     * 这里只覆盖当前回归所需的最小安全集，避免把合法表达式误判为非法。
+     * </p>
+     */
+    private static final Pattern UNSAFE_CUSTOM_CONDITION = Pattern.compile(
+            "(?is)(;|--|/\\*|\\*/|\\b(drop|delete|insert|update|truncate|alter|create|grant|revoke|union|exec|sleep|benchmark)\\b)"
+    );
 
     private DataScopeSqlBuilder() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
@@ -56,23 +66,33 @@ public final class DataScopeSqlBuilder {
     public static String buildCondition(DataScopeType type, String deptAlias, String deptField,
                                         String userAlias, String userField,
                                         DataScopeProperties properties) {
+        if (type == null) {
+            return denyCondition();
+        }
+
+        if (type == DataScopeType.ALL) {
+            return "";
+        }
+
         UserContext user = UserContextHolder.get();
         if (user == null) {
-            return "";
+            return denyCondition();
         }
 
         String deptTableName = properties != null ? properties.getDeptTableName() : "sys_dept";
 
-        return switch (type) {
-            case ALL -> "";
-            case DEPT -> buildDeptCondition(deptAlias, deptField, user.getDeptId());
-            case DEPT_AND_BELOW -> buildDeptAndBelowCondition(deptAlias, deptField, user.getDeptId(), deptTableName);
-            case SELF -> buildSelfCondition(userAlias, userField, user.getUserId());
-            case CUSTOM -> buildCustomCondition(deptAlias, deptField);
-            case AUTO -> throw new UnsupportedOperationException(
-                    "DataScopeType.AUTO 需要业务层根据用户角色解析具体的数据范围类型后再调用 buildCondition，" +
-                    "请在调用前通过 UserContext 获取用户数据范围并转换为具体的 DataScopeType（如 DEPT、SELF 等）");
-        };
+        try {
+            return switch (type) {
+                case DEPT -> buildDeptCondition(deptAlias, deptField, user.getDeptId());
+                case DEPT_AND_BELOW -> buildDeptAndBelowCondition(deptAlias, deptField, user.getDeptId(), deptTableName);
+                case SELF -> buildSelfCondition(userAlias, userField, user.getUserId());
+                case CUSTOM -> buildCustomCondition();
+                case AUTO -> denyCondition();
+                case ALL -> "";
+            };
+        } catch (IllegalArgumentException | UnsupportedOperationException ex) {
+            return denyCondition();
+        }
     }
 
     /**
@@ -123,13 +143,22 @@ public final class DataScopeSqlBuilder {
      * 使用者应通过自定义 DataScopeHandler 来实现具体的部门ID集合获取逻辑。
      * </p>
      */
-    static String buildCustomCondition(String deptAlias, String deptField) {
+    static String buildCustomCondition() {
         // CUSTOM 模式需要业务层提供角色关联的部门集合
         // 通过 DataScopeContext 预设或自定义 handler 注入
-        String existingCondition = com.basebackend.common.datascope.context.DataScopeContext.get();
-        if (existingCondition != null && !existingCondition.isEmpty()) {
+        String existingCondition = DataScopeContext.get();
+        if (existingCondition != null && !existingCondition.isEmpty() && !isUnsafeCustomCondition(existingCondition)) {
             return existingCondition;
         }
-        return "";
+        return denyCondition();
+    }
+
+    private static String denyCondition() {
+        return "1 = 0";
+    }
+
+    private static boolean isUnsafeCustomCondition(String condition) {
+        Matcher matcher = UNSAFE_CUSTOM_CONDITION.matcher(condition);
+        return matcher.find();
     }
 }

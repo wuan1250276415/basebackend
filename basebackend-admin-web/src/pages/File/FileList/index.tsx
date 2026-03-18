@@ -8,10 +8,8 @@ import {
   Input,
   message,
   Modal,
-  Dropdown,
   Tag,
   Tooltip,
-  Switch,
   Row,
   Col,
   Statistic,
@@ -63,9 +61,8 @@ const FileList: React.FC = () => {
         size: pageSize,
         fileName: searchText || undefined,
       }
-      const res = await getFileList(params)
-      const pageData = res.data
-    setFileList(pageData?.records ?? [])
+      const pageData = await getFileList(params)
+      setFileList(pageData?.records ?? [])
       setTotal(pageData?.total ?? 0)
     } catch (error) {
       message.error('加载文件列表失败')
@@ -77,8 +74,7 @@ const FileList: React.FC = () => {
   // 加载统计信息
   const loadStatistics = async () => {
     try {
-      const res = await getFileStatistics()
-      setStatistics(res.data)
+      setStatistics(await getFileStatistics())
     } catch (error) {
       console.error('加载统计信息失败', error)
     }
@@ -189,7 +185,7 @@ const FileList: React.FC = () => {
       ellipsis: true,
       render: (text: string, record: FileMetadata) => (
         <Space>
-          {record.isFolder ? <Folder /> : <FileOutlined />}
+          {record.isFolder ? <Folder /> : <File />}
           <a onClick={() => handleViewDetail(record)}>{text}</a>
         </Space>
       ),
@@ -345,7 +341,7 @@ const FileList: React.FC = () => {
           <Space>
             <Tooltip title={viewMode === 'list' ? '切换到网格视图' : '切换到列表视图'}>
               <Button
-                icon={viewMode === 'list' ? <LayoutGrid /> : <Menu />}
+                icon={viewMode === 'list' ? <LayoutGrid /> : <AlignJustify />}
                 onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
               />
             </Tooltip>
@@ -359,7 +355,7 @@ const FileList: React.FC = () => {
         <Space style={{ marginBottom: 16 }}>
           <Button
             type="primary"
-            icon={<Upload />}
+            icon={<UploadCloud />}
             onClick={() => setUploadModalVisible(true)}
           >
             上传文件

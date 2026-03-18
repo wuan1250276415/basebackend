@@ -1,5 +1,5 @@
 import request from '@/api/request'
-import type { Result, PageResult } from '@/types'
+import type { PageResult } from '@/types'
 import type {
   FileMetadata,
   FileVersion,
@@ -14,7 +14,7 @@ import type {
 
 // ==================== 文件基本操作 ====================
 
-const BASE_URL = '/basebackend-system-api/api/files'
+const BASE_URL = '/api/files'
 /**
  * 上传文件（V2版本 - 支持权限控制和版本管理）
  */
@@ -25,7 +25,7 @@ export const uploadFile = (file: File, folderId?: number, onProgress?: (percent:
     formData.append('folderId', String(folderId))
   }
 
-  return request.post<Result<FileMetadata>>(`${BASE_URL}/upload-v2`, formData, {
+  return request.post<FileMetadata>(`${BASE_URL}/upload-v2`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -51,35 +51,35 @@ export const downloadFile = (fileId: string) => {
  * 获取文件列表
  */
 export const getFileList = (params: FileQueryParams) => {
-  return request.get<Result<PageResult<FileMetadata>>>(`${BASE_URL}/list`, { params })
+  return request.get<PageResult<FileMetadata>>(`${BASE_URL}/list`, { params })
 }
 
 /**
  * 获取文件详情
  */
 export const getFileDetail = (fileId: string) => {
-  return request.get<Result<FileMetadata>>(`${BASE_URL}/${fileId}`)
+  return request.get<FileMetadata>(`${BASE_URL}/${fileId}`)
 }
 
 /**
  * 删除文件（移入回收站）
  */
 export const deleteFile = (fileId: string) => {
-  return request.delete<Result<void>>(`${BASE_URL}/${fileId}`)
+  return request.delete<void>(`${BASE_URL}/${fileId}`)
 }
 
 /**
  * 批量删除文件
  */
 export const batchDeleteFiles = (fileIds: string[]) => {
-  return request.delete<Result<void>>(`${BASE_URL}/batch`, { data: fileIds })
+  return request.delete<void>(`${BASE_URL}/batch`, { data: fileIds })
 }
 
 /**
  * 重命名文件
  */
 export const renameFile = (fileId: string, newName: string) => {
-  return request.put<Result<void>>(`${BASE_URL}/${fileId}/rename`, null, {
+  return request.put<void>(`${BASE_URL}/${fileId}/rename`, null, {
     params: { newName },
   })
 }
@@ -88,7 +88,7 @@ export const renameFile = (fileId: string, newName: string) => {
  * 移动文件
  */
 export const moveFile = (fileId: string, targetFolderId: number) => {
-  return request.put<Result<void>>(`${BASE_URL}/${fileId}/move`, null, {
+  return request.put<void>(`${BASE_URL}/${fileId}/move`, null, {
     params: { targetFolderId },
   })
 }
@@ -97,7 +97,7 @@ export const moveFile = (fileId: string, targetFolderId: number) => {
  * 复制文件
  */
 export const copyFile = (fileId: string, targetFolderId?: number) => {
-  return request.post<Result<FileMetadata>>(`${BASE_URL}/${fileId}/copy`, null, {
+  return request.post<FileMetadata>(`${BASE_URL}/${fileId}/copy`, null, {
     params: { targetFolderId },
   })
 }
@@ -108,7 +108,7 @@ export const copyFile = (fileId: string, targetFolderId?: number) => {
  * 获取文件版本历史
  */
 export const getFileVersions = (fileId: string) => {
-  return request.get<Result<FileVersion[]>>(`${BASE_URL}/${fileId}/versions`)
+  return request.get<FileVersion[]>(`${BASE_URL}/${fileId}/versions`)
 }
 
 /**
@@ -121,7 +121,7 @@ export const createFileVersion = (fileId: string, file: File, description?: stri
     formData.append('description', description)
   }
 
-  return request.post<Result<FileVersion>>(`${BASE_URL}/${fileId}/version`, formData, {
+  return request.post<FileVersion>(`${BASE_URL}/${fileId}/version`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -132,7 +132,7 @@ export const createFileVersion = (fileId: string, file: File, description?: stri
  * 版本回退
  */
 export const revertToVersion = (fileId: string, versionId: number) => {
-  return request.post<Result<void>>(`${BASE_URL}/${fileId}/revert/${versionId}`)
+  return request.post<void>(`${BASE_URL}/${fileId}/revert/${versionId}`)
 }
 
 /**
@@ -150,42 +150,42 @@ export const downloadVersion = (fileId: string, versionId: number) => {
  * 获取回收站列表
  */
 export const getRecycleBinList = (params: { current?: number; size?: number }) => {
-  return request.get<Result<PageResult<FileRecycleBin>>>(`${BASE_URL}/recycle-bin`, { params })
+  return request.get<PageResult<FileRecycleBin>>(`${BASE_URL}/recycle-bin`, { params })
 }
 
 /**
  * 恢复文件
  */
 export const restoreFile = (fileId: string) => {
-  return request.post<Result<void>>(`${BASE_URL}/${fileId}/restore`)
+  return request.post<void>(`${BASE_URL}/${fileId}/restore`)
 }
 
 /**
  * 彻底删除文件
  */
 export const permanentDeleteFile = (fileId: string) => {
-  return request.delete<Result<void>>(`${BASE_URL}/${fileId}/permanent`)
+  return request.delete<void>(`${BASE_URL}/${fileId}/permanent`)
 }
 
 /**
  * 批量恢复文件
  */
 export const batchRestoreFiles = (fileIds: string[]) => {
-  return request.post<Result<void>>(`${BASE_URL}/restore/batch`, fileIds)
+  return request.post<void>(`${BASE_URL}/restore/batch`, fileIds)
 }
 
 /**
  * 批量彻底删除
  */
 export const batchPermanentDelete = (fileIds: string[]) => {
-  return request.delete<Result<void>>(`${BASE_URL}/permanent/batch`, { data: fileIds })
+  return request.delete<void>(`${BASE_URL}/permanent/batch`, { data: fileIds })
 }
 
 /**
  * 清空回收站
  */
 export const emptyRecycleBin = () => {
-  return request.delete<Result<void>>(`${BASE_URL}/recycle-bin/empty`)
+  return request.delete<void>(`${BASE_URL}/recycle-bin/empty`)
 }
 
 // ==================== 权限管理 ====================
@@ -194,28 +194,28 @@ export const emptyRecycleBin = () => {
  * 获取文件权限列表
  */
 export const getFilePermissions = (fileId: string) => {
-  return request.get<Result<FilePermission[]>>(`${BASE_URL}/${fileId}/permissions`)
+  return request.get<FilePermission[]>(`${BASE_URL}/${fileId}/permissions`)
 }
 
 /**
  * 添加文件权限
  */
 export const addFilePermission = (fileId: string, permission: Partial<FilePermission>) => {
-  return request.post<Result<void>>(`${BASE_URL}/${fileId}/permissions`, permission)
+  return request.post<void>(`${BASE_URL}/${fileId}/permissions`, permission)
 }
 
 /**
  * 删除文件权限
  */
 export const deleteFilePermission = (fileId: string, permissionId: number) => {
-  return request.delete<Result<void>>(`${BASE_URL}/${fileId}/permissions/${permissionId}`)
+  return request.delete<void>(`${BASE_URL}/${fileId}/permissions/${permissionId}`)
 }
 
 /**
  * 设置文件公开状态
  */
 export const setFilePublic = (fileId: string, isPublic: boolean) => {
-  return request.put<Result<void>>(`${BASE_URL}/${fileId}/public`, null, {
+  return request.put<void>(`${BASE_URL}/${fileId}/public`, null, {
     params: { isPublic },
   })
 }
@@ -233,14 +233,14 @@ export const createFileShare = (data: {
   allowDownload?: boolean
   allowPreview?: boolean
 }) => {
-  return request.post<Result<FileShare>>(`${BASE_URL}/share`, data)
+  return request.post<FileShare>(`${BASE_URL}/share`, data)
 }
 
 /**
  * 获取分享信息
  */
 export const getShareInfo = (shareCode: string, password?: string) => {
-  return request.get<Result<FileShare>>(`${BASE_URL}/share/${shareCode}`, {
+  return request.get<FileShare>(`${BASE_URL}/share/${shareCode}`, {
     params: { password },
   })
 }
@@ -249,7 +249,7 @@ export const getShareInfo = (shareCode: string, password?: string) => {
  * 取消分享
  */
 export const cancelShare = (shareId: number) => {
-  return request.delete<Result<void>>(`${BASE_URL}/share/${shareId}`)
+  return request.delete<void>(`${BASE_URL}/share/${shareId}`)
 }
 
 /**
@@ -265,35 +265,35 @@ export const getMyShares = (params: { current?: number; size?: number }) => {
  * 获取所有标签
  */
 export const getAllTags = () => {
-  return request.get<Result<FileTag[]>>(`${BASE_URL}/tags`)
+  return request.get<FileTag[]>(`${BASE_URL}/tags`)
 }
 
 /**
  * 创建标签
  */
 export const createTag = (data: { tagName: string; tagColor: string; description?: string }) => {
-  return request.post<Result<FileTag>>(`${BASE_URL}/tags`, data)
+  return request.post<FileTag>(`${BASE_URL}/tags`, data)
 }
 
 /**
  * 为文件添加标签
  */
 export const addFileTag = (fileId: string, tagId: number) => {
-  return request.post<Result<void>>(`${BASE_URL}/${fileId}/tags/${tagId}`)
+  return request.post<void>(`${BASE_URL}/${fileId}/tags/${tagId}`)
 }
 
 /**
  * 移除文件标签
  */
 export const removeFileTag = (fileId: string, tagId: number) => {
-  return request.delete<Result<void>>(`${BASE_URL}/${fileId}/tags/${tagId}`)
+  return request.delete<void>(`${BASE_URL}/${fileId}/tags/${tagId}`)
 }
 
 /**
  * 获取文件的标签
  */
 export const getFileTags = (fileId: string) => {
-  return request.get<Result<FileTag[]>>(`${BASE_URL}/${fileId}/tags`)
+  return request.get<FileTag[]>(`${BASE_URL}/${fileId}/tags`)
 }
 
 // ==================== 操作日志 ====================
@@ -311,18 +311,18 @@ export const getFileOperationLogs = (fileId: string, params: { current?: number;
  * 获取文件统计信息
  */
 export const getFileStatistics = () => {
-  return request.get<Result<FileStatistics>>(`${BASE_URL}/statistics`)
+  return request.get<FileStatistics>(`${BASE_URL}/statistics`)
 }
 
 /**
  * 获取存储使用情况
  */
 export const getStorageUsage = () => {
-  return request.get<Result<{
+  return request.get<{
     used: number
     total: number
     percentage: number
-  }>>(`${BASE_URL}/storage/usage`)
+  }>(`${BASE_URL}/storage/usage`)
 }
 
 // ==================== 文件预览 ====================
@@ -331,12 +331,12 @@ export const getStorageUsage = () => {
  * 获取文件预览URL
  */
 export const getFilePreviewUrl = (fileId: string) => {
-  return request.get<Result<string>>(`${BASE_URL}/${fileId}/preview-url`)
+  return request.get<string>(`${BASE_URL}/${fileId}/preview-url`)
 }
 
 /**
  * 获取缩略图URL
  */
 export const getThumbnailUrl = (fileId: string) => {
-  return request.get<Result<string>>(`${BASE_URL}/${fileId}/thumbnail-url`)
+  return request.get<string>(`${BASE_URL}/${fileId}/thumbnail-url`)
 }

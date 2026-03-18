@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import com.basebackend.cache.serializer.PlainJsonRedisSerializer;
 
 /**
  * Redis 配置
@@ -29,10 +29,10 @@ public class RedisConfig {
         template.setKeySerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
 
-        // 使用 Jackson2Json 序列化器处理 value
-        Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        template.setValueSerializer(jackson2JsonRedisSerializer);
-        template.setHashValueSerializer(jackson2JsonRedisSerializer);
+        // 复用现有 JsonCacheSerializer，保持 value/hashValue 的纯 JSON 线格式兼容
+        PlainJsonRedisSerializer plainJsonRedisSerializer = new PlainJsonRedisSerializer();
+        template.setValueSerializer(plainJsonRedisSerializer);
+        template.setHashValueSerializer(plainJsonRedisSerializer);
 
         template.afterPropertiesSet();
         return template;

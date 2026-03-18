@@ -4,6 +4,7 @@ import type { RouteObject } from 'react-router-dom';
 import { authApi } from '@/api/authApi';
 import { menuApi } from '@/api/menuApi';
 import { generateRoutes } from '@/router/dynamicRoutes';
+import { collectUnsupportedMenus, filterUnsupportedMenus } from '@/router/menuAvailability';
 import type { UserInfo, MenuItem } from '@/types';
 
 /**
@@ -91,7 +92,13 @@ export const useAuthStore = create<AuthState>()(
         const userContext = await authApi.getUserInfo();
 
         // 获取用户菜单
-        const menus = await menuApi.getCurrentUserMenus();
+        const rawMenus = await menuApi.getCurrentUserMenus();
+        const unsupportedMenus = collectUnsupportedMenus(rawMenus);
+        const menus = filterUnsupportedMenus(rawMenus);
+
+        if (import.meta.env.DEV && unsupportedMenus.length > 0) {
+          console.warn('[menuAvailability] 已过滤仓库内缺少后端支撑的菜单入口:', unsupportedMenus);
+        }
 
         // 根据菜单生成动态路由
         const dynamicRoutes = generateRoutes(menus);

@@ -15,6 +15,7 @@ import com.basebackend.user.entity.SysUserRole;
 import com.basebackend.user.mapper.SysRoleMapper;
 import com.basebackend.user.mapper.SysUserMapper;
 import com.basebackend.user.mapper.SysUserRoleMapper;
+import com.basebackend.user.service.UserSessionService;
 import com.basebackend.user.util.AuditHelper;
 import com.basebackend.user.util.DeptInfoHelper;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,6 +70,9 @@ class UserServiceImplTest {
 
     @Mock
     private DeptInfoHelper deptInfoHelper;
+
+    @Mock
+    private UserSessionService userSessionService;
 
     @Mock
     private DeptServiceClient deptFeignClient;
@@ -514,6 +518,7 @@ class UserServiceImplTest {
             // Assert
             verify(passwordEncoder).encode("newPassword");
             verify(userMapper).updateById(any(SysUser.class));
+            verify(userSessionService).invalidateSession(1L);
         }
 
         @Test

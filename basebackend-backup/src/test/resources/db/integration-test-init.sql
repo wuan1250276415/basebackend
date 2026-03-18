@@ -66,36 +66,6 @@ INSERT INTO test_orders (user_id, order_no, amount, status) VALUES
 (1, 'ORDER004', 3999.00, 'COMPLETED'),
 (4, 'ORDER005', 5999.00, 'CANCELLED');
 
--- 创建存储过程（测试mysqldump --routines选项）
-DELIMITER //
-CREATE PROCEDURE IF NOT EXISTS GetUserOrderCount(IN user_id INT, OUT order_count INT)
-BEGIN
-    SELECT COUNT(*) INTO order_count FROM test_orders WHERE user_id = user_id;
-END //
-DELIMITER ;
-
--- 创建触发器（测试mysqldump --triggers选项）
-DELIMITER //
-CREATE TRIGGER IF NOT EXISTS update_user_modified
-    BEFORE UPDATE ON test_users
-    FOR EACH ROW
-BEGIN
-    SET NEW.updated_at = CURRENT_TIMESTAMP;
-END //
-DELIMITER ;
-
--- 创建事件（测试mysqldump --events选项）
-SET GLOBAL event_scheduler = ON;
-DELIMITER //
-CREATE EVENT IF NOT EXISTS cleanup_old_logs
-    ON SCHEDULE EVERY 1 DAY
-    STARTS CURRENT_DATE + INTERVAL 1 DAY
-    DO
-BEGIN
-    DELETE FROM test_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
-END //
-DELIMITER ;
-
 -- 创建视图（测试复杂查询）
 CREATE OR REPLACE VIEW user_order_summary AS
 SELECT
@@ -110,10 +80,10 @@ LEFT JOIN test_orders o ON u.id = o.user_id
 GROUP BY u.id, u.name, u.email;
 
 -- 创建索引（测试性能优化）
-CREATE INDEX IF NOT EXISTS idx_orders_user_id ON test_orders(user_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON test_orders(status);
-CREATE INDEX IF NOT EXISTS idx_products_price ON test_products(price);
-CREATE INDEX IF NOT EXISTS idx_users_email ON test_users(email);
+CREATE INDEX idx_orders_user_id ON test_orders(user_id);
+CREATE INDEX idx_orders_status ON test_orders(status);
+CREATE INDEX idx_products_price ON test_products(price);
+CREATE INDEX idx_users_email ON test_users(email);
 
 -- 插入更多测试数据以模拟真实场景
 INSERT INTO test_logs (level, message, logger_name, thread_name) VALUES

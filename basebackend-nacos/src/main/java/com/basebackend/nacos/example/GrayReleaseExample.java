@@ -44,8 +44,8 @@ public class GrayReleaseExample {
         GrayReleaseConfig grayConfig = new GrayReleaseConfig();
         grayConfig.setDataId("my-config.yml");
         grayConfig.setStrategyType("IP");
-        grayConfig.setTargetInstances("192.168.1.10,192.168.1.11");
-        log.info("\u5f00\u59cb IP \u7070\u5ea6\u53d1\u5e03\uff0c\u76ee\u6807\u5b9e\u4f8b\uff1a192.168.1.10,192.168.1.11");
+        grayConfig.setTargetInstances("203.0.113.10,203.0.113.11");
+        log.info("\u5f00\u59cb IP \u7070\u5ea6\u53d1\u5e03\uff0c\u76ee\u6807\u5b9e\u4f8b\uff1a203.0.113.10,203.0.113.11");
         log.info("  \u6d88\u606f\uff1a{}", (Object)"\u7070\u5ea6\u53d1\u5e03\u529f\u80fd\u9700\u8981\u5b9e\u9645\u7684 Nacos \u5b9e\u4f8b\u624d\u80fd\u6d4b\u8bd5");
     }
 
@@ -106,4 +106,3 @@ public class GrayReleaseExample {
         this.grayReleaseService = grayReleaseService;
     }
 }
-

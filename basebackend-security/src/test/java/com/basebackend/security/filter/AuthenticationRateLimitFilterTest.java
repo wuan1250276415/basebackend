@@ -52,8 +52,8 @@ class AuthenticationRateLimitFilterTest {
     void shouldPassLoginPathWithinLimit() throws Exception {
         AuthenticationRateLimitFilter filter = new AuthenticationRateLimitFilter(rateLimiter);
         when(request.getRequestURI()).thenReturn("/api/auth/login");
-        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
-        when(rateLimiter.tryAcquire("192.168.1.100")).thenReturn(true);
+        when(request.getRemoteAddr()).thenReturn("198.51.100.100");
+        when(rateLimiter.tryAcquire("198.51.100.100")).thenReturn(true);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -65,9 +65,9 @@ class AuthenticationRateLimitFilterTest {
     void shouldReturn429WhenRateLimited() throws Exception {
         AuthenticationRateLimitFilter filter = new AuthenticationRateLimitFilter(rateLimiter);
         when(request.getRequestURI()).thenReturn("/api/auth/login");
-        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
-        when(rateLimiter.tryAcquire("192.168.1.100")).thenReturn(false);
-        when(rateLimiter.getRemainingBlockSeconds("192.168.1.100")).thenReturn(300L);
+        when(request.getRemoteAddr()).thenReturn("198.51.100.100");
+        when(rateLimiter.tryAcquire("198.51.100.100")).thenReturn(false);
+        when(rateLimiter.getRemainingBlockSeconds("198.51.100.100")).thenReturn(300L);
 
         StringWriter sw = new StringWriter();
         when(response.getWriter()).thenReturn(new PrintWriter(sw));

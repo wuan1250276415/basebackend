@@ -160,18 +160,6 @@ public class RedissonLockUtil {
     }
 
     /**
-     * 获取红锁（RedLock）
-     * 注意：需要配置多个 Redis 实例才能真正实现红锁
-     * 当前实现使用单个实例作为后备方案
-     */
-    public RLock getRedLock(String lockKey) {
-        // 在生产环境中，应该配置多个 Redis 实例
-        // 例如: redissonClient.getRedLock(lock1, lock2, lock3);
-        log.debug("Creating red lock (using regular lock as fallback): {}", lockKey);
-        return redissonClient.getLock(lockKey);
-    }
-
-    /**
      * 获取读写锁
      */
     public RReadWriteLock getReadWriteLock(String lockKey) {

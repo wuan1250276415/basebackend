@@ -91,7 +91,7 @@ class AuditServiceTest {
             AuditEventType.LOGIN,
             "/api/login",
             "SUCCESS",
-            "192.168.1.1",
+            "198.51.100.1",
             "Mozilla/5.0",
             "用户登录",
             "entity-123",

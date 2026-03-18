@@ -2,20 +2,20 @@ import { LineChart, LayoutDashboard, TriangleAlert, CheckCircle2 } from 'lucide-
 import { useState, useEffect } from 'react'
 import { Card, Row, Col, Statistic, Spin, Alert } from 'antd'
 
-import { getSystemOverview } from '@/api/observability/metrics'
-import { getLogStats } from '@/api/observability/logs'
-import { getTraceStats } from '@/api/observability/traces'
-import { getAlertStats } from '@/api/observability/alerts'
+import { getSystemOverview, type SystemOverview } from '@/api/observability/metrics'
+import { getLogStats, type LogStats } from '@/api/observability/logs'
+import { getTraceStats, type TraceStats } from '@/api/observability/traces'
+import { getAlertStats, type AlertStats } from '@/api/observability/alerts'
 
 /**
  * 可观测性概览页面
  */
 const ObservabilityOverview = () => {
   const [loading, setLoading] = useState(true)
-  const [metricsData, setMetricsData] = useState<any>({})
-  const [logData, setLogData] = useState<any>({})
-  const [traceData, setTraceData] = useState<any>({})
-  const [alertData, setAlertData] = useState<any>({})
+  const [metricsData, setMetricsData] = useState<SystemOverview | null>(null)
+  const [logData, setLogData] = useState<LogStats | null>(null)
+  const [traceData, setTraceData] = useState<TraceStats | null>(null)
+  const [alertData, setAlertData] = useState<AlertStats | null>(null)
   const [error, setError] = useState<string>('')
 
   // 加载数据
@@ -32,10 +32,10 @@ const ObservabilityOverview = () => {
         getAlertStats()
       ])
 
-      setMetricsData(metricsRes.data || {})
-      setLogData(logRes.data || {})
-      setTraceData(traceRes.data || {})
-      setAlertData(alertRes.data || {})
+      setMetricsData(metricsRes)
+      setLogData(logRes)
+      setTraceData(traceRes)
+      setAlertData(alertRes)
     } catch (err: any) {
       setError(err.message || '加载数据失败')
     } finally {
@@ -74,54 +74,41 @@ const ObservabilityOverview = () => {
           <Row gutter={16}>
             <Col span={6}>
               <Statistic
-                title="CPU 使用率"
-                value={metricsData.cpuUsage || 0}
-                precision={2}
-                suffix="%"
-                valueStyle={{ color: getCpuColor(metricsData.cpuUsage) }}
+                title="CPU 核心数"
+                value={metricsData?.system?.processors || 0}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="内存使用率"
-                value={metricsData.memoryUsage || 0}
-                precision={2}
-                suffix="%"
-                valueStyle={{ color: getMemoryColor(metricsData.memoryUsage) }}
+                title="指标总数"
+                value={metricsData?.metricsCount || 0}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="API 调用数/分钟"
-                value={metricsData.apiCallsTotal || 0}
-                precision={0}
+                title="JVM 总内存"
+                value={formatBytes(metricsData?.memory?.total)}
                 prefix={<LineChart />}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="API 错误率"
-                value={metricsData.apiErrorRate || 0}
-                precision={2}
-                suffix="%"
-                valueStyle={{ color: getErrorRateColor(metricsData.apiErrorRate) }}
+                title="JVM 已用内存"
+                value={formatBytes(metricsData?.memory?.used)}
               />
             </Col>
           </Row>
           <Row gutter={16} style={{ marginTop: '16px' }}>
             <Col span={6}>
               <Statistic
-                title="平均响应时间"
-                value={metricsData.avgResponseTime || 0}
-                precision={0}
-                suffix="ms"
+                title="操作系统"
+                value={metricsData?.system?.osName || '-'}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="活跃请求数"
-                value={metricsData.activeRequests || 0}
-                precision={0}
+                title="Java 版本"
+                value={metricsData?.system?.javaVersion || '-'}
               />
             </Col>
           </Row>
@@ -132,30 +119,30 @@ const ObservabilityOverview = () => {
           <Row gutter={16}>
             <Col span={6}>
               <Statistic
-                title="INFO"
-                value={logData.infoCount || 0}
+                title="日志总量"
+                value={logData?.totalLogs || 0}
                 valueStyle={{ color: '#1890ff' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
                 title="WARN"
-                value={logData.warnCount || 0}
+                value={logData?.warnLogs || 0}
                 valueStyle={{ color: '#faad14' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
                 title="ERROR"
-                value={logData.errorCount || 0}
+                value={logData?.errorLogs || 0}
                 valueStyle={{ color: '#f5222d' }}
                 prefix={<TriangleAlert />}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="DEBUG"
-                value={logData.debugCount || 0}
+                title="INFO"
+                value={logData?.infoLogs || 0}
                 valueStyle={{ color: '#52c41a' }}
               />
             </Col>
@@ -168,20 +155,20 @@ const ObservabilityOverview = () => {
             <Col span={8}>
               <Statistic
                 title="总追踪数"
-                value={traceData.totalTraces || 0}
+                value={traceData?.totalTraces || 0}
               />
             </Col>
             <Col span={8}>
               <Statistic
                 title="平均响应时间"
-                value={traceData.avgDuration || 0}
+                value={traceData?.avgDuration || 0}
                 suffix="ms"
               />
             </Col>
             <Col span={8}>
               <Statistic
-                title="慢追踪 (>1s)"
-                value={traceData.slowTraces || 0}
+                title="异常追踪"
+                value={traceData?.errorTraces || 0}
                 valueStyle={{ color: '#faad14' }}
                 prefix={<TriangleAlert />}
               />
@@ -194,29 +181,29 @@ const ObservabilityOverview = () => {
           <Row gutter={16}>
             <Col span={6}>
               <Statistic
-                title="总告警数"
-                value={alertData.totalAlerts || 0}
+                title="规则总数"
+                value={alertData?.totalRules || 0}
                 valueStyle={{ color: '#f5222d' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="CRITICAL"
-                value={alertData.bySeverity?.CRITICAL || 0}
-                valueStyle={{ color: '#ff4d4f' }}
+                title="启用规则"
+                value={alertData?.activeRules || 0}
+                valueStyle={{ color: '#52c41a' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="ERROR"
-                value={alertData.bySeverity?.ERROR || 0}
+                title="告警事件总数"
+                value={alertData?.totalEvents || 0}
                 valueStyle={{ color: '#ff7a45' }}
               />
             </Col>
             <Col span={6}>
               <Statistic
-                title="通知成功率"
-                value={alertData.notifySuccessRate || '0%'}
+                title="近24小时事件"
+                value={alertData?.recentEvents24h || 0}
                 prefix={<CheckCircle2 />}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -228,23 +215,18 @@ const ObservabilityOverview = () => {
   )
 }
 
-// 辅助函数：根据值返回颜色
-const getCpuColor = (value: number) => {
-  if (value > 80) return '#f5222d'
-  if (value > 60) return '#faad14'
-  return '#52c41a'
-}
+const formatBytes = (value?: number) => {
+  if (!value) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let size = value
+  let unitIndex = 0
 
-const getMemoryColor = (value: number) => {
-  if (value > 85) return '#f5222d'
-  if (value > 70) return '#faad14'
-  return '#52c41a'
-}
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex++
+  }
 
-const getErrorRateColor = (value: number) => {
-  if (value > 5) return '#f5222d'
-  if (value > 1) return '#faad14'
-  return '#52c41a'
+  return `${size.toFixed(size >= 10 ? 0 : 1)} ${units[unitIndex]}`
 }
 
 export default ObservabilityOverview

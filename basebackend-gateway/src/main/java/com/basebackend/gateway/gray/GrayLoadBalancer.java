@@ -310,7 +310,7 @@ public class GrayLoadBalancer {
             }
         }
 
-        // IPv4格式: 192.168.1.1:8080 或 IPv6无括号: 2001:db8::1
+        // IPv4格式: 198.51.100.10:8080 或 IPv6无括号: 2001:db8::1
         // 通过冒号数量判断：IPv6有多个冒号，IPv4只有一个冒号
         long colonCount = hostPort.chars().filter(c -> c == ':').count();
         if (colonCount == 1) {

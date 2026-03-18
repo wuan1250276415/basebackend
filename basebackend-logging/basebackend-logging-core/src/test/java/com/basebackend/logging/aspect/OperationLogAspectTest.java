@@ -90,7 +90,7 @@ class OperationLogAspectTest {
 
         // Then
         assertThat(result).isEqualTo("test result");
-        verify(operationLogService, times(1)).saveOperationLog(any(OperationLogInfo.class));
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(any(OperationLogInfo.class));
         verify(joinPoint, times(1)).proceed();
     }
 
@@ -111,7 +111,7 @@ class OperationLogAspectTest {
         ServletRequestAttributes attributes = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attributes);
 
-        when(request.getRemoteAddr()).thenReturn("192.168.1.1");
+        when(request.getRemoteAddr()).thenReturn("198.51.100.1");
 
         // When & Then
         assertThatThrownBy(() -> operationLogAspect.logOperation(joinPoint, operationLog))
@@ -119,7 +119,7 @@ class OperationLogAspectTest {
             .hasMessage("测试异常");
 
         // 验证异常时也记录了日志
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getStatus()).isEqualTo(0); // 失败状态
             assertThat(logInfo.getErrorMsg()).contains("测试异常");
             return true;
@@ -147,7 +147,7 @@ class OperationLogAspectTest {
         operationLogAspect.logOperation(joinPoint, operationLog);
 
         // Then
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getParams()).isNull(); // 没有保存请求参数
             assertThat(logInfo.getResult()).isNull(); // 没有保存响应数据
             assertThat(logInfo.getOperation()).isEqualTo("自定义操作");
@@ -176,7 +176,7 @@ class OperationLogAspectTest {
         operationLogAspect.logOperation(joinPoint, operationLog);
 
         // Then
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getResult()).isEqualTo("response data"); // 保存了响应数据
             return true;
         }));
@@ -203,7 +203,7 @@ class OperationLogAspectTest {
 
         // Then
         assertThat(result).isEqualTo("result");
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getIpAddress()).isNull(); // 没有IP地址
             return true;
         }));
@@ -260,7 +260,7 @@ class OperationLogAspectTest {
         operationLogAspect.logOperation(joinPoint, operationLog);
 
         // Then
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getOperation()).isEqualTo("测试操作");
             assertThat(logInfo.getBusinessType()).isEqualTo(OperationLog.BusinessType.SELECT);
             assertThat(logInfo.getMethod()).contains("testMethod");
@@ -292,7 +292,7 @@ class OperationLogAspectTest {
         operationLogAspect.logOperation(joinPoint, operationLog);
 
         // Then
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getTime()).isGreaterThanOrEqualTo(10L);
             return true;
         }));
@@ -316,10 +316,7 @@ class OperationLogAspectTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("参数错误");
 
-        // saveLogAsync 现在通过 CompletableFuture 异步执行，需要稍作等待
-        Thread.sleep(200);
-
-        verify(operationLogService, times(1)).saveOperationLog(argThat(logInfo -> {
+        verify(operationLogService, timeout(1000).times(1)).saveOperationLog(argThat(logInfo -> {
             assertThat(logInfo.getStatus()).isEqualTo(0); // 失败
             assertThat(logInfo.getErrorMsg()).contains("参数错误");
             return true;

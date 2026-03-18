@@ -31,7 +31,7 @@ class SecurityAuditEventPublisherTest {
     @DisplayName("应发布包含正确字段的安全审计事件")
     void shouldPublishEventWithCorrectFields() {
         auditEventPublisher.publish(this, SecurityEventType.AUTHENTICATION_SUCCESS,
-                "testuser", "192.168.1.1", "认证成功");
+                "testuser", "198.51.100.1", "认证成功");
 
         ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
@@ -39,7 +39,7 @@ class SecurityAuditEventPublisherTest {
         SecurityAuditEvent event = captor.getValue();
         assertThat(event.getEventType()).isEqualTo(SecurityEventType.AUTHENTICATION_SUCCESS);
         assertThat(event.getPrincipal()).isEqualTo("testuser");
-        assertThat(event.getRemoteAddress()).isEqualTo("192.168.1.1");
+        assertThat(event.getRemoteAddress()).isEqualTo("198.51.100.1");
         assertThat(event.getDetail()).isEqualTo("认证成功");
         assertThat(event.getEventTime()).isNotNull();
         assertThat(event.getMetadata()).isEmpty();

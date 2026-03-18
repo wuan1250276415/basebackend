@@ -53,44 +53,33 @@ const TaskDetail: React.FC = () => {
     setLoading(true)
     try {
       // 加载任务信息
-      const taskResponse = await getTaskById(taskId)
-      if (taskResponse.code === 200 && taskResponse.data) {
-        const taskData = taskResponse.data
-        setTask(taskData)
+      const taskData = await getTaskById(taskId)
+      setTask(taskData)
 
-        // 加载任务变量
-        const variablesResponse = await getTaskVariables(taskId)
-        if (variablesResponse.code === 200) {
-          setVariables(variablesResponse.data || {})
-        }
+      // 加载任务变量
+      const taskVariables = await getTaskVariables(taskId)
+      setVariables(taskVariables || {})
 
-        // 加载流程实例信息
-        if (taskData.processInstanceId) {
-          const instanceResponse = await getProcessInstanceById(taskData.processInstanceId)
-          if (instanceResponse.code === 200) {
-            setProcessInstance(instanceResponse.data)
-          }
+      // 加载流程实例信息
+      if (taskData.processInstanceId) {
+        const instanceData = await getProcessInstanceById(taskData.processInstanceId)
+        setProcessInstance(instanceData)
 
-          // 加载审批历史 (通过活动历史获取用户任务)
-          const historyResponse = await listHistoricActivities(
-            taskData.processInstanceId,
-            { size: 100 }
-          )
-          if (historyResponse.code === 200) {
-            const activities = historyResponse.data?.records || []
-            const userTasks = activities
-              .filter((activity) => activity.activityType === 'userTask')
-              .map((activity) => ({
-                name: activity.activityName,
-                assignee: activity.assignee,
-                startTime: activity.startTime,
-                endTime: activity.endTime,
-              }))
-            setApprovalHistory(userTasks)
-          }
-        }
-      } else {
-        message.error(taskResponse.message || '加载任务失败')
+        // 加载审批历史 (通过活动历史获取用户任务)
+        const activityPage = await listHistoricActivities(
+          taskData.processInstanceId,
+          { size: 100 }
+        )
+        const activities = activityPage.records || []
+        const userTasks = activities
+          .filter((activity) => activity.activityType === 'userTask')
+          .map((activity) => ({
+            name: activity.activityName,
+            assignee: activity.assignee,
+            startTime: activity.startTime,
+            endTime: activity.endTime,
+          }))
+        setApprovalHistory(userTasks)
       }
     } catch (error) {
       message.error('加载任务失败')
@@ -118,13 +107,9 @@ const TaskDetail: React.FC = () => {
         approvalTime: new Date().toISOString(),
       }
 
-      const response = await completeTask(taskId, { variables: approvalVariables })
-      if (response.code === 200) {
-        message.success('审批成功')
-        navigate('/workflow/todo')
-      } else {
-        message.error(response.message || '审批失败')
-      }
+      await completeTask(taskId, { variables: approvalVariables })
+      message.success('审批成功')
+      navigate('/workflow/todo')
     } catch (error) {
       message.error('审批失败')
       console.error(error)

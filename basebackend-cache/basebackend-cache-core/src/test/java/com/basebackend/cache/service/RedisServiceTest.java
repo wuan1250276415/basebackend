@@ -6,13 +6,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisKeyCommands;
 import org.springframework.data.redis.core.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +48,15 @@ class RedisServiceTest {
 
     @Mock
     private ListOperations<String, Object> listOperations;
+
+    @Mock
+    private RedisConnection redisConnection;
+
+    @Mock
+    private RedisKeyCommands redisKeyCommands;
+
+    @Mock
+    private Cursor<byte[]> cursor;
 
     private CacheProperties cacheProperties;
     private RedisService redisService;
@@ -162,7 +175,7 @@ class RedisServiceTest {
         // The implementation uses redisTemplate.execute(RedisCallback) for SCAN+UNLINK
         // We mock execute to return null (void-like), and the internal counter tracks
         // deletions
-        when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(null);
+        when(redisTemplate.execute(Mockito.<RedisCallback<Object>>any())).thenReturn(null);
 
         // Act
         long deleted = redisService.deleteByPattern(pattern);
@@ -170,14 +183,14 @@ class RedisServiceTest {
         // Assert - Since we can't easily mock the SCAN cursor, the result is 0
         // The important thing is that it doesn't throw and uses execute()
         assertEquals(0L, deleted);
-        verify(redisTemplate).execute(any(RedisCallback.class));
+        verify(redisTemplate).execute(Mockito.<RedisCallback<Object>>any());
     }
 
     @Test
     void testDeleteByPattern_NoMatches() {
         // Arrange - deleteByPattern uses SCAN internally
         String pattern = "test:*";
-        when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(null);
+        when(redisTemplate.execute(Mockito.<RedisCallback<Object>>any())).thenReturn(null);
 
         // Act
         long deleted = redisService.deleteByPattern(pattern);
@@ -356,7 +369,7 @@ class RedisServiceTest {
 
         // Assert
         assertEquals(0L, deleted);
-        verify(redisTemplate, never()).keys(anyString());
+        verify(redisTemplate, never()).execute(Mockito.<RedisCallback<Object>>any());
     }
 
     @Test
@@ -366,36 +379,27 @@ class RedisServiceTest {
 
         // Assert
         assertEquals(0L, deleted);
-        verify(redisTemplate, never()).keys(anyString());
+        verify(redisTemplate, never()).execute(Mockito.<RedisCallback<Object>>any());
     }
 
     @Test
-    void testDeleteByPattern_NullKeysReturned() {
-        // Arrange
-        String pattern = "test:*";
-        when(redisTemplate.keys(pattern)).thenReturn(null);
+    void testDeleteByPattern_UsesKeyCommandsScanAndUnlink() {
+        byte[] rawKey = "test:1".getBytes(StandardCharsets.UTF_8);
+        when(redisConnection.keyCommands()).thenReturn(redisKeyCommands);
+        when(redisKeyCommands.scan(any(ScanOptions.class))).thenReturn(cursor);
+        when(redisKeyCommands.unlink(any(byte[][].class))).thenReturn(1L);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(rawKey);
+        when(redisTemplate.execute(Mockito.<RedisCallback<Object>>any())).thenAnswer(invocation -> {
+            RedisCallback<Object> callback = invocation.getArgument(0);
+            return callback.doInRedis(redisConnection);
+        });
 
-        // Act
-        long deleted = redisService.deleteByPattern(pattern);
+        long deleted = redisService.deleteByPattern("test:*");
 
-        // Assert
-        assertEquals(0L, deleted);
-        verify(redisTemplate, never()).delete(any(Collection.class));
-    }
-
-    @Test
-    void testDeleteByPattern_DeleteReturnsNull() {
-        // Arrange
-        String pattern = "test:*";
-        Set<String> matchingKeys = new HashSet<>(Arrays.asList("test:1", "test:2"));
-        when(redisTemplate.keys(pattern)).thenReturn(matchingKeys);
-        when(redisTemplate.delete(matchingKeys)).thenReturn(null);
-
-        // Act
-        long deleted = redisService.deleteByPattern(pattern);
-
-        // Assert
-        assertEquals(0L, deleted);
+        assertEquals(1L, deleted);
+        verify(redisKeyCommands).scan(any(ScanOptions.class));
+        verify(redisKeyCommands).unlink(any(byte[][].class));
     }
 
     // ========== Pipeline 操作测试 ==========
@@ -612,6 +616,25 @@ class RedisServiceTest {
     }
 
     @Test
+    void testScan_UsesKeyCommandsScan() {
+        byte[] rawKey = "test:1".getBytes(StandardCharsets.UTF_8);
+        when(redisConnection.keyCommands()).thenReturn(redisKeyCommands);
+        when(redisKeyCommands.scan(any(ScanOptions.class))).thenReturn(cursor);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(rawKey);
+        when(redisTemplate.execute(Mockito.<RedisCallback<Object>>any())).thenAnswer(invocation -> {
+            RedisCallback<Object> callback = invocation.getArgument(0);
+            return callback.doInRedis(redisConnection);
+        });
+
+        Set<String> result = redisService.scan("test:*", 50);
+
+        assertEquals(Set.of("test:1"), result);
+        verify(redisKeyCommands).scan(any(ScanOptions.class));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
     void testKeys_Success() {
         // Arrange
         Set<String> expectedKeys = new HashSet<>(Arrays.asList("key1", "key2"));

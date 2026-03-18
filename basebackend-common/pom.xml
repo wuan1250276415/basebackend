@@ -33,9 +33,6 @@
         <module>basebackend-common-ratelimit</module>
         <module>basebackend-common-export</module>
         <module>basebackend-common-event</module>
-        <module>basebackend-common-audit</module>
-        <module>basebackend-common-masking</module>
-        <module>basebackend-common-tree</module>
     </modules>
 
     <!-- 依赖版本管理（供子模块继承） -->
@@ -129,24 +126,6 @@
             <dependency>
                 <groupId>com.basebackend</groupId>
                 <artifactId>basebackend-common-event</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.basebackend</groupId>
-                <artifactId>basebackend-common-audit</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.basebackend</groupId>
-                <artifactId>basebackend-common-masking</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.basebackend</groupId>
-                <artifactId>basebackend-common-tree</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

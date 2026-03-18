@@ -39,6 +39,7 @@ public class AESEncryptionService implements EncryptionService {
     
     private final SecretKey secretKey;
     private final SecretKey legacySecretKey;
+    private final SecretKey sha1PrngLegacySecretKey;
     private final boolean enabled;
     private final SecureRandom secureRandom = new SecureRandom();
     
@@ -52,9 +53,11 @@ public class AESEncryptionService implements EncryptionService {
             }
             this.secretKey = generateSecretKey(secretKeyStr);
             this.legacySecretKey = generateLegacySecretKey(secretKeyStr);
+            this.sha1PrngLegacySecretKey = generateSha1PrngLegacySecretKey(secretKeyStr);
         } else {
             this.secretKey = null;
             this.legacySecretKey = null;
+            this.sha1PrngLegacySecretKey = null;
         }
     }
     
@@ -75,12 +78,7 @@ public class AESEncryptionService implements EncryptionService {
     /**
      * B3: Derive the legacy AES key using PBKDF2WithHmacSHA256 with a fixed salt.
      * <p>
-     * Replaces the previous SHA1PRNG-based approach, which was JVM-implementation-specific
-     * (Oracle JDK vs. OpenJDK could produce different keys from the same seed, making
-     * cross-JVM decryption unreliable).
-     * <p>
-     * <strong>Migration note:</strong> Any ciphertext encrypted with the original
-     * SHA1PRNG-based key must be re-encrypted before deploying this change.
+     * This is the stable legacy path used by recently written ECB ciphertext.
      * The fixed salt value must never be changed after initial deployment.
      */
     private SecretKey generateLegacySecretKey(String keyStr) {
@@ -94,6 +92,21 @@ public class AESEncryptionService implements EncryptionService {
             return new SecretKeySpec(keyBytes, ALGORITHM);
         } catch (Exception e) {
             throw new EncryptionException("Failed to generate legacy secret key", e);
+        }
+    }
+
+    /**
+     * 兼容更早期的 SHA1PRNG 派生方式，用于解密历史遗留 ECB 密文。
+     */
+    private SecretKey generateSha1PrngLegacySecretKey(String keyStr) {
+        try {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
+            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+            secureRandom.setSeed(keyStr.getBytes(StandardCharsets.UTF_8));
+            keyGenerator.init(128, secureRandom);
+            return keyGenerator.generateKey();
+        } catch (Exception e) {
+            throw new EncryptionException("Failed to generate SHA1PRNG legacy secret key", e);
         }
     }
     
@@ -197,10 +210,21 @@ public class AESEncryptionService implements EncryptionService {
     private String decryptLegacy(String encodedPayload) throws Exception {
         byte[] encryptedBytes = Base64.getDecoder().decode(encodedPayload);
 
-        Cipher cipher = Cipher.getInstance(LEGACY_TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, legacySecretKey);
-        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
-        return new String(decryptedBytes, StandardCharsets.UTF_8);
+        try {
+            Cipher cipher = Cipher.getInstance(LEGACY_TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, legacySecretKey);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            return new String(decryptedBytes, StandardCharsets.UTF_8);
+        } catch (Exception primaryFailure) {
+            if (sha1PrngLegacySecretKey == null) {
+                throw primaryFailure;
+            }
+
+            Cipher cipher = Cipher.getInstance(LEGACY_TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, sha1PrngLegacySecretKey);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            return new String(decryptedBytes, StandardCharsets.UTF_8);
+        }
     }
 
     private boolean isValidV2Payload(String encodedPayload) {

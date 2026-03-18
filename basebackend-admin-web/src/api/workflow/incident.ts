@@ -1,7 +1,7 @@
 import request from '@/api/request'
-import type { ApiResponse, PageResult } from '@/types/workflow'
+import type { PageResult } from '@/types/workflow'
 
-const BASE_URL = '/api/camunda/ops/incidents'
+const BASE_URL = '/api/camunda/incidents'
 
 /**
  * 异常事件信息
@@ -62,7 +62,7 @@ export interface IncidentStatistics {
  */
 export const listIncidents = async (
     params?: IncidentQueryParams
-): Promise<ApiResponse<PageResult<Incident>>> => {
+): Promise<PageResult<Incident>> => {
     return request.get(BASE_URL, { params })
 }
 
@@ -71,7 +71,7 @@ export const listIncidents = async (
  */
 export const getIncidentById = async (
     incidentId: string
-): Promise<ApiResponse<Incident>> => {
+): Promise<Incident> => {
     return request.get(`${BASE_URL}/${incidentId}`)
 }
 
@@ -80,7 +80,7 @@ export const getIncidentById = async (
  */
 export const listIncidentsByProcessInstance = async (
     processInstanceId: string
-): Promise<ApiResponse<Incident[]>> => {
+): Promise<Incident[]> => {
     return request.get(`${BASE_URL}/process-instance/${processInstanceId}`)
 }
 
@@ -89,7 +89,7 @@ export const listIncidentsByProcessInstance = async (
  */
 export const listRecentIncidents = async (
     maxResults: number = 20
-): Promise<ApiResponse<Incident[]>> => {
+): Promise<Incident[]> => {
     return request.get(`${BASE_URL}/recent`, { params: { maxResults } })
 }
 
@@ -100,7 +100,7 @@ export const listRecentIncidents = async (
  */
 export const resolveIncident = async (
     incidentId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.post(`${BASE_URL}/${incidentId}/resolve`)
 }
 
@@ -110,7 +110,7 @@ export const resolveIncident = async (
 export const setIncidentAnnotation = async (
     incidentId: string,
     annotation: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.put(`${BASE_URL}/${incidentId}/annotation`, null, {
         params: { annotation }
     })
@@ -121,7 +121,7 @@ export const setIncidentAnnotation = async (
  */
 export const clearIncidentAnnotation = async (
     incidentId: string
-): Promise<ApiResponse<string>> => {
+): Promise<string> => {
     return request.delete(`${BASE_URL}/${incidentId}/annotation`)
 }
 
@@ -130,21 +130,21 @@ export const clearIncidentAnnotation = async (
 /**
  * 获取异常事件统计信息
  */
-export const getIncidentStatistics = async (): Promise<ApiResponse<IncidentStatistics>> => {
+export const getIncidentStatistics = async (): Promise<IncidentStatistics> => {
     return request.get(`${BASE_URL}/statistics`)
 }
 
 /**
  * 统计异常事件总数
  */
-export const countIncidents = async (): Promise<ApiResponse<number>> => {
+export const countIncidents = async (): Promise<number> => {
     return request.get(`${BASE_URL}/statistics/count`)
 }
 
 /**
  * 按类型统计异常事件
  */
-export const countIncidentsByType = async (): Promise<ApiResponse<Record<string, number>>> => {
+export const countIncidentsByType = async (): Promise<Record<string, number>> => {
     return request.get(`${BASE_URL}/statistics/by-type`)
 }
 
@@ -152,7 +152,7 @@ export const countIncidentsByType = async (): Promise<ApiResponse<Record<string,
  * 按流程定义统计异常事件
  */
 export const countIncidentsByProcessDefinition = async (): Promise<
-    ApiResponse<Record<string, number>>
+    Record<string, number>
 > => {
     return request.get(`${BASE_URL}/statistics/by-definition`)
 }

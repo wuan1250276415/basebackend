@@ -42,8 +42,8 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
   const loadDevices = async () => {
     setDevicesLoading(true)
     try {
-      const response = await getUserDevices()
-      setDevices(response.data)
+      const userDevices = await getUserDevices()
+      setDevices(userDevices)
     } catch (error) {
       message.error('加载设备列表失败')
     } finally {
@@ -55,8 +55,8 @@ const SecuritySettings = ({ data }: SecuritySettingsProps) => {
   const loadLogs = async () => {
     setLogsLoading(true)
     try {
-      const response = await getOperationLogs(50)
-      setLogs(response.data)
+      const operationLogs = await getOperationLogs(50)
+      setLogs(operationLogs)
     } catch (error) {
       message.error('加载操作日志失败')
     } finally {

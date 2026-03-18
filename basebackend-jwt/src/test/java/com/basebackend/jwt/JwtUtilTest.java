@@ -636,7 +636,7 @@ class JwtUtilTest {
                     .deviceId("dev-1")
                     .deviceName("iPhone 15")
                     .deviceType(DeviceInfo.DeviceType.MOBILE)
-                    .ip("192.168.1.100")
+                    .ip("198.51.100.100")
                     .build();
 
             deviceManager.registerDevice(1L, device, "jti-123");
@@ -819,7 +819,7 @@ class JwtUtilTest {
                     .userId("user1")
                     .deviceId("dev-1")
                     .tokenJti("jti-123")
-                    .ip("192.168.1.1")
+                    .ip("198.51.100.1")
                     .userAgent("Mozilla/5.0")
                     .timestamp(System.currentTimeMillis())
                     .details(Map.of("tokenType", "access"))
@@ -829,7 +829,7 @@ class JwtUtilTest {
             assertThat(entry.getUserId()).isEqualTo("user1");
             assertThat(entry.getDeviceId()).isEqualTo("dev-1");
             assertThat(entry.getTokenJti()).isEqualTo("jti-123");
-            assertThat(entry.getIp()).isEqualTo("192.168.1.1");
+            assertThat(entry.getIp()).isEqualTo("198.51.100.1");
         }
 
         @Test

@@ -66,19 +66,13 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setMenuLoading(true)
     try {
       // 获取应用资源树
-      const resourceRes = await request.get('/basebackend-system-api/api/system/application/resource/tree/'+appId)
-
-      if (resourceRes.code === 200) {
-        const resources = resourceRes.data || []
-        const treeData = convertToTreeData(resources)
-        setMenuTreeData(treeData)
-      }
+      const resources = await request.get('/basebackend-system-api/api/system/application/resource/tree/' + appId)
+      const treeData = convertToTreeData(resources || [])
+      setMenuTreeData(treeData)
 
       // 获取角色已选资源
-      const roleRes = await getRoleResources(roleId)
-      if (roleRes.code === 200) {
-        setCheckedMenuKeys(roleRes.data || [])
-      }
+      const roleResourceIds = await getRoleResources(roleId)
+      setCheckedMenuKeys(roleResourceIds || [])
     } catch (error) {
       message.error('加载菜单权限失败')
       console.error(error)
@@ -103,19 +97,14 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setButtonLoading(true)
     try {
       // 获取所有按钮权限
-      const permRes = await request.get('/basebackend-system-api/api/system/permissions', {
+      const permissions = await request.get('/basebackend-system-api/api/system/permissions', {
         params: { permissionType: 3 }, // 3-API权限
       })
-
-      if (permRes.code === 200) {
-        setButtonList(permRes.data || [])
-      }
+      setButtonList(permissions || [])
 
       // 获取角色已选权限
-      const roleRes = await getRolePermissions(roleId)
-      if (roleRes.code === 200) {
-        setCheckedButtonKeys(roleRes.data || [])
-      }
+      const rolePermissionIds = await getRolePermissions(roleId)
+      setCheckedButtonKeys(rolePermissionIds || [])
     } catch (error) {
       message.error('加载按钮权限失败')
       console.error(error)
@@ -131,16 +120,12 @@ const RolePermissionTab: React.FC<RolePermissionTabProps> = ({ roleId, appId }) 
     setOperationLoading(true)
     try {
       // 获取所有列表操作
-      const opRes = await request.get('/basebackend-system-api/api/admin/list-operations')
-      if (opRes.code === 200) {
-        setOperationList(opRes.data || [])
-      }
+      const operations = await request.get('/basebackend-system-api/api/admin/list-operations')
+      setOperationList(operations || [])
 
       // 获取角色已选操作
-      const roleRes = await getRoleListOperations(roleId, resType)
-      if (roleRes.code === 200) {
-        setCheckedOperationKeys(roleRes.data || [])
-      }
+      const roleOperationIds = await getRoleListOperations(roleId, resType)
+      setCheckedOperationKeys(roleOperationIds || [])
     } catch (error) {
       message.error('加载列表权限失败')
       console.error(error)

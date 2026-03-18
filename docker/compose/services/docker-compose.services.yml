@@ -3,26 +3,56 @@ networks:
     external: true
     name: basebackend-network
 
+x-service-env: &service-env
+  MYSQL_HOST: ${MYSQL_HOST:-mysql}
+  MYSQL_PORT: ${MYSQL_PORT:-3306}
+  MYSQL_DATABASE: ${MYSQL_DATABASE:-basebackend}
+  MYSQL_USERNAME: ${MYSQL_USERNAME:-basebackend}
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
+  SPRING_DATASOURCE_URL: jdbc:mysql://${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:-basebackend}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+  SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME:-basebackend}
+  SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  BASEBACKEND_STORAGE_LOCAL_BASE_PATH: ${BASEBACKEND_STORAGE_LOCAL_BASE_PATH:-/tmp/basebackend-storage}
+  JWT_SECRET: ${JWT_SECRET:-basebackend-demo-secret-key-for-jwt-token-generation-minimum-256-bits-required}
+  NACOS_DISCOVERY_SERVER: ${NACOS_DISCOVERY_SERVER:-nacos:8848}
+  NACOS_DISCOVERY_SERVER_ADDR: ${NACOS_DISCOVERY_SERVER:-nacos:8848}
+  NACOS_CONFIG_SERVER: ${NACOS_CONFIG_SERVER:-nacos:8848}
+  NACOS_CONFIG_SERVER_ADDR: ${NACOS_CONFIG_SERVER:-nacos:8848}
+  NACOS_DISCOVERY_NAMESPACE: ${NACOS_DISCOVERY_NAMESPACE:-public}
+  NACOS_CONFIG_NAMESPACE: ${NACOS_CONFIG_NAMESPACE:-public}
+  NACOS_DISCOVERY_GROUP: ${NACOS_DISCOVERY_GROUP:-DEFAULT_GROUP}
+  NACOS_CONFIG_GROUP: ${NACOS_CONFIG_GROUP:-DEFAULT_GROUP}
+  NACOS_DISCOVERY_USERNAME: ${NACOS_DISCOVERY_USERNAME:-nacos}
+  NACOS_DISCOVERY_PASSWORD: ${NACOS_DISCOVERY_PASSWORD:-nacos}
+  NACOS_CONFIG_USERNAME: ${NACOS_CONFIG_USERNAME:-nacos}
+  NACOS_CONFIG_PASSWORD: ${NACOS_CONFIG_PASSWORD:-nacos}
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-redis2025}
+  REDIS_DATABASE: ${REDIS_DATABASE:-0}
+  ROCKETMQ_NAME_SERVER: ${ROCKETMQ_NAME_SERVER:-rocketmq-namesrv:9876}
+
 services:
   gateway:
     image: basebackend/gateway:${VERSION:-latest}
     container_name: basebackend-gateway
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-gateway/Dockerfile
     ports:
-      - "${GATEWAY_PORT:-8180}:8080"
+      - "${GATEWAY_PORT:-8080}:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${GATEWAY_PROFILE:-gateway}
     networks:
       - basebackend-network
     depends_on:
       - user-api
       - system-api
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -32,15 +62,15 @@ services:
     image: basebackend/user-api:${VERSION:-latest}
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-user-api/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${USER_API_PROFILE:-dev}
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -56,15 +86,15 @@ services:
     image: basebackend/system-api:${VERSION:-latest}
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-system-api/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${SYSTEM_API_PROFILE:-dev}
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -80,15 +110,15 @@ services:
     image: basebackend/file-service:${VERSION:-latest}
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-file-service/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${FILE_SERVICE_PROFILE:-dev}
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -98,15 +128,15 @@ services:
     image: basebackend/notification-service:${VERSION:-latest}
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-notification-service/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${NOTIFICATION_SERVICE_PROFILE:-dev}
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,15 +146,15 @@ services:
     image: basebackend/observability-service:${VERSION:-latest}
     build:
       context: ../../..
+      network: host
       dockerfile: basebackend-observability-service/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      NACOS_SERVER: nacos:8848
-      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      <<: *service-env
+      SPRING_PROFILES_ACTIVE: ${OBSERVABILITY_SERVICE_PROFILE:-observability}
     networks:
       - basebackend-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://localhost:$${SERVER_PORT}/actuator/health\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

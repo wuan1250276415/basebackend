@@ -2,17 +2,17 @@
 observability:
   # Prometheus 地址
   prometheus:
-    url: http://192.168.66.126:9190
+    url: http://localhost:9190
 
   # Loki 地址
   loki:
-    url: http://192.168.66.126:3400
+    url: http://localhost:3400
 
   # Tempo 配置
   tempo:
     enabled: true
-    endpoint: http://192.168.66.126:9411/api/v2/spans
-    query-url: http://192.168.66.126:3200
+    endpoint: http://localhost:9411/api/v2/spans
+    query-url: http://localhost:3200
 
   # OpenTelemetry 配置（双栈支持）
   otel:
@@ -23,7 +23,7 @@ observability:
       environment: ${spring.profiles.active:dev}
     otlp:
       # OTLP 端点（支持 gRPC 和 HTTP）
-      endpoint: http://192.168.66.126:4317
+      endpoint: http://localhost:4317
       metrics:
         enabled: true  # 启用指标导出
       traces:
@@ -114,7 +114,7 @@ logging:
   structured:
     enabled: true
     loki-enabled: true
-    loki-url: http://192.168.66.126:3400/loki/api/v1/push
+    loki-url: http://localhost:3400/loki/api/v1/push
     service-name: basebackend-admin-api
     environment: dev
 # Spring AOP 配置
