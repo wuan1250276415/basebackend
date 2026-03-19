@@ -20,7 +20,7 @@ const LoginPage: React.FC = () => {
   const handleLogin = async (values: LoginForm) => {
     setLoading(true);
     try {
-      // 调用平台登录接口（admin-api 或 user-api 提供）
+      // 调用平台登录接口（由 user-api 提供）
       const resp = await http.post<ApiResult<{
         token: string;
         userId: number;

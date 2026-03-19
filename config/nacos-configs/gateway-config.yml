@@ -7,13 +7,6 @@ spring:
     gateway:
       # 路由配置
       routes:
-        # demo-api服务路由（包含所有API，包括auth）
-        - id: basebackend-demo-api
-          uri: lb://basebackend-demo-api
-          predicates:
-            - Path=/api/**
-          filters:
-            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
         # 文件服务路由
         - id: file-service
           uri: lb://file-service

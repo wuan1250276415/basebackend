@@ -134,7 +134,7 @@ public class MonitorServiceImpl implements MonitorService {
         long freeMemoryBytes = totalMemoryBytes - usedMemoryBytes;
 
         return new ServerInfoDTO(
-                "basebackend-admin-api",
+                "basebackend-system-api",
                 "127.0.0.1",
                 osBean.getName(),
                 osBean.getVersion(),

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const DEFAULT_SPEC_URL = 'http://localhost:8080/admin-api/v3/api-docs'
+const DEFAULT_SPEC_URL = 'http://localhost:8080/basebackend-system-api/api/system/openapi/spec.json'
 const specUrl = process.env.OPENAPI_SPEC_URL || DEFAULT_SPEC_URL
 const outputDir =
   process.env.SDK_OUTPUT_DIR || path.resolve(__dirname, '../src/api/generated')

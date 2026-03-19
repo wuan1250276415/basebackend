@@ -72,6 +72,10 @@ spring:
                 - Path=/basebackend-user-api/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: userServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/user
 
             # 系统服务路由
             - id: system-api
@@ -80,12 +84,166 @@ spring:
                 - Path=/basebackend-system-api/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: systemServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/system
 
             # 消息管理路由
             - id: messaging-management
               uri: lb://basebackend-system-api
               predicates:
                 - Path=/messaging/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: systemServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/system
+
+            # 通知服务路由（兼容旧版服务名前缀）
+            - id: notification-service-with-prefix
+              uri: lb://basebackend-notification-service
+              predicates:
+                - Path=/basebackend-notification-service/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: notificationServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/notification
+
+            # 通知服务 SSE 路由
+            # 必须放在通用通知路由前面，避免 /api/notifications/** 先命中
+            - id: notification-sse
+              uri: lb://basebackend-notification-service
+              predicates:
+                - Path=/api/notifications/stream
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationServiceCircuitBreaker
+
+            # 通知服务路由
+            - id: notification-service
+              uri: lb://basebackend-notification-service
+              predicates:
+                - Path=/api/notifications/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/notification
+
+            # 可观测性服务路由（兼容旧版服务名前缀）
+            - id: observability-service-with-prefix
+              uri: lb://basebackend-observability-service
+              predicates:
+                - Path=/basebackend-observability-service/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: observabilityServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/observability
+
+            # 可观测性指标路由
+            - id: observability-metrics
+              uri: lb://basebackend-observability-service
+              predicates:
+                - Path=/api/metrics/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: observabilityServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/observability
+
+            # 可观测性链路追踪路由
+            - id: observability-traces
+              uri: lb://basebackend-observability-service
+              predicates:
+                - Path=/api/traces/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: observabilityServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/observability
+
+            # 可观测性日志路由
+            - id: observability-logs
+              uri: lb://basebackend-observability-service
+              predicates:
+                - Path=/api/logs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: observabilityServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/observability
+
+            # 可观测性告警路由
+            - id: observability-alerts
+              uri: lb://basebackend-observability-service
+              predicates:
+                - Path=/api/alerts/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: observabilityServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/observability
+
+            # 工单服务路由
+            - id: ticket-api
+              uri: lb://basebackend-ticket-api
+              predicates:
+                - Path=/api/ticket/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: ticketServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/ticket
+
+            # 商城商品服务路由
+            - id: mall-product-api
+              uri: lb://basebackend-mall-product-api
+              predicates:
+                - Path=/api/mall/products/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: mallProductServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/mall-product
+
+            # 商城交易服务路由
+            - id: mall-trade-api
+              uri: lb://basebackend-mall-trade-api
+              predicates:
+                - Path=/api/mall/trades/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: mallTradeServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/mall-trade
+
+            # 商城支付服务路由
+            - id: mall-pay-api
+              uri: lb://basebackend-mall-pay-api
+              predicates:
+                - Path=/api/mall/payments/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: mallPayServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/mall-pay
+
+            # 文件服务路由
+            - id: file-service
+              uri: lb://basebackend-file-service
+              predicates:
+                - Path=/api/files/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: fileServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/file
 
           # 全局CORS配置
           globalcors:
@@ -107,25 +265,68 @@ spring:
             - AddResponseHeader=X-Response-Default,BaseBackend-Gateway
   # Redis 配置由 Nacos redis-config.yml 通过 spring.config.import 提供，无需在此重复声明
 
+# 熔断器配置
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      systemServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
+      observabilityServiceCircuitBreaker:
+        baseConfig: default
+      fileServiceCircuitBreaker:
+        baseConfig: default
+      ticketServiceCircuitBreaker:
+        baseConfig: default
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
+        baseConfig: default
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      systemServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
+      observabilityServiceCircuitBreaker:
+        baseConfig: default
+      fileServiceCircuitBreaker:
+        baseConfig: default
+      ticketServiceCircuitBreaker:
+        baseConfig: default
+      mallProductServiceCircuitBreaker:
+        baseConfig: default
+      mallTradeServiceCircuitBreaker:
+        baseConfig: default
+      mallPayServiceCircuitBreaker:
+        baseConfig: default
+
 # 灰度路由配置
 gateway:
   gray:
     enabled: true
-    rules:
-      # admin-api灰度示例
-      - serviceName: admin-api
-        grayVersion: v2.0.0
-        stableVersion: v1.0.0
-        strategy: weight  # header/user/ip/weight
-        weight: 10  # 10%流量到灰度版本
-
-      # 基于Header的灰度
-      - serviceName: basebackend-demo-api
-        grayVersion: v2.0.0
-        stableVersion: v1.0.0
-        strategy: header
-        headerName: X-Gray-Flag
-        headerValue: "true"
+    rules: []
 
 # 日志配置
 logging:

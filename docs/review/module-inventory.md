@@ -30,7 +30,6 @@
 - `basebackend-observability-service`
 
 ## Top-level basebackend-* directories
-- `basebackend-admin-api`
 - `basebackend-admin-web`
 - `basebackend-backup`
 - `basebackend-cache`
@@ -59,8 +58,8 @@
 
 ## Differences
 - In pom but missing directory: None
-- Directories not in pom: `basebackend-admin-api`, `basebackend-admin-web`, `basebackend-scheduler`
-- Commented modules in pom: `basebackend-admin-api`
+- Directories not in pom: `basebackend-admin-web`, `basebackend-album-ui`, `basebackend-chat-ui`
+- Commented modules in pom: None
 
 ## Aggregator submodules (from module pom.xml)
 - `basebackend-common`

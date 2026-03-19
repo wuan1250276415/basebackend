@@ -47,7 +47,6 @@ public class LogQueryServiceImpl implements LogQueryService {
         return Arrays.asList(
             "basebackend-user-api",
             "basebackend-system-api",
-            "basebackend-auth-api",
             "basebackend-notification-service",
             "basebackend-observability-service",
             "basebackend-gateway"

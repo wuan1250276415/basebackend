@@ -106,7 +106,7 @@ public class ServiceClientAutoConfiguration {
     public AuthServiceClient authServiceClient(RestClient.Builder loadBalancedRestClientBuilder,
                                                 ServiceClientRequestInterceptor interceptor) {
         return createClient(loadBalancedRestClientBuilder, interceptor,
-                "basebackend-auth-api", AuthServiceClient.class, Duration.ofSeconds(10));
+                "basebackend-user-api", AuthServiceClient.class, Duration.ofSeconds(10));
     }
 
     // ==================== File Service Client ====================

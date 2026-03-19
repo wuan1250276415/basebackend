@@ -1,49 +1,32 @@
-# Flyway 数据库迁移 — 开发环境
-# 用于本地开发自动执行数据库迁移
+# Flyway 数据库迁移入口
+# 用途：在 MySQL 已经启动后，统一执行当前开发主链的数据库迁移
 
 networks:
   basebackend-network:
-    driver: bridge
+    external: true
+    name: basebackend-network
 
 services:
-  # MySQL 数据库
-  mysql:
-    image: mysql:8.0
-    container_name: basebackend-mysql
-    ports:
-      - "3308:3306"
+  flyway:
+    image: flyway/flyway:10
+    container_name: basebackend-flyway
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: basebackend
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin123
-      TZ: Asia/Shanghai
+      FLYWAY_URL: jdbc:mysql://${MYSQL_HOST:-mysql}:${MYSQL_PORT:-3306}/${MYSQL_DATABASE:-basebackend_admin}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
+      FLYWAY_USER: ${MYSQL_USERNAME:-basebackend_admin}
+      FLYWAY_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
+      FLYWAY_CONNECT_RETRIES: "60"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "0"
+      FLYWAY_VALIDATE_ON_MIGRATE: "true"
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_TABLE: flyway_schema_history
+    command: -locations=filesystem:/flyway/sql/local,filesystem:/flyway/sql/shared migrate
     volumes:
-      - mysql-data:/var/lib/mysql
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --default-time-zone='+08:00'
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ../flyway/sql:/flyway/sql/local:ro
+      - ../../../basebackend-database/database-migration/src/main/resources/db/migration/mysql:/flyway/sql/shared:ro
     networks:
       - basebackend-network
-
-  # Redis
-  redis:
-    image: redis:7-alpine
-    container_name: basebackend-redis
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass redis123
-    volumes:
-      - redis-data:/data
-    networks:
-      - basebackend-network
-
-volumes:
-  mysql-data:
-  redis-data:
+    restart: "no"

@@ -45,10 +45,18 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     scrape_timeout: 10s
 
-  # BaseBackend Admin API
-  - job_name: 'basebackend-admin-api'
+  # BaseBackend User API
+  - job_name: 'basebackend-user-api'
     static_configs:
-      - targets: ['admin-api:8080']
+      - targets: ['user-api:8081']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+
+  # BaseBackend System API
+  - job_name: 'basebackend-system-api'
+    static_configs:
+      - targets: ['system-api:8082']
     scrape_interval: 15s
     metrics_path: /actuator/prometheus
     scrape_timeout: 10s

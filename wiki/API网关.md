@@ -217,14 +217,14 @@ gateway:
     enabled: true
     rules:
       # 按权重：10% 流量到 v2.0.0
-      - serviceName: admin-api
+      - serviceName: basebackend-user-api
         grayVersion: v2.0.0
         stableVersion: v1.0.0
         strategy: weight
         weight: 10
 
       # 按 Header：特定标记走灰度
-      - serviceName: basebackend-demo-api
+      - serviceName: basebackend-system-api
         grayVersion: v2.0.0
         stableVersion: v1.0.0
         strategy: header

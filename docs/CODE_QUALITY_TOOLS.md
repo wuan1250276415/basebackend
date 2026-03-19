@@ -35,7 +35,7 @@ mvn checkstyle:check
 mvn checkstyle:checkstyle
 
 # 仅检查特定模块
-mvn checkstyle:check -pl basebackend-admin-api
+mvn checkstyle:check -pl basebackend-user-api
 ```
 
 ### 集成到构建流程

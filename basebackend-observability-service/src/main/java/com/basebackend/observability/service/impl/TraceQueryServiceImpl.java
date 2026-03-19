@@ -654,7 +654,6 @@ public class TraceQueryServiceImpl implements TraceQueryService {
         return Arrays.asList(
             "basebackend-user-api",
             "basebackend-system-api",
-            "basebackend-auth-api",
             "basebackend-notification-service",
             "basebackend-observability-service",
             "basebackend-gateway"

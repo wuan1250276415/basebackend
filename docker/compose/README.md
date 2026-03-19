@@ -11,11 +11,13 @@ docker/compose/
 ├── middleware/                     # 中间件
 │   ├── docker-compose.middleware.yml  # Nacos, RocketMQ
 │   └── broker.conf                # RocketMQ Broker 配置
+├── docker-compose-flyway.yml       # 独立 Flyway 迁移入口
+├── flyway/                        # Compose 主链使用的 Flyway 迁移资源
 ├── services/                       # 业务服务编排
 ├── env/                           # 环境配置
 │   ├── .env.dev                   # 开发环境配置
 │   └── .env.example               # 配置模板
-├── start-all.sh                   # 启动基础设施和中间件
+├── start-all.sh                   # 启动基础设施、Flyway 和中间件
 ├── stop-all.sh                    # 停止基础设施和中间件
 └── README.md                      # 本文档
 ```
@@ -39,7 +41,7 @@ vim env/.env.local
 ### 2. 启动基础设施和中间件
 
 ```bash
-# 启动 MySQL / Redis / Nacos / RocketMQ（使用私有环境配置）
+# 启动 MySQL / Redis / Flyway / Nacos / RocketMQ（使用私有环境配置）
 ./start-all.sh env/.env.local
 
 # 或直接使用仓库内置的本地安全默认值
@@ -49,7 +51,8 @@ vim env/.env.local
 ./start-all.sh /absolute/path/to/your.env
 ```
 
-脚本会自动创建 `basebackend-network`，并按顺序启动基础设施与中间件。
+脚本会自动创建 `basebackend-network`，并按顺序启动基础设施、
+执行 Flyway 迁移，再启动中间件。
 
 ### 3. 验证服务
 
@@ -60,6 +63,7 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.l
 
 # 查看日志
 docker-compose -f base/docker-compose.base.yml --env-file env/.env.local logs -f mysql
+docker-compose -f base/docker-compose.base.yml -f docker-compose-flyway.yml --env-file env/.env.local logs -f flyway
 docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.local logs -f nacos
 ```
 
@@ -72,6 +76,28 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.l
 | Nacos Console | http://localhost:8848/nacos | nacos/nacos |
 | RocketMQ Console | http://localhost:8180 | (无需登录) |
 
+## Flyway 主链
+
+当前开发部署链已经明确改为 **Flyway**，不再依赖 `init-sql/`
+目录。主入口如下：
+
+```bash
+# 1. 启动 MySQL / Redis
+docker-compose -f base/docker-compose.base.yml --env-file env/.env.local up -d
+
+# 2. 在已启动的 MySQL 上执行或重放 Flyway
+docker-compose -f base/docker-compose.base.yml -f docker-compose-flyway.yml --env-file env/.env.local up --abort-on-container-exit --exit-code-from flyway flyway
+```
+
+当前主链会把两类迁移拼成一次统一执行：
+
+- `docker/compose/flyway/sql`：当前 `user-api/system-api/notification-service/observability-service` 的最小可用基线与种子数据
+- `basebackend-database/database-migration/.../mysql`：共享数据库模块迁移
+
+统一写入 `flyway_schema_history`，避免基础链出现“脚本分散、状态分裂”。
+其中本地 baseline 会补齐 `admin/password`、部门、字典、应用资源、
+通知表、可观测性表和事务消息表。
+
 ## 分步启动
 
 如果需要分步启动服务：
@@ -80,6 +106,14 @@ docker-compose -f middleware/docker-compose.middleware.yml --env-file env/.env.l
 
 ```bash
 docker-compose -f base/docker-compose.base.yml --env-file env/.env.local up -d
+```
+
+这条命令只启动 MySQL / Redis。
+
+### 仅执行 Flyway
+
+```bash
+docker-compose -f base/docker-compose.base.yml -f docker-compose-flyway.yml --env-file env/.env.local up --abort-on-container-exit --exit-code-from flyway flyway
 ```
 
 ### 仅启动中间件
@@ -156,7 +190,13 @@ ROCKETMQ_CONSOLE_PORT=8180          # 控制台端口
 # 检查 MySQL 是否完全启动
 docker logs basebackend-mysql
 
-# 等待 MySQL 完全启动（约30秒）
+# 查看 Flyway 是否全部执行完成
+docker logs basebackend-flyway-core
+docker logs basebackend-flyway-notification
+docker logs basebackend-flyway-observability
+docker logs basebackend-flyway-file
+
+# 检查基础设施状态
 docker-compose -f base/docker-compose.base.yml --env-file env/.env.local ps
 ```
 

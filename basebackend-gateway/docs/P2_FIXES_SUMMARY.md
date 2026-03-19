@@ -23,8 +23,7 @@
 // 修复前 - 使用双大括号初始化（匿名内部类）
 ApiDefinition authApi = new ApiDefinition("auth_api")
         .setPredicateItems(new HashSet<ApiPredicateItem>() {{
-            add(new ApiPathPredicateItem().setPattern("/admin-api/api/auth/**"));
-            add(new ApiPathPredicateItem().setPattern("/basebackend-demo-api/api/auth/**"));
+            add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/auth/**"));
         }});
 ```
 
@@ -38,8 +37,7 @@ ApiDefinition authApi = new ApiDefinition("auth_api")
 ```java
 // 修复后 - 使用具名集合
 Set<ApiPredicateItem> authPredicateItems = new HashSet<>();
-authPredicateItems.add(new ApiPathPredicateItem().setPattern("/admin-api/api/auth/**"));
-authPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-demo-api/api/auth/**"));
+authPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/auth/**"));
 ApiDefinition authApi = new ApiDefinition("auth_api")
         .setPredicateItems(authPredicateItems);
 ```
@@ -77,7 +75,7 @@ ApiDefinition authApi = new ApiDefinition("auth_api")
 // 代码异味：双大括号初始化
 ApiDefinition authApi = new ApiDefinition("auth_api")
         .setPredicateItems(new HashSet<ApiPredicateItem>() {{
-            add(new ApiPathPredicateItem().setPattern("/admin-api/api/auth/**"));
+            add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/auth/**"));
         }});
 ```
 
@@ -85,7 +83,7 @@ ApiDefinition authApi = new ApiDefinition("auth_api")
 ```java
 // 代码清晰：具名集合
 Set<ApiPredicateItem> authPredicateItems = new HashSet<>();
-authPredicateItems.add(new ApiPathPredicateItem().setPattern("/admin-api/api/auth/**"));
+authPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/auth/**"));
 ApiDefinition authApi = new ApiDefinition("auth_api")
         .setPredicateItems(authPredicateItems);
 ```

@@ -26,7 +26,6 @@ if errorlevel 1 (
 REM 创建日志目录
 echo 创建日志目录...
 if not exist "..\..\logs\gateway" mkdir "..\..\logs\gateway"
-if not exist "..\..\logs\auth-api" mkdir "..\..\logs\auth-api"
 if not exist "..\..\logs\user-api" mkdir "..\..\logs\user-api"
 if not exist "..\..\logs\system-api" mkdir "..\..\logs\system-api"
 if not exist "..\..\logs\notification-service" mkdir "..\..\logs\notification-service"

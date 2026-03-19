@@ -83,8 +83,8 @@ NACOS_SERVER=localhost:8848 NAMESPACE=public bash import-nacos-configs.sh
 重启各微服务模块，应用将自动从 Nacos 加载配置：
 
 ```bash
-# 示例：启动 admin-api
-cd basebackend-admin-api
+# 示例：启动 user-api
+cd basebackend-user-api
 mvn spring-boot:run
 ```
 
@@ -246,10 +246,10 @@ SEATA_SERVER_ADDR=localhost:8091
 
 - ✅ 服务端口（`server.port`） - 每个模块不同
 - ✅ 应用名称（`spring.application.name`） - 每个模块不同
-- ✅ 邮件配置（`spring.mail`） - 模块特有（如 admin-api）
+- ✅ 邮件配置（`spring.mail`） - 模块特有
 - ✅ Thymeleaf 配置 - 模块特有
 - ✅ Knife4j 配置 - 模块特有
-- ✅ MinIO 配置 - 模块特有（如 admin-api）
+- ✅ MinIO 配置 - 模块特有
 
 ### 配置清理（可选）
 

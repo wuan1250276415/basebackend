@@ -16,15 +16,14 @@ services:
     container_name: basebackend-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-basebackend}
-      MYSQL_USER: ${MYSQL_USER:-basebackend}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-basebackend_admin}
+      MYSQL_USER: ${MYSQL_USER:-basebackend_admin}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-basebackend123}
       TZ: Asia/Shanghai
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ../init-sql:/docker-entrypoint-initdb.d
     networks:
       - basebackend-network
     command:
@@ -38,8 +37,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
-
 
   redis:
     image: redis:7.2-alpine

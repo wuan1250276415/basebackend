@@ -19,7 +19,7 @@
 |------|----------|----------|--------|------|
 | 1 | **basebackend-database** | ✅ 全部通过 | 100% | 无需修复 |
 | 2 | **basebackend-user-api** | ✅ 全部通过 | 100% | 无需修复 |
-| 3 | **basebackend-admin-api** | ✅ 全部通过 | 100% | 无需修复 |
+| 3 | **遗留单体后台服务（已拆分）** | ✅ 全部通过 | 100% | 历史验证记录 |
 | 4 | **basebackend-observability** | ✅ 全部通过 | 100% | 无需修复 |
 | 5 | **basebackend-logging** | ✅ 全部通过 | 100% | 无需修复 |
 | 6 | **basebackend-file-service** | ✅ 全部通过 | 100% | 无需修复 |

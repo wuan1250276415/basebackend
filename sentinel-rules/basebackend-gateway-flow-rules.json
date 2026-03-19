@@ -1,6 +1,6 @@
 [
   {
-    "resource": "/admin-api/**",
+    "resource": "/basebackend-user-api/**",
     "limitApp": "default",
     "grade": 1,
     "count": 100,
@@ -9,7 +9,7 @@
     "clusterMode": false
   },
   {
-    "resource": "/basebackend-demo-api/api/**",
+    "resource": "/basebackend-system-api/**",
     "limitApp": "default",
     "grade": 1,
     "count": 200,

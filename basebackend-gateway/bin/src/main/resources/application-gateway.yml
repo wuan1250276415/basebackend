@@ -103,21 +103,7 @@ spring:
 gateway:
   gray:
     enabled: true
-    rules:
-      # admin-api灰度示例
-      - serviceName: admin-api
-        grayVersion: v2.0.0
-        stableVersion: v1.0.0
-        strategy: weight  # header/user/ip/weight
-        weight: 10  # 10%流量到灰度版本
-
-      # 基于Header的灰度
-      - serviceName: basebackend-demo-api
-        grayVersion: v2.0.0
-        stableVersion: v1.0.0
-        strategy: header
-        headerName: X-Gray-Flag
-        headerValue: "true"
+    rules: []
 
 # 日志配置
 logging:

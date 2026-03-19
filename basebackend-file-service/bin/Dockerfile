@@ -20,7 +20,6 @@ COPY basebackend-file-service/pom.xml basebackend-file-service/
 COPY basebackend-backup/pom.xml basebackend-backup/
 COPY basebackend-nacos/pom.xml basebackend-nacos/
 COPY basebackend-gateway/pom.xml basebackend-gateway/
-COPY basebackend-demo-api/pom.xml basebackend-demo-api/
 COPY basebackend-file-service/pom.xml basebackend-file-service/
 
 # 下载依赖（利用Docker缓存层）

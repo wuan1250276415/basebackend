@@ -18,22 +18,6 @@ spring:
 #          filters:
 #            - StripPrefix=0
 #
-#        # 认证服务路由
-#        - id: auth-api
-#          uri: lb://basebackend-auth-api
-#          predicates:
-#            - Path=/api/auth/**
-#          filters:
-#            - StripPrefix=0
-#
-#        # 管理服务路由（兼容旧API）
-#        - id: admin-api
-#          uri: lb://basebackend-admin-api
-#          predicates:
-#            - Path=/api/admin/**
-#          filters:
-#            - StripPrefix=0
-
       # 全局CORS配置
       globalcors:
         corsConfigurations:
@@ -79,9 +63,6 @@ resilience4j:
         baseConfig: default
       system-api:
         baseConfig: default
-      auth-api:
-        baseConfig: default
-
 # 日志配置
 logging:
   level:

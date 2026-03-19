@@ -25,7 +25,6 @@ Promtail是Grafana Loki的日志收集代理，负责收集应用日志并推送
 
 1. **服务日志**：
    - Gateway服务
-   - Auth API服务
    - User API服务
    - System API服务
    - Notification服务
@@ -88,9 +87,6 @@ curl http://localhost:9080/targets
 
 # 查询特定时间范围的日志
 {service="basebackend-user-api"} |= "login" [5m]
-
-# 正则表达式过滤
-{service="basebackend-auth-api"} |~ "token.*expired"
 
 # 聚合查询 - 统计错误数
 sum(rate({level="ERROR"}[5m])) by (service)

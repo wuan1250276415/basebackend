@@ -13,7 +13,7 @@ Admin-Web 已集成特性开关功能，支持：
 
 ### 1. 后端配置
 
-确保 `basebackend-admin-api` 已启用特性开关：
+确保后端特性开关服务已启用对应配置：
 
 ```yaml
 # application.yml
@@ -36,7 +36,7 @@ feature-toggle:
 ./scripts/start-feature-toggle.sh
 
 # 2. 启动后端
-cd basebackend-admin-api
+cd basebackend-system-api
 mvn spring-boot:run
 
 # 3. 启动前端

@@ -98,7 +98,7 @@ echo "========================================="
 echo "下一步："
 echo "========================================="
 echo "1. 配置应用的 application.yml"
-echo "2. 启动 basebackend-admin-api"
+echo "2. 启动 basebackend-user-api / basebackend-system-api"
 echo "3. 访问前端监控页面"
 echo ""
 

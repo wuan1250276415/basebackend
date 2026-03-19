@@ -33,11 +33,6 @@ public class ServiceConstants {
      */
     public static final String GATEWAY_SERVICE = "gateway";
 
-    /**
-     * 演示服务
-     */
-    public static final String DEMO_SERVICE = "demo-api";
-
     private ServiceConstants() {
     }
 }

@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * 缓存管理 REST 控制器
  * 提供缓存管理 API，供管理后台调用
  *
- * 安全由消费端应用自行配置（如 admin-api 的 @RequiresPermission）
+ * 安全由消费端应用自行配置（如业务服务中的 @RequiresPermission）
  */
 @Slf4j
 @RestController

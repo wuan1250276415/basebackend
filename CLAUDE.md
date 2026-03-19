@@ -56,7 +56,6 @@ graph TD
     INFRA_LIB --> FEIGN["basebackend-feign-api"]
 
     ROOT --> SERVICES["可部署微服务"]
-    SERVICES --> ADMIN_API["basebackend-admin-api"]
     SERVICES --> GW["basebackend-gateway"]
     SERVICES --> USER_API["basebackend-user-api"]
     SERVICES --> SYS_API["basebackend-system-api"]
@@ -78,7 +77,6 @@ graph TD
     ROOT --> FRONTEND["basebackend-admin-web"]
 
     click COMMON "./basebackend-common/CLAUDE.md" "common模块文档"
-    click ADMIN_API "./basebackend-admin-api/CLAUDE.md" "admin-api模块文档"
     click FRONTEND "./basebackend-admin-web/CLAUDE.md" "前端模块文档"
     click GW "./basebackend-gateway/CLAUDE.md" "网关模块文档"
     click CACHE "./basebackend-cache/CLAUDE.md" "缓存模块文档"
@@ -106,10 +104,9 @@ graph TD
 | `basebackend-feature-toggle/` | 库 | Java | Feature Toggle / A/B测试(Unleash/Flagsmith) |
 | `basebackend-web/` | 库 | Java | Web层公共配置 |
 | `basebackend-feign-api/` | 库 | Java | Feign客户端接口定义 |
-| `basebackend-admin-api/` | 服务 | Java | 管理后台API(单体，含全量RBAC/消息/Nacos/存储/可观测) |
 | `basebackend-gateway/` | 服务 | Java | Spring Cloud Gateway统一入口 |
-| `basebackend-user-api/` | 服务 | Java | 用户微服务(拆分自admin-api) |
-| `basebackend-system-api/` | 服务 | Java | 系统管理微服务(拆分自admin-api) |
+| `basebackend-user-api/` | 服务 | Java | 用户微服务，承接用户域与认证能力 |
+| `basebackend-system-api/` | 服务 | Java | 系统管理微服务，承接部门/字典/权限/监控等系统域能力 |
 | `basebackend-notification-service/` | 服务 | Java | 通知微服务 |
 | `basebackend-observability-service/` | 服务 | Java | 可观测性微服务 |
 | `basebackend-file-service/` | 服务 | Java | 文件存储微服务(MinIO) |
@@ -124,8 +121,8 @@ graph TD
 # 后端构建
 mvn clean install -DskipTests
 
-# 单模块启动 (admin-api, 端口8082)
-cd basebackend-admin-api && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# 单模块启动 (user-api, 端口8081)
+cd basebackend-user-api && mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 # 前端启动
 cd basebackend-admin-web && npm install && npm run dev
@@ -166,7 +163,7 @@ cd docker/observability && docker-compose up -d     # Loki/Prometheus/Tempo
 ## AI 使用指引
 
 - 后端修改需同时检查对应的 Mapper XML、Flyway迁移、DTO映射
-- `basebackend-admin-api` 是早期单体模块(未注释但在pom中已注释)，正在向 `user-api` + `system-api` 微服务架构拆分
+- 后台服务当前以 `user-api` + `system-api` 微服务拆分形态为主
 - `basebackend-scheduler-old` 和 `basebackend-scheduler-backup` 是遗留代码，新调度逻辑在 `basebackend-scheduler-parent/`
 - 前端路由集中在 `basebackend-admin-web/src/router/index.tsx`
 - 状态管理用 Zustand (stores/), 全局上下文用 React Context (contexts/)

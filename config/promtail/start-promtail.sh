@@ -25,7 +25,7 @@ fi
 
 # 创建日志目录
 echo "创建日志目录..."
-mkdir -p ../../logs/{gateway,auth-api,user-api,system-api,notification-service,observability-service}
+mkdir -p ../../logs/{gateway,user-api,system-api,notification-service,observability-service}
 
 # 启动服务
 echo "启动Loki和Promtail..."

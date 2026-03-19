@@ -32,19 +32,19 @@ GET http://localhost:8080/api/system/depts/tree
 GET http://localhost:8080/api/system/dicts
 ```
 
-### 认证服务 (Auth API)
-- **路径**: `/api/auth/**`
-- **目标服务**: `basebackend-auth-api`
-- **端口**: 8083
-- **功能**: 认证、授权、Token管理
+### 用户认证入口 (User API)
+- **路径**: `/basebackend-user-api/api/user/auth/**`
+- **目标服务**: `basebackend-user-api`
+- **端口**: 8081
+- **功能**: 登录、刷新 Token、当前用户信息
 
 **示例**:
 ```bash
 # 用户登录
-POST http://localhost:8080/api/auth/login
+POST http://localhost:8080/basebackend-user-api/api/user/auth/login
 
 # 刷新Token
-POST http://localhost:8080/api/auth/refresh
+POST http://localhost:8080/basebackend-user-api/api/user/auth/refresh
 ```
 
 ### 通知服务 (Notification Service)
@@ -100,12 +100,6 @@ POST http://localhost:8080/api/files/upload
 # 下载文件
 GET http://localhost:8080/api/files/download/{fileId}
 ```
-
-### Admin API (兼容保留)
-- **路径**: `/api/admin/**`
-- **目标服务**: `basebackend-admin-api`
-- **端口**: 8085
-- **功能**: 管理功能（逐步迁移到其他服务）
 
 ## 路由特性
 

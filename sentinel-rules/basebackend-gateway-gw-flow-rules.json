@@ -1,6 +1,6 @@
 [
   {
-    "resource": "admin-api",
+    "resource": "user-api",
     "resourceMode": 0,
     "grade": 1,
     "count": 100,
@@ -13,7 +13,7 @@
     }
   },
   {
-    "resource": "basebackend-demo-api",
+    "resource": "system-api",
     "resourceMode": 0,
     "grade": 1,
     "count": 200,
@@ -26,7 +26,7 @@
     }
   },
   {
-    "resource": "admin-api",
+    "resource": "user-api",
     "resourceMode": 0,
     "grade": 1,
     "count": 10,
@@ -40,7 +40,7 @@
     }
   },
   {
-    "resource": "basebackend-demo-api",
+    "resource": "system-api",
     "resourceMode": 1,
     "grade": 1,
     "count": 5,

@@ -77,8 +77,7 @@ public class RateLimitRuleManager {
 
                 // 定义登录 API
                 Set<ApiPredicateItem> authPredicateItems = new HashSet<>();
-                authPredicateItems.add(new ApiPathPredicateItem().setPattern("/admin-api/api/auth/**"));
-                authPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-demo-api/api/auth/**"));
+                authPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/auth/**"));
                 ApiDefinition authApi = new ApiDefinition("auth_api")
                                 .setPredicateItems(authPredicateItems);
                 definitions.add(authApi);
@@ -86,7 +85,7 @@ public class RateLimitRuleManager {
 
                 // 定义用户 API
                 Set<ApiPredicateItem> userPredicateItems = new HashSet<>();
-                userPredicateItems.add(new ApiPathPredicateItem().setPattern("/admin-api/api/user/**"));
+                userPredicateItems.add(new ApiPathPredicateItem().setPattern("/basebackend-user-api/api/user/**"));
                 ApiDefinition userApi = new ApiDefinition("user_api")
                                 .setPredicateItems(userPredicateItems);
                 definitions.add(userApi);
@@ -138,7 +137,7 @@ public class RateLimitRuleManager {
                         cacheRule("user_api", userApiRule);
 
                         // 4. IP 限流：单个 IP 每秒最多 20 个请求
-                        GatewayFlowRule ipLimitRule = new GatewayFlowRule("admin-api")
+                        GatewayFlowRule ipLimitRule = new GatewayFlowRule("user-api")
                                         .setResourceMode(SentinelGatewayConstants.RESOURCE_MODE_ROUTE_ID)
                                         .setCount(20)
                                         .setIntervalSec(1)
@@ -146,10 +145,10 @@ public class RateLimitRuleManager {
                                                         .setParseStrategy(
                                                                         SentinelGatewayConstants.PARAM_PARSE_STRATEGY_CLIENT_IP));
                         rules.add(ipLimitRule);
-                        cacheRule("admin-api:ip", ipLimitRule);
+                        cacheRule("user-api:ip", ipLimitRule);
 
                         // 5. 用户限流：单个用户每秒最多 30 个请求
-                        GatewayFlowRule userLimitRule = new GatewayFlowRule("admin-api")
+                        GatewayFlowRule userLimitRule = new GatewayFlowRule("user-api")
                                         .setResourceMode(SentinelGatewayConstants.RESOURCE_MODE_ROUTE_ID)
                                         .setCount(30)
                                         .setIntervalSec(1)
@@ -158,7 +157,7 @@ public class RateLimitRuleManager {
                                                                         SentinelGatewayConstants.PARAM_PARSE_STRATEGY_HEADER)
                                                         .setFieldName("X-User-Id"));
                         rules.add(userLimitRule);
-                        cacheRule("admin-api:user", userLimitRule);
+                        cacheRule("user-api:user", userLimitRule);
 
                         // 6. 文件上传限流：每秒最多 5 个请求
                         GatewayFlowRule fileUploadRule = new GatewayFlowRule("file_api")

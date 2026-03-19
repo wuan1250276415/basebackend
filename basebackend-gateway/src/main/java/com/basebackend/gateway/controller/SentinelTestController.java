@@ -101,8 +101,8 @@ public class SentinelTestController {
     /**
      * 网关限流测试接口 - 通过路由前缀测试
      * 测试方法: 通过不同的路由访问
-     * curl http://localhost:8080/admin-api/test
-     * curl http://localhost:8080/basebackend-demo-api/api/test
+     * curl http://localhost:8080/basebackend-user-api/api/user/auth/info
+     * curl http://localhost:8080/basebackend-system-api/api/system/dicts/data/type/sys_common_status
      */
     @GetMapping("/route-test")
     public Mono<Map<String, Object>> routeTest() {

@@ -150,7 +150,7 @@ const ApiDocs = () => {
               icon={<FileText />}
               loading={downloading === 'json'}
               onClick={() =>
-                downloadFile(OPENAPI_JSON_URL, 'admin-api-openapi.json', 'json')
+                downloadFile(OPENAPI_JSON_URL, 'basebackend-system-openapi.json', 'json')
               }
             >
               下载 JSON 规范
@@ -159,7 +159,7 @@ const ApiDocs = () => {
               icon={<Clipboard />}
               loading={downloading === 'yaml'}
               onClick={() =>
-                downloadFile(OPENAPI_YAML_URL, 'admin-api-openapi.yaml', 'yaml')
+                downloadFile(OPENAPI_YAML_URL, 'basebackend-system-openapi.yaml', 'yaml')
               }
             >
               下载 YAML 规范
@@ -169,7 +169,7 @@ const ApiDocs = () => {
               icon={<CloudDownload />}
               loading={downloading === 'sdk'}
               onClick={() =>
-                downloadFile(SDK_ZIP_URL, 'basebackend-admin-sdk.zip', 'sdk')
+                downloadFile(SDK_ZIP_URL, 'basebackend-system-sdk.zip', 'sdk')
               }
             >
               下载 TypeScript SDK

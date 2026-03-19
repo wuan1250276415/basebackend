@@ -135,7 +135,7 @@ curl -X GET http://localhost:8087/api/traces/services \
   "data": [
     "basebackend-user-api",
     "basebackend-system-api",
-    "basebackend-auth-api",
+    "basebackend-notification-service",
     "basebackend-gateway"
   ]
 }

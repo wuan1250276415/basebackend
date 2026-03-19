@@ -7,7 +7,7 @@ spring:
         - id: user-api
           uri: lb://basebackend-user-api
           predicates:
-            - Path=/api/user/**
+            - Path=/basebackend-user-api/**
           filters:
             - StripPrefix=1
             - name: CircuitBreaker
@@ -19,7 +19,7 @@ spring:
         - id: system-api
           uri: lb://basebackend-system-api
           predicates:
-            - Path=/api/system/**
+            - Path=/basebackend-system-api/**
           filters:
             - StripPrefix=1
             - name: CircuitBreaker
@@ -37,18 +37,6 @@ spring:
                 name: systemServiceCircuitBreaker
                 fallbackUri: forward:/fallback/system
 
-        # ==================== 认证服务路由 ====================
-        - id: auth-api
-          uri: lb://basebackend-auth-api
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: authServiceCircuitBreaker
-                fallbackUri: forward:/fallback/auth
-
         # ==================== 通知服务路由 ====================
         # 带服务名前缀的路由（兼容旧版本）
         - id: notification-service-with-prefix
@@ -62,6 +50,16 @@ spring:
                 name: notificationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/notification
         
+        # 通知服务 - SSE连接（需要特殊处理）
+        - id: notification-sse
+          uri: lb://basebackend-notification-service
+          predicates:
+            - Path=/api/notifications/stream
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+
         # 标准路由（推荐使用）
         - id: notification-service
           uri: lb://basebackend-notification-service
@@ -72,16 +70,6 @@ spring:
               args:
                 name: notificationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/notification
-
-        # 通知服务 - SSE连接（需要特殊处理）
-        - id: notification-sse
-          uri: lb://basebackend-notification-service
-          predicates:
-            - Path=/api/notifications/stream
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: notificationServiceCircuitBreaker
 
         # ==================== 可观测性服务路由 ====================
         # 带服务名前缀的路由（兼容旧版本）
@@ -141,9 +129,8 @@ spring:
         - id: ticket-api
           uri: lb://basebackend-ticket-api
           predicates:
-            - Path=/basebackend-ticket-api/**
+            - Path=/api/ticket/**
           filters:
-            - StripPrefix=1
             - name: CircuitBreaker
               args:
                 name: ticketServiceCircuitBreaker
@@ -188,23 +175,10 @@ spring:
           predicates:
             - Path=/api/files/**
           filters:
-            - StripPrefix=1
             - name: CircuitBreaker
               args:
                 name: fileServiceCircuitBreaker
                 fallbackUri: forward:/fallback/file
-
-        # ==================== Admin API路由（保留用于兼容）====================
-        - id: admin-api
-          uri: lb://basebackend-admin-api
-          predicates:
-            - Path=/api/admin/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: adminServiceCircuitBreaker
-                fallbackUri: forward:/fallback/admin
 
 # 熔断器配置
 resilience4j:
@@ -224,15 +198,11 @@ resilience4j:
         baseConfig: default
       systemServiceCircuitBreaker:
         baseConfig: default
-      authServiceCircuitBreaker:
-        baseConfig: default
       notificationServiceCircuitBreaker:
         baseConfig: default
       observabilityServiceCircuitBreaker:
         baseConfig: default
       fileServiceCircuitBreaker:
-        baseConfig: default
-      adminServiceCircuitBreaker:
         baseConfig: default
       ticketServiceCircuitBreaker:
         baseConfig: default
@@ -252,15 +222,11 @@ resilience4j:
         baseConfig: default
       systemServiceCircuitBreaker:
         baseConfig: default
-      authServiceCircuitBreaker:
-        baseConfig: default
       notificationServiceCircuitBreaker:
         baseConfig: default
       observabilityServiceCircuitBreaker:
         baseConfig: default
       fileServiceCircuitBreaker:
-        baseConfig: default
-      adminServiceCircuitBreaker:
         baseConfig: default
       ticketServiceCircuitBreaker:
         baseConfig: default

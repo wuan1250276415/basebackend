@@ -57,15 +57,6 @@ scrape_configs:
           service: 'system-api'
           team: 'business'
 
-  # 认证服务
-  - job_name: 'auth-api'
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-      - targets: ['localhost:8083']
-        labels:
-          service: 'auth-api'
-          team: 'security'
-
   # 文件服务
   - job_name: 'file-service'
     metrics_path: '/actuator/prometheus'

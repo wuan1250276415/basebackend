@@ -115,7 +115,7 @@ logging:
     enabled: true
     loki-enabled: true
     loki-url: http://localhost:3400/loki/api/v1/push
-    service-name: basebackend-admin-api
+    service-name: ${spring.application.name:basebackend-observability-service}
     environment: dev
 # Spring AOP 配置
 spring:

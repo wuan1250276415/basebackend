@@ -141,7 +141,7 @@ basebackend-logging (POM 聚合)
 | M-1 | `core/context/LogContext` | setter 无 null 守卫，`MDC.put(key, null)` 在 Logback 中抛异常 |
 | M-2 | `core/config/StructuredLogConfig` | 硬编码固定环境地址作为 Loki 默认 URL，降低了配置可移植性 |
 | M-3 | `core/config/StructuredLogConfig` | 使用 `@Configuration` 而非纯 `@ConfigurationProperties`，且使用 Spring 保留前缀 `logging.*` |
-| M-4 | `core/logback-structured.xml` | SQL 日志 logger 硬编码为 `admin-api` 的 mapper 包，不适合共享库 |
+| M-4 | `core/logback-structured.xml` | SQL 日志 logger 硬编码为具体业务 mapper 包，不适合共享库 |
 | M-5 | `audit/aspect/AuditAspect` | `getSession(true)` 在 AOP 中**创建新 HTTP Session**，产生副作用 |
 | M-6 | `audit/storage/database/SysAuditLog` | 缺少 `tenantId` 字段，多租户数据在 DB 存储中丢失 |
 | M-7 | `audit/dsar/DsarService` | 匿名化无事务包装，部分失败导致部分记录匿名化、部分未处理 |

@@ -38,29 +38,6 @@ scrape_configs:
           source: timestamp
           format: '2006-01-02 15:04:05.000'
 
-  # Auth API服务日志
-  - job_name: auth-api
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: auth-api
-          service: basebackend-auth-api
-          environment: ${ENVIRONMENT:-dev}
-          __path__: /app/logs/auth-api/*.log
-    pipeline_stages:
-      - multiline:
-          firstline: '^\d{4}-\d{2}-\d{2}'
-          max_wait_time: 3s
-      - regex:
-          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+(?P<level>\w+)\s+\[(?P<thread>[^\]]+)\]\s+(?P<logger>[^\s]+)\s+:\s+(?P<message>.*)'
-      - labels:
-          level:
-          thread:
-      - timestamp:
-          source: timestamp
-          format: '2006-01-02 15:04:05.000'
-
   # User API服务日志
   - job_name: user-api
     static_configs:

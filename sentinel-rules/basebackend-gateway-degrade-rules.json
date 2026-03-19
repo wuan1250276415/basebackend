@@ -1,6 +1,6 @@
 [
   {
-    "resource": "/admin-api/**",
+    "resource": "/basebackend-user-api/**",
     "grade": 0,
     "count": 0.5,
     "timeWindow": 10,
@@ -9,7 +9,7 @@
     "slowRatioThreshold": 0.5
   },
   {
-    "resource": "/basebackend-demo-api/api/**",
+    "resource": "/basebackend-system-api/**",
     "grade": 0,
     "count": 1.0,
     "timeWindow": 10,
@@ -18,7 +18,7 @@
     "slowRatioThreshold": 0.6
   },
   {
-    "resource": "/admin-api/**",
+    "resource": "/basebackend-user-api/**",
     "grade": 1,
     "count": 0.5,
     "timeWindow": 10,

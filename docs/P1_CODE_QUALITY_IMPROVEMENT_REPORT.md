@@ -121,7 +121,7 @@ sonar.java.coverageThreshold=30
 ### 4. 编译验证 (已完成)
 
 **验证模块：**
-- ✅ admin-api (199个源文件) - BUILD SUCCESS
+- ✅ 遗留单体后台服务（已拆分，199个源文件） - BUILD SUCCESS
 - ✅ gateway (20个源文件) - BUILD SUCCESS
 - ✅ file-service (65个源文件) - BUILD SUCCESS
 - ✅ observability (76个源文件) - BUILD SUCCESS
@@ -158,7 +158,7 @@ sonar.java.coverageThreshold=30
 
 以下问题不影响编译和运行，但可作为后续优化项：
 
-1. **admin-api TraceQueryService.java**
+1. **遗留单体后台服务 TraceQueryService.java**
    - 类型安全问题：unchecked操作
    - 影响：运行时无影响，仅编译警告
 

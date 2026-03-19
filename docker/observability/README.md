@@ -73,7 +73,7 @@ curl http://localhost:3000/api/health
 
 ### 2.1 启用可观测性配置
 
-在 `basebackend-admin-api/src/main/resources/application.yml` 中添加：
+在 `basebackend-user-api/src/main/resources/application.yml` 中添加：
 
 ```yaml
 spring:
@@ -106,30 +106,30 @@ cd /home/wuan/IdeaProjects/basebackend
 # 完整编译
 mvn clean package -DskipTests
 
-# 或仅编译 admin-api
-mvn clean package -pl basebackend-admin-api -am -DskipTests
+# 或仅编译 user-api
+mvn clean package -pl basebackend-user-api -am -DskipTests
 ```
 
 ### 3.2 启动应用
 
 ```bash
-cd basebackend-admin-api
+cd basebackend-user-api
 
 # 方式一：使用 Maven
 mvn spring-boot:run -Dspring-boot.run.profiles=dev,observability
 
 # 方式二：使用 jar
-java -jar target/basebackend-admin-api-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev,observability
+java -jar target/basebackend-user-api-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev,observability
 ```
 
 ### 3.3 验证应用启动
 
 ```bash
 # 检查应用健康状态
-curl http://localhost:8082/actuator/health
+curl http://localhost:8081/actuator/health
 
 # 检查 Prometheus 指标端点
-curl http://localhost:8082/actuator/prometheus
+curl http://localhost:8081/actuator/prometheus
 
 # 检查是否有日志输出到 Loki（启动几秒后）
 curl "http://localhost:3100/loki/api/v1/label" | jq .
@@ -143,7 +143,7 @@ curl "http://localhost:3100/loki/api/v1/label" | jq .
 
 1. 访问 Prometheus: http://localhost:9090
 2. 进入 Status > Targets
-3. 确认 `basebackend-admin-api` 目标状态为 UP
+3. 确认 `basebackend-user-api` 目标状态为 UP
 4. 在查询框输入：`api_calls_total` 并执行
 
 ### 4.2 验证 Loki 日志
@@ -151,7 +151,7 @@ curl "http://localhost:3100/loki/api/v1/label" | jq .
 ```bash
 # 查询最近的日志
 curl -G "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode 'query={application="basebackend-admin-api"}' \
+  --data-urlencode 'query={application="basebackend-user-api"}' \
   --data-urlencode "start=$(date -d '5 minutes ago' +%s)000000000" \
   --data-urlencode "end=$(date +%s)000000000" \
   --data-urlencode 'limit=10' | jq .
@@ -160,7 +160,7 @@ curl -G "http://localhost:3100/loki/api/v1/query_range" \
 或在 Grafana 中：
 1. 访问 http://localhost:3000
 2. 添加 Loki 数据源: http://loki:3100
-3. 在 Explore 中查询：`{application="basebackend-admin-api"}`
+3. 在 Explore 中查询：`{application="basebackend-user-api"}`
 
 ### 4.3 验证 Tempo 追踪
 
@@ -168,7 +168,7 @@ curl -G "http://localhost:3100/loki/api/v1/query_range" \
 
 ```bash
 # 发起测试请求（假设有登录接口）
-curl -X POST http://localhost:8082/api/auth/login \
+curl -X POST http://localhost:8081/api/user/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"123456"}'
 ```
@@ -310,7 +310,7 @@ docker compose down -v
 mvn clean package -DskipTests
 
 # 启动应用
-cd basebackend-admin-api
+cd basebackend-user-api
 mvn spring-boot:run -Dspring-boot.run.profiles=dev,observability
 
 # 查看应用日志
@@ -325,7 +325,7 @@ curl "http://localhost:9090/api/v1/query?query=api_calls_total"
 
 # Loki - 查询日志
 curl -G "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode 'query={application="basebackend-admin-api"}' \
+  --data-urlencode 'query={application="basebackend-user-api"}' \
   --data-urlencode 'limit=10'
 
 # Tempo - 查询追踪（需要 TraceId）
@@ -406,7 +406,7 @@ docker/observability/
 ├── start.sh                    # 启动脚本
 └── stop.sh                     # 停止脚本
 
-basebackend-admin-api/src/main/resources/
+basebackend-user-api/src/main/resources/
 └── application-observability.yml  # 可观测性配置
 ```
 
@@ -434,8 +434,8 @@ cd /home/wuan/IdeaProjects/basebackend
 mvn clean package -DskipTests
 
 # 3. 启动应用
-cd basebackend-admin-api
-java -jar target/basebackend-admin-api-1.0.0-SNAPSHOT.jar \
+cd basebackend-user-api
+java -jar target/basebackend-user-api-1.0.0-SNAPSHOT.jar \
   --spring.profiles.active=dev,observability
 
 # 4. 启动前端

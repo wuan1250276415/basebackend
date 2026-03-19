@@ -23,7 +23,6 @@ scrape_configs:
       - targets:
           - 'basebackend-user-api:8081'
           - 'basebackend-system-api:8082'
-          - 'basebackend-auth-api:8083'
           - 'basebackend-notification-service:8086'
           - 'basebackend-observability-service:8087'
         labels:

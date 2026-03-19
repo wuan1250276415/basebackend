@@ -486,7 +486,7 @@ public class ReactiveCustomHealthIndicator implements ReactiveHealthIndicator {
 
 ```promql
 # 应用健康状态（1=UP, 0=DOWN）
-health_status{application="basebackend-admin-api"}
+health_status{application="basebackend-user-api"}
 
 # 各组件健康状态
 health_component_status{component="database"} 1

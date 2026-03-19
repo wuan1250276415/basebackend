@@ -80,7 +80,7 @@ spring:
 cd /path/to/basebackend
 
 # 执行 SQL 脚本
-mysql -u root -p your_database < basebackend-admin-api/src/main/resources/db/migration/V1.3__create_messaging_tables.sql
+mysql -u root -p your_database < docker/compose/flyway/sql/V1.4__create_sys_message_log_table.sql
 ```
 
 或者在应用启动时自动创建（如果使用 Flyway）。

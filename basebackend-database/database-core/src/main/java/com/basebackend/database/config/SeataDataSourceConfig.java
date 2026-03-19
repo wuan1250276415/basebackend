@@ -44,7 +44,7 @@ import javax.sql.DataSource;
  *
  *     @GlobalTransactional(rollbackFor = Exception.class)
  *     public void createUserWithFile(UserDTO dto) {
- *         // 1. 本地数据库操作 (admin-api)
+ *         // 1. 本地数据库操作
  *         userMapper.insert(user);
  *
  *         // 2. 远程服务调用 (file-service)

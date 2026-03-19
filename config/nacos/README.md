@@ -12,7 +12,6 @@ config/nacos/
 ├── application-redis.yml          # Redis配置
 ├── user-api.yml                   # 用户服务配置
 ├── system-api.yml                 # 系统服务配置
-├── auth-api.yml                   # 认证服务配置
 ├── notification-service.yml       # 通知服务配置
 └── observability-service.yml      # 可观测性服务配置
 ```

@@ -8,12 +8,12 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 /**
- * 认证服务客户端
+ * 用户认证服务客户端
  *
  * @author Claude Code
  * @since 2025-11-08
  */
-@HttpExchange("/api/auth")
+@HttpExchange("/api/user/auth")
 public interface AuthServiceClient {
 
     @GetExchange("/verify")
