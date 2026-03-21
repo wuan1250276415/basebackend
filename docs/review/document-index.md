@@ -33,6 +33,7 @@
 - `docs/review/phase3-bin-cleanup-execution-plan-2026-03-21.md`
 - `docs/review/observability-bin-special-review-2026-03-21.md`
 - `docs/review/phase4-root-and-docs-layering-identification-2026-03-21.md`
+- `docs/review/phase5-test-baseline-identification-2026-03-21.md`
 
 ## README references
 - `docs/FINAL_COMPLETION_SUMMARY.md` (missing)
