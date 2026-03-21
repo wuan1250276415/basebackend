@@ -2,10 +2,18 @@ package com.basebackend.common.export;
 
 import com.basebackend.common.export.impl.CsvExportService;
 import com.basebackend.common.export.impl.EasyExcelExportService;
+import org.apache.poi.util.DefaultTempFileCreationStrategy;
+import org.apache.poi.util.TempFile;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -41,6 +49,26 @@ class ExcelExportTest {
         assertNotNull(result);
         assertEquals("TestUser.xlsx", result.getFileName());
         assertTrue(result.getContent().length > 0);
+    }
+
+    @Test
+    void excelExport_usesWritablePoiTempDirectoryWhenCurrentStrategyIsBroken() throws IOException {
+        Path readOnlyDir = Files.createTempDirectory("poi-read-only-");
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(readOnlyDir);
+        Files.setPosixFilePermissions(readOnlyDir, PosixFilePermissions.fromString("r-xr-xr-x"));
+
+        try {
+            TempFile.setTempFileCreationStrategy(new DefaultTempFileCreationStrategy(readOnlyDir.toFile()));
+
+            EasyExcelExportService service = new EasyExcelExportService();
+            ExportResult result = service.export(List.of(new TestUser("Alice", 30)), TestUser.class);
+
+            assertNotNull(result);
+            assertTrue(result.getContent().length > 0);
+        } finally {
+            Files.setPosixFilePermissions(readOnlyDir, originalPermissions);
+            Files.deleteIfExists(readOnlyDir);
+        }
     }
 
     // ========== @ExportField 注解解析 ==========

@@ -199,7 +199,14 @@ public final class IpAddressUtil {
 
             try {
                 String[] parts = cidr.split("/");
+                if (parts.length == 0 || parts.length > 2) {
+                    throw new IllegalArgumentException("Invalid CIDR format: " + cidr);
+                }
+
                 String ip = parts[0];
+                if (!isIpLiteral(ip)) {
+                    throw new IllegalArgumentException("CIDR must use a literal IP address: " + cidr);
+                }
                 InetAddress networkAddress = InetAddress.getByName(ip);
                 tempNetwork = networkAddress.getAddress();
                 tempLength = tempNetwork.length;
@@ -236,6 +243,22 @@ public final class IpAddressUtil {
             this.maskBytes = tempMask;
             this.addressLength = tempLength;
             this.valid = tempValid;
+        }
+
+        private static boolean isIpLiteral(String ip) {
+            if (ip == null || ip.isBlank()) {
+                return false;
+            }
+
+            if (ip.indexOf(':') >= 0) {
+                return ip.matches("^[0-9a-fA-F:%.]+$");
+            }
+
+            if (ip.indexOf('.') >= 0) {
+                return ip.matches("^\\d{1,3}(\\.\\d{1,3}){3}$");
+            }
+
+            return false;
         }
 
         /**

@@ -3,10 +3,11 @@ package com.basebackend.file.limit;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 简单限流器实现（内存版）
@@ -35,6 +36,11 @@ public class SimpleRateLimiter implements RateLimiter {
      */
     private final ConcurrentHashMap<String, PasswordFailureState> passwordFailures = new ConcurrentHashMap<>();
 
+    /**
+     * 滑动窗口状态存储（key -> SlidingWindowState）
+     */
+    private final ConcurrentHashMap<String, SlidingWindowState> slidingWindows = new ConcurrentHashMap<>();
+
     @Override
     public RateLimitResult check(String key, RateLimitPolicy policy) throws RateLimitExceededException {
         if (!policy.isEnabled()) {
@@ -45,9 +51,7 @@ public class SimpleRateLimiter implements RateLimiter {
         return switch (policy.getLimitType()) {
             case TOKEN_BUCKET -> checkTokenBucket(key, policy);
             case FIXED_WINDOW -> checkFixedWindow(key, policy);
-            case SLIDING_WINDOW ->
-                // TODO: 实现滑动窗口算法
-                throw new UnsupportedOperationException("滑动窗口限流算法待实现");
+            case SLIDING_WINDOW -> checkSlidingWindow(key, policy);
             default -> throw new IllegalArgumentException("不支持的限流类型: " + policy.getLimitType());
         };
     }
@@ -237,6 +241,54 @@ public class SimpleRateLimiter implements RateLimiter {
     }
 
     /**
+     * 滑动窗口算法检查
+     */
+    private RateLimitResult checkSlidingWindow(String key, RateLimitPolicy policy) throws RateLimitExceededException {
+        if (!policy.isValid()) {
+            throw new IllegalArgumentException("限流策略参数无效: " + policy);
+        }
+
+        long now = System.currentTimeMillis();
+        long windowSizeMs = TimeUnit.valueOf(policy.getTimeUnit().name()).toMillis(policy.getWindowSize());
+        SlidingWindowState state = slidingWindows.computeIfAbsent(key, k -> new SlidingWindowState());
+
+        synchronized (state) {
+            long windowStart = now - windowSizeMs;
+            while (!state.requestTimes.isEmpty() && state.requestTimes.peekFirst() <= windowStart) {
+                state.requestTimes.pollFirst();
+            }
+
+            int currentCount = state.requestTimes.size();
+            if (currentCount < policy.getMaxRequests()) {
+                state.requestTimes.addLast(now);
+                int remainingRequests = policy.getMaxRequests() - state.requestTimes.size();
+                long resetTime = state.requestTimes.peekFirst() == null
+                        ? now + windowSizeMs
+                        : state.requestTimes.peekFirst() + windowSizeMs;
+                return new RateLimitResult(
+                        true,
+                        0,
+                        remainingRequests,
+                        resetTime,
+                        String.format("允许访问，滑动窗口剩余请求: %d", remainingRequests)
+                );
+            }
+
+            long resetTime = state.requestTimes.peekFirst() + windowSizeMs;
+            RateLimitResult result = new RateLimitResult(
+                    false,
+                    0,
+                    0,
+                    resetTime,
+                    String.format("请求过于频繁，请等待 %d 毫秒后重试", Math.max(0, resetTime - now))
+            );
+            log.warn("滑动窗口限流触发: key={}, windowSize={}, maxRequests={}, resetTime={}",
+                    key, policy.getWindowSize(), policy.getMaxRequests(), Instant.ofEpochMilli(resetTime));
+            throw new RateLimitExceededException("访问频率超限", result);
+        }
+    }
+
+    /**
      * 令牌桶状态
      */
     private static class TokenBucketState {
@@ -263,5 +315,12 @@ public class SimpleRateLimiter implements RateLimiter {
     private static class PasswordFailureState {
         AtomicInteger failureCount = new AtomicInteger(0);
         long cooldownUntil = 0;
+    }
+
+    /**
+     * 滑动窗口状态
+     */
+    private static class SlidingWindowState {
+        Deque<Long> requestTimes = new ArrayDeque<>();
     }
 }

@@ -106,9 +106,52 @@ public class PermissionAspect {
             return true;
         }
         if (requiresPermission.logical() == RequiresPermission.Logical.AND) {
-            return required.stream().allMatch(userSet::contains);
+            return required.stream().allMatch(requiredPermission ->
+                userSet.stream().anyMatch(grantedPermission -> permissionMatches(grantedPermission, requiredPermission)));
         }
-        return required.stream().anyMatch(userSet::contains);
+        return required.stream().anyMatch(requiredPermission ->
+            userSet.stream().anyMatch(grantedPermission -> permissionMatches(grantedPermission, requiredPermission)));
+    }
+
+    /**
+     * 判断用户已有权限是否命中目标权限。
+     *
+     * 支持以下形式：
+     * 1. 精确匹配：{@code system:user:update}
+     * 2. 前缀通配：{@code system:role:*}
+     * 3. 分段通配：{@code system:*:view}
+     */
+    private boolean permissionMatches(String grantedPermission, String requiredPermission) {
+        if (grantedPermission == null || grantedPermission.isBlank()
+                || requiredPermission == null || requiredPermission.isBlank()) {
+            return false;
+        }
+
+        if (grantedPermission.equals(requiredPermission)
+                || grantedPermission.equals("*")
+                || grantedPermission.equals("*:*")) {
+            return true;
+        }
+
+        if (grantedPermission.endsWith(":*")) {
+            String prefix = grantedPermission.substring(0, grantedPermission.length() - 1);
+            if (requiredPermission.startsWith(prefix)) {
+                return true;
+            }
+        }
+
+        String[] grantedParts = grantedPermission.split(":", -1);
+        String[] requiredParts = requiredPermission.split(":", -1);
+        if (grantedParts.length != requiredParts.length) {
+            return false;
+        }
+
+        for (int i = 0; i < grantedParts.length; i++) {
+            if (!"*".equals(grantedParts[i]) && !grantedParts[i].equals(requiredParts[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

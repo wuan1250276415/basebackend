@@ -40,10 +40,27 @@ public class LocalStorageServiceImpl implements StorageService {
         log.info("本地存储服务已注册到存储服务注册中心");
     }
 
+    private Path getBasePath() {
+        return Paths.get(fileProperties.getUploadPath()).toAbsolutePath().normalize();
+    }
+
+    private Path resolveSecurePath(String path) {
+        if (path == null || path.isBlank()) {
+            throw new BusinessException("文件路径不能为空");
+        }
+
+        Path basePath = getBasePath();
+        Path resolved = basePath.resolve(path).normalize();
+        if (!resolved.startsWith(basePath)) {
+            throw new BusinessException("非法的文件路径");
+        }
+        return resolved;
+    }
+
     @Override
     public String upload(InputStream inputStream, String path, String contentType, long size) {
         try {
-            Path fullPath = Paths.get(fileProperties.getUploadPath(), path);
+            Path fullPath = resolveSecurePath(path);
 
             // 确保父目录存在
             Path parentDir = fullPath.getParent();
@@ -65,7 +82,7 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public InputStream download(String path) {
         try {
-            Path fullPath = Paths.get(fileProperties.getUploadPath(), path);
+            Path fullPath = resolveSecurePath(path);
 
             if (!Files.exists(fullPath)) {
                 throw new BusinessException("文件不存在: " + path);
@@ -81,7 +98,7 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public void delete(String path) {
         try {
-            Path fullPath = Paths.get(fileProperties.getUploadPath(), path);
+            Path fullPath = resolveSecurePath(path);
 
             if (Files.exists(fullPath)) {
                 Files.delete(fullPath);
@@ -98,8 +115,8 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public void copy(String sourcePath, String targetPath) {
         try {
-            Path source = Paths.get(fileProperties.getUploadPath(), sourcePath);
-            Path target = Paths.get(fileProperties.getUploadPath(), targetPath);
+            Path source = resolveSecurePath(sourcePath);
+            Path target = resolveSecurePath(targetPath);
 
             // 确保目标目录存在
             Path targetParent = target.getParent();
@@ -118,8 +135,8 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public void move(String sourcePath, String targetPath) {
         try {
-            Path source = Paths.get(fileProperties.getUploadPath(), sourcePath);
-            Path target = Paths.get(fileProperties.getUploadPath(), targetPath);
+            Path source = resolveSecurePath(sourcePath);
+            Path target = resolveSecurePath(targetPath);
 
             // 确保目标目录存在
             Path targetParent = target.getParent();
@@ -137,8 +154,11 @@ public class LocalStorageServiceImpl implements StorageService {
 
     @Override
     public boolean exists(String path) {
-        Path fullPath = Paths.get(fileProperties.getUploadPath(), path);
-        return Files.exists(fullPath);
+        try {
+            return Files.exists(resolveSecurePath(path));
+        } catch (BusinessException e) {
+            return false;
+        }
     }
 
     @Override
@@ -155,7 +175,7 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public List<String> listFiles(String prefix) {
         List<String> files = new ArrayList<>();
-        Path dirPath = Paths.get(fileProperties.getUploadPath(), prefix);
+        Path dirPath = resolveSecurePath(prefix == null || prefix.isBlank() ? "." : prefix);
 
         try {
             if (Files.exists(dirPath) && Files.isDirectory(dirPath)) {

@@ -160,7 +160,7 @@ public class OnlineStatusServiceImpl implements OnlineStatusService {
             ));
 
             for (ChatFriend friend : friends) {
-                sessionManager.sendToUser(String.valueOf(friend.getFriendId()), payload);
+                sessionManager.sendToUser(String.valueOf(tenantId), String.valueOf(friend.getFriendId()), payload);
             }
         } catch (Exception e) {
             log.warn("广播在线状态失败: userId={}, error={}", userId, e.getMessage());

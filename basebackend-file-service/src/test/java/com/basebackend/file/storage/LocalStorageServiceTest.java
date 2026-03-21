@@ -112,15 +112,31 @@ class LocalStorageServiceTest {
     @DisplayName("上传文件失败 - IO异常")
     void shouldThrowExceptionOnIOException() throws Exception {
         // Given
-        String path = "invalid/file.txt";
-        InputStream inputStream = new ByteArrayInputStream("test".getBytes());
+        String path = "test/file.txt";
+        InputStream inputStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("mock io failure");
+            }
+        };
 
-        when(fileProperties.getUploadPath()).thenReturn("/invalid/path");
+        when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
 
         // When & Then
         assertThatThrownBy(() -> localStorageService.upload(inputStream, path, "text/plain", 4))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("文件上传失败");
+    }
+
+    @Test
+    @DisplayName("上传文件失败 - 路径穿越被拒绝")
+    void shouldRejectPathTraversalOnUpload() {
+        InputStream inputStream = new ByteArrayInputStream("evil".getBytes());
+        when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
+
+        assertThatThrownBy(() -> localStorageService.upload(inputStream, "../evil.txt", "text/plain", 4))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("非法的文件路径");
     }
 
     @Test
@@ -158,6 +174,16 @@ class LocalStorageServiceTest {
         assertThatThrownBy(() -> localStorageService.download(path))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("文件不存在");
+    }
+
+    @Test
+    @DisplayName("下载文件失败 - 路径穿越被拒绝")
+    void shouldRejectPathTraversalOnDownload() {
+        when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
+
+        assertThatThrownBy(() -> localStorageService.download("../../etc/passwd"))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("非法的文件路径");
     }
 
     @Test

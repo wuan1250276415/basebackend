@@ -1,5 +1,6 @@
 package com.basebackend.ticket.service.impl;
 
+import com.basebackend.api.model.scheduler.ProcessInstanceFeignDTO;
 import com.basebackend.api.model.scheduler.ProcessDefinitionStartRequest;
 import com.basebackend.api.model.scheduler.TaskActionRequest;
 import com.basebackend.api.model.scheduler.TaskFeignDTO;
@@ -12,11 +13,13 @@ import com.basebackend.ticket.mapper.TicketMapper;
 import com.basebackend.ticket.service.TicketWorkflowService;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.basebackend.service.client.scheduler.ProcessDefinitionServiceClient;
+import com.basebackend.service.client.scheduler.ProcessInstanceServiceClient;
 import com.basebackend.service.client.scheduler.TaskServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +38,7 @@ public class TicketWorkflowServiceImpl implements TicketWorkflowService {
     private static final String PROCESS_KEY = "ticket-approval";
 
     private final ProcessDefinitionServiceClient processDefinitionClient;
+    private final ProcessInstanceServiceClient processInstanceServiceClient;
     private final TaskServiceClient taskServiceClient;
     private final TicketMapper ticketMapper;
 
@@ -45,6 +49,22 @@ public class TicketWorkflowServiceImpl implements TicketWorkflowService {
         if (ticket == null) {
             throw new RuntimeException("工单不存在: " + ticketId);
         }
+        if (StringUtils.hasText(ticket.getProcessInstanceId())) {
+            if (TicketStatus.PENDING_APPROVAL.name().equals(ticket.getStatus())) {
+                log.info("复用已存在的审批流程: ticketId={}, processInstanceId={}",
+                        ticketId, ticket.getProcessInstanceId());
+                return ticket.getProcessInstanceId();
+            }
+            throw new IllegalStateException("工单当前状态不允许重复发起审批: " + ticket.getStatus());
+        }
+
+        String recoveredProcessInstanceId = findExistingRemoteProcessInstanceId(ticket);
+        if (StringUtils.hasText(recoveredProcessInstanceId)) {
+            log.warn("检测到远端已存在审批流程，回填本地状态: ticketId={}, processInstanceId={}",
+                    ticketId, recoveredProcessInstanceId);
+            return bindRecoveredProcessInstance(ticketId, recoveredProcessInstanceId);
+        }
+        ensureApprovalCanStart(ticket);
 
         log.info("启动审批流程: ticketId={}, ticketNo={}, approver1={}, approver2={}",
                 ticketId, ticket.getTicketNo(), approver1, approver2);
@@ -77,11 +97,16 @@ public class TicketWorkflowServiceImpl implements TicketWorkflowService {
         String processInstanceId = result.getData();
         log.info("审批流程已启动: ticketId={}, processInstanceId={}", ticketId, processInstanceId);
 
-        // 更新工单的流程实例ID和状态
-        ticketMapper.update(null, new LambdaUpdateWrapper<Ticket>()
-                .eq(Ticket::getId, ticketId)
-                .set(Ticket::getProcessInstanceId, processInstanceId)
-                .set(Ticket::getStatus, TicketStatus.PENDING_APPROVAL.name()));
+        if (bindProcessInstance(ticketId, processInstanceId) == 0) {
+            Ticket current = ticketMapper.selectById(ticketId);
+            cleanupDuplicateProcessInstance(processInstanceId, ticketId);
+            if (current != null && StringUtils.hasText(current.getProcessInstanceId())) {
+                log.warn("审批流程绑定竞争失败，返回已存在流程实例: ticketId={}, processInstanceId={}",
+                        ticketId, current.getProcessInstanceId());
+                return current.getProcessInstanceId();
+            }
+            throw new IllegalStateException("工单审批状态已变化，请刷新后重试");
+        }
 
         return processInstanceId;
     }
@@ -125,5 +150,67 @@ public class TicketWorkflowServiceImpl implements TicketWorkflowService {
             return Collections.emptyList();
         }
         return result.getData();
+    }
+
+    private void ensureApprovalCanStart(Ticket ticket) {
+        String status = ticket.getStatus();
+        if (!TicketStatus.OPEN.name().equals(status) && !TicketStatus.IN_PROGRESS.name().equals(status)) {
+            throw new IllegalStateException("工单当前状态不允许发起审批: " + status);
+        }
+    }
+
+    private int bindProcessInstance(Long ticketId, String processInstanceId) {
+        return ticketMapper.update(null, new LambdaUpdateWrapper<Ticket>()
+                .eq(Ticket::getId, ticketId)
+                .isNull(Ticket::getProcessInstanceId)
+                .in(Ticket::getStatus,
+                        List.of(
+                                TicketStatus.OPEN.name(),
+                                TicketStatus.IN_PROGRESS.name(),
+                                TicketStatus.PENDING_APPROVAL.name()
+                        ))
+                .set(Ticket::getProcessInstanceId, processInstanceId)
+                .set(Ticket::getStatus, TicketStatus.PENDING_APPROVAL.name()));
+    }
+
+    private String findExistingRemoteProcessInstanceId(Ticket ticket) {
+        Result<List<ProcessInstanceFeignDTO>> result = processInstanceServiceClient.getByBusinessKey(
+                buildBusinessKey(ticket.getId()),
+                PROCESS_KEY,
+                ticket.getTenantId() != null ? String.valueOf(ticket.getTenantId()) : null
+        );
+        if (result == null || result.getData() == null || result.getData().isEmpty()) {
+            return null;
+        }
+        return result.getData().stream()
+                .map(ProcessInstanceFeignDTO::id)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String bindRecoveredProcessInstance(Long ticketId, String processInstanceId) {
+        if (bindProcessInstance(ticketId, processInstanceId) > 0) {
+            return processInstanceId;
+        }
+        Ticket current = ticketMapper.selectById(ticketId);
+        if (current != null && StringUtils.hasText(current.getProcessInstanceId())) {
+            return current.getProcessInstanceId();
+        }
+        throw new IllegalStateException("工单审批流程恢复失败，请稍后重试");
+    }
+
+    private void cleanupDuplicateProcessInstance(String processInstanceId, Long ticketId) {
+        try {
+            processInstanceServiceClient.delete(processInstanceId, "duplicate approval start for ticket " + ticketId);
+            log.warn("已清理竞争失败产生的重复流程实例: ticketId={}, processInstanceId={}",
+                    ticketId, processInstanceId);
+        } catch (Exception e) {
+            log.error("清理重复流程实例失败: ticketId={}, processInstanceId={}", ticketId, processInstanceId, e);
+        }
+    }
+
+    private String buildBusinessKey(Long ticketId) {
+        return "TICKET-" + ticketId;
     }
 }

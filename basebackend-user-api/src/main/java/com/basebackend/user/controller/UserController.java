@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.user.dto.UserCreateDTO;
 import com.basebackend.user.dto.UserDTO;
 import com.basebackend.user.dto.UserQueryDTO;
+import com.basebackend.user.dto.ResetPasswordRequest;
 import com.basebackend.user.service.UserService;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
@@ -39,6 +40,7 @@ public class UserController {
     @GetMapping
     @Operation(summary = "分页查询用户列表", description = "分页查询用户列表")
     @OperationLog(operation="分页查询用户列表", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:user:list")
     public Result<Page<UserDTO>> page(
             @Parameter(description = "当前页", example = "1") @RequestParam(defaultValue = "1") int current,
             @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int size,
@@ -59,6 +61,7 @@ public class UserController {
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询用户", description = "根据ID查询用户详情")
     @OperationLog(operation="根据ID查询用户", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:user:view")
     public Result<UserDTO> getById(@Parameter(description = "用户ID") @PathVariable Long id) {
         log.info("根据ID查询用户: {}", id);
         try {
@@ -76,6 +79,7 @@ public class UserController {
     @PostMapping
     @Operation(summary = "创建用户", description = "创建新用户")
     @OperationLog(operation="创建用户", businessType = BusinessType.INSERT)
+    @RequiresPermission("system:user:create")
     public Result<String> create(@Validated @RequestBody UserCreateDTO userCreateDTO) {
         log.info("创建用户: {}", userCreateDTO.username());
         try {
@@ -93,6 +97,7 @@ public class UserController {
     @PutMapping("/{id}")
     @Operation(summary = "更新用户", description = "更新用户信息")
     @OperationLog(operation="更新用户", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:user:update")
     public Result<String> update(
             @Parameter(description = "用户ID") @PathVariable Long id,
             @Validated @RequestBody UserDTO userDTO) {
@@ -119,6 +124,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除用户", description = "删除用户")
     @OperationLog(operation="删除用户", businessType = BusinessType.DELETE)
+    @RequiresPermission("system:user:delete")
     public Result<String> delete(@Parameter(description = "用户ID") @PathVariable Long id) {
         log.info("删除用户: {}", id);
         try {
@@ -136,6 +142,7 @@ public class UserController {
     @DeleteMapping("/batch")
     @Operation(summary = "批量删除用户", description = "批量删除用户")
     @OperationLog(operation="批量删除用户", businessType = BusinessType.DELETE)
+    @RequiresPermission("system:user:delete")
     public Result<String> deleteBatch(@RequestBody List<Long> ids) {
         log.info("批量删除用户: {}", ids);
         try {
@@ -154,13 +161,14 @@ public class UserController {
     @PutMapping("/{id}/reset-password")
     @Operation(summary = "重置密码", description = "重置用户密码（需要管理员权限）")
     @OperationLog(operation="重置密码", businessType = BusinessType.UPDATE)
-    @RequiresPermission("system:user:resetPassword")
+    @RequiresPermission(values = {"system:user:resetPassword", "system:user:update"},
+            logical = RequiresPermission.Logical.OR)
     public Result<String> resetPassword(
             @Parameter(description = "用户ID") @PathVariable Long id,
-            @Parameter(description = "新密码") @RequestParam String newPassword) {
+            @Validated @RequestBody ResetPasswordRequest request) {
         log.info("重置用户密码: {}", id);
         try {
-            userService.resetPassword(id, newPassword);
+            userService.resetPassword(id, request.newPassword());
             return Result.success("密码重置成功");
         } catch (Exception e) {
             log.error("重置密码失败: {}", e.getMessage());
@@ -174,6 +182,7 @@ public class UserController {
     @PutMapping("/{id}/roles")
     @Operation(summary = "分配角色", description = "为用户分配角色")
     @OperationLog(operation="分配角色", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:user:update")
     public Result<String> assignRoles(
             @Parameter(description = "用户ID") @PathVariable Long id,
             @RequestBody List<Long> roleIds) {
@@ -193,6 +202,7 @@ public class UserController {
     @PutMapping("/{id}/status")
     @Operation(summary = "修改用户状态", description = "启用或禁用用户")
     @OperationLog(operation="修改用户状态", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:user:update")
     public Result<String> changeStatus(
             @Parameter(description = "用户ID") @PathVariable Long id,
             @Parameter(description = "状态") @RequestParam Integer status) {
@@ -212,6 +222,7 @@ public class UserController {
     @GetMapping("/export")
     @Operation(summary = "导出用户", description = "导出用户数据")
     @OperationLog(operation="导出用户", businessType = BusinessType.EXPORT)
+    @RequiresPermission("system:user:list")
     public Result<List<UserDTO>> export(UserQueryDTO queryDTO) {
         log.info("导出用户数据");
         try {
@@ -229,6 +240,7 @@ public class UserController {
     @GetMapping("/{id}/roles")
     @Operation(summary = "获取用户角色", description = "获取用户角色列表")
     @OperationLog(operation="获取用户角色", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:user:view")
     public Result<List<Long>> getUserRoles(@Parameter(description = "用户ID") @PathVariable Long id) {
         log.info("获取用户角色: {}", id);
         try {
@@ -246,6 +258,7 @@ public class UserController {
     @GetMapping("/check-username")
     @Operation(summary = "检查用户名唯一性", description = "检查用户名是否唯一")
     @OperationLog(operation="检查用户名唯一性", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:user:list")
     public Result<Boolean> checkUsernameUnique(
             @Parameter(description = "用户名") @RequestParam String username,
             @Parameter(description = "用户ID") @RequestParam(required = false) Long userId) {

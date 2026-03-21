@@ -3,6 +3,7 @@ package com.basebackend.mall.pay.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.idempotent.store.IdempotentStore;
 import com.basebackend.common.util.JsonUtils;
+import com.basebackend.common.util.SnowflakeIdGenerator;
 import com.basebackend.mall.pay.dto.PaymentCreateRequest;
 import com.basebackend.mall.pay.dto.PaymentCreateResponse;
 import com.basebackend.mall.pay.entity.MallPayment;
@@ -25,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,8 +37,7 @@ import java.util.UUID;
 @Service
 public class PayServiceImpl implements PayService {
 
-    private static final DateTimeFormatter PAY_NO_TIME_FORMAT =
-            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final String PAY_NO_PREFIX = "PAY";
     private static final String BUSINESS_IDEMPOTENT_KEY_PREFIX = "mall:pay:biz:idempotent:";
 
     private final MallPaymentMapper mallPaymentMapper;
@@ -64,7 +63,7 @@ public class PayServiceImpl implements PayService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PaymentCreateResponse createPayment(PaymentCreateRequest request) {
-        String payNo = "PAY" + LocalDateTime.now().format(PAY_NO_TIME_FORMAT) + request.orderId();
+        String payNo = generatePayNo();
         MallPayment mallPayment = new MallPayment();
         mallPayment.setTenantId(0L);
         mallPayment.setPayNo(payNo);
@@ -106,7 +105,7 @@ public class PayServiceImpl implements PayService {
                 return;
             }
 
-            String payNo = "PAY" + LocalDateTime.now().format(PAY_NO_TIME_FORMAT) + message.orderId();
+            String payNo = generatePayNo();
 
             MallPayment mallPayment = new MallPayment();
             mallPayment.setTenantId(0L);
@@ -251,5 +250,9 @@ public class PayServiceImpl implements PayService {
             return null;
         }
         return businessKey;
+    }
+
+    private String generatePayNo() {
+        return PAY_NO_PREFIX + SnowflakeIdGenerator.nextIdStr();
     }
 }

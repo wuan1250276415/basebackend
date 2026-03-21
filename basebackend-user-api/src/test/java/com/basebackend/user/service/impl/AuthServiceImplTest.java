@@ -275,4 +275,12 @@ class AuthServiceImplTest {
         assertEquals("用户未登录", ex.getMessage());
         assertEquals(401, ex.getCode());
     }
+
+    @Test
+    @DisplayName("微信单点登录已禁用")
+    void testWechatLogin_Disabled() {
+        BusinessException ex = assertThrows(BusinessException.class, () -> authService.wechatLogin("13800138000"));
+        assertEquals("微信单点登录已禁用，待接入可信第三方认证后开放", ex.getMessage());
+        assertEquals(403, ex.getCode());
+    }
 }

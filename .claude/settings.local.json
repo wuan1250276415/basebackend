@@ -20,7 +20,21 @@
       "Bash(echo OpenSpec not initialized or no changes:*)",
       "Bash(/Users/wuan/.claude/bin/codeagent-wrapper:*)",
       "Bash(grep:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(jar tf:*)",
+      "Bash(find ~/.m2/repository/io/github/resilience4j -name *.jar)",
+      "Bash(jar xf:*)",
+      "Bash(unzip -p ~/.m2/repository/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/5.0.1/spring-cloud-circuitbreaker-resilience4j-5.0.1.jar META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports)",
+      "Bash(unzip -p ~/.m2/repository/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/5.0.1/spring-cloud-circuitbreaker-resilience4j-5.0.1.jar \"org/springframework/cloud/circuitbreaker/resilience4j/ReactiveResilience4JAutoConfiguration.class\")",
+      "Bash(javap -c /dev/stdin)",
+      "Bash(javap -verbose -classpath ~/.m2/repository/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/5.0.1/spring-cloud-circuitbreaker-resilience4j-5.0.1.jar org.springframework.cloud.circuitbreaker.resilience4j.ReactiveResilience4JAutoConfiguration)",
+      "Bash(unzip:*)",
+      "Bash(javap -verbose -classpath ~/.m2/repository/org/springframework/cloud/spring-cloud-gateway-server-webflux/5.0.1/spring-cloud-gateway-server-webflux-5.0.1.jar org.springframework.cloud.gateway.config.GatewayResilience4JCircuitBreakerAutoConfiguration)",
+      "Bash(javap -p -classpath ~/.m2/repository/org/springframework/cloud/spring-cloud-gateway-server-webflux/5.0.1/spring-cloud-gateway-server-webflux-5.0.1.jar org.springframework.cloud.gateway.filter.factory.SpringCloudCircuitBreakerResilience4JFilterFactory)",
+      "Bash(javap -p -classpath ~/.m2/repository/org/springframework/cloud/spring-cloud-gateway-server-webflux/5.0.1/spring-cloud-gateway-server-webflux-5.0.1.jar org.springframework.cloud.gateway.filter.factory.SpringCloudCircuitBreakerFilterFactory)",
+      "Bash(javap -verbose -classpath ~/.m2/repository/org/springframework/cloud/spring-cloud-gateway-server-webflux/5.0.1/spring-cloud-gateway-server-webflux-5.0.1.jar org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator)",
+      "Bash(mvn dependency:tree -Dincludes=com.alibaba.cloud:*)",
+      "Bash(javap -verbose -classpath ~/.m2/repository/com/alibaba/cloud/spring-cloud-circuitbreaker-sentinel/2025.1.0.0/spring-cloud-circuitbreaker-sentinel-2025.1.0.0.jar com.alibaba.cloud.circuitbreaker.sentinel.ReactiveSentinelCircuitBreakerAutoConfiguration)"
     ],
     "deny": [],
     "ask": []

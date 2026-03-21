@@ -19,10 +19,13 @@ import java.util.List;
 import java.util.Map;
 import lombok.Generated;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.validation.annotation.Validated;
 
-@RefreshScope
+/*
+ * Native/AOT 构建下不要为 ConfigurationProperties 使用 RefreshScope。
+ * Spring AOT 无法为 RefreshScope 生成 bean 定义代码，Gateway native build
+ * 会在 process-aot 阶段失败。动态配置刷新由 Nacos 监听器和属性重新绑定处理。
+ */
 @ConfigurationProperties(prefix="nacos")
 @Validated
 public class NacosConfigProperties {

@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
@@ -45,8 +46,10 @@ public class ServiceClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ServiceClientRequestInterceptor serviceClientRequestInterceptor() {
-        return new ServiceClientRequestInterceptor();
+    public ServiceClientRequestInterceptor serviceClientRequestInterceptor(
+            @Value("${jwt.secret:}") String internalRequestSecret,
+            @Value("${spring.application.name:unknown-service}") String serviceName) {
+        return new ServiceClientRequestInterceptor(internalRequestSecret, serviceName);
     }
 
     // ==================== User Service Clients ====================
@@ -117,7 +120,7 @@ public class ServiceClientAutoConfiguration {
                                                 ServiceClientRequestInterceptor interceptor) {
         // 文件服务使用更长的超时时间（连接30秒，读取5分钟）
         return createClient(loadBalancedRestClientBuilder, interceptor,
-                "basebackend-system-api", FileServiceClient.class, Duration.ofMinutes(5));
+                "basebackend-file-service", FileServiceClient.class, Duration.ofMinutes(5));
     }
 
     // ==================== Scheduler Service Clients ====================
@@ -162,6 +165,16 @@ public class ServiceClientAutoConfiguration {
                                                     ServiceClientRequestInterceptor interceptor) {
         return createClient(loadBalancedRestClientBuilder, interceptor,
                 "basebackend-ticket-api", TicketServiceClient.class, Duration.ofSeconds(10));
+    }
+
+    // ==================== Mall Service Clients ====================
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProductServiceClient productServiceClient(RestClient.Builder loadBalancedRestClientBuilder,
+                                                     ServiceClientRequestInterceptor interceptor) {
+        return createClient(loadBalancedRestClientBuilder, interceptor,
+                "basebackend-mall-product-api", ProductServiceClient.class, Duration.ofSeconds(10));
     }
 
     // ==================== Factory Method ====================

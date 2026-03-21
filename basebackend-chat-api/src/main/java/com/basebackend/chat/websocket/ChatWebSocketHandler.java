@@ -63,7 +63,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         // 注册会话
-        sessionManager.register(session, userId);
+        sessionManager.register(session, userId, tenantId);
         lastHeartbeatMap.put(session.getId(), Instant.now().toEpochMilli());
 
         // 在线状态
@@ -112,7 +112,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         lastHeartbeatMap.remove(session.getId());
 
         if (userId != null) {
-            boolean hasOtherSessions = sessionManager.isOnline(userId);
+            boolean hasOtherSessions = sessionManager.isOnline(tenantId, userId);
             onlineStatusService.userOffline(
                     Long.parseLong(tenantId),
                     Long.parseLong(userId),
@@ -222,7 +222,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                             .ne(ChatConversationMember::getUserId, Long.parseLong(userId))
             );
             for (ChatConversationMember member : members) {
-                sessionManager.sendToUser(String.valueOf(member.getUserId()), readPayload);
+                sessionManager.sendToUser(tenantId, String.valueOf(member.getUserId()), readPayload);
             }
 
             // ACK 给自己
@@ -257,7 +257,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                         .ne(ChatConversationMember::getUserId, Long.parseLong(userId))
         );
         for (ChatConversationMember member : members) {
-            sessionManager.sendToUser(String.valueOf(member.getUserId()), payload);
+            sessionManager.sendToUser(tenantId, String.valueOf(member.getUserId()), payload);
         }
     }
 

@@ -460,7 +460,7 @@ public class ChatGroupServiceImpl implements ChatGroupService {
             payload.putAll(data);
             String json = JsonUtils.toJsonString(payload);
             for (ChatGroupMember member : members) {
-                sessionManager.sendToUser(String.valueOf(member.getUserId()), json);
+                sessionManager.sendToUser(String.valueOf(tenantId), String.valueOf(member.getUserId()), json);
             }
         } catch (Exception e) {
             log.warn("群事件推送失败, groupId={}, event={}: {}", groupId, event, e.getMessage());

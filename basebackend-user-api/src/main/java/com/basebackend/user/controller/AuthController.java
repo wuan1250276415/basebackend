@@ -4,6 +4,7 @@ import com.basebackend.common.context.UserContext;
 import com.basebackend.common.exception.BusinessException;
 import com.basebackend.api.model.user.LoginRequest;
 import com.basebackend.api.model.user.LoginResponse;
+import com.basebackend.api.model.user.RefreshTokenRequest;
 import com.basebackend.user.dto.PasswordChangeDTO;
 import com.basebackend.user.service.AuthService;
 import com.basebackend.common.model.Result;
@@ -81,10 +82,10 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "刷新Token", description = "刷新访问令牌")
     @OperationLog(operation="刷新Token", businessType = BusinessType.SELECT)
-    public Result<LoginResponse> refreshToken(@RequestParam String refreshToken) {
+    public Result<LoginResponse> refreshToken(@Validated @RequestBody RefreshTokenRequest request) {
         log.info("刷新Token请求");
         try {
-            LoginResponse response = authService.refreshToken(refreshToken);
+            LoginResponse response = authService.refreshToken(request.refreshToken());
             return Result.success("Token刷新成功", response);
         } catch (BusinessException e) {
             log.warn("刷新Token业务异常：{}", e.getMessage());

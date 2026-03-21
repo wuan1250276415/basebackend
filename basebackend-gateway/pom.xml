@@ -122,6 +122,12 @@
             <artifactId>sentinel-datasource-nacos</artifactId>
         </dependency>
 
+        <!-- Circuit Breaker (Resilience4j) - provides CircuitBreaker GatewayFilterFactory -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+        </dependency>
+
         <!-- Spring Retry -->
         <dependency>
             <groupId>org.springframework.retry</groupId>
@@ -291,6 +297,57 @@
                                 <buildArg>--initialize-at-build-time=org.slf4j.LoggerFactory,org.slf4j.impl.StaticLoggerBinder,org.slf4j.MDC</buildArg>
                                 <buildArg>--initialize-at-build-time=io.netty.util.internal.logging.Slf4JLoggerFactory,io.netty.util.internal.logging.LocationAwareSlf4JLogger,io.netty.util.internal.logging.InternalLoggerFactory</buildArg>
                             </buildArgs>
+                            <!--
+                                多个三方依赖仍携带 legacy resource-config.json。
+                                GraalVM 25 在解析该文件时会在 ResourcesFeature 中触发 NPE。
+                                这里仅排除 resource-config，保留 reflect/proxy/jni 等其它 native metadata。
+                            -->
+                            <excludeConfig>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/com/alibaba/cloud/spring-cloud-starter-alibaba-sentinel/2025.1.0.0/spring-cloud-starter-alibaba-sentinel-2025.1.0.0.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/com/alibaba/nacos/nacos-client/3.1.1/nacos-client-3.1.1.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/com.alibaba.nacos/nacos-client/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/com/alibaba/nacos/nacos-client/3.1.1/nacos-client-3.1.1.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.grpc.netty.shaded.io.netty/netty-transport-classes-epoll/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-linux-x86_64.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-linux-aarch_64.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-osx-x86_64.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-osx-aarch_64.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-windows-x86_64.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/io/netty/netty-transport-classes-epoll/4.2.10.Final/netty-transport-classes-epoll-4.2.10.Final.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/io.netty/netty-transport-classes-epoll/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/org/apache/logging/log4j/log4j-api/2.25.3/log4j-api-2.25.3.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/org.apache.logging.log4j/log4j-api/resource-config.json</resourcePattern>
+                                </entry>
+                                <entry>
+                                    <jarPath>/root/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/11.0.18/tomcat-embed-el-11.0.18.jar</jarPath>
+                                    <resourcePattern>META-INF/native-image/org.apache.tomcat.embed/tomcat-embed-el/resource-config.json</resourcePattern>
+                                </entry>
+                            </excludeConfig>
                         </configuration>
                     </plugin>
                 </plugins>

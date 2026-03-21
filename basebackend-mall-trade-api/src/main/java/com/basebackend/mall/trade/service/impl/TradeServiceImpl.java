@@ -1,6 +1,10 @@
 package com.basebackend.mall.trade.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.basebackend.api.model.product.ProductDetailDTO;
+import com.basebackend.common.context.UserContextHolder;
+import com.basebackend.common.enums.CommonErrorCode;
+import com.basebackend.common.exception.BusinessException;
 import com.basebackend.mall.trade.dto.OrderSubmitRequest;
 import com.basebackend.mall.trade.dto.OrderSubmitResponse;
 import com.basebackend.mall.trade.entity.MallOrder;
@@ -19,8 +23,10 @@ import com.basebackend.mall.trade.mapper.MallOrderItemMapper;
 import com.basebackend.mall.trade.mapper.MallOrderMapper;
 import com.basebackend.mall.trade.service.TradeService;
 import com.basebackend.common.idempotent.store.IdempotentStore;
+import com.basebackend.common.model.Result;
 import com.basebackend.messaging.model.Message;
 import com.basebackend.messaging.producer.MessageProducer;
+import com.basebackend.service.client.ProductServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,11 +35,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
@@ -45,6 +51,7 @@ public class TradeServiceImpl implements TradeService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TradeServiceImpl.class);
     private static final String BUSINESS_IDEMPOTENT_KEY_PREFIX = "mall:trade:biz:idempotent:";
+    private static final int ORDER_NO_RANDOM_SUFFIX_LENGTH = 8;
 
     private static final DateTimeFormatter ORDER_NO_TIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -53,6 +60,7 @@ public class TradeServiceImpl implements TradeService {
     private final MallOrderItemMapper mallOrderItemMapper;
     private final MessageProducer messageProducer;
     private final IdempotentStore idempotentStore;
+    private final ProductServiceClient productServiceClient;
 
     @Value("${mall.business-idempotent.ttl-seconds:86400}")
     private long businessIdempotentTtlSeconds;
@@ -60,11 +68,13 @@ public class TradeServiceImpl implements TradeService {
     public TradeServiceImpl(MallOrderMapper mallOrderMapper,
                             MallOrderItemMapper mallOrderItemMapper,
                             MessageProducer messageProducer,
-                            IdempotentStore idempotentStore) {
+                            IdempotentStore idempotentStore,
+                            ProductServiceClient productServiceClient) {
         this.mallOrderMapper = mallOrderMapper;
         this.mallOrderItemMapper = mallOrderItemMapper;
         this.messageProducer = messageProducer;
         this.idempotentStore = idempotentStore;
+        this.productServiceClient = productServiceClient;
     }
 
     @Override
@@ -75,37 +85,38 @@ public class TradeServiceImpl implements TradeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderSubmitResponse submitOrder(OrderSubmitRequest request) {
-        String orderNo = "TRD" + LocalDateTime.now().format(ORDER_NO_TIME_FORMAT) + request.userId();
+        Long currentUserId = requireCurrentUserId();
+        String orderNo = generateOrderNo(currentUserId);
+        List<ResolvedOrderItem> resolvedItems = request.items().stream()
+                .map(this::resolveOrderItem)
+                .toList();
+        BigDecimal totalAmount = resolvedItems.stream()
+                .map(ResolvedOrderItem::lineAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         MallOrder mallOrder = new MallOrder();
         mallOrder.setTenantId(0L);
         mallOrder.setOrderNo(orderNo);
-        mallOrder.setUserId(request.userId());
+        mallOrder.setUserId(currentUserId);
         mallOrder.setOrderStatus(MallOrderStatus.CREATED.getCode());
-        mallOrder.setTotalAmount(request.payAmount());
-        mallOrder.setPayAmount(request.payAmount());
+        mallOrder.setTotalAmount(totalAmount);
+        mallOrder.setPayAmount(totalAmount);
         mallOrder.setPayStatus(MallOrderPayStatus.UNPAID.getCode());
         mallOrder.setRemark("");
         mallOrder.setSubmitTime(LocalDateTime.now());
         mallOrderMapper.insert(mallOrder);
 
-        int totalQuantity = request.items().stream()
-                .mapToInt(OrderSubmitRequest.OrderItem::quantity)
-                .sum();
-        BigDecimal unitPrice = request.payAmount()
-                .divide(BigDecimal.valueOf(Math.max(1, totalQuantity)), 2, RoundingMode.HALF_UP);
-
         List<OrderCreatedMessage.OrderItem> orderItems = new ArrayList<>();
-        for (OrderSubmitRequest.OrderItem item : request.items()) {
+        for (ResolvedOrderItem item : resolvedItems) {
             MallOrderItem mallOrderItem = new MallOrderItem();
             mallOrderItem.setTenantId(0L);
             mallOrderItem.setOrderId(mallOrder.getId());
             mallOrderItem.setOrderNo(orderNo);
             mallOrderItem.setSkuId(item.skuId());
-            mallOrderItem.setSkuName("SKU-" + item.skuId());
-            mallOrderItem.setUnitPrice(unitPrice);
+            mallOrderItem.setSkuName(item.skuName());
+            mallOrderItem.setUnitPrice(item.unitPrice());
             mallOrderItem.setQuantity(item.quantity());
-            mallOrderItem.setLineAmount(unitPrice.multiply(BigDecimal.valueOf(item.quantity())));
+            mallOrderItem.setLineAmount(item.lineAmount());
             mallOrderItemMapper.insert(mallOrderItem);
 
             orderItems.add(new OrderCreatedMessage.OrderItem(item.skuId(), item.quantity()));
@@ -114,8 +125,8 @@ public class TradeServiceImpl implements TradeService {
         OrderCreatedMessage payload = new OrderCreatedMessage(
                 mallOrder.getId(),
                 orderNo,
-                request.userId(),
-                request.payAmount(),
+                currentUserId,
+                totalAmount,
                 MallOrderStatus.CREATED,
                 MallOrderPayStatus.UNPAID,
                 orderItems
@@ -125,7 +136,7 @@ public class TradeServiceImpl implements TradeService {
         return new OrderSubmitResponse(
                 orderNo,
                 MallOrderStatus.fromCode(mallOrder.getOrderStatus()),
-                request.payAmount()
+                totalAmount
         );
     }
 
@@ -286,5 +297,67 @@ public class TradeServiceImpl implements TradeService {
             return null;
         }
         return businessKey;
+    }
+
+    private Long requireCurrentUserId() {
+        Long currentUserId = UserContextHolder.getUserId();
+        if (currentUserId == null) {
+            throw BusinessException.unauthorized();
+        }
+        return currentUserId;
+    }
+
+    private ResolvedOrderItem resolveOrderItem(OrderSubmitRequest.OrderItem item) {
+        Result<ProductDetailDTO> result = productServiceClient.getProductDetail(item.skuId());
+        if (result == null) {
+            throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR,
+                    "商品服务未返回核价结果，skuId=" + item.skuId());
+        }
+        if (result.isFailed()) {
+            throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR,
+                    "商品服务核价失败，skuId=" + item.skuId() + "，原因=" + result.getMessage());
+        }
+
+        ProductDetailDTO product = result.getData();
+        if (product == null || product.salePrice() == null) {
+            throw BusinessException.notFound("商品不存在或缺少售价信息，skuId=" + item.skuId());
+        }
+        if (!Boolean.TRUE.equals(product.onShelf())) {
+            throw BusinessException.conflict("商品已下架，skuId=" + item.skuId());
+        }
+
+        Integer availableStock = product.availableStock();
+        if (availableStock == null || availableStock < item.quantity()) {
+            throw BusinessException.conflict("商品库存不足，skuId=" + item.skuId());
+        }
+        if (product.salePrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR,
+                    "商品售价非法，skuId=" + item.skuId());
+        }
+
+        BigDecimal lineAmount = product.salePrice().multiply(BigDecimal.valueOf(item.quantity()));
+        return new ResolvedOrderItem(
+                item.skuId(),
+                product.skuName(),
+                product.salePrice(),
+                item.quantity(),
+                lineAmount
+        );
+    }
+
+    private String generateOrderNo(Long currentUserId) {
+        String randomSuffix = UUID.randomUUID().toString()
+                .replace("-", "")
+                .substring(0, ORDER_NO_RANDOM_SUFFIX_LENGTH)
+                .toUpperCase(Locale.ROOT);
+        return "TRD" + LocalDateTime.now().format(ORDER_NO_TIME_FORMAT) + currentUserId + randomSuffix;
+    }
+
+    private record ResolvedOrderItem(
+            Long skuId,
+            String skuName,
+            BigDecimal unitPrice,
+            Integer quantity,
+            BigDecimal lineAmount) {
     }
 }

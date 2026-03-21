@@ -10,24 +10,32 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 请求签名验证过滤器
@@ -37,7 +45,7 @@ import java.util.List;
  *
  * <h3>签名规则：</h3>
  * <ol>
- * <li>按照固定顺序拼接：appId + timestamp + nonce + method + path</li>
+ * <li>按照固定顺序拼接：appId + timestamp + nonce + method + path + canonical query + SHA-256(body)</li>
  * <li>使用 HMAC-SHA256 算法计算签名</li>
  * <li>将签名进行 Base64 编码</li>
  * </ol>
@@ -108,7 +116,6 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 如果签名验证未启用，直接放行
         if (!signatureEnabled) {
             return chain.filter(exchange);
         }
@@ -116,25 +123,21 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().toString();
 
-        // 检查是否需要签名验证
         if (!requiresSignature(path)) {
             return chain.filter(exchange);
         }
 
-        // 获取签名相关头信息
         String appId = request.getHeaders().getFirst(HEADER_APP_ID);
         String timestamp = request.getHeaders().getFirst(HEADER_TIMESTAMP);
         String nonce = request.getHeaders().getFirst(HEADER_NONCE);
         String signature = request.getHeaders().getFirst(HEADER_SIGNATURE);
 
-        // 验证必要参数
         if (!StringUtils.hasText(appId) || !StringUtils.hasText(timestamp) ||
                 !StringUtils.hasText(nonce) || !StringUtils.hasText(signature)) {
             log.warn("签名验证失败 - 缺少必要参数: path={}", path);
             return unauthorized(exchange.getResponse(), "签名验证失败，缺少必要参数");
         }
 
-        // 验证时间戳
         long requestTime;
         try {
             requestTime = Long.parseLong(timestamp);
@@ -149,31 +152,34 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange.getResponse(), "签名验证失败，请求已过期");
         }
 
-        // 验证 nonce 防重放
+        String canonicalQuery = canonicalizeQuery(request);
+        String method = request.getMethod() != null ? request.getMethod().name() : "GET";
         String nonceKey = NONCE_KEY_PREFIX + nonce;
         Duration nonceTtl = Duration.ofMillis(timestampValidity * 2);
-        return reactiveRedisTemplate.opsForValue()
-                .setIfAbsent(nonceKey, "1", nonceTtl)
-                .onErrorResume(throwable -> handleRedisException(exchange.getResponse(), nonceKey, throwable).then(Mono.empty()))
-                .flatMap(setSuccess -> {
-                    if (!Boolean.TRUE.equals(setSuccess)) {
-                        log.warn("签名验证失败 - nonce 已使用: nonce={}", nonce);
-                        return unauthorized(exchange.getResponse(), "签名验证失败，请求已处理");
-                    }
 
-                    // 验证签名
-                    String method = request.getMethod() != null ? request.getMethod().name() : "GET";
-                    String expectedSignature = calculateSignature(appId, timestamp, nonce, method, path);
+        return cacheRequestBody(exchange)
+                .flatMap(cacheResult -> reactiveRedisTemplate.opsForValue()
+                        .setIfAbsent(nonceKey, "1", nonceTtl)
+                        .onErrorResume(throwable -> handleRedisException(cacheResult.exchange().getResponse(), nonceKey, throwable).then(Mono.empty()))
+                        .flatMap(setSuccess -> {
+                            if (!Boolean.TRUE.equals(setSuccess)) {
+                                log.warn("签名验证失败 - nonce 已使用: nonce={}", nonce);
+                                return unauthorized(cacheResult.exchange().getResponse(), "签名验证失败，请求已处理");
+                            }
 
-                    if (!signature.equals(expectedSignature)) {
-                        log.warn("签名验证失败 - 签名不匹配: path={}, appId={}", path, appId);
-                        return reactiveRedisTemplate.delete(nonceKey)
-                                .onErrorResume(throwable -> handleRedisException(exchange.getResponse(), nonceKey, throwable).then(Mono.empty()))
-                                .flatMap(ignore -> unauthorized(exchange.getResponse(), "签名验证失败，签名不正确"));
-                    }
+                            ServerWebExchange cachedExchange = cacheResult.exchange();
+                            String bodyDigest = cacheResult.bodyDigest();
+                            String expectedSignature = calculateSignature(appId, timestamp, nonce, method, path, canonicalQuery, bodyDigest);
 
-                    return chain.filter(exchange);
-                });
+                            if (!signature.equals(expectedSignature)) {
+                                log.warn("签名验证失败 - 签名不匹配: path={}, appId={}", path, appId);
+                                return reactiveRedisTemplate.delete(nonceKey)
+                                        .onErrorResume(throwable -> handleRedisException(cachedExchange.getResponse(), nonceKey, throwable).then(Mono.empty()))
+                                        .flatMap(ignore -> unauthorized(cachedExchange.getResponse(), "签名验证失败，签名不正确"));
+                            }
+
+                            return chain.filter(cachedExchange);
+                        }));
     }
 
     /**
@@ -207,8 +213,8 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
      * 计算请求签名
      */
     private String calculateSignature(String appId, String timestamp, String nonce,
-            String method, String path) {
-        String data = String.join("|", appId, timestamp, nonce, method, path);
+            String method, String path, String canonicalQuery, String bodyDigest) {
+        String data = String.join("|", appId, timestamp, nonce, method, path, canonicalQuery, bodyDigest);
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             SecretKeySpec keySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), ALGORITHM);
@@ -217,6 +223,69 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("签名计算失败", e);
+            return "";
+        }
+    }
+
+    private String canonicalizeQuery(ServerHttpRequest request) {
+        MultiValueMap<String, String> queryParams = request.getQueryParams();
+        if (queryParams == null || queryParams.isEmpty()) {
+            return "";
+        }
+
+        return queryParams.keySet().stream()
+                .sorted()
+                .flatMap(key -> canonicalizeQueryValues(key, queryParams.get(key)))
+                .collect(Collectors.joining("&"));
+    }
+
+    private Stream<String> canonicalizeQueryValues(String key, List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Stream.of(key + "=");
+        }
+        return values.stream()
+                .map(value -> value == null ? "" : value)
+                .sorted()
+                .map(value -> key + "=" + value);
+    }
+
+    private Mono<CachedRequestBody> cacheRequestBody(ServerWebExchange exchange) {
+        ServerHttpRequest request = exchange.getRequest();
+        DataBufferFactory bufferFactory = exchange.getResponse().bufferFactory();
+
+        return DataBufferUtils.join(request.getBody())
+                .defaultIfEmpty(bufferFactory.wrap(new byte[0]))
+                .map(dataBuffer -> {
+                    byte[] bodyBytes = new byte[dataBuffer.readableByteCount()];
+                    dataBuffer.read(bodyBytes);
+                    DataBufferUtils.release(dataBuffer);
+
+                    String bodyDigest = sha256Hex(bodyBytes);
+                    ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(request) {
+                        @Override
+                        public Flux<DataBuffer> getBody() {
+                            return Flux.defer(() -> Mono.just(bufferFactory.wrap(bodyBytes)));
+                        }
+                    };
+
+                    ServerWebExchange decoratedExchange = exchange.mutate()
+                            .request(decoratedRequest)
+                            .build();
+                    return new CachedRequestBody(decoratedExchange, bodyDigest);
+                });
+    }
+
+    private String sha256Hex(byte[] bodyBytes) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(bodyBytes);
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            log.error("请求体摘要计算失败", exception);
             return "";
         }
     }
@@ -248,5 +317,8 @@ public class SignatureVerifyFilter implements GlobalFilter, Ordered {
     public int getOrder() {
         // 在认证过滤器之前执行
         return -150;
+    }
+
+    private record CachedRequestBody(ServerWebExchange exchange, String bodyDigest) {
     }
 }

@@ -1,6 +1,7 @@
 package com.basebackend.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.codec.Base32;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.context.UserContextHolder;
 import com.basebackend.common.exception.BusinessException;
@@ -19,14 +20,19 @@ import com.basebackend.user.mapper.UserDeviceMapper;
 import com.basebackend.user.service.SecurityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +45,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SecurityServiceImpl implements SecurityService {
+
+    private static final Set<String> SUPPORTED_2FA_TYPES = Set.of("totp", "sms", "email");
+    private static final int TOTP_DIGITS = 6;
+    private static final int TOTP_TIME_STEP_SECONDS = 30;
+    private static final int TOTP_ALLOWED_DRIFT_STEPS = 1;
 
     private final UserDeviceMapper deviceMapper;
     private final OperationLogServiceClient operationLogServiceClient;
@@ -177,32 +188,26 @@ public class SecurityServiceImpl implements SecurityService {
         customMetrics.recordBusinessOperation("security", "enable_2fa");
 
         Long currentUserId = UserContextHolder.getUserId();
-
-        // TODO: 验证 verifyCode
+        String normalizedType = normalize2FAType(type);
 
         // 检查是否已存在配置
         LambdaQueryWrapper<User2FA> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User2FA::getUserId, currentUserId);
         User2FA existing = user2FAMapper.selectOne(wrapper);
+        verify2FACode(existing, normalizedType, verifyCode, "启用");
 
         if (existing != null) {
             // 更新现有配置
-            existing.setType(type);
+            existing.setType(normalizedType);
             existing.setEnabled(1);
+            existing.setLastVerifyTime(LocalDateTime.now());
             existing.setUpdateTime(LocalDateTime.now());
             user2FAMapper.updateById(existing);
         } else {
-            // 创建新配置
-            User2FA user2FA = new User2FA();
-            user2FA.setUserId(currentUserId);
-            user2FA.setType(type);
-            user2FA.setEnabled(1);
-            user2FA.setCreateTime(LocalDateTime.now());
-            user2FA.setUpdateTime(LocalDateTime.now());
-            user2FAMapper.insert(user2FA);
+            throw BusinessException.forbidden("当前用户未完成2FA初始化，无法启用");
         }
 
-        log.info("2FA启用成功: userId={}, type={}", currentUserId, type);
+        log.info("2FA启用成功: userId={}, type={}", currentUserId, normalizedType);
     }
 
     @Override
@@ -213,8 +218,6 @@ public class SecurityServiceImpl implements SecurityService {
 
         Long currentUserId = UserContextHolder.getUserId();
 
-        // TODO: 验证 verifyCode
-
         LambdaQueryWrapper<User2FA> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User2FA::getUserId, currentUserId);
         User2FA user2FA = user2FAMapper.selectOne(wrapper);
@@ -223,11 +226,92 @@ public class SecurityServiceImpl implements SecurityService {
             throw new BusinessException("2FA配置不存在");
         }
 
+        verify2FACode(user2FA, user2FA.getType(), verifyCode, "禁用");
         user2FA.setEnabled(0);
+        user2FA.setLastVerifyTime(LocalDateTime.now());
         user2FA.setUpdateTime(LocalDateTime.now());
         user2FAMapper.updateById(user2FA);
 
         log.info("2FA禁用成功: userId={}", currentUserId);
+    }
+
+    private String normalize2FAType(String type) {
+        if (!StringUtils.hasText(type)) {
+            throw BusinessException.paramError("2FA类型不能为空");
+        }
+
+        String normalizedType = type.trim().toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_2FA_TYPES.contains(normalizedType)) {
+            throw BusinessException.paramError("不支持的2FA类型: " + type);
+        }
+        return normalizedType;
+    }
+
+    private void verify2FACode(User2FA user2FA, String type, String verifyCode, String operation) {
+        String normalizedType = normalize2FAType(type);
+        if (!StringUtils.hasText(verifyCode) || !verifyCode.trim().matches("\\d{6}")) {
+            throw BusinessException.paramError("验证码格式错误");
+        }
+
+        if ("totp".equals(normalizedType)) {
+            verifyTotpCode(user2FA, verifyCode.trim(), operation);
+            return;
+        }
+
+        throw BusinessException.forbidden("当前2FA类型尚未接入可信验证码校验，已禁止" + operation + "操作");
+    }
+
+    private void verifyTotpCode(User2FA user2FA, String verifyCode, String operation) {
+        if (user2FA == null || !StringUtils.hasText(user2FA.getSecretKey())) {
+            throw BusinessException.forbidden("当前用户未完成TOTP密钥初始化，无法" + operation + "2FA");
+        }
+        if (!isValidTotpCode(user2FA.getSecretKey(), verifyCode)) {
+            throw BusinessException.forbidden("验证码错误或已过期");
+        }
+    }
+
+    private boolean isValidTotpCode(String secretKey, String verifyCode) {
+        byte[] decodedSecret = decodeTotpSecret(secretKey);
+        long currentCounter = Instant.now().getEpochSecond() / TOTP_TIME_STEP_SECONDS;
+
+        for (long offset = -TOTP_ALLOWED_DRIFT_STEPS; offset <= TOTP_ALLOWED_DRIFT_STEPS; offset++) {
+            if (generateTotp(decodedSecret, currentCounter + offset).equals(verifyCode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private byte[] decodeTotpSecret(String secretKey) {
+        try {
+            return Base32.decode(secretKey.replace(" ", "").replace("-", "").toUpperCase(Locale.ROOT));
+        } catch (Exception e) {
+            log.warn("TOTP密钥解析失败: {}", e.getMessage());
+            throw BusinessException.forbidden("当前用户的TOTP密钥无效，无法校验验证码");
+        }
+    }
+
+    private String generateTotp(byte[] secretKey, long counter) {
+        try {
+            byte[] counterBytes = ByteBuffer.allocate(Long.BYTES).putLong(counter).array();
+            Mac mac = Mac.getInstance("HmacSHA1");
+            mac.init(new SecretKeySpec(secretKey, "HmacSHA1"));
+            byte[] hash = mac.doFinal(counterBytes);
+
+            int offset = hash[hash.length - 1] & 0x0F;
+            int binary = ((hash[offset] & 0x7F) << 24)
+                    | ((hash[offset + 1] & 0xFF) << 16)
+                    | ((hash[offset + 2] & 0xFF) << 8)
+                    | (hash[offset + 3] & 0xFF);
+
+            int otp = binary % (int) Math.pow(10, TOTP_DIGITS);
+            return String.format("%0" + TOTP_DIGITS + "d", otp);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("TOTP验证码生成失败", e);
+            throw BusinessException.forbidden("验证码校验失败");
+        }
     }
 
     /**

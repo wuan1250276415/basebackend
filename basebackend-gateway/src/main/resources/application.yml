@@ -20,9 +20,9 @@ spring:
       - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST:192.168.66.126}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis2025}
+      password: ${REDIS_PASSWORD:redis_TChiFW}
       database: ${REDIS_DATABASE:0}
       timeout: ${REDIS_TIMEOUT:5000ms}
       lettuce:
@@ -37,18 +37,22 @@ spring:
     redisson:
       config: |
         singleServerConfig:
-          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
-          password: "${REDIS_PASSWORD:redis2025}"
+          address: "redis://${REDIS_HOST:192.168.66.126}:${REDIS_PORT:6379}"
+          password: "${REDIS_PASSWORD:redis_TChiFW}"
           database: ${REDIS_DATABASE:0}
           connectionMinimumIdleSize: 5
           connectionPoolSize: 20
           timeout: 5000
   # ========== Spring Cloud 集成配置 ==========
   cloud:
+    # 禁用 Sentinel 的 ReactiveCircuitBreakerFactory，让 Resilience4j 注册 CircuitBreaker GatewayFilterFactory
+    circuitbreaker:
+      sentinel:
+        enabled: false
     nacos:
       discovery:
         enabled: true
-        server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
         namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         username: ${NACOS_DISCOVERY_USERNAME:nacos}
@@ -64,7 +68,7 @@ spring:
           region: ${APP_REGION:beijing}
           zone: ${APP_ZONE:zone-a}
       config:
-        server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
         namespace: ${NACOS_CONFIG_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         username: ${NACOS_CONFIG_USERNAME:nacos}

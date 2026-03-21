@@ -146,6 +146,7 @@ public class SystemPermissionServiceImpl implements PermissionService {
             "system:application:*",
             "system:dept:*",
             "system:dict:*",
+            "system:monitor:*",
             "system:resource:*",
             "system:user:view",
             "system:user:list",
@@ -175,6 +176,12 @@ public class SystemPermissionServiceImpl implements PermissionService {
             "system:dict:create",
             "system:dict:update",
             "system:dict:delete",
+            "system:monitor:online",
+            "system:monitor:forceLogout",
+            "system:monitor:server",
+            "system:monitor:cache",
+            "system:monitor:cacheClean",
+            "system:monitor:stats",
             "system:resource:view",
             "system:resource:list"
         );
@@ -201,7 +208,10 @@ public class SystemPermissionServiceImpl implements PermissionService {
         return List.of(
             "system:application:view",
             "system:dept:view",
-            "system:dict:view"
+            "system:dict:view",
+            "system:monitor:online",
+            "system:monitor:server",
+            "system:monitor:stats"
         );
     }
 

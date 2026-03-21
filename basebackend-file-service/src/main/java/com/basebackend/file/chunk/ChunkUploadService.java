@@ -13,7 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.time.LocalDate;
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -49,6 +51,8 @@ public class ChunkUploadService {
     /** 分块临时目录根路径 */
     private static final Path CHUNK_TEMP_DIR = Path.of(System.getProperty("java.io.tmpdir"), "chunk_upload");
 
+    private static final DateTimeFormatter STORAGE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+
     /**
      * 初始化分块上传
      */
@@ -64,6 +68,7 @@ public class ChunkUploadService {
             String contentType, String targetPath, int chunkSize) {
         String uploadId = UUID.randomUUID().toString().replace("-", "");
         int totalChunks = (int) Math.ceil((double) fileSize / chunkSize);
+        String safeTargetPath = buildStorageTargetPath(uploadId, filename);
 
         ChunkUploadInfo info = new ChunkUploadInfo();
         info.setUploadId(uploadId);
@@ -74,15 +79,15 @@ public class ChunkUploadService {
         info.setUploadedChunks(0);
         info.setFileMd5(fileMd5);
         info.setContentType(contentType);
-        info.setTargetPath(targetPath);
+        info.setTargetPath(safeTargetPath);
         info.setCreateTime(System.currentTimeMillis());
         info.setLastUpdateTime(System.currentTimeMillis());
         info.setStatus(ChunkUploadInfo.UploadStatus.INITIALIZED);
 
         saveUploadInfo(info);
 
-        log.info("初始化分块上传: uploadId={}, filename={}, fileSize={}, totalChunks={}",
-                uploadId, filename, fileSize, totalChunks);
+        log.info("初始化分块上传: uploadId={}, filename={}, fileSize={}, totalChunks={}, targetPath={}",
+                uploadId, filename, fileSize, totalChunks, safeTargetPath);
 
         return info;
     }
@@ -256,6 +261,16 @@ public class ChunkUploadService {
             log.error("获取已上传分块列表失败: uploadId={}", uploadId);
             return Collections.emptyList();
         }
+    }
+
+    private String buildStorageTargetPath(String uploadId, String filename) {
+        String safeFilename = "upload.bin";
+        if (filename != null && !filename.isBlank()) {
+            safeFilename = Path.of(filename).getFileName().toString()
+                    .replace("\\", "_")
+                    .replace("/", "_");
+        }
+        return LocalDate.now().format(STORAGE_DATE_FORMAT) + "/" + uploadId + "-" + safeFilename;
     }
 
     // ========== 私有方法 ==========

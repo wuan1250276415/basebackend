@@ -54,7 +54,8 @@ public class TradeController {
     @PostMapping("/orders/submit")
     @Operation(summary = "提交订单")
     public Result<OrderSubmitResponse> submitOrder(@Valid @RequestBody OrderSubmitRequest request) {
-        LOGGER.info("收到下单请求，userId={}, itemCount={}", request.userId(), request.items().size());
+        int itemCount = request.items() == null ? 0 : request.items().size();
+        LOGGER.info("收到下单请求，itemCount={}", itemCount);
         return Result.success("下单成功", tradeService.submitOrder(request));
     }
 

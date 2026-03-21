@@ -14,6 +14,8 @@ import type { UserInfo, MenuItem } from '@/types';
 export interface AuthState {
   /** JWT 访问令牌 */
   token: string | null;
+  /** 刷新令牌 */
+  refreshToken: string | null;
   /** 当前用户信息 */
   userInfo: UserInfo | null;
   /** 用户权限标识集合 */
@@ -40,6 +42,7 @@ export interface AuthState {
 /** 初始状态 */
 const initialState = {
   token: null as string | null,
+  refreshToken: null as string | null,
   userInfo: null as UserInfo | null,
   permissions: new Set<string>(),
   roles: new Set<string>(),
@@ -64,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
         // 存储 token 和登录时返回的基本信息
         set({
           token: result.accessToken,
+          refreshToken: result.refreshToken ?? null,
           userInfo: result.userInfo,
           permissions: new Set(result.permissions),
           roles: new Set(result.roles),
@@ -194,6 +198,7 @@ export const useAuthStore = create<AuthState>()(
        */
       partialize: (state: AuthState) => ({
         token: state.token,
+        refreshToken: state.refreshToken,
         userInfo: state.userInfo,
         permissions: state.permissions,
         roles: state.roles,

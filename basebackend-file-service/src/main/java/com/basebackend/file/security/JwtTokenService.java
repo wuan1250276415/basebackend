@@ -30,13 +30,13 @@ import java.util.*;
 @Service
 public class JwtTokenService {
 
-    @Value("${file.security.jwt.secret:defaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction123456}")
+    @Value("${file.security.jwt.secret:${jwt.secret:defaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction123456}}")
     private String jwtSecret;
 
-    @Value("${file.security.jwt.issuer:basebackend-file-service}")
+    @Value("${file.security.jwt.issuer:${jwt.issuer:basebackend}}")
     private String jwtIssuer;
 
-    @Value("${file.security.jwt.audience:basebackend}")
+    @Value("${file.security.jwt.audience:${jwt.audience:}}")
     private String jwtAudience;
 
     @Value("${file.security.jwt.expiration-hours:24}")
@@ -69,11 +69,15 @@ public class JwtTokenService {
 
         try {
             // 解析并验证Token
-            Claims claims = Jwts.parser()
-                .verifyWith(secretKey)
-                .requireIssuer(jwtIssuer)
-                .requireAudience(jwtAudience)
-                .build()
+            JwtParserBuilder parserBuilder = Jwts.parser()
+                .verifyWith(secretKey);
+            if (StringUtils.hasText(jwtIssuer)) {
+                parserBuilder.requireIssuer(jwtIssuer);
+            }
+            if (StringUtils.hasText(jwtAudience)) {
+                parserBuilder.requireAudience(jwtAudience);
+            }
+            Claims claims = parserBuilder.build()
                 .parseSignedClaims(token)
                 .getPayload();
 

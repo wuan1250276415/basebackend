@@ -74,3 +74,10 @@ dependency-check-report/
 secrets.yaml
 *-sealed.yaml
 .ace-tool/
+# Phase 1 stop-bleeding ignores
+node_modules/
+dist/
+*.class
+*.jar
+*.tsbuildinfo
+.m2/

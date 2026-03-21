@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 # ==========================================
 # BaseBackend Gateway — Multi-stage Dockerfile
 # Java 25 + Spring Boot 4.0.3
@@ -70,13 +68,11 @@ COPY basebackend-notification-service/pom.xml basebackend-notification-service/
 COPY basebackend-observability-service/pom.xml basebackend-observability-service/
 
 # 下载依赖
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn dependency:go-offline -B -DskipTests 2>/dev/null || true
+RUN mvn dependency:go-offline -B -DskipTests >/dev/null 2>&1 || true
 
 # 复制源代码并构建
 COPY . .
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn clean package -pl basebackend-file-service -am -DskipTests -Dmaven.test.skip=true -B
+RUN mvn clean package -pl basebackend-file-service -am -DskipTests -Dmaven.test.skip=true -B
 
 # ==========================================
 # Stage 2: Runtime

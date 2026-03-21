@@ -1,5 +1,6 @@
 package com.basebackend.mall.product.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.basebackend.mall.product.dto.ProductDetailDTO;
 import com.basebackend.mall.product.entity.MallSku;
 import com.basebackend.mall.product.event.OrderCancelledMessage;
@@ -123,17 +124,7 @@ public class ProductServiceImpl implements ProductService {
 
         try {
             for (OrderCreatedMessage.OrderItem item : message.items()) {
-                MallSku mallSku = requireSku(item.skuId());
-                int stock = safeInt(mallSku.getStockQuantity());
-                int locked = safeInt(mallSku.getLockQuantity());
-                int availableStock = stock - locked;
-
-                if (availableStock < item.quantity()) {
-                    throw new IllegalStateException("库存不足，无法预占，skuId=" + item.skuId());
-                }
-
-                mallSku.setLockQuantity(locked + item.quantity());
-                mallSkuMapper.updateById(mallSku);
+                reserveStockAtomically(item.skuId(), item.quantity());
             }
             LOGGER.info("下单预占库存完成，orderNo={}, itemCount={}", message.orderNo(), message.items().size());
         } catch (RuntimeException exception) {
@@ -203,20 +194,7 @@ public class ProductServiceImpl implements ProductService {
 
         try {
             for (PaymentSucceededMessage.PaidItem item : message.items()) {
-                MallSku mallSku = requireSku(item.skuId());
-                int currentStock = safeInt(mallSku.getStockQuantity());
-                int currentLocked = safeInt(mallSku.getLockQuantity());
-
-                if (currentStock < item.quantity()) {
-                    throw new IllegalStateException("库存不足，无法扣减，skuId=" + item.skuId());
-                }
-                if (currentLocked < item.quantity()) {
-                    throw new IllegalStateException("锁定库存不足，无法完成扣减，skuId=" + item.skuId());
-                }
-
-                mallSku.setStockQuantity(currentStock - item.quantity());
-                mallSku.setLockQuantity(currentLocked - item.quantity());
-                mallSkuMapper.updateById(mallSku);
+                deductStockAtomically(item.skuId(), item.quantity());
             }
 
             LOGGER.info("支付成功后扣减库存完成，orderNo={}, itemCount={}",
@@ -233,11 +211,12 @@ public class ProductServiceImpl implements ProductService {
         }
 
         for (OrderItemSnapshot item : items) {
-            MallSku mallSku = requireSku(item.skuId());
-            int currentLocked = safeInt(mallSku.getLockQuantity());
-            int releaseCount = Math.min(currentLocked, safeInt(item.quantity()));
-            mallSku.setLockQuantity(currentLocked - releaseCount);
-            mallSkuMapper.updateById(mallSku);
+            mallSkuMapper.update(
+                    null,
+                    new LambdaUpdateWrapper<MallSku>()
+                            .eq(MallSku::getId, item.skuId())
+                            .setSql("lock_quantity = GREATEST(COALESCE(lock_quantity, 0) - " + safeInt(item.quantity()) + ", 0)")
+            );
         }
         LOGGER.info("{}完成，orderNo={}", scene, orderNo);
     }
@@ -248,6 +227,52 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalStateException("SKU不存在，skuId=" + skuId);
         }
         return mallSku;
+    }
+
+    private void reserveStockAtomically(Long skuId, Integer quantity) {
+        int affectedRows = mallSkuMapper.update(
+                null,
+                new LambdaUpdateWrapper<MallSku>()
+                        .eq(MallSku::getId, skuId)
+                        .apply("(COALESCE(stock_quantity, 0) - COALESCE(lock_quantity, 0)) >= {0}", quantity)
+                        .setSql("lock_quantity = COALESCE(lock_quantity, 0) + " + quantity)
+        );
+        if (affectedRows > 0) {
+            return;
+        }
+
+        MallSku mallSku = requireSku(skuId);
+        int availableStock = safeInt(mallSku.getStockQuantity()) - safeInt(mallSku.getLockQuantity());
+        if (availableStock < quantity) {
+            throw new IllegalStateException("库存不足，无法预占，skuId=" + skuId);
+        }
+        throw new IllegalStateException("库存预占失败，skuId=" + skuId);
+    }
+
+    private void deductStockAtomically(Long skuId, Integer quantity) {
+        int affectedRows = mallSkuMapper.update(
+                null,
+                new LambdaUpdateWrapper<MallSku>()
+                        .eq(MallSku::getId, skuId)
+                        .ge(MallSku::getStockQuantity, quantity)
+                        .ge(MallSku::getLockQuantity, quantity)
+                        .setSql("stock_quantity = COALESCE(stock_quantity, 0) - " + quantity
+                                + ", lock_quantity = COALESCE(lock_quantity, 0) - " + quantity)
+        );
+        if (affectedRows > 0) {
+            return;
+        }
+
+        MallSku mallSku = requireSku(skuId);
+        int currentStock = safeInt(mallSku.getStockQuantity());
+        int currentLocked = safeInt(mallSku.getLockQuantity());
+        if (currentStock < quantity) {
+            throw new IllegalStateException("库存不足，无法扣减，skuId=" + skuId);
+        }
+        if (currentLocked < quantity) {
+            throw new IllegalStateException("锁定库存不足，无法完成扣减，skuId=" + skuId);
+        }
+        throw new IllegalStateException("库存扣减失败，skuId=" + skuId);
     }
 
     private int safeInt(Integer value) {

@@ -33,7 +33,7 @@ public class SessionManager {
     /** sessionId → SessionInfo（持有 ConcurrentWebSocketSessionDecorator） */
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
 
-    /** userId → Set<sessionId>（一个用户可有多个设备连接） */
+    /** userKey → Set<sessionId>（一个用户可有多个设备连接） */
     private final Map<String, Set<String>> userSessions = new ConcurrentHashMap<>();
 
     /** sessionId → 最近活跃时间（用于心跳超时检测） */
@@ -63,6 +63,19 @@ public class SessionManager {
      * @return true 注册成功；false 超过连接限制，连接已被关闭
      */
     public boolean register(WebSocketSession rawSession, String userId) {
+        return register(rawSession, userId, null);
+    }
+
+    /**
+     * 注册连接（租户隔离）
+     *
+     * @param tenantId 租户ID；为空时退化为传统的 userId 维度
+     * @return true 注册成功；false 超过连接限制，连接已被关闭
+     */
+    public boolean register(WebSocketSession rawSession, String userId, String tenantId) {
+        String userKey = buildScopedUserKey(tenantId, userId);
+        String normalizedTenantId = normalizeTenantId(tenantId);
+
         // 全局连接数检查
         if (sessions.size() >= maxConnections) {
             log.warn("全局连接数已达上限 {}, 拒绝新连接: sessionId={}", maxConnections, rawSession.getId());
@@ -71,9 +84,9 @@ public class SessionManager {
         }
 
         // 单用户连接数检查
-        Set<String> existing = userSessions.getOrDefault(userId, Set.of());
+        Set<String> existing = userSessions.getOrDefault(userKey, Set.of());
         if (existing.size() >= maxUserConnections) {
-            log.warn("用户连接数已达上限 {}: userId={}", maxUserConnections, userId);
+            log.warn("用户连接数已达上限 {}: userKey={}", maxUserConnections, maskId(userKey));
             closeQuietly(rawSession, CloseStatus.SERVICE_OVERLOAD);
             return false;
         }
@@ -83,12 +96,12 @@ public class SessionManager {
                 new ConcurrentWebSocketSessionDecorator(rawSession, sendTimeLimitMs, sendBufferSizeBytes);
 
         String sessionId = rawSession.getId();
-        sessions.put(sessionId, new SessionInfo(safeSession, userId, Instant.now()));
-        userSessions.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
+        sessions.put(sessionId, new SessionInfo(safeSession, userId, normalizedTenantId, userKey, Instant.now()));
+        userSessions.computeIfAbsent(userKey, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
         lastActiveAt.put(sessionId, Instant.now());
 
-        log.info("WebSocket 连接注册: sessionId={}, userId={}, 当前在线={}",
-                sessionId, maskId(userId), sessions.size());
+        log.info("WebSocket 连接注册: sessionId={}, tenantId={}, userId={}, 当前在线={}",
+                sessionId, normalizedTenantId, maskId(userId), sessions.size());
         return true;
     }
 
@@ -105,13 +118,13 @@ public class SessionManager {
 
         // computeIfPresent 是 ConcurrentHashMap 的原子操作：
         // 在持有桶锁期间完成 remove + isEmpty 检查，防止并发注册时误删非空 Set
-        userSessions.computeIfPresent(info.userId(), (uid, sessionSet) -> {
+        userSessions.computeIfPresent(info.userKey(), (uid, sessionSet) -> {
             sessionSet.remove(sessionId);
             return sessionSet.isEmpty() ? null : sessionSet;
         });
 
-        log.info("WebSocket 连接注销: sessionId={}, userId={}, 当前在线={}",
-                sessionId, maskId(info.userId()), sessions.size());
+        log.info("WebSocket 连接注销: sessionId={}, tenantId={}, userId={}, 当前在线={}",
+                sessionId, info.tenantId(), maskId(info.userId()), sessions.size());
     }
 
     /**
@@ -151,9 +164,22 @@ public class SessionManager {
      * @return 成功发送的连接数
      */
     public int sendToUser(String userId, String message) {
-        Set<String> sessionIds = userSessions.get(userId);
+        return sendToUserInternal(buildScopedUserKey(null, userId), message);
+    }
+
+    /**
+     * 发送消息给指定租户下的用户所有连接
+     *
+     * @return 成功发送的连接数
+     */
+    public int sendToUser(String tenantId, String userId, String message) {
+        return sendToUserInternal(buildScopedUserKey(tenantId, userId), message);
+    }
+
+    private int sendToUserInternal(String userKey, String message) {
+        Set<String> sessionIds = userSessions.get(userKey);
         if (sessionIds == null || sessionIds.isEmpty()) {
-            log.debug("用户不在线: userId={}", userId);
+            log.debug("用户不在线: userKey={}", maskId(userKey));
             return 0;
         }
         int sent = 0;
@@ -206,7 +232,15 @@ public class SessionManager {
      * 用户是否在线
      */
     public boolean isOnline(String userId) {
-        Set<String> sessionIds = userSessions.get(userId);
+        Set<String> sessionIds = userSessions.get(buildScopedUserKey(null, userId));
+        return sessionIds != null && !sessionIds.isEmpty();
+    }
+
+    /**
+     * 指定租户下用户是否在线
+     */
+    public boolean isOnline(String tenantId, String userId) {
+        Set<String> sessionIds = userSessions.get(buildScopedUserKey(tenantId, userId));
         return sessionIds != null && !sessionIds.isEmpty();
     }
 
@@ -227,7 +261,13 @@ public class SessionManager {
 
     /** 获取指定用户的所有会话 ID（不可变副本） */
     public Set<String> getUserSessionIds(String userId) {
-        Set<String> ids = userSessions.get(userId);
+        Set<String> ids = userSessions.get(buildScopedUserKey(null, userId));
+        return ids != null ? Set.copyOf(ids) : Set.of();
+    }
+
+    /** 获取指定租户用户的所有会话 ID（不可变副本） */
+    public Set<String> getUserSessionIds(String tenantId, String userId) {
+        Set<String> ids = userSessions.get(buildScopedUserKey(tenantId, userId));
         return ids != null ? Set.copyOf(ids) : Set.of();
     }
 
@@ -240,7 +280,18 @@ public class SessionManager {
      * 关闭指定用户的所有连接
      */
     public void disconnectUser(String userId) {
-        Set<String> sessionIds = userSessions.get(userId);
+        disconnectUserInternal(buildScopedUserKey(null, userId));
+    }
+
+    /**
+     * 关闭指定租户用户的所有连接
+     */
+    public void disconnectUser(String tenantId, String userId) {
+        disconnectUserInternal(buildScopedUserKey(tenantId, userId));
+    }
+
+    private void disconnectUserInternal(String userKey) {
+        Set<String> sessionIds = userSessions.get(userKey);
         if (sessionIds == null) return;
 
         for (String sessionId : new ArrayList<>(sessionIds)) {
@@ -263,6 +314,28 @@ public class SessionManager {
         return id.substring(0, 2) + "*".repeat(Math.min(id.length() - 2, 6));
     }
 
+    /**
+     * 生成用户作用域键；有租户时使用 tenantId:userId，兼容旧调用则直接使用 userId。
+     */
+    public static String buildScopedUserKey(String tenantId, String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId must not be blank");
+        }
+        String normalizedUserId = userId.trim();
+        String normalizedTenantId = normalizeTenantId(tenantId);
+        if (normalizedTenantId == null) {
+            return normalizedUserId;
+        }
+        return normalizedTenantId + ":" + normalizedUserId;
+    }
+
+    private static String normalizeTenantId(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            return null;
+        }
+        return tenantId.trim();
+    }
+
     private void closeQuietly(WebSocketSession session, CloseStatus status) {
         try {
             session.close(status);
@@ -276,7 +349,10 @@ public class SessionManager {
      *
      * @param session     线程安全的 WebSocket 会话
      * @param userId      关联用户 ID
+     * @param tenantId    关联租户 ID，可为空
+     * @param userKey     会话路由键
      * @param connectedAt 连接建立时间
      */
-    public record SessionInfo(WebSocketSession session, String userId, Instant connectedAt) {}
+    public record SessionInfo(WebSocketSession session, String userId, String tenantId,
+                              String userKey, Instant connectedAt) {}
 }

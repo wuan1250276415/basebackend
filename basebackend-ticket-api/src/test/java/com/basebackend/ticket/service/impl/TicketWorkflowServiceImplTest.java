@@ -5,14 +5,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.basebackend.api.model.scheduler.ProcessInstanceFeignDTO;
 import com.basebackend.api.model.scheduler.TaskFeignDTO;
 import com.basebackend.common.model.Result;
 import com.basebackend.ticket.entity.Ticket;
 import com.basebackend.ticket.enums.ApprovalAction;
+import com.basebackend.ticket.enums.TicketStatus;
 import com.basebackend.ticket.mapper.TicketMapper;
 import com.basebackend.service.client.scheduler.ProcessDefinitionServiceClient;
+import com.basebackend.service.client.scheduler.ProcessInstanceServiceClient;
 import com.basebackend.service.client.scheduler.TaskServiceClient;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -43,6 +47,7 @@ class TicketWorkflowServiceImplTest {
     }
 
     @Mock private ProcessDefinitionServiceClient processDefinitionClient;
+    @Mock private ProcessInstanceServiceClient processInstanceServiceClient;
     @Mock private TaskServiceClient taskServiceClient;
     @Mock private TicketMapper ticketMapper;
 
@@ -57,6 +62,7 @@ class TicketWorkflowServiceImplTest {
         testTicket.setId(1L);
         testTicket.setTicketNo("TK-20260301-0001");
         testTicket.setReporterId(100L);
+        testTicket.setStatus(TicketStatus.OPEN.name());
         testTicket.setProcessInstanceId("proc-instance-123");
     }
 
@@ -67,15 +73,68 @@ class TicketWorkflowServiceImplTest {
         @Test
         @DisplayName("startApproval - 应启动流程并返回实例ID")
         void shouldStartProcessAndReturnInstanceId() {
+            testTicket.setProcessInstanceId(null);
             given(ticketMapper.selectById(1L)).willReturn(testTicket);
+            given(processInstanceServiceClient.getByBusinessKey("TICKET-1", "ticket-approval", null))
+                    .willReturn(Result.success("查询成功", Collections.emptyList()));
             given(processDefinitionClient.startProcessInstance(any()))
                     .willReturn(Result.success("启动成功", "proc-new-123"));
+            given(ticketMapper.update(eq(null), any())).willReturn(1);
 
             String instanceId = workflowService.startApproval(1L, "user1", "user2");
 
             assertThat(instanceId).isEqualTo("proc-new-123");
             verify(processDefinitionClient).startProcessInstance(any());
             verify(ticketMapper).update(eq(null), any());
+        }
+
+        @Test
+        @DisplayName("startApproval - 已有审批流程时应直接复用")
+        void shouldReuseExistingProcessInstanceWhenAlreadyPendingApproval() {
+            testTicket.setStatus(TicketStatus.PENDING_APPROVAL.name());
+            given(ticketMapper.selectById(1L)).willReturn(testTicket);
+
+            String instanceId = workflowService.startApproval(1L, "user1", "user2");
+
+            assertThat(instanceId).isEqualTo("proc-instance-123");
+            verify(processDefinitionClient, never()).startProcessInstance(any());
+            verify(processInstanceServiceClient, never()).getByBusinessKey(any(), any(), any());
+            verify(ticketMapper, never()).update(eq(null), any());
+        }
+
+        @Test
+        @DisplayName("startApproval - 应绑定已存在的远端流程实例")
+        void shouldRecoverExistingRemoteProcessInstance() {
+            testTicket.setProcessInstanceId(null);
+            given(ticketMapper.selectById(1L)).willReturn(testTicket);
+            given(processInstanceServiceClient.getByBusinessKey("TICKET-1", "ticket-approval", null))
+                    .willReturn(Result.success("查询成功", List.of(new ProcessInstanceFeignDTO(
+                            "proc-remote-1", "TICKET-1", null, "ticket-approval", null, null,
+                            "ACTIVE", false, false, null, null, null, null, null, null, null, null, null, null
+                    ))));
+            given(ticketMapper.update(eq(null), any())).willReturn(1);
+
+            String instanceId = workflowService.startApproval(1L, "user1", null);
+
+            assertThat(instanceId).isEqualTo("proc-remote-1");
+            verify(processDefinitionClient, never()).startProcessInstance(any());
+        }
+
+        @Test
+        @DisplayName("startApproval - 绑定竞争失败时应清理重复流程并返回当前实例")
+        void shouldCleanupDuplicateProcessWhenBindLosesRace() {
+            testTicket.setProcessInstanceId(null);
+            given(ticketMapper.selectById(1L)).willReturn(testTicket, testTicketWithProcess("proc-existing-9"));
+            given(processInstanceServiceClient.getByBusinessKey("TICKET-1", "ticket-approval", null))
+                    .willReturn(Result.success("查询成功", Collections.emptyList()));
+            given(processDefinitionClient.startProcessInstance(any()))
+                    .willReturn(Result.success("启动成功", "proc-new-123"));
+            given(ticketMapper.update(eq(null), any())).willReturn(0);
+
+            String instanceId = workflowService.startApproval(1L, "user1", "user2");
+
+            assertThat(instanceId).isEqualTo("proc-existing-9");
+            verify(processInstanceServiceClient).delete("proc-new-123", "duplicate approval start for ticket 1");
         }
 
         @Test
@@ -91,7 +150,10 @@ class TicketWorkflowServiceImplTest {
         @Test
         @DisplayName("startApproval - 启动失败应抛出异常")
         void shouldThrowWhenStartFails() {
+            testTicket.setProcessInstanceId(null);
             given(ticketMapper.selectById(1L)).willReturn(testTicket);
+            given(processInstanceServiceClient.getByBusinessKey("TICKET-1", "ticket-approval", null))
+                    .willReturn(Result.success("查询成功", Collections.emptyList()));
             given(processDefinitionClient.startProcessInstance(any()))
                     .willReturn(Result.success("启动成功", null));
 
@@ -172,5 +234,15 @@ class TicketWorkflowServiceImplTest {
 
             assertThat(tasks).isEmpty();
         }
+    }
+
+    private Ticket testTicketWithProcess(String processInstanceId) {
+        Ticket ticket = new Ticket();
+        ticket.setId(1L);
+        ticket.setTicketNo("TK-20260301-0001");
+        ticket.setReporterId(100L);
+        ticket.setStatus(TicketStatus.PENDING_APPROVAL.name());
+        ticket.setProcessInstanceId(processInstanceId);
+        return ticket;
     }
 }

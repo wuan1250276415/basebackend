@@ -8,6 +8,7 @@ import com.basebackend.user.service.RoleService;
 import com.basebackend.common.model.Result;
 import com.basebackend.logging.annotation.OperationLog;
 import com.basebackend.logging.annotation.OperationLog.BusinessType;
+import com.basebackend.security.annotation.RequiresPermission;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,6 +40,7 @@ public class RoleController {
     @GetMapping
     @Operation(summary = "分页查询角色列表", description = "分页查询角色列表")
     @OperationLog(operation="分页查询角色列表", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:list")
     public Result<Page<RoleDTO>> page(
             @Parameter(description = "当前页", example = "1") @RequestParam(defaultValue = "1") int current,
             @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int size,
@@ -61,6 +63,7 @@ public class RoleController {
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询角色", description = "根据ID查询角色详情")
     @OperationLog(operation="根据ID查询角色", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<RoleDTO> getById(@Parameter(description = "角色ID") @PathVariable Long id) {
         log.info("根据ID查询角色: {}", id);
         try {
@@ -78,6 +81,7 @@ public class RoleController {
     @PostMapping
     @Operation(summary = "创建角色", description = "创建新角色")
     @OperationLog(operation="创建角色", businessType = BusinessType.INSERT)
+    @RequiresPermission("system:role:create")
     public Result<String> create(@Validated @RequestBody RoleDTO roleDTO) {
         log.info("创建角色: {}", roleDTO.roleName());
         try {
@@ -95,6 +99,7 @@ public class RoleController {
     @PutMapping("/{id}")
     @Operation(summary = "更新角色", description = "更新角色信息")
     @OperationLog(operation="更新角色", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> update(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @Validated @RequestBody RoleDTO roleDTO) {
@@ -119,6 +124,7 @@ public class RoleController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除角色", description = "删除角色")
     @OperationLog(operation="删除角色", businessType = BusinessType.DELETE)
+    @RequiresPermission("system:role:delete")
     public Result<String> delete(@Parameter(description = "角色ID") @PathVariable Long id) {
         log.info("删除角色: {}", id);
         try {
@@ -136,6 +142,7 @@ public class RoleController {
     @PutMapping("/{id}/menus")
     @Operation(summary = "分配菜单", description = "为角色分配菜单")
     @OperationLog(operation="分配菜单", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> assignMenus(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody List<Long> menuIds) {
@@ -155,6 +162,7 @@ public class RoleController {
     @PutMapping("/{id}/permissions")
     @Operation(summary = "分配权限", description = "为角色分配权限")
     @OperationLog(operation="分配权限", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> assignPermissions(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody List<Long> permissionIds) {
@@ -174,6 +182,7 @@ public class RoleController {
     @GetMapping("/{id}/menus")
     @Operation(summary = "获取角色菜单", description = "获取角色菜单列表")
     @OperationLog(operation="获取角色菜单", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<List<Long>> getRoleMenus(@Parameter(description = "角色ID") @PathVariable Long id) {
         log.info("获取角色菜单: {}", id);
         try {
@@ -191,6 +200,7 @@ public class RoleController {
     @GetMapping("/{id}/permissions")
     @Operation(summary = "获取角色权限", description = "获取角色权限列表")
     @OperationLog(operation="获取角色权限", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<List<Long>> getRolePermissions(@Parameter(description = "角色ID") @PathVariable Long id) {
         log.info("获取角色权限: {}", id);
         try {
@@ -208,6 +218,7 @@ public class RoleController {
     @GetMapping("/check-role-name")
     @Operation(summary = "检查角色名称唯一性", description = "检查角色名称是否唯一")
     @OperationLog(operation="检查角色名称唯一性", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:list")
     public Result<Boolean> checkRoleNameUnique(
             @Parameter(description = "角色名称") @RequestParam String roleName,
             @Parameter(description = "角色ID") @RequestParam(required = false) Long roleId) {
@@ -226,6 +237,7 @@ public class RoleController {
     @GetMapping("/check-role-key")
     @Operation(summary = "检查角色标识唯一性", description = "检查角色标识是否唯一")
     @OperationLog(operation="检查角色标识唯一性", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:list")
     public Result<Boolean> checkRoleKeyUnique(
             @Parameter(description = "角色标识") @RequestParam String roleKey,
             @Parameter(description = "角色ID") @RequestParam(required = false) Long roleId) {
@@ -244,6 +256,7 @@ public class RoleController {
     @GetMapping("/tree")
     @Operation(summary = "获取角色树", description = "根据应用ID获取角色树形结构")
     @OperationLog(operation="获取角色树", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:list")
     public Result<List<SysRole>> getRoleTree(
             @Parameter(description = "应用ID") @RequestParam(required = false) Long appId) {
         log.info("获取角色树: appId={}", appId);
@@ -262,6 +275,7 @@ public class RoleController {
     @GetMapping("/{id}/users")
     @Operation(summary = "获取角色用户", description = "获取角色关联的用户列表")
     @OperationLog(operation="获取角色用户", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<List<SysUser>> getRoleUsers(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @Parameter(description = "用户名（模糊搜索）") @RequestParam(required = false) String username) {
@@ -281,6 +295,7 @@ public class RoleController {
     @PostMapping("/{id}/users")
     @Operation(summary = "关联用户到角色", description = "批量关联用户到角色")
     @OperationLog(operation="关联用户到角色", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> assignUsersToRole(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody List<Long> userIds) {
@@ -300,6 +315,7 @@ public class RoleController {
     @DeleteMapping("/{roleId}/users/{userId}")
     @Operation(summary = "取消用户角色关联", description = "移除角色和用户的关联关系")
     @OperationLog(operation="取消用户角色关联", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> removeUserFromRole(
             @Parameter(description = "角色ID") @PathVariable Long roleId,
             @Parameter(description = "用户ID") @PathVariable Long userId) {
@@ -319,6 +335,7 @@ public class RoleController {
     @PutMapping("/{id}/resources")
     @Operation(summary = "分配应用资源", description = "为角色分配应用资源")
     @OperationLog(operation="分配应用资源", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> assignResources(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody List<Long> resourceIds) {
@@ -338,6 +355,7 @@ public class RoleController {
     @GetMapping("/{id}/resources")
     @Operation(summary = "获取角色资源", description = "获取角色的应用资源列表")
     @OperationLog(operation="获取角色资源", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<List<Long>> getRoleResources(@Parameter(description = "角色ID") @PathVariable Long id) {
         log.info("获取角色资源: {}", id);
         try {
@@ -355,6 +373,7 @@ public class RoleController {
     @PutMapping("/{id}/list-operations")
     @Operation(summary = "配置列表操作权限", description = "为角色配置列表操作权限")
     @OperationLog(operation="配置列表操作权限", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> configureListOperations(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody Map<String, Object> request) {
@@ -378,6 +397,7 @@ public class RoleController {
     @GetMapping("/{id}/list-operations")
     @Operation(summary = "获取列表操作权限", description = "获取角色的列表操作权限")
     @OperationLog(operation="获取列表操作权限", businessType = BusinessType.SELECT)
+    @RequiresPermission("system:role:view")
     public Result<List<Long>> getRoleListOperations(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @Parameter(description = "资源类型") @RequestParam String resourceType) {
@@ -397,6 +417,7 @@ public class RoleController {
     @PutMapping("/{id}/data-permissions")
     @Operation(summary = "配置数据权限", description = "为角色配置细粒度数据权限")
     @OperationLog(operation="配置数据权限", businessType = BusinessType.UPDATE)
+    @RequiresPermission("system:role:update")
     public Result<String> configureDataPermissions(
             @Parameter(description = "角色ID") @PathVariable Long id,
             @RequestBody Map<String, String> request) {

@@ -14,9 +14,15 @@ public class GatewayNativeHints implements RuntimeHintsRegistrar {
 
     @Override
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-        // 网关路由 DTO — Jackson 反序列化需要反射
+        // 网关路由 DTO 与运行时路由定义 — Jackson (API/Nacos) 反序列化需要反射
         hints.reflection()
                 .registerType(com.basebackend.gateway.route.RouteDefinitionDTO.class,
+                        MemberCategory.values())
+                .registerType(org.springframework.cloud.gateway.route.RouteDefinition.class,
+                        MemberCategory.values())
+                .registerType(org.springframework.cloud.gateway.handler.predicate.PredicateDefinition.class,
+                        MemberCategory.values())
+                .registerType(org.springframework.cloud.gateway.filter.FilterDefinition.class,
                         MemberCategory.values());
 
         // 灰度路由配置
@@ -33,6 +39,17 @@ public class GatewayNativeHints implements RuntimeHintsRegistrar {
         hints.resources()
                 .registerPattern("application*.yml")
                 .registerPattern("logback*.xml")
+                .registerPattern("nacos-logback.xml")
+                .registerPattern("nacos-log4j2.xml")
+                .registerPattern("nacos-version.txt")
+                .registerPattern("META-INF/services/*")
+                .registerPattern("META-INF/native/*")
+                .registerPattern("META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat")
+                .registerPattern("com/alibaba/nacos/client/logging/log4j2/*")
                 .registerPattern("META-INF/spring/*");
+
+        hints.resources()
+                .registerResourceBundle("jakarta.el.LocalStrings")
+                .registerResourceBundle("org.apache.el.LocalStrings");
     }
 }

@@ -79,6 +79,31 @@ class SessionManagerTest {
     }
 
     @Test
+    @DisplayName("租户复合键路由不应串发消息")
+    void tenantScopedRoutingShouldNotCrossDeliver() throws Exception {
+        WebSocketSession tenant1Session = mockSession("t1-s1");
+        WebSocketSession tenant2Session = mockSession("t2-s1");
+        manager.register(tenant1Session, "user1", "tenant-1");
+        manager.register(tenant2Session, "user1", "tenant-2");
+
+        int sent = manager.sendToUser("tenant-1", "user1", "{\"type\":\"test\"}");
+
+        assertThat(sent).isEqualTo(1);
+        verify(tenant1Session).sendMessage(any(WebSocketMessage.class));
+        verify(tenant2Session, never()).sendMessage(any(WebSocketMessage.class));
+    }
+
+    @Test
+    @DisplayName("租户在线状态应彼此独立")
+    void tenantScopedOnlineStatusShouldBeIndependent() throws Exception {
+        manager.register(mockSession("t1-s1"), "user1", "tenant-1");
+
+        assertThat(manager.isOnline("tenant-1", "user1")).isTrue();
+        assertThat(manager.isOnline("tenant-2", "user1")).isFalse();
+        assertThat(manager.getUserSessionIds("tenant-1", "user1")).containsExactly("t1-s1");
+    }
+
+    @Test
     @DisplayName("sendToUser 用户离线返回 0")
     void sendToOfflineUserReturnsZero() {
         int sent = manager.sendToUser("nobody", "msg");

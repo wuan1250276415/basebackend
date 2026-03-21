@@ -89,7 +89,7 @@ public class ChatFriendServiceImpl implements ChatFriendService {
         friendRequestMapper.insert(friendRequest);
 
         // WebSocket 推送好友申请通知给目标用户
-        pushFriendEvent(request.getToUserId(), "friend_request", Map.of(
+        pushFriendEvent(tenantId, request.getToUserId(), "friend_request", Map.of(
                 "requestId", friendRequest.getId(),
                 "fromUserId", currentUserId,
                 "message", request.getMessage() != null ? request.getMessage() : ""
@@ -129,7 +129,7 @@ public class ChatFriendServiceImpl implements ChatFriendService {
                     friendRequest.getSource(), request.getRemark(), null);
 
             // WebSocket 推送好友接受通知给申请发起者
-            pushFriendEvent(friendRequest.getFromUserId(), "friend_accepted", Map.of(
+            pushFriendEvent(tenantId, friendRequest.getFromUserId(), "friend_accepted", Map.of(
                     "requestId", requestId,
                     "userId", currentUserId
             ));
@@ -340,13 +340,14 @@ public class ChatFriendServiceImpl implements ChatFriendService {
     // ======================== 内部工具方法 ========================
 
     /** 通过 WebSocket 推送好友事件通知 */
-    private void pushFriendEvent(Long targetUserId, String event, Map<String, Object> data) {
+    private void pushFriendEvent(Long tenantId, Long targetUserId, String event, Map<String, Object> data) {
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("type", "friend_event");
             payload.put("event", event);
             payload.putAll(data);
-            sessionManager.sendToUser(String.valueOf(targetUserId), JsonUtils.toJsonString(payload));
+            sessionManager.sendToUser(String.valueOf(tenantId), String.valueOf(targetUserId),
+                    JsonUtils.toJsonString(payload));
         } catch (Exception e) {
             log.warn("好友事件推送失败, targetUserId={}, event={}: {}", targetUserId, event, e.getMessage());
         }

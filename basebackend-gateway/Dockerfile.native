@@ -1,6 +1,11 @@
 # ==========================================
 # BaseBackend Gateway — GraalVM Native Image
 # Java 25 + Spring Boot 4.0.3 + AOT
+# 构建上下文必须包含仓库根目录（当前 Dockerfile 需要复制多模块源码）
+# - 在仓库根目录执行:
+#   docker build -f basebackend-gateway/Dockerfile.native -t gateway:latest .
+# - 在 basebackend-gateway 目录执行:
+#   docker build -f Dockerfile.native -t gateway:latest ..
 # ==========================================
 
 # Stage 1: Build Native Image
@@ -8,10 +13,10 @@ FROM ghcr.io/graalvm/graalvm-community:25 AS builder
 WORKDIR /build
 
 # 安装 Maven
-RUN microdnf install -y findutils tar gzip && \
-    curl -fsSL https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz \
+RUN microdnf install -y findutils tar gzip zip && \
+    curl -fsSL https://dlcdn.apache.org/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz \
     | tar -xzf - -C /opt && \
-    ln -s /opt/apache-maven-3.9.9/bin/mvn /usr/local/bin/mvn
+    ln -s /opt/apache-maven-3.9.14/bin/mvn /usr/local/bin/mvn
 
 # 复制 pom.xml 利用缓存
 COPY pom.xml .
@@ -75,6 +80,53 @@ COPY basebackend-observability-service/pom.xml basebackend-observability-service
 
 # 下载依赖
 RUN mvn dependency:go-offline -B -DskipTests 2>/dev/null || true
+
+# GraalVM 25 解析部分第三方 legacy resource-config.json 时会在 ResourcesFeature 中触发 NPE。
+# 这里只移除已确认有问题的 resource-config，保留 reflect/proxy/jni/serialization 等其它 native metadata。
+RUN set -eux; \
+    strip_legacy_resource_config() { \
+        jar_file="$1"; \
+        shift; \
+        if [ ! -f "$jar_file" ]; then \
+            return 0; \
+        fi; \
+        for entry in "$@"; do \
+            if jar tf "$jar_file" | grep -Fqx "$entry"; then \
+                zip -q -d "$jar_file" "$entry"; \
+            fi; \
+        done; \
+    }; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/com/alibaba/cloud/spring-cloud-starter-alibaba-sentinel/2025.1.0.0/spring-cloud-starter-alibaba-sentinel-2025.1.0.0.jar \
+        META-INF/native-image/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/com/alibaba/nacos/nacos-client/3.1.1/nacos-client-3.1.1.jar \
+        META-INF/native-image/com.alibaba.nacos/nacos-client/resource-config.json \
+        META-INF/native-image/io.grpc.netty.shaded.io.netty/netty-transport-classes-epoll/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-linux-x86_64.jar \
+        META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-linux-aarch_64.jar \
+        META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-osx-x86_64.jar \
+        META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-osx-aarch_64.jar \
+        META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-codec-native-quic/4.2.10.Final/netty-codec-native-quic-4.2.10.Final-windows-x86_64.jar \
+        META-INF/native-image/io.netty/netty-codec-native-quic/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/io/netty/netty-transport-classes-epoll/4.2.10.Final/netty-transport-classes-epoll-4.2.10.Final.jar \
+        META-INF/native-image/io.netty/netty-transport-classes-epoll/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/org/apache/logging/log4j/log4j-api/2.25.3/log4j-api-2.25.3.jar \
+        META-INF/native-image/org.apache.logging.log4j/log4j-api/resource-config.json; \
+    strip_legacy_resource_config \
+        /root/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/11.0.18/tomcat-embed-el-11.0.18.jar \
+        META-INF/native-image/org.apache.tomcat.embed/tomcat-embed-el/resource-config.json
 
 # 复制源代码并构建原生镜像
 COPY . .

@@ -146,18 +146,19 @@ class FileServiceTest {
 
     @Test
     @DisplayName("文件上传失败 - IO异常")
-    void shouldHandleIOException() {
+    void shouldHandleIOException() throws Exception {
         // Given
-        MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "test.txt",
-            "text/plain",
-            "content".getBytes()
-        );
+        MultipartFile file = mock(MultipartFile.class);
 
         when(fileProperties.getMaxSize()).thenReturn(1000L);
         when(fileProperties.getAllowedTypes()).thenReturn(new String[]{"txt"});
-        when(fileProperties.getUploadPath()).thenReturn("/invalid/path");
+        when(fileProperties.getUploadPath()).thenReturn(tempDir.toString());
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getSize()).thenReturn(7L);
+        when(file.getOriginalFilename()).thenReturn("test.txt");
+        doThrow(new IOException("mock io failure"))
+            .when(file)
+            .transferTo(any(java.io.File.class));
 
         // When & Then
         assertThatThrownBy(() -> fileService.uploadFile(file))

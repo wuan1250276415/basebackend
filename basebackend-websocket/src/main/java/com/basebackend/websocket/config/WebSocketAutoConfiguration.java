@@ -223,7 +223,7 @@ public class WebSocketAutoConfiguration implements WebSocketConfigurer {
             return;
         }
         var registration = registry.addHandler(messageHandler, properties.getEndpoint())
-                .addInterceptors(new AuthHandshakeInterceptor())
+                .addInterceptors(authHandshakeInterceptor())
                 .setAllowedOrigins(properties.getAllowedOrigins().toArray(String[]::new));
 
         if (properties.isSockjsEnabled()) {

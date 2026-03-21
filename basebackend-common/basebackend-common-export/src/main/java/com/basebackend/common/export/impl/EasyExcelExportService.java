@@ -68,6 +68,7 @@ public class EasyExcelExportService implements ExportService {
                     new HorizontalCellStyleStrategy(headStyle, contentStyle);
 
             EasyExcel.write(baos)
+                    .inMemory(Boolean.TRUE)
                     .head(headList)
                     .registerWriteHandler(styleStrategy)
                     .sheet("Sheet1")

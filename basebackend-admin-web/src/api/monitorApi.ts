@@ -12,7 +12,7 @@ export const monitorApi = {
 
   /** 强制下线用户 */
   forceLogout: (token: string): Promise<void> =>
-    request.delete(`/api/system/monitor/online/${token}`),
+    request.delete('/api/system/monitor/online', { data: { token } }),
 
   /** 获取服务器信息 */
   serverInfo: (): Promise<ServerInfoDTO> =>

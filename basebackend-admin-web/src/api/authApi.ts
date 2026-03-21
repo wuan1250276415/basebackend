@@ -15,7 +15,8 @@ export const authApi = {
   logout: (): Promise<void> => request.post('/api/user/auth/logout'),
 
   /** 刷新 Token */
-  refreshToken: (): Promise<LoginResult> => request.post('/api/user/auth/refresh'),
+  refreshToken: (refreshToken: string): Promise<LoginResult> =>
+    request.post('/api/user/auth/refresh', { refreshToken }),
 
   /** 获取当前用户信息（含权限、角色、菜单） */
   getUserInfo: (): Promise<UserContext> => request.get('/api/user/auth/info'),

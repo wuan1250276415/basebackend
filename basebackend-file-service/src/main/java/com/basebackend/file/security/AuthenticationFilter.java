@@ -15,16 +15,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * 全局认证过滤器
  *
  * 统一处理所有请求的身份认证和授权验证：
  * 1. 优先解析 JWT Token (Authorization: Bearer ...)
- * 2. 备用解析 X-User-ID (仅在信任的网关场景)
+ * 2. 拒绝直接信任客户端传入的 X-User-ID
  * 3. 提取客户端信息 (IP、User-Agent) 用于审计和限流
  * 4. 将用户上下文存储到 ThreadLocal 中
  * 5. 在 finally 块中清理 ThreadLocal 防止内存泄漏
@@ -38,26 +36,19 @@ import java.util.regex.Pattern;
 public class AuthenticationFilter extends OncePerRequestFilter {
 
     private final ObjectMapper objectMapper;
+    private final JwtTokenService jwtTokenService;
 
     /**
      * 需要跳过认证的路径（公开接口）
      * 例如：健康检查、swagger 文档、登录接口等
      */
-    private static final List<String> SKIP_PATHS = Arrays.asList(
+    private static final List<String> SKIP_PATHS = List.of(
             "/actuator/health",
             "/v3/api-docs",
             "/swagger-ui",
             "/swagger-resources",
             "/webjars",
             "/favicon.ico"
-    );
-
-    /**
-     * 可以使用 X-User-ID 的信任来源
-     * 生产环境建议配置具体的网关IP列表或域名白名单
-     */
-    private static final Pattern TRUSTED_GATEWAY_PATTERN = Pattern.compile(
-            "^(localhost|127\\.0\\.0\\.1|10\\..+|192\\.168\\..+|172\\.(1[6-9]|2\\d|3[0-1])\\..+)$"
     );
 
     @Override
@@ -126,13 +117,13 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             return parseJwtToken(jwtToken, request);
         }
 
-        // 2. 备用解析 X-User-ID（仅信任来源）
-        String userId = request.getHeader("X-User-ID");
-        if (StringUtils.hasText(userId)) {
-            return parseTrustedUserId(userId, request);
+        String forwardedUserId = request.getHeader("X-User-ID");
+        if (StringUtils.hasText(forwardedUserId)) {
+            log.warn("拒绝直接信任 X-User-ID 头: path={}, remoteAddr={}",
+                    request.getRequestURI(), request.getRemoteAddr());
         }
 
-        // 3. 两者都无，返回 null
+        // 2. 无有效 JWT，返回 null
         log.debug("未找到有效的认证信息: path={}",
                 request.getRequestURI());
         return null;
@@ -149,101 +140,18 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    /**
-     * 解析 JWT Token（安全增强版）
-     *
-     * <strong>注意</strong>：当前为简化实现，生产环境需使用标准 JWT 库验证。
-     * 当前实现已添加基本安全检查：
-     * 1. token 格式验证
-     * 2. 组件分割和基本验证
-     * 3. 日志记录和错误处理
-     *
-     * TODO: 生产环境需添加：
-     * - 使用 jjwt 或 jose4j 库
-     * - 验证 HMAC 签名（secret）
-     * - 检查 exp（过期时间）< NOW
-     * - 验证 iss（颁发者）和 aud（受众）
-     * - 验证 nbf（生效时间）
-     * - 检查 jti（唯一ID）防重放
-     */
     private UserContext parseJwtToken(String token, HttpServletRequest request) {
-        try {
-            // 验证 token 不为空
-            if (!StringUtils.hasText(token) || token.length() < 10) {
-                log.warn("JWT Token 格式无效: token={}", token);
-                return null;
-            }
-
-            // 简化实现：格式为 userId:tenantId:role1,role2
-            // 生产环境必须替换为真正的 JWT 验证！
-            String[] parts = token.split(":");
-            if (parts.length < 1 || !StringUtils.hasText(parts[0])) {
-                log.warn("JWT Token 格式无效: token={}", token);
-                return null;
-            }
-
-            // 基本安全检查：token 不能包含特殊字符
-            if (token.contains(" ") || token.contains("\n") || token.contains("\r")) {
-                log.warn("JWT Token 包含非法字符");
-                return null;
-            }
-
-            UserContext context = new UserContext();
-            context.setUserId(parts[0].trim());
-            context.setTenantId(parts.length > 1 ? parts[1].trim() : null);
-            context.setAuthType(UserContext.AuthType.JWT);
-            context.setTokenId(token);
-
-            // 解析角色
-            if (parts.length > 2 && StringUtils.hasText(parts[2])) {
-                String rolesStr = parts[2].trim();
-                if (rolesStr.length() > 0) {
-                    String[] roles = rolesStr.split(",");
-                    context.setRoles(Arrays.asList(roles));
-                }
-            }
-
-            // 设置客户端信息
-            setClientInfo(context, request);
-
-            // 设置认证时间
-            context.setAuthenticatedAt(LocalDateTime.now());
-
-            log.debug("JWT 认证成功: userId={}, tenantId={}",
-                    context.getUserId(), context.getTenantId());
-
-            return context;
-
-        } catch (Exception e) {
-            log.error("解析 JWT Token 失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 解析信任来源的用户ID（X-User-ID）
-     */
-    private UserContext parseTrustedUserId(String userId, HttpServletRequest request) {
-        // 检查来源是否可信
-        String clientIp = getClientIp(request);
-        if (!isTrustedSource(clientIp)) {
-            log.warn("不受信任的 X-User-ID 来源: ip={}, userId={}", clientIp, userId);
+        UserContext context = jwtTokenService.parseAndValidateToken(token);
+        if (context == null) {
+            log.warn("JWT Token 验证失败: path={}, remoteAddr={}", request.getRequestURI(), request.getRemoteAddr());
             return null;
         }
 
-        UserContext context = new UserContext();
-        context.setUserId(userId.trim());
-        context.setAuthType(UserContext.AuthType.GATEWAY_TRUSTED);
-
-        // 设置客户端信息
         setClientInfo(context, request);
-
-        // 设置认证时间
-        context.setAuthenticatedAt(LocalDateTime.now());
-
-        log.debug("信任来源认证成功: userId={}, ip={}",
-                context.getUserId(), clientIp);
-
+        if (context.getAuthenticatedAt() == null) {
+            context.setAuthenticatedAt(LocalDateTime.now());
+        }
+        log.debug("JWT 认证成功: userId={}, tenantId={}", context.getUserId(), context.getTenantId());
         return context;
     }
 
@@ -302,49 +210,6 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         }
         // 简单的 IP 格式验证（IPv4）
         return ip.matches("^([0-9]{1,3}\\.){3}[0-9]{1,3}$");
-    }
-
-    /**
-     * 检查来源是否可信（安全增强版）
-     *
-     * <strong>安全策略</strong>：
-     * 1. 默认拒绝所有 X-User-ID 请求（安全优先）
-     * 2. 仅当明确配置可信网关 IP 时才允许
-     * 3. 不信任任何公网请求
-     * 4. 不信任 localhost（除非明确配置）
-     *
-     * <strong>生产环境配置</strong>：
-     * -Dtrusted.gateway.ips=198.51.100.10,203.0.113.50
-     * -Dtrust.localhost=true
-     */
-    private boolean isTrustedSource(String clientIp) {
-        // 默认拒绝（安全优先）
-        boolean trusted = false;
-
-        // 检查是否配置了可信网关 IP 列表
-        String trustedIps = System.getProperty("trusted.gateway.ips", "");
-        if (StringUtils.hasText(trustedIps)) {
-            String[] ips = trustedIps.split(",");
-            for (String ip : ips) {
-                if (ip.trim().equals(clientIp)) {
-                    trusted = true;
-                    break;
-                }
-            }
-        }
-
-        // 仅在明确信任时才允许 localhost
-        if (!trusted && ("localhost".equals(clientIp) || "127.0.0.1".equals(clientIp))) {
-            String trustLocalhost = System.getProperty("trust.localhost", "false");
-            trusted = "true".equalsIgnoreCase(trustLocalhost);
-        }
-
-        // 记录所有 X-User-ID 尝试（审计）
-        if (!trusted) {
-            log.warn("拒绝不受信任的 X-User-ID 来源: ip={}", clientIp);
-        }
-
-        return trusted;
     }
 
     /**

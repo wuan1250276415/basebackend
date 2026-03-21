@@ -123,21 +123,28 @@ class MonitorServiceTest extends BaseServiceTest {
     @Test
     @DisplayName("clearCache - 应清空指定缓存")
     void shouldClearCache() {
+        when(redisService.deleteByPattern("user:permissions:*")).thenReturn(2L);
+
         // When
         monitorService.clearCache("user_permissions");
 
         // Then
-        // 验证日志记录（简化测试）
+        verify(redisService).deleteByPattern("user:permissions:*");
     }
 
     @Test
     @DisplayName("clearAllCache - 应清空所有缓存")
     void shouldClearAllCache() {
+        when(redisService.deleteByPattern(anyString())).thenReturn(1L);
+
         // When
         monitorService.clearAllCache();
 
         // Then
-        // 验证日志记录（简化测试）
+        verify(redisService).deleteByPattern("sys:dict:*");
+        verify(redisService).deleteByPattern("online_users:*");
+        verify(redisService).deleteByPattern("login_tokens:*");
+        verify(redisService).deleteByPattern("user:permissions:*");
     }
 
     @Test

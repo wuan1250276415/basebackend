@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
@@ -37,10 +38,14 @@ class MonitorControllerTest extends BaseWebMvcTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/system/monitor/online/{token} - 应强制下线指定用户")
+    @DisplayName("DELETE /api/system/monitor/online - 应强制下线指定用户")
     void shouldForceLogout() throws Exception {
         // When & Then
-        mockMvc.perform(delete("/api/system/monitor/online/token123"))
+        mockMvc.perform(delete("/api/system/monitor/online")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"token123"}
+                                """))
                 .andExpect(status().isOk());
 
         verify(monitorService).forceLogout("token123");

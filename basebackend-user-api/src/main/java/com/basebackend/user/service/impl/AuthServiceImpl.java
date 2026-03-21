@@ -210,73 +210,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse wechatLogin(String phone) {
-        log.info("微信单点登录: phone={}", phone);
-
-        RequestMetadata requestMetadata = resolveRequestMetadata();
-
-        LoginLogDTO loginLog = new LoginLogDTO();
-        loginLog.setUsername(phone);
-        loginLog.setIpAddress(requestMetadata.ipAddress());
-        loginLog.setLoginLocation(requestMetadata.location());
-        loginLog.setBrowser(requestMetadata.browser());
-        loginLog.setOs(requestMetadata.os());
-        loginLog.setLoginTime(LocalDateTime.now());
-
-        try {
-            LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUser::getPhone, phone);
-            SysUser user = userMapper.selectOne(wrapper);
-
-            if (user == null) {
-                log.info("用户不存在，创建新用户: phone={}", phone);
-                user = new SysUser();
-                user.setUsername(phone);
-                user.setPhone(phone);
-                user.setNickname("微信用户_" + phone.substring(phone.length() - 4));
-                user.setPassword(passwordEncoder.encode("123456"));
-                user.setUserType(2);
-                user.setStatus(1);
-                user.setLoginIp(requestMetadata.ipAddress());
-                user.setLoginTime(LocalDateTime.now());
-                user.setCreateTime(LocalDateTime.now());
-
-                userMapper.insert(user);
-                log.info("新用户创建成功: userId={}, phone={}", user.getId(), phone);
-            } else {
-                if (user.getStatus() == 0) {
-                    loginLog.setUserId(user.getId());
-                    loginLog.setStatus(0);
-                    loginLog.setMsg("用户已被禁用");
-                    throw BusinessException.forbidden("用户已被禁用");
-                }
-
-                user.setLoginIp(requestMetadata.ipAddress());
-                user.setLoginTime(LocalDateTime.now());
-                userMapper.updateById(user);
-            }
-
-            loginLog.setUserId(user.getId());
-            loginLog.setStatus(1);
-            loginLog.setMsg("微信登录成功");
-
-            List<String> permissions = userMapper.selectUserPermissions(user.getId());
-            List<String> roles = userMapper.selectUserRoles(user.getId());
-            SessionTokens sessionTokens = createSessionTokens(user);
-            persistSession(user, sessionTokens, permissions, roles, requestMetadata);
-
-            LoginResponse response = buildLoginResponse(user, sessionTokens, permissions, roles);
-            recordLoginLog(loginLog);
-
-            log.info("微信单点登录成功: phone={}, userId={}", phone, user.getId());
-            return response;
-        } catch (Exception e) {
-            loginLog.setStatus(0);
-            if (StrUtil.isBlank(loginLog.getMsg())) {
-                loginLog.setMsg("微信登录失败: " + e.getMessage());
-            }
-            recordLoginLog(loginLog);
-            throw e;
-        }
+        log.warn("拒绝不安全的微信单点登录请求: phone={}", phone);
+        throw BusinessException.forbidden("微信单点登录已禁用，待接入可信第三方认证后开放");
     }
 
     /**

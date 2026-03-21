@@ -13,9 +13,11 @@ import com.basebackend.nacos.config.NacosConfigProperties;
 import lombok.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 
-@RefreshScope
+/*
+ * Native/AOT 构建下不要使用 RefreshScope。
+ * 这里仅作为 NacosConfigProperties 的轻量包装，保留单例即可。
+ */
 public class NacosConfigManager {
     @Generated
     private static final Logger log = LoggerFactory.getLogger(NacosConfigManager.class);
@@ -42,4 +44,3 @@ public class NacosConfigManager {
         this.nacosConfigProperties = nacosConfigProperties;
     }
 }
-

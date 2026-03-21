@@ -3,9 +3,14 @@ package com.basebackend.mall.product.service.impl;
 import com.basebackend.mall.product.entity.MallSku;
 import com.basebackend.mall.product.event.MallOrderPayStatus;
 import com.basebackend.mall.product.event.MallOrderStatus;
+import com.basebackend.mall.product.event.OrderCancelledMessage;
 import com.basebackend.mall.product.event.OrderCreatedMessage;
+import com.basebackend.mall.product.event.OrderItemSnapshot;
+import com.basebackend.mall.product.event.OrderTimeoutClosedMessage;
+import com.basebackend.mall.product.event.PaymentSucceededMessage;
 import com.basebackend.mall.product.mapper.MallSkuMapper;
 import com.basebackend.common.idempotent.store.IdempotentStore;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +25,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -44,13 +52,7 @@ class ProductServiceImplTest {
     @Test
     @DisplayName("下单预占库存应增加锁定库存")
     void shouldIncreaseLockedStockWhenReserveStock() {
-        MallSku mallSku = new MallSku();
-        mallSku.setId(10001L);
-        mallSku.setStockQuantity(20);
-        mallSku.setLockQuantity(5);
-        mallSku.setSalePrice(new BigDecimal("99.00"));
-
-        when(mallSkuMapper.selectById(10001L)).thenReturn(mallSku);
+        when(mallSkuMapper.update(isNull(), any())).thenReturn(1);
         when(idempotentStore.tryAcquire(any(), anyLong(), any())).thenReturn(true);
 
         OrderCreatedMessage message = new OrderCreatedMessage(
@@ -65,11 +67,8 @@ class ProductServiceImplTest {
 
         productService.reserveStockForOrder(message);
 
-        ArgumentCaptor<MallSku> skuCaptor = ArgumentCaptor.forClass(MallSku.class);
-        verify(mallSkuMapper).updateById(skuCaptor.capture());
-        MallSku updatedSku = skuCaptor.getValue();
-        assertEquals(20, updatedSku.getStockQuantity());
-        assertEquals(8, updatedSku.getLockQuantity());
+        verify(mallSkuMapper).update(isNull(), any());
+        verify(mallSkuMapper, never()).updateById(any(MallSku.class));
     }
 
     @Test
@@ -80,6 +79,7 @@ class ProductServiceImplTest {
         mallSku.setStockQuantity(5);
         mallSku.setLockQuantity(4);
 
+        when(mallSkuMapper.update(isNull(), any())).thenReturn(0);
         when(mallSkuMapper.selectById(10001L)).thenReturn(mallSku);
         when(idempotentStore.tryAcquire(any(), anyLong(), any())).thenReturn(true);
 
@@ -94,6 +94,81 @@ class ProductServiceImplTest {
         );
 
         assertThrows(IllegalStateException.class, () -> productService.reserveStockForOrder(message));
+        verify(mallSkuMapper).update(isNull(), any());
         verify(mallSkuMapper, never()).updateById(any(MallSku.class));
+    }
+
+    @Test
+    @DisplayName("支付成功扣减库存应使用原子条件更新")
+    void shouldDeductStockAtomicallyWhenOrderPaid() {
+        when(mallSkuMapper.update(isNull(), any())).thenReturn(1);
+        when(idempotentStore.tryAcquire(any(), anyLong(), any())).thenReturn(true);
+
+        PaymentSucceededMessage message = new PaymentSucceededMessage(
+                "PAY202603030001",
+                301L,
+                "TRD202603030001",
+                new BigDecimal("99.00"),
+                com.basebackend.mall.product.event.MallPaymentStatus.PAY_SUCCESS,
+                List.of(new PaymentSucceededMessage.PaidItem(10001L, 2))
+        );
+
+        productService.deductStockForPaidOrder(message);
+
+        verify(mallSkuMapper).update(isNull(), any());
+        verify(mallSkuMapper, never()).updateById(any(MallSku.class));
+    }
+
+    @Test
+    @DisplayName("订单取消时应释放预占库存")
+    void shouldReleaseReservedStockWhenOrderCancelled() {
+        when(idempotentStore.tryAcquire(any(), anyLong(), any())).thenReturn(true);
+        when(mallSkuMapper.update(isNull(), any())).thenReturn(1);
+
+        OrderCancelledMessage message = new OrderCancelledMessage(
+                301L,
+                "TRD202603030003",
+                "PAY_FAILED",
+                MallOrderStatus.CANCELLED,
+                MallOrderPayStatus.PAY_FAILED,
+                List.of(
+                        new OrderItemSnapshot(10001L, 2),
+                        new OrderItemSnapshot(10002L, 1)
+                )
+        );
+
+        productService.releaseReservedStockForCancelledOrder(message);
+
+        ArgumentCaptor<LambdaUpdateWrapper<MallSku>> wrapperCaptor = ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
+        verify(mallSkuMapper, times(2)).update(isNull(), wrapperCaptor.capture());
+        assertEquals(
+                "lock_quantity = GREATEST(COALESCE(lock_quantity, 0) - 2, 0)",
+                wrapperCaptor.getAllValues().get(0).getSqlSet()
+        );
+        assertEquals(
+                "lock_quantity = GREATEST(COALESCE(lock_quantity, 0) - 1, 0)",
+                wrapperCaptor.getAllValues().get(1).getSqlSet()
+        );
+        verify(mallSkuMapper, never()).updateById(any(MallSku.class));
+    }
+
+    @Test
+    @DisplayName("超时关单释放库存未获取幂等锁时应直接跳过")
+    void shouldSkipTimeoutReleaseWhenIdempotentLockNotAcquired() {
+        when(idempotentStore.tryAcquire(any(), anyLong(), any())).thenReturn(false);
+
+        OrderTimeoutClosedMessage message = new OrderTimeoutClosedMessage(
+                301L,
+                "TRD202603030004",
+                "TIMEOUT",
+                MallOrderStatus.TIMEOUT_CLOSED,
+                MallOrderPayStatus.CLOSED,
+                List.of(new OrderItemSnapshot(10001L, 2))
+        );
+
+        productService.releaseReservedStockForTimeoutOrder(message);
+
+        verify(mallSkuMapper, never()).update(isNull(), any());
+        verifyNoMoreInteractions(mallSkuMapper);
     }
 }

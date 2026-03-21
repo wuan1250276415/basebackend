@@ -1,7 +1,9 @@
 package com.basebackend.service.client;
 
+import com.basebackend.api.model.user.RefreshTokenRequest;
 import com.basebackend.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -22,7 +24,7 @@ public interface AuthServiceClient {
 
     @PostExchange("/refresh")
     @Operation(summary = "刷新Token")
-    Result<Object> refreshToken(@RequestParam("refreshToken") String refreshToken);
+    Result<Object> refreshToken(@RequestBody RefreshTokenRequest request);
 
     @GetExchange("/info")
     @Operation(summary = "获取当前用户信息")

@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.basebackend.common.model.Result;
 import com.basebackend.generator.core.metadata.DatabaseMetadataReader;
 import com.basebackend.generator.core.metadata.MySQLMetadataReader;
+import com.basebackend.generator.dto.GenDataSourceView;
 import com.basebackend.generator.entity.GenDataSource;
 import com.basebackend.generator.mapper.GenDataSourceMapper;
 import com.basebackend.generator.util.DataSourceUtils;
+import com.basebackend.security.annotation.RequiresRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,23 +26,30 @@ import java.util.List;
 @RequestMapping("/api/generator/datasource")
 @RequiredArgsConstructor
 @Tag(name = "数据源管理")
+@RequiresRole(values = {"admin", "sys_admin"}, logical = RequiresRole.Logical.OR)
 public class DataSourceController {
 
     private final GenDataSourceMapper dataSourceMapper;
 
     @GetMapping
     @Operation(summary = "分页查询数据源")
-    public Result<Page<GenDataSource>> page(
+    public Result<Page<GenDataSourceView>> page(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size) {
         Page<GenDataSource> page = new Page<>(current, size);
-        return Result.success(dataSourceMapper.selectPage(page, null));
+        Page<GenDataSource> resultPage = dataSourceMapper.selectPage(page, null);
+
+        Page<GenDataSourceView> viewPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
+        viewPage.setRecords(resultPage.getRecords().stream()
+                .map(GenDataSourceView::from)
+                .toList());
+        return Result.success(viewPage);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询数据源")
-    public Result<GenDataSource> getById(@PathVariable Long id) {
-        return Result.success(dataSourceMapper.selectById(id));
+    public Result<GenDataSourceView> getById(@PathVariable Long id) {
+        return Result.success(GenDataSourceView.from(dataSourceMapper.selectById(id)));
     }
 
     @PostMapping

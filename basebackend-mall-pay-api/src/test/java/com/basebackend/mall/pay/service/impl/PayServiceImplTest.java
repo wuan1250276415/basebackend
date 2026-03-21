@@ -2,8 +2,13 @@ package com.basebackend.mall.pay.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.basebackend.common.idempotent.store.IdempotentStore;
+import com.basebackend.common.util.SnowflakeIdGenerator;
+import com.basebackend.mall.pay.dto.PaymentCreateRequest;
 import com.basebackend.mall.pay.entity.MallPayment;
 import com.basebackend.mall.pay.enums.MallPaymentStatus;
+import com.basebackend.mall.pay.event.MallOrderPayStatus;
+import com.basebackend.mall.pay.event.MallOrderStatus;
+import com.basebackend.mall.pay.event.OrderCreatedMessage;
 import com.basebackend.mall.pay.event.PayEventTopics;
 import com.basebackend.mall.pay.event.PaymentSucceededMessage;
 import com.basebackend.mall.pay.mapper.MallPaymentMapper;
@@ -15,16 +20,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -85,5 +100,90 @@ class PayServiceImplTest {
         assertEquals(10001L, payload.items().get(0).skuId());
         assertEquals(2, payload.items().get(0).quantity());
         assertFalse(payload.items().isEmpty());
+    }
+
+    @Test
+    @DisplayName("创建支付单应为同一订单生成不同支付单号")
+    void createPaymentShouldGenerateUniquePayNos() {
+        PaymentCreateRequest request = new PaymentCreateRequest(
+                301L, "TRD202603030001", new BigDecimal("99.00"), "MOCK_CHANNEL");
+        when(mallPaymentMapper.insert(any(MallPayment.class))).thenReturn(1);
+
+        try (MockedStatic<SnowflakeIdGenerator> snowflake = Mockito.mockStatic(SnowflakeIdGenerator.class)) {
+            snowflake.when(SnowflakeIdGenerator::nextIdStr)
+                    .thenReturn("800", "900");
+
+            payService.createPayment(request);
+            payService.createPayment(request);
+        }
+
+        ArgumentCaptor<MallPayment> paymentCaptor = ArgumentCaptor.forClass(MallPayment.class);
+        verify(mallPaymentMapper, times(2)).<MallPayment>insert(paymentCaptor.capture());
+        List<MallPayment> capturedPayments = paymentCaptor.getAllValues();
+        assertEquals("PAY800", capturedPayments.get(0).getPayNo());
+        assertEquals("PAY900", capturedPayments.get(1).getPayNo());
+        assertNotEquals(capturedPayments.get(0).getPayNo(), capturedPayments.get(1).getPayNo());
+    }
+
+    @Test
+    @DisplayName("订单创建事件处理应使用生成器打出 payNo")
+    void handleOrderCreatedShouldUseGeneratedPayNo() {
+        OrderCreatedMessage message = new OrderCreatedMessage(
+                401L, "TRD202603040001", 501L,
+                new BigDecimal("149.00"),
+                MallOrderStatus.CREATED,
+                MallOrderPayStatus.UNPAID,
+                List.of(new OrderCreatedMessage.OrderItem(10001L, 2)));
+        when(idempotentStore.tryAcquire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        when(mallPaymentMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+        when(mallPaymentMapper.insert(any(MallPayment.class))).thenReturn(1);
+
+        try (MockedStatic<SnowflakeIdGenerator> snowflake = Mockito.mockStatic(SnowflakeIdGenerator.class)) {
+            snowflake.when(SnowflakeIdGenerator::nextIdStr).thenReturn("1000");
+            payService.handleOrderCreated(message);
+        }
+
+        ArgumentCaptor<MallPayment> paymentCaptor = ArgumentCaptor.forClass(MallPayment.class);
+        verify(mallPaymentMapper).<MallPayment>insert(paymentCaptor.capture());
+        assertEquals("PAY1000", paymentCaptor.getValue().getPayNo());
+    }
+
+    @Test
+    @DisplayName("重复订单创建事件到达时不应重复创建支付单")
+    void handleOrderCreatedShouldSkipWhenPaymentAlreadyExists() {
+        OrderCreatedMessage message = new OrderCreatedMessage(
+                401L, "TRD202603040002", 501L,
+                new BigDecimal("149.00"),
+                MallOrderStatus.CREATED,
+                MallOrderPayStatus.UNPAID,
+                List.of(new OrderCreatedMessage.OrderItem(10001L, 2)));
+        MallPayment existingPayment = new MallPayment();
+        existingPayment.setId(9001L);
+        existingPayment.setOrderNo(message.orderNo());
+        existingPayment.setPayNo("PAY_EXISTING_1");
+
+        when(idempotentStore.tryAcquire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        when(mallPaymentMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existingPayment);
+
+        payService.handleOrderCreated(message);
+
+        verify(mallPaymentMapper, never()).insert(any(MallPayment.class));
+    }
+
+    @Test
+    @DisplayName("重复订单创建事件未获取幂等锁时应直接跳过")
+    void handleOrderCreatedShouldSkipWhenIdempotentLockNotAcquired() {
+        OrderCreatedMessage message = new OrderCreatedMessage(
+                401L, "TRD202603040003", 501L,
+                new BigDecimal("149.00"),
+                MallOrderStatus.CREATED,
+                MallOrderPayStatus.UNPAID,
+                List.of(new OrderCreatedMessage.OrderItem(10001L, 2)));
+
+        when(idempotentStore.tryAcquire(anyString(), anyLong(), any(TimeUnit.class))).thenReturn(false);
+
+        payService.handleOrderCreated(message);
+
+        verifyNoInteractions(mallPaymentMapper);
     }
 }

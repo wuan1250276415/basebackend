@@ -161,7 +161,7 @@ public class SSENotificationService {
                     .data("{\"message\":\"连接成功\",\"timestamp\":" + System.currentTimeMillis() + "}"));
         } catch (IOException e) {
             removeConnectionIfPresent(userId, emitter);
-            throw new BusinessException(CommonErrorCode.INTERNAL_ERROR, "SSE 连接建立失败");
+            throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR, "SSE 连接建立失败");
         }
 
         return emitter;

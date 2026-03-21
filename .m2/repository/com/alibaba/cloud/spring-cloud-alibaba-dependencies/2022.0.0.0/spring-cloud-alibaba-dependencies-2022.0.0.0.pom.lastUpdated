@@ -1,4 +1,0 @@
-#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Thu Nov 27 14:48:40 CST 2025
-@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1764226120666
-https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact com.alibaba.cloud\:spring-cloud-alibaba-dependencies\:pom\:2022.0.0.0 from/to central (https\://repo.maven.apache.org/maven2)\: transfer failed for https\://repo.maven.apache.org/maven2/com/alibaba/cloud/spring-cloud-alibaba-dependencies/2022.0.0.0/spring-cloud-alibaba-dependencies-2022.0.0.0.pom

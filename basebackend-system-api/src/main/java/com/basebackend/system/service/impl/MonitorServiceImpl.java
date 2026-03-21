@@ -28,6 +28,17 @@ public class MonitorServiceImpl implements MonitorService {
 
     private static final String ONLINE_USER_KEY = "online_users:";
     private static final String LOGIN_TOKEN_KEY = "login_tokens:";
+    private static final Map<String, String> MANAGED_CACHE_PATTERNS = Map.ofEntries(
+            Map.entry("dict", "sys:dict:*"),
+            Map.entry("sys_dict", "sys:dict:*"),
+            Map.entry("字典缓存", "sys:dict:*"),
+            Map.entry("online_users", "online_users:*"),
+            Map.entry("在线用户", "online_users:*"),
+            Map.entry("login_tokens", "login_tokens:*"),
+            Map.entry("登录令牌", "login_tokens:*"),
+            Map.entry("user_permissions", "user:permissions:*"),
+            Map.entry("用户权限", "user:permissions:*")
+    );
 
     @Override
     public List<OnlineUserDTO> getOnlineUsers() {
@@ -87,7 +98,7 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public void forceLogout(String token) {
-        log.info("强制下线用户: {}", token);
+        log.info("强制下线用户请求");
 
         try {
             // 查找对应的用户ID
@@ -112,7 +123,7 @@ public class MonitorServiceImpl implements MonitorService {
                     }
                 }
             }
-            log.warn("未找到对应的在线用户: {}", token);
+            log.warn("未找到对应的在线用户");
         } catch (Exception e) {
             log.error("强制下线用户失败: {}", e.getMessage(), e);
             throw new RuntimeException("强制下线用户失败");
@@ -243,19 +254,21 @@ public class MonitorServiceImpl implements MonitorService {
     @Override
     public void clearCache(String cacheName) {
         log.info("清空指定缓存: {}", cacheName);
-        
-        // 这里应该根据缓存名称清空对应的缓存
-        // 简化处理
-        log.info("缓存清空成功: {}", cacheName);
+
+        String cachePattern = resolveManagedCachePattern(cacheName);
+        long deletedKeys = redisService.deleteByPattern(cachePattern);
+        log.info("缓存清空成功: cacheName={}, pattern={}, deletedKeys={}", cacheName, cachePattern, deletedKeys);
     }
 
     @Override
     public void clearAllCache() {
         log.info("清空所有缓存");
-        
-        // 这里应该清空所有缓存
-        // 简化处理
-        log.info("所有缓存清空成功");
+
+        long totalDeletedKeys = 0L;
+        for (String cachePattern : new LinkedHashSet<>(MANAGED_CACHE_PATTERNS.values())) {
+            totalDeletedKeys += redisService.deleteByPattern(cachePattern);
+        }
+        log.info("所有缓存清空成功: deletedKeys={}", totalDeletedKeys);
     }
 
     @Override
@@ -321,6 +334,19 @@ public class MonitorServiceImpl implements MonitorService {
         }
         
         return stats;
+    }
+
+    private String resolveManagedCachePattern(String cacheName) {
+        if (cacheName == null || cacheName.isBlank()) {
+            throw new IllegalArgumentException("缓存名称不能为空");
+        }
+
+        String normalizedCacheName = cacheName.trim().toLowerCase(Locale.ROOT);
+        String cachePattern = MANAGED_CACHE_PATTERNS.get(normalizedCacheName);
+        if (cachePattern == null) {
+            throw new IllegalArgumentException("不支持的缓存名称: " + cacheName);
+        }
+        return cachePattern;
     }
 
     /**

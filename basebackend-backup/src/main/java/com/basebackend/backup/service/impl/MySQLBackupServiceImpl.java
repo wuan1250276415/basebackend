@@ -122,36 +122,20 @@ public class MySQLBackupServiceImpl implements BackupService {
             List<String> command = buildMysqldumpCommand(backupFile);
 
             logCommand(command);
+            CommandExecutionResult executionResult = executeCommand(command, "MySQL全量备份");
 
-            // 执行备份
-            ProcessBuilder pb = new ProcessBuilder(command);
-            applyMysqlPassword(pb, backupProperties.getDatabase().getPassword());
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
+            if (shouldRetryWithoutBinlogMetadata(executionResult.output())) {
+                log.warn("当前账号缺少MySQL复制相关权限，降级为普通全量备份: {}",
+                        summarizeProcessOutput(executionResult.output()));
+                FileUtil.del(backupFile);
 
-            // 消费输出流（避免进程阻塞）
-            consumeProcessOutput(process.getInputStream());
-
-            // 等待进程完成（设置超时）
-            boolean completed = process.waitFor(backupProperties.getRetry().getMaxAttempts() * 60, TimeUnit.SECONDS);
-
-            if (!completed) {
-                log.error("全量备份执行超时，强制终止进程");
-                process.destroyForcibly();
-                throw new RuntimeException("全量备份执行超时");
+                command = buildMysqldumpCommand(backupFile, false);
+                logCommand(command);
+                executionResult = executeCommand(command, "MySQL全量备份(降级)");
             }
 
-            int exitCode = process.exitValue();
-
-            // 读取错误信息
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
+            int exitCode = executionResult.exitCode();
+            String output = executionResult.output();
 
             LocalDateTime endTime = LocalDateTime.now();
             long duration = ChronoUnit.SECONDS.between(startTime, endTime);
@@ -175,7 +159,7 @@ public class MySQLBackupServiceImpl implements BackupService {
             } else {
                 // 备份失败
                 record.setStatus(BackupStatus.FAILED);
-                record.setErrorMessage(output.toString());
+                record.setErrorMessage(output.isBlank() ? "mysqldump执行失败, 退出码: " + exitCode : output);
                 record.setEndTime(endTime);
                 record.setDuration(duration);
 
@@ -288,11 +272,11 @@ public class MySQLBackupServiceImpl implements BackupService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 消费输出流（避免进程阻塞）
-            consumeProcessOutput(process.getInputStream());
+            StringBuffer processOutput = new StringBuffer();
+            Thread outputThread = consumeProcessOutput(process.getInputStream(), processOutput, "MySQL恢复");
 
             // 等待进程完成（设置超时）
-            boolean completed = process.waitFor(backupProperties.getRetry().getMaxAttempts() * 60, TimeUnit.SECONDS);
+            boolean completed = process.waitFor(getProcessTimeoutSeconds(), TimeUnit.SECONDS);
 
             if (!completed) {
                 log.error("数据库恢复执行超时，强制终止进程");
@@ -300,18 +284,9 @@ public class MySQLBackupServiceImpl implements BackupService {
                 return false;
             }
 
+            waitForOutputThread(outputThread, "MySQL恢复");
             int exitCode = process.exitValue();
-
-            // 读取输出
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                    log.info(line);
-                }
-            }
+            String output = processOutput.toString().trim();
 
             if (exitCode == 0) {
                 log.info("数据库恢复成功");
@@ -394,23 +369,34 @@ public class MySQLBackupServiceImpl implements BackupService {
      * 构建mysqldump命令
      */
     private List<String> buildMysqldumpCommand(String backupFile) {
+        return buildMysqldumpCommand(backupFile, true);
+    }
+
+    private List<String> buildMysqldumpCommand(String backupFile, boolean includeBinlogMetadata) {
         BackupProperties.DatabaseConfig db = backupProperties.getDatabase();
 
-        return Arrays.asList(
+        List<String> command = new ArrayList<>(Arrays.asList(
                 backupProperties.getMysqldumpPath(),
                 "-h", db.getHost(),
                 "-P", String.valueOf(db.getPort()),
                 "-u", db.getUsername(),
-                "--single-transaction",  // InnoDB一致性备份
-                "--master-data=2",       // 记录binlog位置
-                "--flush-logs",          // 刷新日志
-                "--routines",            // 备份存储过程
-                "--triggers",            // 备份触发器
-                "--events",              // 备份事件
+                "--single-transaction"
+        ));
+
+        if (includeBinlogMetadata) {
+            command.add("--master-data=2");
+            command.add("--flush-logs");
+        }
+
+        command.addAll(Arrays.asList(
+                "--routines",
+                "--triggers",
+                "--events",
                 "--default-character-set=utf8mb4",
                 db.getDatabase(),
                 "--result-file=" + backupFile
-        );
+        ));
+        return command;
     }
 
     /**
@@ -452,22 +438,94 @@ public class MySQLBackupServiceImpl implements BackupService {
         }
     }
 
+    private long getProcessTimeoutSeconds() {
+        BackupProperties.Retry retry = backupProperties.getRetry();
+        if (retry == null || retry.getMaxAttempts() <= 0) {
+            return 60L;
+        }
+        return retry.getMaxAttempts() * 60L;
+    }
+
+    private boolean shouldRetryWithoutBinlogMetadata(String output) {
+        if (output == null || output.isBlank()) {
+            return false;
+        }
+
+        return output.contains("Access denied")
+                && (output.contains("FLUSH TABLES")
+                || output.contains("FLUSH_TABLES")
+                || output.contains("RELOAD")
+                || output.contains("SHOW MASTER STATUS"));
+    }
+
+    private String summarizeProcessOutput(String output) {
+        if (output == null || output.isBlank()) {
+            return "";
+        }
+        String firstLine = output.lines()
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .findFirst()
+                .orElse("");
+        return firstLine.length() > 200 ? firstLine.substring(0, 200) : firstLine;
+    }
+
+    private CommandExecutionResult executeCommand(List<String> command, String operation) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        applyMysqlPassword(processBuilder, backupProperties.getDatabase().getPassword());
+        processBuilder.redirectErrorStream(true);
+        Process process = processBuilder.start();
+
+        StringBuffer processOutput = new StringBuffer();
+        Thread outputThread = consumeProcessOutput(process.getInputStream(), processOutput, operation);
+
+        boolean completed = process.waitFor(getProcessTimeoutSeconds(), TimeUnit.SECONDS);
+        if (!completed) {
+            log.error("{}执行超时，强制终止进程", operation);
+            process.destroyForcibly();
+            throw new RuntimeException(operation + "执行超时");
+        }
+
+        waitForOutputThread(outputThread, operation);
+        return new CommandExecutionResult(process.exitValue(), processOutput.toString().trim());
+    }
+
     /**
      * 消费进程输出（避免进程阻塞）
      */
-    private void consumeProcessOutput(InputStream inputStream) {
+    private Thread consumeProcessOutput(InputStream inputStream, StringBuffer outputBuffer, String operation) {
         Thread outputThread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    outputBuffer.append(line).append(System.lineSeparator());
                     log.debug("MySQL进程输出: {}", line);
                 }
             } catch (IOException e) {
-                log.debug("读取进程输出失败", e);
+                log.debug("{}读取进程输出失败", operation, e);
             }
         });
         outputThread.setDaemon(true);
         outputThread.start();
+        return outputThread;
+    }
+
+    private void waitForOutputThread(Thread outputThread, String operation) {
+        if (outputThread == null) {
+            return;
+        }
+        try {
+            outputThread.join(TimeUnit.SECONDS.toMillis(5));
+            if (outputThread.isAlive()) {
+                log.warn("{}输出采集线程未在预期时间内结束", operation);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("等待{}输出采集线程结束时被中断", operation, e);
+        }
+    }
+
+    private record CommandExecutionResult(int exitCode, String output) {
     }
 
     @Override

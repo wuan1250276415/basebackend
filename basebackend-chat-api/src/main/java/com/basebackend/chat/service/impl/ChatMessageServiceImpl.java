@@ -416,7 +416,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         );
         String payload = JsonUtils.toJsonString(toMessageMap(message));
         for (ChatConversationMember member : members) {
-            sessionManager.sendToUser(String.valueOf(member.getUserId()), payload);
+            sessionManager.sendToUser(String.valueOf(tenantId), String.valueOf(member.getUserId()), payload);
         }
     }
 
@@ -435,7 +435,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                         .eq(ChatConversationMember::getConversationId, conversationId)
         );
         for (ChatConversationMember member : members) {
-            sessionManager.sendToUser(String.valueOf(member.getUserId()), payload);
+            sessionManager.sendToUser(String.valueOf(tenantId), String.valueOf(member.getUserId()), payload);
         }
     }
 

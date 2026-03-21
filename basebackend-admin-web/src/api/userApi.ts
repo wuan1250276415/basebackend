@@ -28,7 +28,7 @@ export const userApi = {
 
   /** 重置用户密码 */
   resetPassword: (id: number, newPassword: string): Promise<void> =>
-    request.put(`/api/user/users/${id}/reset-password`, null, { params: { newPassword } }),
+    request.put(`/api/user/users/${id}/reset-password`, { newPassword }),
 
   /** 分配角色 */
   assignRoles: (id: number, roleIds: number[]): Promise<void> =>

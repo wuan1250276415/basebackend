@@ -24,6 +24,15 @@
 - `docs/TEST_IMPLEMENTATION_SUMMARY.md`
 - `docs/review/document-index.md`
 - `docs/review/module-inventory.md`
+- `docs/review/project-organization-audit-2026-03-21.md`
+- `docs/review/project-cleanup-plan-2026-03-21.md`
+- `docs/review/phase1-stop-bleeding-checklist-2026-03-21.md`
+- `docs/review/phase1-actual-removal-list-2026-03-21.md`
+- `docs/review/phase2-pseudo-module-identification-2026-03-21.md`
+- `docs/review/phase3-bin-directory-identification-2026-03-21.md`
+- `docs/review/phase3-bin-cleanup-execution-plan-2026-03-21.md`
+- `docs/review/observability-bin-special-review-2026-03-21.md`
+- `docs/review/phase4-root-and-docs-layering-identification-2026-03-21.md`
 
 ## README references
 - `docs/FINAL_COMPLETION_SUMMARY.md` (missing)

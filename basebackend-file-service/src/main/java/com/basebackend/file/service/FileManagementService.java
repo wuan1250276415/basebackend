@@ -3,6 +3,7 @@ package com.basebackend.file.service;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -270,19 +271,23 @@ public class FileManagementService {
             LocalDateTime startTime,
             LocalDateTime endTime,
             long current,
-            long size) {
+            long size,
+            Long currentUserId,
+            boolean isSuperAdmin) {
         Page<FileMetadata> page = new Page<>(current, size);
-        LambdaQueryWrapper<FileMetadata> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FileMetadata::getIsDeleted, false)
-            .isNull(FileMetadata::getDeletedBy)
-            .like(StringUtils.hasText(fileName), FileMetadata::getOriginalName, fileName)
-            .eq(StringUtils.hasText(fileExtension), FileMetadata::getFileExtension, fileExtension)
-            .eq(folderId != null, FileMetadata::getFolderId, folderId)
-            .eq(ownerId != null, FileMetadata::getOwnerId, ownerId)
-            .eq(isPublic != null, FileMetadata::getIsPublic, isPublic)
-            .ge(startTime != null, FileMetadata::getCreateTime, startTime)
-            .le(endTime != null, FileMetadata::getCreateTime, endTime)
-            .orderByDesc(FileMetadata::getUpdateTime);
+        QueryWrapper<FileMetadata> wrapper = new QueryWrapper<>();
+        wrapper.eq("is_deleted", false)
+            .isNull("deleted_by")
+            .like(StringUtils.hasText(fileName), "original_name", fileName)
+            .eq(StringUtils.hasText(fileExtension), "file_extension", fileExtension)
+            .eq(folderId != null, "folder_id", folderId)
+            .eq(ownerId != null, "owner_id", ownerId)
+            .eq(isPublic != null, "is_public", isPublic)
+            .ge(startTime != null, "create_time", startTime)
+            .le(endTime != null, "create_time", endTime);
+
+        applyReadableScope(wrapper, currentUserId, isSuperAdmin);
+        wrapper.orderByDesc("update_time");
 
         Page<FileMetadata> result = fileMetadataMapper.selectPage(page, wrapper);
         return PageResult.of(result.getRecords(), result.getTotal(), result.getCurrent(), result.getSize());
@@ -291,8 +296,13 @@ public class FileManagementService {
     /**
      * 获取文件详情
      */
-    public FileMetadata getFileDetail(String fileId) {
-        return getFileMetadata(fileId);
+    public FileMetadata getFileDetail(String fileId, Long currentUserId, boolean isSuperAdmin) {
+        FileMetadata metadata = getFileMetadata(fileId);
+        if (!isSuperAdmin
+                && !filePermissionService.hasPermission(fileId, currentUserId, FilePermissionService.PermissionType.READ)) {
+            throw new BusinessException("无权限查看该文件");
+        }
+        return metadata;
     }
 
     /**
@@ -627,6 +637,26 @@ public class FileManagementService {
             throw new BusinessException("文件不存在");
         }
         return metadata;
+    }
+
+    private void applyReadableScope(QueryWrapper<FileMetadata> wrapper, Long currentUserId, boolean isSuperAdmin) {
+        if (isSuperAdmin) {
+            return;
+        }
+        wrapper.and(readable -> readable
+                .eq("owner_id", currentUserId)
+                .or()
+                .eq("is_public", true)
+                .or()
+                .apply("""
+                        file_id in (
+                            select file_id
+                            from file_permission
+                            where user_id = {0}
+                              and permission_type in ('READ', 'WRITE', 'DELETE', 'SHARE')
+                              and (expire_time is null or expire_time > {1})
+                        )
+                        """, currentUserId, LocalDateTime.now()));
     }
 
     private void logOperation(String fileId, String operationType, Long operatorId,

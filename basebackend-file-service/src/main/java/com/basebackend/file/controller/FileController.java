@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -60,6 +61,9 @@ public class FileController {
 
     private static final RateLimitPolicy DOWNLOAD_RATE_LIMIT =
             RateLimitPolicy.slidingWindowLimit(60, 60, TimeUnit.SECONDS);
+
+    private static final String LEGACY_PATH_ENDPOINT_DISABLED_MESSAGE =
+            "旧版按路径接口已禁用，请使用基于 fileId 的受控接口";
 
     /**
      * 上传文件 (简单版本 - 兼容旧接口)
@@ -120,8 +124,10 @@ public class FileController {
         @RequestParam(value = "current", defaultValue = "1") long current,
         @RequestParam(value = "size", defaultValue = "10") long size
     ) {
+        Long currentUserId = UserContextHolder.requireUserId();
         PageResult<FileMetadata> page = fileManagementService.listFiles(
-            fileName, fileExtension, folderId, ownerId, isPublic, startTime, endTime, current, size
+            fileName, fileExtension, folderId, ownerId, isPublic, startTime, endTime,
+            current, size, currentUserId, UserContextHolder.isSuperAdmin()
         );
         return Result.success(page);
     }
@@ -131,7 +137,12 @@ public class FileController {
      */
     @GetMapping("/{fileId}")
     public Result<FileMetadata> getFileDetail(@PathVariable String fileId) {
-        FileMetadata metadata = fileManagementService.getFileDetail(fileId);
+        Long currentUserId = UserContextHolder.requireUserId();
+        FileMetadata metadata = fileManagementService.getFileDetail(
+                fileId,
+                currentUserId,
+                UserContextHolder.isSuperAdmin()
+        );
         return Result.success(metadata);
     }
 
@@ -139,22 +150,10 @@ public class FileController {
      * 下载文件 (简单版本 - 兼容旧接口)
      */
     @GetMapping("/download")
-    public ResponseEntity<byte[]> downloadFile(@RequestParam("path") String path) {
-        try {
-            File file = fileService.getFile(path);
-            byte[] content = Files.readAllBytes(file.toPath());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", file.getName());
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(content);
-        } catch (IOException e) {
-            log.error("文件下载失败", e);
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<Result<Void>> downloadFile(@RequestParam("path") String path) {
+        log.warn("拒绝旧版按路径下载接口: path={}", Integer.toHexString(path.hashCode()));
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(new Result<>(HttpStatus.GONE.value(), LEGACY_PATH_ENDPOINT_DISABLED_MESSAGE));
     }
 
     /**
@@ -185,9 +184,10 @@ public class FileController {
      * 删除文件 (简单版本 - 兼容旧接口)
      */
     @DeleteMapping("/delete")
-    public Result<Void> deleteFile(@RequestParam("path") String path) {
-        fileService.deleteFile(path);
-        return Result.success("文件删除成功", null);
+    public ResponseEntity<Result<Void>> deleteFile(@RequestParam("path") String path) {
+        log.warn("拒绝旧版按路径删除接口: path={}", Integer.toHexString(path.hashCode()));
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(new Result<>(HttpStatus.GONE.value(), LEGACY_PATH_ENDPOINT_DISABLED_MESSAGE));
     }
 
     /**

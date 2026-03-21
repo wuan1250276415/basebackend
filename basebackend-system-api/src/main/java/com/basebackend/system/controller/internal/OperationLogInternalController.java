@@ -1,8 +1,12 @@
 package com.basebackend.system.controller.internal;
 
+import com.basebackend.common.context.UserContextHolder;
+import com.basebackend.common.exception.BusinessException;
 import com.basebackend.common.model.Result;
 import com.basebackend.api.model.log.UserOperationLogDTO;
+import com.basebackend.system.security.InternalRequestAuthValidator;
 import com.basebackend.system.service.OperationLogService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +28,7 @@ import java.util.List;
 public class OperationLogInternalController {
 
     private final OperationLogService operationLogService;
+    private final InternalRequestAuthValidator internalRequestAuthValidator;
 
     /**
      * 获取用户操作日志列表
@@ -35,7 +40,13 @@ public class OperationLogInternalController {
     @GetMapping("/user/{userId}")
     public Result<List<UserOperationLogDTO>> getUserOperationLogs(
             @PathVariable("userId") Long userId,
-            @RequestParam(value = "limit", required = false, defaultValue = "50") Integer limit) {
+            @RequestParam(value = "limit", required = false, defaultValue = "50") Integer limit,
+            HttpServletRequest request) {
+        internalRequestAuthValidator.requireValid(request);
+        Long currentUserId = UserContextHolder.requireUserId();
+        if (!UserContextHolder.isSuperAdmin() && !currentUserId.equals(userId)) {
+            throw new BusinessException("无权限读取其他用户的操作日志");
+        }
         log.debug("内部API - 获取用户操作日志: userId={}, limit={}", userId, limit);
         List<UserOperationLogDTO> logs = operationLogService.getUserOperationLogs(userId, limit);
         return Result.success(logs);
@@ -48,7 +59,15 @@ public class OperationLogInternalController {
      * @return 操作结果
      */
     @PostMapping("/save")
-    public Result<Void> saveOperationLog(@RequestBody UserOperationLogDTO operationLog) {
+    public Result<Void> saveOperationLog(@RequestBody UserOperationLogDTO operationLog,
+                                         HttpServletRequest request) {
+        internalRequestAuthValidator.requireValid(request);
+        Long currentUserId = UserContextHolder.getUserId();
+        if (currentUserId != null
+                && !UserContextHolder.isSuperAdmin()
+                && (operationLog.userId() == null || !currentUserId.equals(operationLog.userId()))) {
+            throw new BusinessException("无权限写入其他用户的操作日志");
+        }
         log.debug("内部API - 保存操作日志: userId={}, operationType={}",
                 operationLog.userId(), operationLog.operationType());
         operationLogService.saveOperationLog(operationLog);

@@ -19,7 +19,10 @@ public class HeaderSanitizationFilter implements GlobalFilter, Ordered {
             "X-User-Id",
             "X-Tenant-Id",
             "X-User-Roles",
-            "X-Internal-Call"
+            "X-Internal-Call",
+            "X-Internal-Service",
+            "X-Internal-Timestamp",
+            "X-Internal-Signature"
     );
 
     @Override
