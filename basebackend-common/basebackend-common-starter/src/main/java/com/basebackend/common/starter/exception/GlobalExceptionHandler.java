@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -257,6 +258,28 @@ public class GlobalExceptionHandler {
                                                        HttpServletRequest request) {
         if (shouldLogException()) {
             log.warn("No handler found, uri={}", getRequestUri(request));
+        }
+
+        return Result.error(CommonErrorCode.NOT_FOUND, "请求的资源不存在");
+    }
+
+    /**
+     * 处理静态资源未找到异常
+     * <p>
+     * Spring Framework 6.1+/Boot 3.2+ 开始，未命中控制器且进入静态资源链路时，
+     * 会抛出 {@link NoResourceFoundException}。若不单独处理，会落入兜底异常并返回 500。
+     * </p>
+     *
+     * @param e       静态资源未找到异常
+     * @param request HTTP 请求
+     * @return 404 错误响应
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFoundException(NoResourceFoundException e,
+                                                        HttpServletRequest request) {
+        if (shouldLogException()) {
+            log.warn("No resource found: path={}, uri={}", e.getResourcePath(), getRequestUri(request));
         }
 
         return Result.error(CommonErrorCode.NOT_FOUND, "请求的资源不存在");

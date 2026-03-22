@@ -1,5 +1,5 @@
 # ==========================================
-# BaseBackend Gateway — Multi-stage Dockerfile
+# BaseBackend File Service — Multi-stage Dockerfile
 # Java 25 + Spring Boot 4.0.3
 # ==========================================
 
@@ -61,7 +61,6 @@ COPY basebackend-code-generator/pom.xml basebackend-code-generator/
 COPY basebackend-scheduler-parent/pom.xml basebackend-scheduler-parent/
 COPY basebackend-scheduler-parent/scheduler-camunda/pom.xml basebackend-scheduler-parent/scheduler-camunda/
 COPY basebackend-file-service/pom.xml basebackend-file-service/
-COPY basebackend-file-service/pom.xml basebackend-file-service/
 COPY basebackend-user-api/pom.xml basebackend-user-api/
 COPY basebackend-system-api/pom.xml basebackend-system-api/
 COPY basebackend-notification-service/pom.xml basebackend-notification-service/
@@ -80,22 +79,22 @@ RUN mvn clean package -pl basebackend-file-service -am -DskipTests -Dmaven.test.
 FROM eclipse-temurin:25-jre-alpine
 
 LABEL maintainer="basebackend-team"
-LABEL service="file-service"
+LABEL service="basebackend-file-service"
 
 RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
 WORKDIR /app
-RUN mkdir -p /app/logs /app/storage && chown -R 1000:1000 /app/logs /app/storage
+RUN mkdir -p /app/logs /app/uploads && chown -R 1000:1000 /app/logs /app/uploads
 
 COPY --from=builder --chown=appuser:appuser /build/basebackend-file-service/target/*.jar /app/app.jar
 
 USER appuser
-EXPOSE 8080
+EXPOSE 8086
 
 ENV TZ=Asia/Shanghai
 ENV JAVA_OPTS="-Duser.timezone=Asia/Shanghai -Xms512m -Xmx1024m -XX:+UseZGC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heap-dump.hprof"
 ENV SPRING_PROFILES_ACTIVE=dev
-ENV SERVER_PORT=8080
+ENV SERVER_PORT=8086
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget -q -O /dev/null "http://localhost:${SERVER_PORT}/actuator/health" || exit 1
