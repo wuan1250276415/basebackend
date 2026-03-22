@@ -5,9 +5,9 @@ spring:
   # Redis 开发兜底配置（生产环境应从 Nacos redis-config.yml 获取）
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST:192.168.66.126}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis2025}
+      password: ${REDIS_PASSWORD:redis_TChiFW}
       database: ${REDIS_DATABASE:0}
       timeout: ${REDIS_TIMEOUT:5000ms}
       lettuce:
@@ -22,8 +22,8 @@ spring:
     redisson:
       config: |
         singleServerConfig:
-          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
-          password: "${REDIS_PASSWORD:redis2025}"
+          address: "redis://${REDIS_HOST:192.168.66.126}:${REDIS_PORT:6379}"
+          password: "${REDIS_PASSWORD:redis_TChiFW}"
           database: ${REDIS_DATABASE:0}
           connectionMinimumIdleSize: 5
           connectionPoolSize: 20
@@ -51,7 +51,7 @@ spring:
     nacos:
       discovery:
         enabled: true
-        server-addr: ${NACOS_DISCOVERY_SERVER:localhost:8848}
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
         namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         username: ${NACOS_DISCOVERY_USERNAME:nacos}
@@ -67,7 +67,7 @@ spring:
           region: ${APP_REGION:beijing}
           zone: ${APP_ZONE:zone-a}
       config:
-        server-addr: ${NACOS_CONFIG_SERVER:localhost:8848}
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
         namespace: ${NACOS_CONFIG_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         username: ${NACOS_CONFIG_USERNAME:nacos}
@@ -76,6 +76,26 @@ spring:
         refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
 server:
   port: 8081
+
+
+nacos:
+  config:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.config.server-addr}
+    namespace: ${spring.cloud.nacos.config.namespace}
+    group: ${spring.cloud.nacos.config.group}
+    username: ${spring.cloud.nacos.config.username}
+    password: ${spring.cloud.nacos.config.password}
+  discovery:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.discovery.server-addr}
+    namespace: ${spring.cloud.nacos.discovery.namespace}
+    group: ${spring.cloud.nacos.discovery.group}
+    service-name: ${spring.cloud.nacos.discovery.service-name}
+    username: ${spring.cloud.nacos.discovery.username}
+    password: ${spring.cloud.nacos.discovery.password}
+
+
 # Database enhanced features configuration
 database:
   enhanced:
@@ -102,7 +122,7 @@ knife4j:
     swagger-model-name: 实体类列表
 
 rocketmq:
-  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  name-server: ${ROCKETMQ_NAME_SERVER:192.168.66.126:9876}
   producer:
     group: basebackend-producer-group
     send-message-timeout: 3000

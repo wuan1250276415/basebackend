@@ -76,6 +76,22 @@ spring:
         file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
         refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
 
+nacos:
+  config:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.config.server-addr}
+    namespace: ${spring.cloud.nacos.config.namespace}
+    group: ${spring.cloud.nacos.config.group}
+    username: ${spring.cloud.nacos.config.username}
+    password: ${spring.cloud.nacos.config.password}
+  discovery:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.discovery.server-addr}
+    namespace: ${spring.cloud.nacos.discovery.namespace}
+    group: ${spring.cloud.nacos.discovery.group}
+    service-name: ${spring.cloud.nacos.discovery.service-name}
+    username: ${spring.cloud.nacos.discovery.username}
+    password: ${spring.cloud.nacos.discovery.password}
 
 # ========================================
 # 网关安全配置

@@ -42,9 +42,9 @@
         <module>basebackend-album-api</module>
         <module>basebackend-ticket-api</module>
         <!-- 商城首批骨架模块 -->
-        <module>basebackend-mall-product-api</module>
-        <module>basebackend-mall-trade-api</module>
-        <module>basebackend-mall-pay-api</module>
+<!--        <module>basebackend-mall-product-api</module>-->
+<!--        <module>basebackend-mall-trade-api</module>-->
+<!--        <module>basebackend-mall-pay-api</module>-->
     </modules>
 
     <properties>

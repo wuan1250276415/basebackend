@@ -87,7 +87,7 @@ LABEL service="chat-api"
 RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
 WORKDIR /app
-RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs
+RUN mkdir -p /app/logs /app/storage && chown -R 1000:1000 /app/logs /app/storage
 
 # 复制构建产物
 COPY --from=builder --chown=appuser:appuser /build/basebackend-chat-api/target/*.jar /app/app.jar

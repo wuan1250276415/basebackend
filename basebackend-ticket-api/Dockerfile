@@ -85,7 +85,7 @@ LABEL service="ticket-api"
 RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
 
 WORKDIR /app
-RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs
+RUN mkdir -p /app/logs /app/storage && chown -R 1000:1000 /app/logs /app/storage
 
 COPY --from=builder --chown=appuser:appuser /build/basebackend-ticket-api/target/*.jar /app/app.jar
 

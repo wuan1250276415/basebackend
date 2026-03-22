@@ -19,7 +19,7 @@ public class ObservabilityConfig {
      * 用于调用外部API（Prometheus、Loki、Zipkin等）
      */
     @Bean
-    public RestClient restClient(RestClient.Builder builder) {
+    public RestClient basicRestClient(RestClient.Builder builder) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(30000);
