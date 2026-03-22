@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: basebackend-file-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import:
+      - optional:classpath:application-file.yml
+      - optional:nacos:common-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:mysql-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:redis-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:security-config.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${NACOS_DISCOVERY_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:public}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_DISCOVERY_USERNAME:nacos}
+        password: ${NACOS_DISCOVERY_PASSWORD:nacos}
+        service-name: ${spring.application.name}
+        ip: ${NACOS_DISCOVERY_IP:192.168.66.126}
+        port: ${NACOS_DISCOVERY_PORT:${server.port:8086}}
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER:192.168.66.126:8848}
+        namespace: ${NACOS_CONFIG_NAMESPACE:public}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        username: ${NACOS_CONFIG_USERNAME:nacos}
+        password: ${NACOS_CONFIG_PASSWORD:nacos}
+        file-extension: ${NACOS_CONFIG_FILE_EXTENSION:yml}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+
+server:
+  port: ${SERVER_PORT:8086}
+
+
+nacos:
+  config:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.config.server-addr}
+    namespace: ${spring.cloud.nacos.config.namespace}
+    group: ${spring.cloud.nacos.config.group}
+    username: ${spring.cloud.nacos.config.username}
+    password: ${spring.cloud.nacos.config.password}
+  discovery:
+    enabled: true
+    server-addr: ${spring.cloud.nacos.discovery.server-addr}
+    namespace: ${spring.cloud.nacos.discovery.namespace}
+    group: ${spring.cloud.nacos.discovery.group}
+    service-name: ${spring.cloud.nacos.discovery.service-name}
+    username: ${spring.cloud.nacos.discovery.username}
+    password: ${spring.cloud.nacos.discovery.password}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
